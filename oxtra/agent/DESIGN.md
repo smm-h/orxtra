@@ -35,6 +35,37 @@ This is a pure whitelist. There is no deny list. If a tool is not in `allow`, it
 - Read once at agent load time, substituted at spawn time.
 - Variable substitution is strict both ways. Unresolved placeholders (present in the template but not in the provided variables) are hard errors. Unused provided variables (provided but not referenced in the template) are also hard errors. The template and the variable set must match exactly.
 
+## Prompt Composition
+
+Agent prompt `.md` files support an `{include:filename.md}` directive for composing prompts from multiple files:
+
+```markdown
+# Coding Agent
+
+You are a code generation agent. Follow the project conventions below.
+
+{include:conventions.md}
+
+## Framework API
+
+{include:framework-api.md}
+
+## Task
+
+{task}
+```
+
+Include resolution:
+- Paths are relative to the TOML file's directory (same as the prompt file itself)
+- Includes are resolved at load time, before variable substitution
+- Nesting is supported (included files can include other files)
+- Circular includes are hard errors (detected via path tracking during resolution)
+- A missing include target is a hard error
+
+`{include:...}` directives are syntactically distinct from `{variable}` placeholders -- they use a colon after `include`, while variables are bare names. The include directive is the only non-variable use of curly braces in prompt files.
+
+This enables maintaining prompts as composable pieces: a base agent prompt, domain-specific documentation, project conventions, and framework API references can each be separate files updated independently. The consumer controls composition by editing the agent's root .md file.
+
 ## Categories
 
 - A flat mapping from intent string to model string.
@@ -87,7 +118,7 @@ No version field in agent definitions. Agent format changes are breaking changes
 | `_types.py` | `Agent` frozen dataclass. Fields mirror the TOML schema: name, description, prompt (loaded text), category, allow list. |
 | `_loader.py` | `load_agent(path)`, `load_agents(directory)`. TOML parsing, schema validation, prompt file resolution. |
 | `_categories.py` | `load_categories(path)` -- reads `categories.toml`, returns `dict[str, str]`. `resolve_category(agent, categories)` -- looks up the agent's category, returns model string or raises. |
-| `_prompt.py` | `resolve_prompt(template, variables)` -- `{variable}` substitution with strict-both-ways validation. |
+| `_prompt.py` | `resolve_prompt(template, variables)` -- `{variable}` substitution with strict-both-ways validation. `resolve_includes(template, base_dir)` -- `{include:filename.md}` resolution with circular detection. Called before variable substitution. |
 
 ## What This Module Does NOT Do
 
