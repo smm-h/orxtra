@@ -42,11 +42,27 @@ class Session:
 The key mechanism for efficient retries and multi-turn conversations:
 
 1. After a step completes, the session's `session_id` is recorded in the pipeline's step result
-2. If the step fails and needs a retry with `retry_inject_failure`, the executor can either:
-   - **Resume** the existing session (continue the conversation with failure context) -- cheaper, preserves full context
-   - **Start fresh** (new session with the retry prompt) -- cleaner but more expensive
+2. If the step fails and needs a retry, the pipeline step's `retry_resume` field controls behavior:
+   - `retry_resume = true` -- **Resume** the existing session (continue the conversation with failure context). Cheaper, preserves full context, agent sees its own failure.
+   - `retry_resume = false` -- **Start fresh** (new session with the retry prompt). Clean slate, no accumulated context baggage. More expensive but more predictable.
 
-The default behavior is **resume** when the transport supports it (opencode backend does, anthropic backend does, direct backend does via in-memory history). The pipeline TOML does not control this -- it is a transport-level capability.
+This is an explicit choice per pipeline step, not a transport-level default. The `retry_resume` field is required when `retry > 0`.
+
+## Session Handoff (Context Compaction)
+
+When an agent's conversation approaches ~90% of the model's context window, the executor triggers a session handoff:
+
+1. The executor asks the current session to produce a detailed summary of everything that has happened so far.
+2. The executor starts a new session with that summary as initial context.
+3. The new session also receives the old session's UUID, enabling it to query the old session's full transcript -- inputs, outputs, tool calls, token stats -- via the session transcript store.
+
+The new agent has both a summary for quick reference and the full record for deep lookups. This avoids the information loss of simple truncation while keeping the active context within limits.
+
+## Session Transcript Store
+
+Sessions write their full transcript to the run directory as they execute. The transcript includes every message (user and assistant), every tool call (name, input, output), and per-turn token counts.
+
+A session can query another session's transcript by UUID. This is the mechanism that makes session handoff work -- the new session can look up specific details from the old session without carrying the full conversation in its context window.
 
 ## Cost Tracking
 
@@ -87,5 +103,5 @@ def create_session(
 - Does not filter tools (that is agent/ permissions, applied before session creation)
 - Does not manage multiple sessions concurrently (that is pipeline/, which creates sessions as needed)
 - Does not implement retry logic (that is pipeline/)
-- Does not persist session history to disk (opencode backend handles persistence internally; direct backend is in-memory only)
+- Does not persist session history beyond the run directory transcript
 - Does not enforce cost limits (the caller checks `total_cost_usd` and decides whether to continue)

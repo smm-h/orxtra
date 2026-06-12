@@ -29,14 +29,13 @@ That's the entire contract. No `ToolDefinition` vs `ToolImpl`. No `register()` c
 
 - When spawning an agent, the executor filters the registry to only include tools in the agent's `allow` list
 - `spawn` is mechanically stripped from all spawned agents regardless of `allow`
-- Framework tools (e.g., `notepad`) are injected by the executor outside the whitelist
 - The filtered registry is what gets sent to the LLM as available tools
 - The agent never sees tools that aren't in its filtered set
 - This is the mechanical enforcement of permissions -- no prompt instructions needed
 
 ## Built-in Tools
 
-oxtra ships zero built-in tools. The consuming project defines its own tools. However, oxtra provides **tool constructors** for common patterns:
+oxtra provides **tool constructors** -- functions that return `Tool` objects. The consumer calls them and adds results to the registry. There is no distinction between 'framework tools' and 'domain tools' -- all tools are the same type.
 
 | Constructor | Purpose |
 |---|---|
@@ -46,8 +45,60 @@ oxtra ships zero built-in tools. The consuming project defines its own tools. Ho
 | `make_bash_tool(cwd: Path, timeout: int) -> Tool` | Run shell commands with timeout |
 | `make_grep_tool(cwd: Path) -> Tool` | Search file contents |
 | `make_glob_tool(cwd: Path) -> Tool` | Find files by pattern |
+| `make_spawn_tool(executor) -> Tool` | Spawn a full agent session |
+| `make_consult_tool(executor) -> Tool` | Spawn a read-only agent session |
+| `make_notepad_tool(run_dir: Path) -> Tool` | Write to the pipeline's shared notepad |
 
 These are convenience functions, not special. They return plain `Tool` objects. Users can replace them or not use them.
+
+## Spawn Tool
+
+Creates a full agent session with write access. The pipeline executor uses this tool internally -- it is the single code path for all agent invocation.
+
+Parameters:
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `agent` | string | yes | Agent name (must exist in loaded agents) |
+| `task` | string | yes | Task prompt for the agent |
+| `category` | string | no | Override the agent's default category for this invocation |
+| `variables` | dict | no | Variables to substitute into the agent's prompt template |
+| `run_in_background` | boolean | yes | True = async (returns immediately with session_id), false = sync (blocks until completion). No default -- must be explicit. |
+
+Returns: `{session_id: str, output: str}` -- the session ID for resumption and the agent's text output.
+
+`spawn` is mechanically stripped from all spawned agents' tool sets, regardless of their `allow` list. Only the pipeline executor and orchestrator-level agents retain access. This prevents orchestration recursion.
+
+## Consult Tool
+
+Creates a read-only agent session for research. The spawned agent has write, edit, bash, and spawn mechanically removed from its tool set.
+
+Parameters:
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `agent` | string | yes | Agent name (must exist in loaded agents) |
+| `question` | string | yes | The question or research task |
+| `variables` | dict | no | Variables to substitute into the agent's prompt template |
+
+Returns: `str` -- the agent's text response.
+
+Any agent with `"consult"` in its `allow` list can use this tool. This is the mechanism for two-tier delegation: workers cannot spawn other workers, but they can consult read-only agents for information.
+
+## Notepad Tool
+
+Writes an entry to the pipeline's shared notepad for cross-agent context sharing. See `notepad/DESIGN.md` for the IPC mechanism, file format, and injection behavior.
+
+Parameters:
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `type` | enum: "learning", "decision", "issue" | yes | Category of the entry |
+| `text` | string | yes | Free-form content. One fact/decision/issue per entry. |
+
+The `step` and `agent` fields in the JSONL entry are injected by the executor -- the agent only provides `type` and `text`.
+
+Any agent with `"notepad"` in its `allow` list can use this tool. Agents without it in their `allow` list cannot write to the notepad.
 
 ## Tool Execution
 

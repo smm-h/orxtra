@@ -36,21 +36,9 @@ Each line in a `.jsonl` file is a JSON object:
 
 ## Write API
 
-Agents write to the notepad via a tool provided by the pipeline executor:
+Agents write to the notepad via the `notepad` tool, constructed by `make_notepad_tool(run_dir)` (see `tool/DESIGN.md` for the tool spec). The tool is a regular tool -- agents include `"notepad"` in their `allow` list to get access. Agents without it in their `allow` list cannot write to the notepad.
 
-```python
-Tool(
-    name="notepad",
-    description="Record a learning, decision, or issue for other agents in this pipeline.",
-    parameters={
-        "type": {"type": "string", "enum": ["learning", "decision", "issue"]},
-        "text": {"type": "string"}
-    },
-    execute=...,  # appends to the correct .jsonl file
-)
-```
-
-The `notepad` tool is a **framework-level tool** -- it exists outside the agent's `allow` whitelist. The pipeline executor injects it into every agent's tool set automatically. It cannot be removed via the whitelist; it is infrastructure, not a domain tool. The `step` and `agent` fields are injected by the executor -- the agent only provides `type` and `text`.
+The `step` and `agent` fields in each JSONL entry are injected by the executor -- the agent only provides `type` and `text`.
 
 ## Read API (Injection)
 
@@ -70,7 +58,7 @@ Before spawning an agent, the pipeline executor:
    ### Issues
    - (none)
    ```
-3. This injection is mechanical -- every agent gets the full notepad regardless of whether it asks for it.
+3. This injection is mechanical -- every agent that has `"notepad"` in its `allow` list gets the full notepad content injected into its prompt.
 
 ## Key Design Decisions
 

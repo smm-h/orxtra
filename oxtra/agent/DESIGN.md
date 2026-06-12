@@ -33,7 +33,7 @@ This is a pure whitelist. There is no deny list. If a tool is not in `allow`, it
 - Can contain `{variable}` placeholders that get substituted at runtime from pipeline step variables.
 - Simple string substitution only. No Jinja2, no loops, no conditionals, no filters. Complexity in prompts is a smell.
 - Read once at agent load time, substituted at spawn time.
-- Unresolved placeholders at spawn time are hard errors.
+- Variable substitution is strict both ways. Unresolved placeholders (present in the template but not in the provided variables) are hard errors. Unused provided variables (provided but not referenced in the template) are also hard errors. The template and the variable set must match exactly.
 
 ## Categories
 
@@ -50,7 +50,7 @@ The `allow` list is the sole authority on which tools an agent can use. Before s
 Special cases:
 - `spawn` is mechanically stripped from all spawned agents, regardless of `allow`. Only the pipeline executor can spawn agents.
 - `consult` (read-only agent invocation) follows the normal whitelist rule -- include it in `allow` to make it available.
-- `notepad` is a framework-level tool injected by the pipeline executor. It exists outside the whitelist model -- agents get it automatically unless the pipeline executor is configured to exclude it. See `notepad/DESIGN.md`.
+- `notepad` follows the normal whitelist rule -- include it in `allow` to make it available.
 
 ## Two-Tier Delegation
 
@@ -86,4 +86,4 @@ No version field in agent definitions. Agent format changes are breaking changes
 - Does not define any built-in agents. Those are the user's domain.
 - Does not handle model selection beyond category lookup. No availability checks, no fallbacks, no provider negotiation.
 - Does not parse or interpret prompt content. It loads the text as a string. Substitution happens at spawn time, not load time.
-- Does not validate that tools referenced in `allow`/`deny` actually exist. That validation happens at pipeline execution time when the tool registry is available.
+- Does not validate that tools referenced in `allow` actually exist. That validation happens at pipeline execution time when the tool registry is available.

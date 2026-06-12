@@ -61,22 +61,28 @@ Where `VerifyContext` contains:
 
 ## Verification Agent
 
+The verification agent is a full agent definition (TOML + .md prompt file), not a framework-constructed template. The consuming project defines it like any other agent -- with its own prompt, category, and tool whitelist. The executor invokes it via `consult`, injecting a verification context struct as template variables.
+
 When `verify_agent` is set on a pipeline step:
 
-1. The executor spawns the named agent via `consult` (read-only mode).
-2. The agent's prompt is constructed mechanically:
-   ```
-   You are verifying the work of another agent.
+1. The executor loads the named agent definition.
+2. The executor builds a `VerifyAgentContext` and passes its fields as template variables to the agent's prompt:
 
-   Original task: {task}
-   Agent output: {agent_output}
-   Mechanical checks: {mechanical_results}
+```python
+@dataclass(frozen=True)
+class VerifyAgentContext:
+    task: str              # the original task prompt given to the agent
+    agent_output: str      # the agent's text output
+    mechanical_results: str # formatted mechanical verification results (or empty if no mechanical verify)
+    step_name: str         # the pipeline step name
+    attempt: int           # attempt number (1-indexed)
+    variables: dict        # the step's runtime variables
+    notepad: str           # formatted notepad content (learnings, decisions, issues)
+```
 
-   Review the work. Report whether it is correct, complete, and consistent.
-   If there are problems, describe them specifically.
-   ```
-3. The verification agent's response is parsed for a pass/fail determination.
-4. If the verification agent reports failure, it counts as a step failure (triggering retry if available).
+3. The executor spawns the agent via `consult` (read-only mode). The agent's `.md` prompt uses `{task}`, `{agent_output}`, `{mechanical_results}`, etc. as placeholders. Variable strictness applies -- the template must reference every field in the context, and the context provides every variable the template needs.
+4. The verification agent's response is parsed for a pass/fail determination.
+5. If the verification agent reports failure, it counts as a step failure (triggering retry if available).
 
 ## Key Design Decisions
 

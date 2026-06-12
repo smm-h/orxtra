@@ -19,7 +19,7 @@ Seven modules, each with a single responsibility.
 |---|---|
 | `agent/` | Load agent definitions from TOML + .md prompt files. Validate schema. Resolve categories and permissions. |
 | `tool/` | Tool registry. Each tool is a single Python object: name, description, parameters, execute. No separation between schema and implementation. |
-| `transport/` | LLM client (absorbed from openstream). Send messages, stream responses, parse events. Multiple backends. |
+| `transport/` | LLM client via Provider protocol. Send messages to LLM APIs directly (Anthropic, OpenAI), stream responses, parse events, run the tool-call loop. No subprocess agents. |
 | `pipeline/` | Declare and execute multi-step agent workflows from TOML step files. Retry logic, step dependencies, auto-continuation. |
 | `verify/` | Run verification after each pipeline step. Two tiers: Python callables (mechanical gate), then verification agents (semantic checks). |
 | `notepad/` | Append-only filesystem-based IPC for cross-agent context sharing. Each pipeline run gets a directory. Workers append learnings, decisions, issues. No overwrites. |
@@ -35,7 +35,7 @@ Ten hard rules. Each is mechanically enforced, not prompt-requested.
 
 3. **Categories abstract model names.** Agents and pipeline steps reference intent strings ("quick", "deep", "visual"), never model names. A flat map resolves intent to model. No fallback chains. Missing category is a hard error.
 
-4. **Permissions are whitelists.** Each agent declares which tools it can use. Everything else is mechanically absent -- the LLM never sees unlisted tools. Not a prompt instruction. No deny lists, no RBAC, no inheritance.
+4. **Permissions are whitelists.** Each agent declares which tools it can use. Everything else is mechanically absent -- the LLM never sees unlisted tools. Not a prompt instruction. No deny lists, no RBAC, no inheritance. This includes framework-provided tools like `spawn`, `consult`, and `notepad` -- they follow the same whitelist rules as any domain tool. There is no separate 'framework tool' category.
 
 5. **Subagents cannot delegate -- enforced mechanically.** Worker agents spawned by a pipeline step do not have access to the `spawn` tool. This prevents orchestration recursion. The constraint is in the tool list construction, not in the prompt.
 
@@ -43,9 +43,9 @@ Ten hard rules. Each is mechanically enforced, not prompt-requested.
 
 7. **Mandatory parameters for consequential choices.** No implicit defaults for backend selection, model choice, or execution mode. Missing values are hard errors, not silent defaults.
 
-8. **Verification is mechanical, not requested.** After every pipeline step, verification runs automatically. The pipeline executor calls verification functions -- not the agent's prompt. The agent cannot skip verification.
+8. **Verification is mechanical, not requested.** After every pipeline step, verification runs automatically. The pipeline executor calls verification functions -- not the agent's prompt. The agent cannot skip verification. Verification agents are full agent definitions (TOML + .md prompt file), not framework-constructed templates. The executor invokes them via `consult`, injecting a verification context struct as template variables.
 
-9. **Filesystem IPC + session resumption.** Cross-agent context via append-only notepad files. Session continuity via session IDs returned from every invocation. No in-memory shared state between agents.
+9. **Filesystem IPC + session resumption.** Cross-agent context via append-only notepad files. Session continuity via session IDs returned from every invocation. No in-memory shared state between agents. When an agent's conversation approaches ~90% of the model's context window, the executor triggers a session handoff: the current session produces a detailed summary, a new session starts with that summary as initial context plus the old session's UUID for querying its full transcript (inputs, outputs, tool calls, stats).
 
 10. **Auto-continuation.** The pipeline executor refuses to stop while steps remain incomplete. If a step fails and retries are available, it retries. If a step succeeds, it moves to the next. Only exhausted retries or explicit abort stop execution.
 
@@ -86,10 +86,10 @@ prompt = "researcher.md"
 category = "quick"
 
 [tools]
-allow = ["navigate", "screenshot", "extract_content", "read", "bash", "consult"]
+allow = ["navigate", "screenshot", "extract_content", "read", "bash", "consult", "notepad"]
 ```
 
-No `[permissions]` section — permissions are expressed entirely through the `allow` whitelist. `spawn` is mechanically stripped from all spawned agents regardless of config, so it never needs to be mentioned. `consult` is listed explicitly because the agent should be able to research via read-only agents.
+No `[permissions]` section -- permissions are expressed entirely through the `allow` whitelist. `spawn` is mechanically stripped from all spawned agents regardless of config, so it never needs to be mentioned. `consult` and `notepad` are listed explicitly because the agent should be able to research via read-only agents and record learnings for downstream pipeline steps.
 
 The prompt file (`researcher.md`) lives alongside the TOML file and contains the agent's system prompt. It can reference `{variable}` placeholders that are substituted at spawn time from pipeline step variables.
 
@@ -106,6 +106,8 @@ name = "research"
 agent = "researcher"
 task = "Investigate {target}: gather relevant pages, extract key content and structure."
 variables = ["target", "work_dir"]
+depends_on_previous = false
+timeout = 300
 verify = "myproject.verify:research_complete"
 
 [[steps]]
@@ -115,6 +117,7 @@ category = "deep"
 task = "Generate output for {target} based on the research data in {work_dir}."
 variables = ["target", "work_dir", "output_path"]
 depends_on = ["research"]
+timeout = 600
 verify = "myproject.verify:output_valid"
 
 [[steps]]
@@ -123,15 +126,20 @@ agent = "reviewer"
 task = "Run the test harness against the output at {output_path}."
 variables = ["target", "output_path"]
 depends_on = ["generate"]
+timeout = 300
 retry = 5
+retry_resume = true
+retry_inject_failure = true
 verify = "myproject.verify:review_passed"
 ```
 
 Key points:
-- Steps declare dependencies via `depends_on`. The executor resolves ordering.
+- Every step must declare dependencies explicitly via `depends_on` (list of step names) or `depends_on_previous` (boolean). Both missing is a hard error.
+- `timeout` is required on every agent step (seconds). No default.
 - `verify` references a Python callable (`module:function`) that runs after the step completes.
 - `category` on a step overrides the agent's default category for that invocation.
 - `retry` sets the maximum number of retries before the executor gives up on a step.
+- `retry_resume` is required when `retry > 0`. True continues the existing session on retry; false starts a fresh session.
 - `variables` declares which pipeline variables the step needs. Missing variables at runtime are hard errors.
 
 ### Tool-Less Agent
@@ -172,7 +180,7 @@ A consuming project defines all domain-specific content. oxtra provides the fram
 - **Pipelines** (process-data, etl-pipeline, etc.) as TOML step files
 - **Verification functions** (research_complete, output_valid, review_passed) as Python callables
 
-The consumer calls oxtra's Python API to run pipelines, passing in the paths to its agent definitions, tool registrations, and pipeline files. oxtra handles the rest: agent loading, tool filtering, model selection, step execution, verification, retries, notepad IPC, and session tracking.
+The consumer builds a tool registry from oxtra's tool constructors (`make_read_tool`, `make_write_tool`, `make_bash_tool`, `make_spawn_tool`, `make_consult_tool`, `make_notepad_tool`, etc.) plus any custom domain tools, then calls oxtra's Python API to run pipelines. oxtra handles the rest: agent loading, tool filtering, model selection, step execution, verification, retries, notepad IPC, and session tracking.
 
 ### Mixed Pipeline Example
 
@@ -187,6 +195,7 @@ description = "Fetch, normalize, extract, and publish structured data"
 name = "fetch"
 callable = "myproject.steps:fetch_data"
 variables = ["data_dir"]
+depends_on_previous = false
 
 [[steps]]
 name = "normalize"
@@ -205,11 +214,14 @@ name = "extract"
 agent = "extractor"
 task = "Extract key fields and a summary from this document.\n\nTitle: {item.title}\n\nContent:\n{item.body}"
 for_each = "documents_to_process"
+for_each_abort_on_failure = false
 variables = ["documents_to_process"]
 category = "standard"
 output_schema = "schemas/extraction.json"
 depends_on = ["unify"]
+timeout = 120
 retry = 2
+retry_resume = false
 retry_inject_failure = true
 verify = "myproject.verify:extraction_valid"
 

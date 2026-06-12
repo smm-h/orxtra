@@ -1,9 +1,5 @@
 # Transport Module Design
 
-## Background
-
-oxtra's transport layer is the dissolved remains of a project called "openstream," a Python SDK for the OpenCode JSON streaming protocol. openstream supported two backends: spawning an `opencode` CLI subprocess, and calling Azure OpenAI directly. oxtra absorbs this code and makes it the built-in LLM communication layer.
-
 ## Responsibility
 
 Send messages to LLMs. Stream responses back as typed events. Handle the tool-call loop (LLM requests tool -> execute tool -> send result -> LLM continues). Nothing more.
@@ -23,10 +19,98 @@ Typed dataclasses for each event in the stream:
 
 These are frozen dataclasses. They are the public API of the transport layer.
 
+## Provider Protocol
+
+```python
+class Provider(Protocol):
+    def build_request(
+        self,
+        messages: list[dict],
+        tools: list[Tool],
+        system: str,
+        model: str,
+    ) -> dict:
+        """Convert oxtra's internal message format to the provider's API request format."""
+        ...
+
+    def parse_response(self, response: dict) -> list[ContentBlock]:
+        """Convert the provider's API response to oxtra's content blocks (text, tool_use)."""
+        ...
+
+    async def parse_stream(self, stream: AsyncIterator[bytes]) -> AsyncIterator[Event]:
+        """Parse the provider's SSE stream into typed oxtra events."""
+        ...
+
+    def extract_usage(self, response: dict) -> Usage:
+        """Extract token counts and cost from the provider's response."""
+        ...
+```
+
+This is a protocol (structural typing), not an abstract base class. Any object implementing these four methods is a valid provider. Adding a new LLM provider means implementing these methods, not writing a new transport.
+
+## Tool-Call Loop
+
+The transport runs a provider-agnostic loop:
+
+1. Build the API request via `provider.build_request(messages, tools, system, model)`
+2. Send the request to the provider's API endpoint
+3. Parse the response via `provider.parse_response(response)` into content blocks
+4. If the response contains `tool_use` blocks:
+   - For each tool call: validate arguments against the tool's JSON Schema, call `tool.execute(args)`, collect the result
+   - Append the tool results to the message history
+   - Go to step 1
+5. If the response contains only `text` blocks: the turn is complete. Emit `Result`.
+
+The loop is the same for all providers. The provider only handles serialization and deserialization.
+
+## Providers
+
+### AnthropicProvider
+
+Calls the Anthropic Messages API directly.
+
+- Requires: `ANTHROPIC_API_KEY` environment variable (or explicit parameter). Missing key is a hard error.
+- API endpoint: `https://api.anthropic.com/v1/messages`
+- Supports all Claude models (haiku, sonnet, opus)
+- System prompt: passed as the `system` parameter (not as a user message)
+- Tools: converted from oxtra Tool objects to Anthropic's tool format (`name`, `description`, `input_schema`)
+- Streaming: SSE via Anthropic's streaming endpoint
+- Event mapping:
+  - `StepStart` -> emitted when the API call begins
+  - `Text` -> from `content[type="text"]` blocks
+  - `ToolUse` -> from `content[type="tool_use"]` blocks
+  - `StepFinish` -> from `usage` field (input_tokens, output_tokens, cost calculated from model pricing)
+  - `Error` -> from API error responses (4xx, 5xx)
+  - `Result` -> aggregated after the full tool-use loop completes
+
+### OpenAIProvider
+
+Calls OpenAI-compatible APIs (OpenAI, Azure OpenAI, and compatible endpoints).
+
+- Requires: API key and endpoint. Missing credentials is a hard error.
+- Tools: converted from oxtra Tool objects to OpenAI's function calling format
+- Streaming: SSE via OpenAI's streaming endpoint
+- Tool results: sent as `role: "tool"` messages with `tool_call_id`
+
+## Provider Selection
+
+- `provider` is a required parameter on transport construction. No default.
+- Missing credentials for the selected provider is a hard error.
+- No auto-detection, no fallback between providers.
+
+## Session ID Management
+
+- The transport generates a UUID for each new session
+- Session IDs are returned in every `Result` event
+- Passing `session_id` to a subsequent `send()` call continues the conversation
+- Conversation history is tracked in-memory, keyed by session_id
+
 ## Transport Interface
 
 ```python
-class Transport(Protocol):
+class Transport:
+    def __init__(self, provider: Provider): ...
+
     async def send(
         self,
         message: str,
@@ -39,51 +123,7 @@ class Transport(Protocol):
         ...
 ```
 
-This is a protocol (structural typing), not an abstract base class. Any object with a matching `send` method is a valid transport.
-
-## Backends
-
-Three backends, chosen explicitly (no fallback):
-
-1. **OpenCodeTransport** -- Spawns the `opencode` CLI as a subprocess. Pipes the message in, parses NDJSON events from stdout. Tool execution is handled by opencode itself.
-   - Requires: `opencode` binary on PATH (or explicit path)
-   - Session resumption: via `--session` and `--continue` flags
-
-2. **DirectTransport** -- Calls an LLM API directly (currently Azure OpenAI). Handles the tool-call loop internally: LLM requests tool -> transport calls `execute()` on the Tool object -> sends result back -> repeats.
-   - Requires: API key, resource/endpoint
-   - Session resumption: in-memory conversation history (keyed by session_id)
-
-3. **AnthropicTransport** -- Calls the Anthropic Messages API directly. Handles the tool-use loop internally (same pattern as DirectTransport): LLM requests tool -> transport calls `execute()` on the Tool object -> sends `tool_result` back -> repeats until the model stops requesting tools.
-   - Requires: `ANTHROPIC_API_KEY` environment variable (or explicit parameter). Missing key is a hard error.
-   - API endpoint: `https://api.anthropic.com/v1/messages`
-   - Supports all Claude models (haiku, sonnet, opus)
-   - Event mapping:
-     - `StepStart` -> emitted when the API call begins
-     - `Text` -> from `content[type="text"]` blocks, streamed via SSE
-     - `ToolUse` -> from `content[type="tool_use"]` blocks. Transport executes the tool, sends `tool_result` back, continues the loop.
-     - `StepFinish` -> from `usage` field in the response (input_tokens, output_tokens). Cost calculated from model pricing.
-     - `Error` -> from API error responses (4xx, 5xx)
-     - `Result` -> aggregated after the full tool-use loop completes
-   - Session resumption: in-memory conversation history keyed by session_id (same approach as DirectTransport)
-   - Streaming: uses Anthropic's SSE streaming endpoint for real-time Text events
-   - System prompt: passed as the `system` parameter (not as a user message)
-   - Tools: converted from oxtra Tool objects to Anthropic's tool format (`name`, `description`, `input_schema`)
-
-## Backend Selection
-
-- `backend` is a required parameter on transport construction. No default.
-- If using `"opencode"`, the `opencode` binary must be available. Missing binary is a hard error.
-- If using `"direct"`, API credentials must be provided. Missing credentials is a hard error.
-- If using `"anthropic"`, `ANTHROPIC_API_KEY` must be set (or passed explicitly). Missing key is a hard error.
-- No auto-detection, no "try opencode first, fall back to direct."
-
-## Session ID Management
-
-- The transport captures `session_id` from the first `StepStart` event (for opencode backend) or generates a UUID (for direct and anthropic backends)
-- Session IDs are returned in every `Result` event
-- Passing `session_id` to a subsequent `send()` call continues the conversation
-- For opencode: passes `--session <id> --continue` to the CLI
-- For direct and anthropic: looks up in-memory conversation history by session_id
+The transport wraps a provider and runs the tool-call loop. The caller does not interact with the provider directly.
 
 ## What This Module Does NOT Do
 
@@ -92,4 +132,4 @@ Three backends, chosen explicitly (no fallback):
 - Does not track costs across sessions (that's session/)
 - Does not retry on API errors (that's pipeline/, which decides retry policy)
 - Does not manage multiple concurrent transports (that's pipeline/)
-- Does not implement fallback between backends
+- Does not implement fallback between providers
