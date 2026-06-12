@@ -99,6 +99,14 @@ def create_session(
 - `tools` is required -- already filtered by permissions
 - `session_id` is optional -- pass it to resume an existing session
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_session.py` | `Session` class. Wraps transport, accumulates cost/tokens/turns, tracks session_id, exposes `send()` and `resume_id()`. |
+| `_factory.py` | `create_session(transport, model, system_prompt, tools, session_id?)` -- constructs a `Session`. |
+| `_handoff.py` | `HandoffDetector` -- monitors token usage per turn, signals when cumulative usage crosses 90% of the model's context window. `perform_handoff(session, trace_writer)` -- asks the agent for a summary, persists transcript, returns the summary and old session UUID for the new session. |
+
 ## What This Module Does NOT Do
 
 - Does not choose models (that is agent/ category resolution)

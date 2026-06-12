@@ -80,6 +80,15 @@ Schema validation is strict:
 
 No version field in agent definitions. Agent format changes are breaking changes to oxtra, not versioned migrations within the format.
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_types.py` | `Agent` frozen dataclass. Fields mirror the TOML schema: name, description, prompt (loaded text), category, allow list. |
+| `_loader.py` | `load_agent(path)`, `load_agents(directory)`. TOML parsing, schema validation, prompt file resolution. |
+| `_categories.py` | `load_categories(path)` -- reads `categories.toml`, returns `dict[str, str]`. `resolve_category(agent, categories)` -- looks up the agent's category, returns model string or raises. |
+| `_prompt.py` | `resolve_prompt(template, variables)` -- `{variable}` substitution with strict-both-ways validation. |
+
 ## What This Module Does NOT Do
 
 - Does not execute agents. Execution is handled by `pipeline/` and `session/`.

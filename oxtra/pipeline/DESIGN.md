@@ -242,6 +242,15 @@ This is mechanical -- the executor builds the retry prompt, not the agent.
 - Available after pipeline completion or failure as a `PipelineResult` object
 - No budget enforcement in the pipeline itself -- the caller uses `abort()` to enforce budgets
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_types.py` | `StepContext`, `StepResult` (function step return type), `PipelineConfig` (parsed pipeline TOML). Step schema field definitions. |
+| `_loader.py` | `load_pipeline(path)` -- reads pipeline TOML, validates schema (required fields, mutual exclusivity, conditional requirements), returns `PipelineConfig`. |
+| `_graph.py` | Dependency graph construction from `depends_on`/`depends_on_previous`. Topological sort. Cycle detection. Identifies parallelizable step groups. |
+| `_executor.py` | `PipelineExecutor` class. The core runtime: step execution loop, spawn invocation, timeout enforcement, retry logic, verification dispatch, notepad injection, asyncio parallelism, `abort()` method. Delegates persistence to `trace/`. |
+
 ## What This Module Does NOT Do
 
 - Does not define agents or tools (those are loaded externally)

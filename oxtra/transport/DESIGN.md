@@ -127,6 +127,15 @@ class Transport:
 
 The transport wraps a provider and runs the tool-call loop. The caller does not interact with the provider directly.
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_events.py` | Frozen dataclasses for all event types: `StepStart`, `Text`, `ToolUse`, `StepFinish`, `Error`, `Result`. Also `ContentBlock`, `Usage`. |
+| `_provider.py` | `Provider` protocol definition. |
+| `_transport.py` | `Transport` class. Wraps a provider, runs the tool-call loop, manages in-memory conversation history keyed by session_id. |
+| `providers/` | Provider implementations. See `providers/DESIGN.md`. |
+
 ## What This Module Does NOT Do
 
 - Does not decide which model to use (that's category resolution in agent/)

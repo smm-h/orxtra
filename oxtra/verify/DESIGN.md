@@ -95,6 +95,13 @@ Step variables are also injected, but namespaced with a `var_` prefix to prevent
 
 **Verification failure = step failure.** There is no "warning" or "soft fail." If verification fails, the step failed. The pipeline decides what to do (retry or abort) based on the step's retry policy.
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_types.py` | `VerifyResult`, `VerifyContext` (for mechanical callables), `VerifyAgentContext` (for verification agents). All frozen dataclasses. |
+| `_runner.py` | `run_mechanical_verify(callable_path, ctx)` -- imports and calls the verification function. `run_agent_verify(agent_name, verify_ctx, executor)` -- builds `VerifyAgentContext`, invokes the verification agent via `consult`, parses pass/fail from response. |
+
 ## What This Module Does NOT Do
 
 - Does not define what to verify (that's the consuming project's verification functions)

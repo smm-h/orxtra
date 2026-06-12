@@ -72,6 +72,13 @@ Before spawning an agent, the pipeline executor:
 
 **No cross-run notepad.** Each pipeline run gets a fresh notepad. Learnings from previous runs are not carried over automatically. If the user wants persistence across runs, they manage it outside oxtra (e.g., a project-level knowledge file that agents are instructed to read).
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_types.py` | `NotepadEntry` frozen dataclass: step, agent, text, type (learning/decision/issue). |
+| `_reader.py` | `read_notepad(run_dir)` -- reads all three JSONL files, returns structured entries. `format_notepad(entries)` -- formats entries as the markdown section injected into agent prompts. |
+
 ## What This Module Does NOT Do
 
 - Does not provide cross-run persistence

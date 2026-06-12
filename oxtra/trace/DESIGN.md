@@ -147,6 +147,15 @@ The trace module does not decide when to trigger handoff (that's session/). It p
 
 **No cleanup.** The trace module never deletes run directories. Cleanup is the caller's responsibility. Run directories accumulate until explicitly removed.
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_types.py` | `PipelineResult`, `StepResult`, `StepSummary` frozen dataclasses. JSON serialization helpers. |
+| `_writer.py` | `TraceWriter` class. Bound to a run directory. Methods: `write_step_result()`, `write_pipeline_result()`, `write_event()`, `write_transcript_entry()`, `write_notepad_entry()`. Handles file creation, JSONL appending, JSON writing. |
+| `_reader.py` | Query API: `read_step_result()`, `read_transcript()`, `query_transcript()`, `read_pipeline_result()`, `list_runs()`. |
+| `_directory.py` | `create_run_directory(data_dir, pipeline_name)` -- creates the timestamped directory structure with all subdirectories. |
+
 ## What This Module Does NOT Do
 
 - Does not decide when to write (that's pipeline/ and session/)

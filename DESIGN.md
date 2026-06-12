@@ -4,6 +4,28 @@
 
 A Python library for orchestrating multi-agent AI workflows. You define agents as TOML + markdown, tools as Python objects, pipelines as TOML step files, and oxtra handles execution, delegation, verification, session management, and cross-agent context sharing.
 
+## Project Structure
+
+```
+oxtra/
+    DESIGN.md
+    pyproject.toml
+    oxtra/
+        __init__.py            # Public API: re-exports from submodules
+        agent/                 # Agent definition loading and validation
+        tool/                  # Tool contract, registry, constructors
+        transport/             # LLM communication via Provider protocol
+            providers/         # Per-provider API implementations
+        pipeline/              # Pipeline loading, execution, parallelism
+        verify/                # Mechanical + semantic verification
+        notepad/               # Cross-agent context sharing
+        session/               # Session lifecycle, cost tracking, handoff
+        trace/                 # Run directory persistence and query
+    tests/                     # One test module per source module
+```
+
+Each module directory contains a `DESIGN.md` (the spec) and Python files (the implementation). See each module's DESIGN.md for its file listing.
+
 ## What oxtra Is NOT
 
 - **Not a plugin for OpenCode or any other agent runtime.** oxtra is standalone. It does not extend, wrap, or integrate into an existing agent system.

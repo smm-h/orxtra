@@ -115,6 +115,17 @@ Error handling:
 - Argument validation fails: hard error with details sent back to the LLM
 - `execute()` raises: the exception message is sent back to the LLM as an error result
 
+## Files
+
+| File | Contents |
+|---|---|
+| `_types.py` | `Tool` frozen dataclass: name, description, parameters (JSON Schema dict), execute (async callable). |
+| `_constructors.py` | `make_read_tool`, `make_write_tool`, `make_edit_tool`, `make_bash_tool`, `make_grep_tool`, `make_glob_tool`. Each returns a `Tool`. |
+| `_spawn.py` | `make_spawn_tool(executor)` -- returns the spawn `Tool`. Contains the spawn execution logic. |
+| `_consult.py` | `make_consult_tool(executor)` -- returns the consult `Tool`. Contains the consult execution logic and tool stripping. |
+| `_notepad.py` | `make_notepad_tool(run_dir, trace_writer)` -- returns the notepad `Tool`. Delegates writes to `trace.write_notepad_entry()`. |
+| `_validation.py` | JSON Schema argument validation used by the tool-call loop. |
+
 ## What This Module Does NOT Do
 
 - Does not manage tool permissions (that's agent/ and pipeline/)
