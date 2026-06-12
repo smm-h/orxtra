@@ -66,17 +66,15 @@ The transport runs a provider-agnostic loop:
 
 The loop is the same for all providers. The provider only handles serialization and deserialization.
 
-## Auto-Retry
+## Transient API Errors (Open Design Problem)
 
-The transport retries transient API errors automatically before escalating to the caller:
+Transient API errors (429, 500, 502, 503) are common with LLM providers. The current design says retry is the scheduler's responsibility, but this creates a tension: routing every transient 429 through the full retry_decision protocol (scheduler → Overseer → sanity check → scheduler) adds latency and Overseer token cost for a decision that is always "wait and retry."
 
-- **Retried status codes**: 429 (rate limit), 500, 502, 503 (server errors)
-- **Max retries**: 3
-- **Backoff**: exponential (1s, 2s, 4s) with jitter
-- **On each retry**: emit an `ApiRetry` event with attempt number, delay, status code, and error message. The scheduler and trace module can observe retry frequency for health monitoring.
-- **After max retries exhausted**: emit an `Error` event and return to the caller. The scheduler's retry_decision protocol handles persistent failures.
+Two approaches under consideration:
 
-This is a pragmatic concession to axiom 11 (auto-continuation). Transient 429s are mechanical, not judgmental -- routing them through the Overseer's retry_decision protocol wastes tokens on a decision that is always "wait and retry." Persistent failures (4+ consecutive errors) still escalate.
+**Transport-level auto-retry.** The transport retries transient errors internally (3 retries, exponential backoff with jitter) and emits `ApiRetry` events so the scheduler can observe retry frequency. After retries are exhausted, an `Error` event propagates to the caller. This keeps the scheduler and Overseer out of mechanical recovery but hides failures from the retry_decision protocol. The "What This Module Does NOT Do" section currently says "Does not retry on API errors" — this approach would change that boundary.
+
+**Scheduler-level retry only.** Every API error surfaces as an `Error` event. The scheduler classifies it and invokes the Overseer's retry_decision protocol. Consistent with the current module boundaries but expensive for transient errors that resolve with a simple backoff. The Overseer would need to learn that 429s never require judgment.
 
 ## Providers
 

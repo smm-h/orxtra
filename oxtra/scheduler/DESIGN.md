@@ -378,23 +378,19 @@ All persistence via `trace/` module. The scheduler calls `trace.write_step_resul
 | `_locks.py` | File-lock registry. Claim management, conflict detection, release on workflow completion. |
 | `_events.py` | Event registry for gate steps. Event registration, firing, and listener management. |
 
-## Per-Step File Scopes
+## Per-Step File Scopes (Open Design Problem)
 
-Beyond tool whitelists (which control WHICH tools an agent can use), per-step file scopes control WHERE tools can operate. This operates at two levels:
+Beyond tool whitelists (which control WHICH tools an agent can use), consumers need per-step file scopes (which control WHERE tools can operate). This operates at two levels:
 
 **Inter-workflow: the file-lock registry** (described above) prevents conflicting writes between concurrent workflows. File-level claims, all-or-nothing, Overseer decides scope expansion.
 
-**Intra-workflow: tool-constructor scoping.** Steps declare `write_paths` in the workflow TOML. The scheduler passes these to scoped tool constructors (`make_write_tool(cwd, scope=["src/audio.ts", "src/types.ts"])` and `make_edit_tool(cwd, scope=[...])`). Writes outside scope are hard errors at the tool execution layer. This is mechanical enforcement -- the agent cannot bypass it.
+**Intra-workflow: per-step scopes** are an open design problem. Several approaches under consideration:
 
-The scheduler re-constructs write and edit tools per step when `write_paths` is declared. This is the cost of mechanical enforcement. Steps without `write_paths` get unrestricted tools (scope=None). The step schema gains a new field:
+**Tool-constructor scoping (leading candidate).** Steps declare `write_paths` in the workflow TOML. The scheduler passes these to scoped tool constructors (`make_write_tool(cwd, scope=["src/audio.ts", "src/types.ts"])` and `make_edit_tool(cwd, scope=[...])`). Writes outside scope are hard errors at the tool execution layer. This is mechanical enforcement -- the agent cannot bypass it. The `scope` parameter on `make_write_tool` and `make_edit_tool` already exists in the tool module design. The scheduler would re-construct write and edit tools per step when `write_paths` is declared -- steps without `write_paths` get unrestricted tools (scope=None). When a step fails due to a scope violation, the Overseer's `scope_decision` protocol decides: approve expansion, deny, or spawn a child workflow. Consumer-provided tools that write files would be the consumer's responsibility to scope.
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `write_paths` | array of strings | no | File paths (relative to cwd) this step is allowed to write/edit. When present, `make_write_tool` and `make_edit_tool` are constructed with `scope=write_paths`. Absent means unrestricted. |
+**Overseer-assigned scopes.** The Overseer assigns file scopes when generating workflows. Scopes derive from the task description and the project's file structure. More autonomous but less predictable. The Overseer could assign scopes incorrectly, and the consumer has no way to override.
 
-When an agent step discovers it needs a file outside its declared scope, the tool rejects the write. The step fails. The Overseer's `scope_decision` protocol decides: approve expansion (scheduler reconstructs tools with expanded scope and retries), deny, or spawn a child workflow with the needed scope.
-
-Consumer-provided tools that write files are the consumer's responsibility to scope. The scheduler does not wrap arbitrary tool execution with path validation -- only framework-provided write and edit tools enforce scopes.
+**Interaction with consumer-provided tools.** The scheduler could wrap tool execution with path validation, or the tool constructors could accept scope parameters. Tool-constructor scoping only enforces on framework-provided tools -- wrapping is universal but opaque; constructor parameters are explicit but require consumer cooperation.
 
 ## Append-Only Access Model (Open Design Problem)
 
