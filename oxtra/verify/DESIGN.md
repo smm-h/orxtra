@@ -31,6 +31,7 @@ class VerifyResult:
     passed: bool
     message: str           # human-readable explanation
     details: dict | None   # structured data (optional) -- e.g., test results, file list
+    fix: Callable | None   # optional auto-fix callable -- see "Fixable Failures" below
 ```
 
 ## Callable Specification
@@ -95,11 +96,41 @@ Step variables are also injected, but namespaced with a `var_` prefix to prevent
 
 **Verification failure = step failure.** There is no "warning" or "soft fail." If verification fails, the step failed. The pipeline decides what to do (retry or abort) based on the step's retry policy.
 
+**Verification purity is not enforced.** The framework provides the `fix` callable mechanism for clean separation of check and fix. However, consumers may choose to write verification functions that fix issues and return passed in a single callable. The framework does not enforce purity -- consumers decide whether their verify functions have side effects. Both patterns are valid.
+
+## Fixable Failures
+
+Some mechanical verification failures are mechanically fixable: linter formatting, import sorting, whitespace normalization. The `fix` field on `VerifyResult` supports this pattern.
+
+When a mechanical verification callable returns a failed result with a non-None `fix` callable:
+
+1. The scheduler calls `fix(ctx)` where `ctx` is the same `VerifyContext` the verify callable received
+2. The scheduler re-runs the verification callable
+3. If the re-verification passes, the step succeeds. If it fails, the step fails normally (triggering retry if available).
+4. The fix-then-re-verify cycle runs at most once. No recursion.
+
+The fix callable is a separate action from the check. The verification function itself stays a check -- it detects the problem and declares whether it can fix it. The scheduler orchestrates the fix-then-re-verify cycle.
+
+```python
+async def lint_check(ctx: VerifyContext) -> VerifyResult:
+    result = await run_linter(ctx.variables["work_dir"])
+    if result.failed and result.auto_fixable:
+        return VerifyResult(
+            passed=False,
+            message="Lint errors (auto-fixable)",
+            details={"errors": result.errors},
+            fix=lambda ctx: run_linter_fix(ctx.variables["work_dir"]),
+        )
+    if result.failed:
+        return VerifyResult(passed=False, message="Lint errors", details={"errors": result.errors}, fix=None)
+    return VerifyResult(passed=True, message="Lint clean", details=None, fix=None)
+```
+
 ## Files
 
 | File | Contents |
 |---|---|
-| `_types.py` | `VerifyResult`, `VerifyContext` (for mechanical callables), `VerifyAgentContext` (for verification agents). All frozen dataclasses. |
+| `_types.py` | `VerifyResult` (with optional `fix` callable), `VerifyContext` (for mechanical callables), `VerifyAgentContext` (for verification agents). All frozen dataclasses. |
 | `_runner.py` | `run_mechanical_verify(callable_path, ctx)` -- imports and calls the verification function. `run_agent_verify(agent_name, verify_ctx, executor)` -- builds `VerifyAgentContext`, invokes the verification agent via `consult`, parses pass/fail from response. |
 
 ## What This Module Does NOT Do
@@ -107,4 +138,4 @@ Step variables are also injected, but namespaced with a `var_` prefix to prevent
 - Does not define what to verify (that's the consuming project's verification functions)
 - Does not implement retry logic (that's `scheduler/`)
 - Does not track verification history across runs
-- Does not provide a "fix it" capability -- verification reports problems, it doesn't solve them
+- Does not provide a "fix it" capability beyond the mechanical `fix` callable on `VerifyResult` -- verification reports problems, it doesn't solve them
