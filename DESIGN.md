@@ -9,7 +9,14 @@ A Python library for orchestrating multi-agent AI workflows. You define agents a
 ```
 oxtra/
     DESIGN.md
+    CLAUDE.md
+    README.md
     pyproject.toml
+    selfdoc.json
+    .rlsbl/                    # rlsbl release scaffolding
+    docs/                      # selfdoc templates
+    todo/                      # Work items
+    scripts/                   # Reusable project scripts
     oxtra/
         __init__.py            # Public API: re-exports from submodules
         agent/                 # Agent definition loading and validation

@@ -11,7 +11,18 @@ Design phase. The directory structure is a scaffold for the Python package. Each
 ```
 oxtra/
     DESIGN.md              # Architecture, axioms, anti-patterns, examples
-    pyproject.toml
+    CLAUDE.md
+    README.md
+    pyproject.toml         # uv-managed, strictcli + rlsbl + selfdoc as dependencies
+    selfdoc.json           # selfdoc configuration for generated docs
+    .rlsbl/                # rlsbl release scaffolding
+        config.json
+        changes/
+            unreleased.jsonl
+    docs/                  # selfdoc templates (_README.md, _CLAUDE.md)
+    todo/                  # Work items (active)
+        .done/             # Completed items
+    scripts/               # Reusable project scripts
     oxtra/
         __init__.py
         agent/             # Agent definition loading and validation
@@ -33,6 +44,14 @@ oxtra/
 - **Pipelines** are TOML files declaring steps with dependencies, timeouts, retry policy, and verification. The executor builds a dependency graph and runs independent steps in parallel.
 - **Categories** map intent strings ("quick", "deep") to model strings ("anthropic/claude-sonnet-4-6") via a flat `categories.toml`. No fallback chains.
 - **Providers** implement a 4-method protocol (`build_request`, `parse_response`, `parse_stream`, `extract_usage`). The transport runs a provider-agnostic tool-call loop.
+
+## Tooling
+
+This project uses:
+
+- **rlsbl** for release orchestration, changelog enforcement, and CI scaffolding. Run `rlsbl scaffold` to set up `.rlsbl/`. See the rlsbl protocol in `~/Projects/CLAUDE.md`.
+- **strictcli** for the CLI layer (if one is built on top of the library). Schema-driven, no implicit flags.
+- **selfdoc** for generated documentation. Templates live in `docs/` (`_README.md`, `_CLAUDE.md`). Generated root files are read-only. Run `selfdoc gen` to regenerate.
 
 ## Conventions
 
