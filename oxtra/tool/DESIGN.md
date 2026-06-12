@@ -102,7 +102,7 @@ Any agent with `"notepad"` in its `allow` list can use this tool. Agents without
 
 ## Tool Execution
 
-When the LLM requests a tool call, the pipeline executor:
+When the LLM requests a tool call, the transport's tool-call loop:
 
 1. Looks up the tool in the filtered registry by name
 2. Validates the arguments against `parameters` (JSON Schema validation)

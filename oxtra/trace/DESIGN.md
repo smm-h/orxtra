@@ -139,7 +139,7 @@ The trace module does not decide when to trigger handoff (that's session/). It p
 
 ## Key Design Decisions
 
-**Single owner of the run directory.** No other module writes directly to the run directory. Pipeline calls `trace.write_step_result()`. Session calls `trace.write_transcript()`. Notepad calls `trace.write_notepad_entry()` (or writes to the notepad directory, which is within the run directory). This prevents format drift and conflicting writes.
+**Single owner of the run directory.** No other module writes directly to the run directory. Pipeline calls `trace.write_step_result()`. Session calls `trace.write_transcript()`. The notepad tool calls `trace.write_notepad_entry()`. This prevents format drift and conflicting writes.
 
 **JSONL for streaming artifacts.** Events and transcripts use JSONL because they are written incrementally as the run progresses. Step results and the pipeline result use plain JSON because they are written once.
 

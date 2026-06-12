@@ -76,11 +76,12 @@ class VerifyAgentContext:
     mechanical_results: str # formatted mechanical verification results (or empty if no mechanical verify)
     step_name: str         # the pipeline step name
     attempt: int           # attempt number (1-indexed)
-    variables: dict        # the step's runtime variables
     notepad: str           # formatted notepad content (learnings, decisions, issues)
 ```
 
-3. The executor spawns the agent via `consult` (read-only mode). The agent's `.md` prompt uses `{task}`, `{agent_output}`, `{mechanical_results}`, etc. as placeholders. Variable strictness applies -- the template must reference every field in the context, and the context provides every variable the template needs.
+Step variables are also injected, but namespaced with a `var_` prefix to prevent collisions with framework fields. A step variable named `target` becomes `{var_target}` in the verification agent's prompt. This means a step variable named `task` does not collide with the framework's `{task}` field.
+
+3. The executor spawns the agent via `consult` (read-only mode). The agent's `.md` prompt uses `{task}`, `{agent_output}`, `{mechanical_results}`, `{var_target}`, etc. as placeholders. Variable strictness applies -- the template must reference every field in the context, and the context provides every variable the template needs.
 4. The verification agent's response is parsed for a pass/fail determination.
 5. If the verification agent reports failure, it counts as a step failure (triggering retry if available).
 

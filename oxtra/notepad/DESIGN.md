@@ -58,7 +58,7 @@ Before spawning an agent, the pipeline executor:
    ### Issues
    - (none)
    ```
-3. This injection is mechanical -- every agent that has `"notepad"` in its `allow` list gets the full notepad content injected into its prompt.
+3. This injection is mechanical -- every agent in the pipeline gets the full notepad content injected, regardless of whether the agent has `"notepad"` in its `allow` list. Reading notepad context and writing notepad entries are separate concerns: all agents benefit from prior learnings, but only agents with `"notepad"` in their `allow` list can write new entries.
 
 ## Key Design Decisions
 

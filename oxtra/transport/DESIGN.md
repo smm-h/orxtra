@@ -92,11 +92,13 @@ Calls OpenAI-compatible APIs (OpenAI, Azure OpenAI, and compatible endpoints).
 - Streaming: SSE via OpenAI's streaming endpoint
 - Tool results: sent as `role: "tool"` messages with `tool_call_id`
 
-## Provider Selection
+## Provider Selection and Model Routing
 
 - `provider` is a required parameter on transport construction. No default.
 - Missing credentials for the selected provider is a hard error.
 - No auto-detection, no fallback between providers.
+
+Model strings in `categories.toml` use the format `"provider/model"` (e.g., `"anthropic/claude-haiku-4-5"`, `"openai/gpt-4o"`). The transport parses the provider prefix to validate that the model matches the configured provider. A model string with a mismatched prefix (e.g., `"openai/gpt-4o"` on an AnthropicProvider) is a hard error. The model name after the prefix is passed to the provider's API as-is.
 
 ## Session ID Management
 

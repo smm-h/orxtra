@@ -50,11 +50,13 @@ This is an explicit choice per pipeline step, not a transport-level default. The
 
 ## Session Handoff (Context Compaction)
 
-When an agent's conversation approaches ~90% of the model's context window, the executor triggers a session handoff:
+When an agent's conversation approaches ~90% of the model's context window, the session module detects the threshold (it tracks token usage per turn via `StepFinish` events) and signals the pipeline executor to trigger a handoff:
 
-1. The executor asks the current session to produce a detailed summary of everything that has happened so far.
-2. The executor starts a new session with that summary as initial context.
-3. The new session also receives the old session's UUID, enabling it to query the old session's full transcript -- inputs, outputs, tool calls, token stats -- via the session transcript store.
+1. The session module detects that cumulative token usage has crossed the 90% threshold for the model's context window.
+2. The session asks the current agent to produce a detailed summary of everything that has happened so far.
+3. The session module persists the full transcript via `trace/`.
+4. The pipeline executor creates a new session with that summary as initial context.
+5. The new session receives the old session's UUID, enabling it to query the old session's full transcript -- inputs, outputs, tool calls, token stats -- via the trace module.
 
 The new agent has both a summary for quick reference and the full record for deep lookups. This avoids the information loss of simple truncation while keeping the active context within limits.
 

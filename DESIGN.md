@@ -42,11 +42,11 @@ Ten hard rules. Each is mechanically enforced, not prompt-requested.
 
 6. **Two-tier delegation.** Two levels of agent invocation: `spawn` (full agent with write access, orchestrator-only) and `consult` (read-only agent for research, available to workers). Workers can research but cannot spawn other workers.
 
-7. **Mandatory parameters for consequential choices.** No implicit defaults for backend selection, model choice, or execution mode. Missing values are hard errors, not silent defaults.
+7. **Mandatory parameters for consequential choices.** No implicit defaults for provider selection, model choice, or execution mode. Missing values are hard errors, not silent defaults.
 
 8. **Verification is mechanical, not requested.** After every pipeline step, verification runs automatically. The pipeline executor calls verification functions -- not the agent's prompt. The agent cannot skip verification. Verification agents are full agent definitions (TOML + .md prompt file), not framework-constructed templates. The executor invokes them via `consult`, injecting a verification context struct as template variables.
 
-9. **Filesystem IPC + session resumption.** Cross-agent context via append-only notepad files. Session continuity via session IDs returned from every invocation. No in-memory shared state between agents. When an agent's conversation approaches ~90% of the model's context window, the executor triggers a session handoff: the current session produces a detailed summary, a new session starts with that summary as initial context plus the old session's UUID for querying its full transcript (inputs, outputs, tool calls, stats).
+9. **Filesystem IPC + session resumption.** Cross-agent context via append-only notepad files. Session continuity via session IDs returned from every invocation. No in-memory shared state between agents. When an agent's conversation approaches ~90% of the model's context window, the session module detects the threshold and signals the pipeline executor to perform a session handoff: the current session produces a detailed summary, a new session starts with that summary as initial context plus the old session's UUID for querying its full transcript via the trace module.
 
 10. **Auto-continuation.** The pipeline executor refuses to stop while steps remain incomplete. If a step fails and retries are available, it retries. If a step succeeds, it moves to the next. Only exhausted retries or explicit abort stop execution.
 
