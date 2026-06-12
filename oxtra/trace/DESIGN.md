@@ -17,6 +17,8 @@ Write and read the artifacts of a pipeline run: per-step results, transport even
         {step_name}.jsonl          # Transport events per step
     transcripts/
         {session_id}.jsonl         # Full session transcript per session
+    context_diffs/
+        {step_name}.json           # Pre- and post-refinement context per agent step
     notepad/
         learnings.jsonl            # Cross-agent learnings
         decisions.jsonl            # Cross-agent decisions
@@ -33,17 +35,43 @@ Written once at the end of the run (success or failure).
 
 ```python
 @dataclass(frozen=True)
-class PipelineResult:
+class RunReport:
+    # Outcome
     passed: bool
     pipeline_name: str
-    started_at: str           # ISO timestamp
-    finished_at: str          # ISO timestamp
+    started_at: str               # ISO timestamp
+    finished_at: str              # ISO timestamp
     duration_seconds: float
+    failure: str | None           # step name that caused abort, or None
+
+    # Intent
+    original_intent: str          # the user's original intent
+    coherence_summary: str        # Overseer's assessment: did the changes accomplish the intent?
+
+    # Execution
+    steps: list[StepSummary]      # per-step status, ordered by execution
+    workflows: list[WorkflowSummary]  # all workflows spawned during the run
+
+    # Cost
     total_input_tokens: int
     total_output_tokens: int
     total_cost_usd: float
-    steps: list[StepSummary]  # ordered by execution
-    failure: str | None       # step name that caused abort, or None
+    budget_allocated: int         # total tokens allocated across all workflows
+    budget_consumed: int          # total tokens consumed
+
+    # Decisions
+    decisions: list[DecisionSummary]  # from Overseer's SQLite: type, choice, rationale, outcome
+
+    # Constraints and assumptions
+    constraints: list[ConstraintSummary]  # active constraints at end of run, with source decision
+    assumptions: list[AssumptionSummary]  # all assumptions: status (pending/confirmed/contradicted), scope
+
+    # Health
+    overseer_health: HealthSummary  # parse failure rate, contradiction rate, repetition rate
+    error_breakdown: dict[str, int]  # error category -> count (infra, parse, flaky, build_env, logic, unclassified)
+
+    # Context assembly learning
+    context_refinement_diffs: int  # number of steps where Overseer refined the mechanical context
 ```
 
 ### Step Result (`steps/{step_name}.json`)
@@ -127,15 +155,28 @@ This is not automatic resume -- the caller decides which run directory to read f
 
 ## Session Handoff Support
 
-When the session module triggers a handoff (context approaching 90% of the model's window):
+When the scheduler detects the Overseer's context approaching 90% of the model's window:
 
-1. The session asks the current agent to produce a summary
-2. The session module calls `trace.write_transcript()` to ensure the transcript is fully persisted
-3. A new session is created with the summary as initial context
+1. The scheduler asks the Overseer to produce a summary
+2. The scheduler calls `trace.write_transcript()` to ensure the transcript is fully persisted
+3. A new Overseer session is created with the summary as initial context
 4. The new session receives the old session's UUID
-5. The new agent can call `trace.read_transcript()` or `trace.query_transcript()` to access the old session's full history
+5. The Overseer can call `trace.read_transcript()` or `trace.query_transcript()` to access the old session's full history
 
-The trace module does not decide when to trigger handoff (that's session/). It provides the storage and retrieval that makes handoff possible.
+The trace module does not decide when to trigger handoff (that's the scheduler). It provides the storage and retrieval that makes handoff possible. Session handoff applies only to the Overseer -- agent steps are short-lived and finish within their context window.
+
+## Live Event Stream (Open Design Decision)
+
+Beyond writing to disk, the trace module should support live event consumption by external tools. Two candidate interfaces:
+
+- **Callback**: the `TraceWriter` accepts an optional async callable, called with each event dict as it's written. Push-style. Consumer wires it to a file, socket, queue, or dashboard.
+- **AsyncIterator**: the `TraceWriter` exposes an async iterator that yields events. Pull-style. Consumer iterates in a separate task.
+
+Both have the same data — they differ in consumption model. The decision on which to implement (or both) has not been made. The interface should be minimal — one hook point, not an event bus.
+
+## Context Assembly Diffs
+
+The trace module stores both the mechanically assembled context and the Overseer-refined context for each agent step. Written as paired entries in a `context_diffs/{step_name}.json` file per step. Over time, these diffs reveal patterns in how the Overseer refines context, which can improve the mechanical assembly process.
 
 ## Key Design Decisions
 
@@ -151,7 +192,7 @@ The trace module does not decide when to trigger handoff (that's session/). It p
 
 | File | Contents |
 |---|---|
-| `_types.py` | `PipelineResult`, `StepResult`, `StepSummary` frozen dataclasses. JSON serialization helpers. |
+| `_types.py` | `RunReport`, `StepResult`, `StepSummary`, `WorkflowSummary`, `DecisionSummary`, `ConstraintSummary`, `AssumptionSummary`, `HealthSummary` frozen dataclasses. JSON serialization helpers. |
 | `_writer.py` | `TraceWriter` class. Bound to a run directory. Methods: `write_step_result()`, `write_pipeline_result()`, `write_event()`, `write_transcript_entry()`, `write_notepad_entry()`. Handles file creation, JSONL appending, JSON writing. |
 | `_reader.py` | Query API: `read_step_result()`, `read_transcript()`, `query_transcript()`, `read_pipeline_result()`, `list_runs()`. |
 | `_directory.py` | `create_run_directory(data_dir, pipeline_name)` -- creates the timestamped directory structure with all subdirectories. |
@@ -161,5 +202,4 @@ The trace module does not decide when to trigger handoff (that's session/). It p
 - Does not decide when to write (that's pipeline/ and session/)
 - Does not decide what to verify (that's verify/)
 - Does not enforce retention policies or disk limits
-- Does not provide real-time streaming of events to external systems (it writes to disk)
-- Does not implement the session handoff decision logic (that's session/)
+- Does not implement the session handoff decision logic (that's the Overseer via the scheduler)

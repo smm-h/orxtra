@@ -48,8 +48,8 @@ Each decision type is a registered protocol with a fixed structure:
 | `concurrency_decision` | Multiple workflows or iterations could run in parallel | Degree of parallelism, which workflows to parallelize |
 | `constraint_decision` | New constraint discovered during execution | Add mechanical constraint / add advisory constraint / ignore |
 | `scope_decision` | Agent step discovers it needs resources outside its scope | Approve expansion / deny / spawn child workflow |
-| `context_decision` | Before each agent step | Which lessons and prior context to include in the step's context |
-| `audit_decision` | Overseer suspects quality issues | Spawn audit workflow / skip |
+| `context_decision` | Before each agent step | Refine the mechanically assembled context: select lessons, request additional code context, reorder/trim layers, or accept as-is. Both pre- and post-refinement versions are stored for learning. |
+| `audit_decision` | Overseer suspects quality issues | Spawn audit workflow (read-only, real-time or post-hoc) / skip |
 
 Each protocol defines:
 - A system prompt template (fixed per type, with slots for assembled context)
@@ -135,6 +135,20 @@ When the Overseer's conversation approaches ~90% of the model's context window:
 4. The scheduler creates a new Overseer session with the summary as initial context plus the old session's UUID for querying the full transcript.
 
 The new session has both a summary for quick reference and the full record for deep lookups via trace queries.
+
+## Audit Workflows
+
+When the Overseer suspects quality issues (via `audit_decision`), it can spawn an audit workflow. Audit workflows are regular workflows with `write_paths = []` -- read-only, no mutations. They have full structured visibility into the system's state via trace/ queries, including in-progress work.
+
+Audits can run at any time:
+- **Concurrent with in-progress work** -- the audit reads the current state of files, workflow progress, and agent outputs as they happen. Useful for catching problems early.
+- **Post-hoc on completed work** -- the audit reviews the final output of a completed workflow. The standard quality review.
+
+The Overseer reviews the audit workflow's findings and decides what to do: spawn remediation workflows, adjust constraints, escalate to human, or accept the work.
+
+## Coherence Summary
+
+At the end of a run, the Overseer reviews the full accumulated diff against the original intent. It scores whether the changes accomplish what was asked, flags gaps between intent and result, and notes unexpected side effects. The coherence summary is written to the report via trace/.
 
 ## Human Inbox
 

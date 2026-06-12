@@ -80,10 +80,29 @@ Each `[[steps]]` entry has these fields:
 | `for_each_abort_on_failure` | boolean | conditional | Required if `for_each` is set. |
 | `output_schema` | string | no | JSON Schema path for structured output validation. Agent steps only. |
 | `budget` | integer | no | Per-step token budget. Overseer can set this per step. |
+| `workflow` | string | no | Workflow name to spawn as a child. Mutually exclusive with `agent`/`task`/`callable`. |
+| `wait` | boolean | conditional | Required if `workflow` is set. True = block until child completes. False = fire-and-forget (scheduler tracks the detached workflow). |
 
-*A step must declare either `agent` + `task` (agent step) or `callable` (function step), never both.
+*A step must declare exactly one of: `agent` + `task` (agent step), `callable` (function step), or `workflow` (child workflow step).
 
 **Every step must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
+
+## Agent Step Context Assembly
+
+Before each agent step, the scheduler builds the agent's context in three layers, then the Overseer refines it.
+
+**Layer 1: Task declaration.** The task prompt from the workflow TOML, with `{variable}` placeholders substituted. This is the floor -- the minimum context the step needs.
+
+**Layer 2: Runtime system context.** Mechanically appended by the scheduler:
+- Active constraints from the Overseer's SQLite memory (both mechanical and advisory)
+- This step's prior failed attempts (if retrying with `retry_inject_failure`)
+- Notepad content from the current run
+
+**Layer 3: Overseer-selected lessons.** The scheduler invokes the Overseer's `context_decision` protocol with the assembled context from layers 1-2, the step type, and a task summary. The Overseer can: select relevant lessons from the lessons table, request additional code context ("add callers of this function"), reorder or trim any layer, or leave the context as-is.
+
+The scheduler stores both versions (pre-refinement and post-refinement) via trace/. Over time, the diffs between mechanical assembly and Overseer refinement reveal patterns that can improve the mechanical assembly process itself.
+
+Context is filled in priority order until the token budget per call is reached.
 
 ## Event Loop
 
@@ -158,6 +177,18 @@ All persistence via `trace/` module. The scheduler calls `trace.write_step_resul
 | `_executor.py` | `Scheduler` class. Event loop, step execution, timeout enforcement, retry logic, verification dispatch, constraint enforcement, budget tracking, pause/resume, `abort()`. |
 | `_validator.py` | Workflow validation: schema checks + sanity-check subagent dispatch. |
 | `_checkpoint.py` | Crash recovery checkpointing. State serialization/deserialization at step boundaries. |
+
+## Per-Workflow File Scopes (Open Design Problem)
+
+Beyond tool whitelists (which control WHICH tools an agent can use), Forge describes per-workflow file scopes (which control WHERE tools can operate). Each workflow would declare `read_paths` and `write_paths`, child workflows would inherit and narrow, and the scheduler would enforce path restrictions on every file operation.
+
+This is an important but unresolved design problem. Key complexities:
+- How does enforcement interact with consumer-provided tools? The scheduler could wrap tool execution with path validation, or the tool constructors could accept scope parameters. Both have tradeoffs.
+- Append-only access: some operations (logging, notepad) need to append but not overwrite. Read/write scopes don't capture this.
+- Secrets and environment files: an agent may need to read `.env` for API keys but shouldn't see other sensitive files. Path-level scoping is too coarse.
+- Legitimate out-of-scope needs: an agent step discovers it needs a file outside its scope. The Overseer's `scope_decision` protocol handles this, but the enforcement mechanism must support runtime expansion.
+
+This section will be expanded when the enforcement mechanism is designed.
 
 ## What This Module Does NOT Do
 
