@@ -84,6 +84,9 @@ Each `[[steps]]` entry has these fields:
 | `wait` | boolean | conditional | Required if `workflow` is set. True = block until child completes. False = fire-and-forget. |
 | `decision_point` | boolean | no | If true, this step pauses execution and invokes the Overseer to decide what to do next. Mutually exclusive with `agent`/`task`/`callable`/`workflow`/`gate`. |
 | `gate` | string | no | Event name to wait for. Blocks until the named event fires or `timeout` expires. Mutually exclusive with `agent`/`task`/`callable`/`workflow`/`decision_point`. |
+| `on_success` | string | no | Python callable path. Runs after verification passes. For side effects like committing files, updating registries, or sending notifications. Not a hook -- a declared, per-step action. |
+| `pre_retry` | string | no | Python callable path. Runs before a retry attempt. For auto-fixing mechanically fixable failures (linting, formatting) before the agent retries. |
+| `write_paths` | array of strings | no | File paths this step may write to. If set, the scheduler constructs scoped write/edit tools that reject writes outside these paths. See "Per-Step File Scopes." |
 
 *A step must declare exactly one of: `agent` + `task` (agent step), `callable` (function step), `workflow` (child workflow step), `decision_point` (Overseer decision), or `gate` (event wait).
 
@@ -105,6 +108,34 @@ Before each agent step, the scheduler builds the agent's context in three layers
 The scheduler stores both versions (pre-refinement and post-refinement) via trace/. Over time, the diffs between mechanical assembly and Overseer refinement reveal patterns that can improve the mechanical assembly process itself.
 
 Context is filled in priority order until the token budget per call is reached.
+
+### Consumer Context Providers
+
+Consumers can register context provider callables that contribute domain-specific sections to agent prompts. Three mechanisms are supported, and consumers can use any combination:
+
+**Context provider callables.** Python callables registered at pipeline setup time. Each callable receives step metadata and returns a prioritized section:
+
+```python
+async def provide_context(ctx: ContextProviderInput) -> ContextSection | None:
+    ...
+```
+
+`ContextProviderInput` contains: `task` (the step's task prompt), `step_name`, `variables` (the step's runtime variables), `run_dir`, `agent_name`. `ContextSection` contains: `title` (section heading), `content` (markdown text), `priority` (integer -- higher means kept when truncating), `max_tokens` (optional cap on this section's contribution).
+
+The scheduler calls all registered providers after Layer 2 and before Layer 3 (Overseer refinement). Sections are ordered by priority and truncated to fit the model's context budget. The Overseer's `context_decision` sees all provider sections and can reorder, trim, or remove them.
+
+```python
+executor = PipelineExecutor(
+    context_providers=[api_docs_provider, file_summary_provider, conventions_provider],
+    ...
+)
+```
+
+**Pipeline variables as context.** Pre-computed context sections passed as pipeline variables and referenced in agent prompt templates via `{variable}` placeholders. The simplest mechanism -- no runtime computation, no new types. Suitable for static context that does not change per step.
+
+**Prompt file composition.** Agent prompt `.md` files support an `{include:filename.md}` directive that includes another `.md` file at load time. See `agent/DESIGN.md` for details.
+
+All three mechanisms compose: a consumer can use prompt file includes for static documentation, pipeline variables for project-level context, and runtime callables for per-step adaptive context.
 
 ## Event Loop
 
@@ -152,6 +183,93 @@ Steps with `output_schema` get JSON extraction and validation after completion. 
 
 Steps with `for_each` execute once per item in a list variable. Iterations run in parallel. `for_each_abort_on_failure` controls whether partial failures abort the pipeline. `for_each` + `output_schema` validates per iteration, collects as list.
 
+## Post-Step Actions
+
+Two mechanisms for running side effects after a step succeeds:
+
+**`on_success` callable.** A Python callable declared per step, runs after verification passes. Receives a `StepContext` with the step's variables, agent output, and run directory. Non-zero return or raised exception is logged but does not fail the step -- the work is already verified. Suitable for git commits, cache updates, notifications, or registry writes.
+
+```toml
+[[steps]]
+name = "implement"
+agent = "coder"
+task = "Implement {feature}."
+variables = ["feature", "work_dir"]
+depends_on = ["plan"]
+timeout = 600
+verify = "myproject.verify:code_compiles"
+on_success = "myproject.actions:commit_changes"
+```
+
+**Explicit function steps.** A function step after the agent step that performs the action. More verbose but makes every action a visible step in the workflow:
+
+```toml
+[[steps]]
+name = "commit"
+callable = "myproject.steps:commit_changes"
+variables = ["work_dir"]
+depends_on = ["implement"]
+```
+
+Both mechanisms are supported. `on_success` is syntactic sugar for a common pattern; function steps are appropriate when the action is complex enough to warrant its own step with dependencies, timeout, and retry.
+
+## Auto-Fix Before Retry
+
+When mechanical verification fails and the failure is mechanically fixable (linting auto-format, import sorting, whitespace normalization), three mechanisms support auto-fixing:
+
+**Fix callable on VerifyResult.** The mechanical verification callable returns a `VerifyResult` with an optional `fix` callable. If the result is failed and `fix` is present, the scheduler runs the fix callable, then re-verifies (once -- no recursion). The verification function itself remains a check; the fix is a separate declared action. See `verify/DESIGN.md`.
+
+**`pre_retry` callable on steps.** A Python callable that runs before a retry attempt. The consumer's pre_retry function can run auto-fixers, clean up state, or adjust the environment before the agent retries. Unlike `fix` on VerifyResult (which is verification-scoped), `pre_retry` runs before the full step retry (including the agent invocation).
+
+```toml
+[[steps]]
+name = "implement"
+agent = "coder"
+task = "Implement {feature}."
+variables = ["feature"]
+depends_on_previous = true
+timeout = 600
+retry = 3
+retry_resume = true
+retry_inject_failure = true
+pre_retry = "myproject.fixers:auto_format"
+verify = "myproject.verify:lint_and_types"
+```
+
+**Verification with side effects.** The consumer's verification callable can fix the issue and return passed -- combining the check and fix in one function. The framework does not enforce verification purity; consumers choose whether their verify functions have side effects. This is the simplest mechanism but makes verification non-idempotent.
+
+All three mechanisms are available. The consumer picks whichever fits their use case: `fix` on VerifyResult for verification-scoped fixes, `pre_retry` for step-scoped pre-retry actions, or side-effecting verification for maximum simplicity.
+
+## Dynamic Fan-Out from Agent Output
+
+A common pattern: a planner agent decomposes a task into subtasks, then a `for_each` step executes each subtask independently. This is supported by composing `output_schema` and `for_each` across two steps:
+
+```toml
+[[steps]]
+name = "plan"
+agent = "planner"
+task = "Decompose this task into independent subtasks: {goal}"
+variables = ["goal"]
+depends_on_previous = false
+timeout = 300
+output_schema = "schemas/subtask_list.json"
+
+[[steps]]
+name = "execute"
+agent = "worker"
+task = "Implement this subtask:\n\nGoal: {item.goal}\nScope: {item.scope}\nContext: {item.context}"
+for_each = "plan_output"
+for_each_abort_on_failure = false
+variables = ["plan_output"]
+depends_on = ["plan"]
+timeout = 600
+verify = "myproject.verify:subtask_complete"
+```
+
+Where `schemas/subtask_list.json` validates that the planner outputs a list of objects with `goal`, `scope`, and `context` fields. The scheduler makes the plan step's validated output available as `{plan_output}` (the step name + `_output` suffix). The `for_each` step iterates over the list, spawning one agent per item. Each iteration receives the item as `{item}` with dot-notation access to fields.
+
+This pattern requires no special mechanism -- it composes existing features. The planner's structured output becomes the `for_each` input for the worker step.
+
 ## Workflow State
 
 Workflows have two kinds of inter-step data:
@@ -159,6 +277,18 @@ Workflows have two kinds of inter-step data:
 **Typed state** -- structured data that downstream steps can use. Each step can declare an output schema for its variables. The scheduler validates the output against the schema before writing to the variable map. Downstream steps reference typed state via `{variable}` placeholders. Variable name collisions are hard errors.
 
 **Scratch** -- per-step working memory that does not propagate. Available to the agent step via `StepContext.scratch`. The agent can dump intermediate reasoning, draft attempts, or working notes. When the step ends, scratch is discarded -- it does not flow to downstream steps. Scratch is written to trace/ for debugging but not to the variable map.
+
+## Step Output Propagation
+
+When step B depends on step A, B has access to A's outputs through the variable system:
+
+**Structured output.** If step A declares `output_schema`, its validated output is available as `{step_a_output}` (step name + `_output` suffix). Downstream steps reference it in their task prompt or `for_each` field.
+
+**Agent text output.** Step A's raw text output (the agent's final response) is available as `{step_a_text}`. This is the unstructured text, useful when a downstream step needs to see what the prior agent said without requiring structured output.
+
+**Step result metadata.** Step A's result metadata is available as `{step_a_result}` with fields: `passed` (bool), `duration_seconds` (float), `retries_used` (int). Useful for decision points that branch based on prior step outcomes.
+
+Variable name collisions between step outputs and pipeline variables are hard errors. Step output variables are generated by the scheduler -- they are not declared in the workflow TOML.
 
 ## Decision Point Steps
 
@@ -257,7 +387,7 @@ All persistence via `trace/` module. The scheduler calls `trace.write_step_resul
 
 | File | Contents |
 |---|---|
-| `_types.py` | `StepContext`, `StepResult`, `WorkflowConfig` (parsed TOML), `WorkflowState`, `ServiceConfig`. Step schema field definitions. |
+| `_types.py` | `StepContext`, `StepResult`, `WorkflowConfig` (parsed TOML), `WorkflowState`, `ServiceConfig`, `ContextProviderInput`, `ContextSection`. Step schema field definitions. |
 | `_loader.py` | `load_workflow(path_or_str)` -- reads workflow TOML, validates schema, returns `WorkflowConfig`. |
 | `_graph.py` | Dependency graph construction. Topological sort. Cycle detection. Parallelizable step identification. |
 | `_executor.py` | `Scheduler` class. Event loop, step execution, timeout enforcement, retry logic, verification dispatch, constraint enforcement, budget tracking, pause/resume, `abort()`. |
@@ -267,17 +397,27 @@ All persistence via `trace/` module. The scheduler calls `trace.write_step_resul
 | `_locks.py` | File-lock registry. Claim management, conflict detection, release on workflow completion. |
 | `_events.py` | Event registry for gate steps. Event registration, firing, and listener management. |
 
-## Per-Workflow File Scopes (Open Design Problem)
+## Per-Step File Scopes (Open Design Problem)
 
-Beyond tool whitelists (which control WHICH tools an agent can use), Forge describes per-workflow file scopes (which control WHERE tools can operate). Each workflow would declare `read_paths` and `write_paths`, child workflows would inherit and narrow, and the scheduler would enforce path restrictions on every file operation.
+Beyond tool whitelists (which control WHICH tools an agent can use), consumers need per-step file scopes (which control WHERE tools can operate). This operates at two levels:
 
-This is an important but unresolved design problem. Key complexities:
-- How does enforcement interact with consumer-provided tools? The scheduler could wrap tool execution with path validation, or the tool constructors could accept scope parameters. Both have tradeoffs.
-- Append-only access: some operations (logging, notepad) need to append but not overwrite. Read/write scopes don't capture this.
-- Secrets and environment files: an agent may need to read `.env` for API keys but shouldn't see other sensitive files. Path-level scoping is too coarse.
-- Legitimate out-of-scope needs: an agent step discovers it needs a file outside its scope. The Overseer's `scope_decision` protocol handles this, but the enforcement mechanism must support runtime expansion.
+**Inter-workflow: the file-lock registry** (described above) prevents conflicting writes between concurrent workflows. File-level claims, all-or-nothing, Overseer decides scope expansion.
 
-This section will be expanded when the enforcement mechanism is designed.
+**Intra-workflow: per-step scopes** are an open design problem. Several approaches under consideration:
+
+**Tool-constructor scoping.** Steps declare `write_paths` in the workflow TOML. The scheduler passes these to scoped tool constructors (`make_write_tool(cwd, scope=["src/audio.ts", "src/types.ts"])`). Writes outside scope are hard errors at the tool execution layer. This is mechanical enforcement -- the agent cannot bypass it. However, it requires the scheduler to re-construct tools per step (currently tools are shared per pipeline run).
+
+**Overseer-assigned scopes.** The Overseer assigns file scopes when generating workflows. Scopes derive from the task description and the project's file structure. More autonomous but less predictable. The Overseer could assign scopes incorrectly, and the consumer has no way to override.
+
+**Append-only access.** Some operations (logging, notepad) need to append but not overwrite. Read/write scopes do not capture this. A scope model might need three levels: read, append, write.
+
+**Secrets and environment files.** An agent may need to read `.env` for API keys but should not see other sensitive files. Path-level scoping is too coarse for this. A separate secrets mechanism may be needed.
+
+**Legitimate out-of-scope needs.** An agent step discovers it needs a file outside its scope. The Overseer's `scope_decision` protocol handles this, but the enforcement mechanism must support runtime expansion.
+
+**Interaction with consumer-provided tools.** The scheduler could wrap tool execution with path validation, or the tool constructors could accept scope parameters. Both have tradeoffs -- wrapping is universal but opaque; constructor parameters are explicit but require consumer cooperation.
+
+This section will be consolidated into a concrete design when the enforcement mechanism is chosen.
 
 ## What This Module Does NOT Do
 
