@@ -4,7 +4,7 @@ A Python library for orchestrating multi-agent AI workflows. Agents are TOML + m
 
 ## Status
 
-Design phase. The DESIGN.md files are the spec; no implementation code exists yet. Each module directory has a DESIGN.md describing its architecture and a Files section listing the Python files to be created.
+Design phase. The directory structure is a scaffold for the Python package. Each module directory has a DESIGN.md that serves as the implementation spec -- it describes the module's architecture, its public API, and a Files section listing the exact Python files to be created with their contents. When implementation begins, the Python files replace the DESIGN.md descriptions. The DESIGN.md files remain as architectural documentation alongside the code.
 
 ## Project structure
 
