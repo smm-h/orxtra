@@ -24,12 +24,12 @@ category = "quick"
 allow = ["read", "bash", "consult", "notepad"]
 ```
 
-Agents are static data documents (TOML metadata + markdown prompt), not code. The `allow` whitelist controls which tools the agent can use. Tools not listed are mechanically absent from the LLM's perspective.
+Agents are static data documents (TOML metadata + markdown prompt), not code. The `allow` whitelist controls which tools the agent can use. Tools not listed are mechanically absent from the LLM's perspective. Prompts support `{include:filename.md}` for composition from multiple files.
 
 ## Workflows
 
 ```toml
-[pipeline]
+[workflow]
 name = "process-data"
 description = "Research, generate, review"
 
@@ -95,7 +95,7 @@ A flat map from intent to model. No fallback chains, no fuzzy matching. Missing 
 - **Agents are data, not code.** TOML + markdown. No factory functions, no classes, no lifecycle methods.
 - **Permissions are whitelists.** The LLM never sees unlisted tools. Mechanically enforced, not prompt-instructed.
 - **Subagents cannot delegate.** `spawn` is mechanically stripped from spawned agents. Workers can `consult` read-only agents for research.
-- **Verification is mechanical.** The scheduler runs verification after every step. Two tiers: Python callables (fast, deterministic) then verification agents (slow, semantic).
+- **Verification is mechanical.** The scheduler runs verification after every step. Two tiers: Python callables (fast, deterministic, with optional auto-fix) then verification agents (slow, semantic).
 - **Structured decisions, not free-form.** The Overseer picks from menus via typed protocols. If a situation doesn't match any protocol, it escalates to the human.
 - **No implicit defaults.** Provider, model, timeout, retry behavior -- all must be explicit.
 - **No config sprawl.** Agent TOMLs, workflow TOMLs, one categories TOML, Python tools. No 100-knob config objects.

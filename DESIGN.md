@@ -17,6 +17,7 @@ oxtra/
     docs/                      # selfdoc templates
     todo/                      # Work items
     scripts/                   # Reusable project scripts
+    knowledge/                 # Consumer domain knowledge (.md and .toml)
     oxtra/
         __init__.py            # Public API: re-exports from submodules
         overseer/              # The brain: persistent LLM, decisions, memory, learning
@@ -91,7 +92,7 @@ Twelve hard rules. Each is mechanically enforced, not prompt-requested.
 
 Ten patterns to avoid, identified from analysis of oh-my-openagent (omo) -- a similar project that got many things right but suffered from complexity creep.
 
-1. **No config sprawl.** The configuration surface is: agent TOML files, pipeline TOML files, one categories TOML file, and Python tool definitions. No 100-knob config objects with nested sections.
+1. **No config sprawl.** The configuration surface is: agent TOML files, workflow TOML files, one categories TOML file, and Python tool definitions. No 100-knob config objects with nested sections.
 
 2. **No hook/middleware system.** Behavior is in the scheduler, not in interceptor chains. No lifecycle hooks, no plugin registry, no event bus.
 
@@ -129,13 +130,12 @@ allow = ["navigate", "screenshot", "extract_content", "read", "bash", "consult",
 
 No `[permissions]` section -- permissions are expressed entirely through the `allow` whitelist. `spawn` is mechanically stripped from all spawned agents regardless of config, so it never needs to be mentioned. `consult` and `notepad` are listed explicitly because the agent should be able to research via read-only agents and record learnings for downstream pipeline steps.
 
-The prompt file (`researcher.md`) lives alongside the TOML file and contains the agent's system prompt. It can reference `{variable}` placeholders that are substituted at spawn time from pipeline step variables.
+The prompt file (`researcher.md`) lives alongside the TOML file and contains the agent's system prompt. It can reference `{variable}` placeholders that are substituted at spawn time from workflow step variables.
 
-### Pipeline Definition
+### Workflow Definition
 
 ```toml
-# pipelines/process.toml
-[pipeline]
+[workflow]
 name = "process-data"
 description = "Full processing pipeline: research, generate, review"
 
@@ -226,7 +226,7 @@ The consumer builds a tool registry from oxtra's tool constructors (`make_read_t
 A pipeline that mixes function steps (fetch, normalize, unify) with agent steps (extract) demonstrates several oxtra features: function steps for deterministic work, structured output validation against a JSON Schema, `for_each` for batch processing, and retry with failure injection.
 
 ```toml
-[pipeline]
+[workflow]
 name = "etl-pipeline"
 description = "Fetch, normalize, extract, and publish structured data"
 
@@ -276,7 +276,7 @@ depends_on = ["extract"]
 A pipeline where a planner agent decomposes a task into subtasks, then a worker agent executes each subtask independently. Demonstrates structured output flowing into `for_each` iteration, with verification and post-step actions:
 
 ```toml
-[pipeline]
+[workflow]
 name = "generate-components"
 description = "Decompose a task into components, implement each, then integrate"
 

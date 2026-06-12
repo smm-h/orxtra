@@ -30,7 +30,7 @@ This is a pure whitelist. There is no deny list. If a tool is not in `allow`, it
 ## Prompt Files
 
 - Live alongside the TOML file as `.md` files.
-- Can contain `{variable}` placeholders that get substituted at runtime from pipeline step variables.
+- Can contain `{variable}` placeholders that get substituted at runtime from workflow step variables.
 - Simple string substitution only. No Jinja2, no loops, no conditionals, no filters. Complexity in prompts is a smell.
 - Read once at agent load time, substituted at spawn time.
 - Variable substitution is strict both ways. Unresolved placeholders (present in the template but not in the provided variables) are hard errors. Unused provided variables (provided but not referenced in the template) are also hard errors. The template and the variable set must match exactly.
@@ -72,7 +72,7 @@ This enables maintaining prompts as composable pieces: a base agent prompt, doma
 - Loaded from a single `categories.toml` file at the project root.
 - No fallback chains. If a category referenced by an agent does not exist in the map, hard error at load time.
 - Agents reference categories by name, never by model string. The TOML schema rejects model strings in the `category` field.
-- Pipeline steps can override the agent's default category per-invocation.
+- Workflow steps can override the agent's default category per-invocation.
 
 ## Permissions -- Mechanical Enforcement
 
@@ -87,7 +87,7 @@ Special cases:
 
 | Level | Description | Who can use it | Agent capabilities |
 |---|---|---|---|
-| `spawn` | Creates a full agent session with write access. | Pipeline executor only. Mechanically stripped from all spawned agents. | Full tool access per the spawned agent's `allow` list. |
+| `spawn` | Creates a full agent session with write access. | Scheduler only. Mechanically stripped from all spawned agents. | Full tool access per the spawned agent's `allow` list. |
 | `consult` | Creates a read-only agent session. | Any agent with `consult` in its `allow` list. | Cannot use write/edit/bash tools. For research, not execution. |
 
 This prevents orchestration recursion: the scheduler spawns workers, workers can consult other agents for information, but workers cannot spawn more workers.
@@ -126,4 +126,4 @@ No version field in agent definitions. Agent format changes are breaking changes
 - Does not define any built-in agents. Those are the user's domain.
 - Does not handle model selection beyond category lookup. No availability checks, no fallbacks, no provider negotiation.
 - Does not parse or interpret prompt content. It loads the text as a string. Substitution happens at spawn time, not load time.
-- Does not validate that tools referenced in `allow` actually exist. That validation happens at pipeline execution time when the tool registry is available.
+- Does not validate that tools referenced in `allow` actually exist. That validation happens at workflow execution time when the tool registry is available.
