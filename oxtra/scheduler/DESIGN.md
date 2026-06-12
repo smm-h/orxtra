@@ -80,10 +80,12 @@ Each `[[steps]]` entry has these fields:
 | `for_each_abort_on_failure` | boolean | conditional | Required if `for_each` is set. |
 | `output_schema` | string | no | JSON Schema path for structured output validation. Agent steps only. |
 | `budget` | integer | no | Per-step token budget. Overseer can set this per step. |
-| `workflow` | string | no | Workflow name to spawn as a child. Mutually exclusive with `agent`/`task`/`callable`. |
-| `wait` | boolean | conditional | Required if `workflow` is set. True = block until child completes. False = fire-and-forget (scheduler tracks the detached workflow). |
+| `workflow` | string | no | Workflow name to spawn as a child. Mutually exclusive with `agent`/`task`/`callable`/`decision_point`/`gate`. |
+| `wait` | boolean | conditional | Required if `workflow` is set. True = block until child completes. False = fire-and-forget. |
+| `decision_point` | boolean | no | If true, this step pauses execution and invokes the Overseer to decide what to do next. Mutually exclusive with `agent`/`task`/`callable`/`workflow`/`gate`. |
+| `gate` | string | no | Event name to wait for. Blocks until the named event fires or `timeout` expires. Mutually exclusive with `agent`/`task`/`callable`/`workflow`/`decision_point`. |
 
-*A step must declare exactly one of: `agent` + `task` (agent step), `callable` (function step), or `workflow` (child workflow step).
+*A step must declare exactly one of: `agent` + `task` (agent step), `callable` (function step), `workflow` (child workflow step), `decision_point` (Overseer decision), or `gate` (event wait).
 
 **Every step must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
 
@@ -150,6 +152,90 @@ Steps with `output_schema` get JSON extraction and validation after completion. 
 
 Steps with `for_each` execute once per item in a list variable. Iterations run in parallel. `for_each_abort_on_failure` controls whether partial failures abort the pipeline. `for_each` + `output_schema` validates per iteration, collects as list.
 
+## Workflow State
+
+Workflows have two kinds of inter-step data:
+
+**Typed state** -- structured data that downstream steps can use. Each step can declare an output schema for its variables. The scheduler validates the output against the schema before writing to the variable map. Downstream steps reference typed state via `{variable}` placeholders. Variable name collisions are hard errors.
+
+**Scratch** -- per-step working memory that does not propagate. Available to the agent step via `StepContext.scratch`. The agent can dump intermediate reasoning, draft attempts, or working notes. When the step ends, scratch is discarded -- it does not flow to downstream steps. Scratch is written to trace/ for debugging but not to the variable map.
+
+## Decision Point Steps
+
+A decision point step pauses workflow execution and invokes the Overseer. Unlike mechanical if/else branching, the Overseer sees the current workflow state and decides what to do next: which branch to follow, whether to mutate the workflow tree (add/remove/reorder steps), or whether to spawn a new workflow entirely.
+
+This replaces traditional conditional branching. The Overseer makes the judgment call, not a predicate.
+
+```toml
+[[steps]]
+name = "evaluate-approach"
+decision_point = true
+depends_on = ["research"]
+timeout = 60
+```
+
+The scheduler sends the current workflow state to the Overseer's `workflow_decision` protocol. The Overseer can respond with: continue as-is, modify the remaining steps, or abort the workflow.
+
+## Gate Steps
+
+A gate step blocks until a named event fires or the timeout expires. Useful for inter-workflow synchronization, waiting on external events (CI completion, human response), or coordinating with detached child workflows.
+
+```toml
+[[steps]]
+name = "wait-for-tests"
+gate = "ci_tests_complete"
+depends_on = ["push-code"]
+timeout = 600
+```
+
+If the event fires before timeout, the step succeeds and the event payload is available as `{step_name}_event`. If timeout expires, the step fails (triggering retry or Overseer escalation).
+
+Events are registered with the scheduler by the consumer or by other workflows via the trace event system.
+
+## Services
+
+Workflows can declare long-running processes with start/health-check/stop commands. The scheduler manages their lifecycle.
+
+```toml
+[services.api]
+start = "myproject.services:start_api"
+health = "myproject.services:check_api"
+stop = "myproject.services:stop_api"
+
+[services.db]
+start = "myproject.services:start_db"
+health = "myproject.services:check_db"
+stop = "myproject.services:stop_db"
+```
+
+The scheduler starts services before the first step that needs them, monitors health periodically, and stops them on workflow completion or crash. Runtime details (port, URL, PID) are written to workflow state and accessible via variable substitution: `{services.api.port}`, `{services.db.url}`.
+
+Service callables follow the same dotted path format as verification callables.
+
+## File-Lock Registry
+
+When multiple workflows run concurrently, the file-lock registry prevents conflicting file writes. File-level granularity.
+
+A workflow claims files by path at creation (inferred from its task list). Claims are all-or-nothing: if any claimed file conflicts with an existing claim, the workflow waits until the conflict is released. No partial claims.
+
+If an agent step discovers it needs a file outside its workflow's claims, the scheduler escalates to the Overseer's `scope_decision` protocol. The Overseer can approve adding the path (if uncontested), block (if contested), or spawn a child workflow with appropriate scope.
+
+Claims are released when the workflow completes, fails, or is aborted.
+
+## Cross-Workflow Data Flow
+
+One workflow can declare read-only access to another workflow's state fields. The scheduler provides the requested fields as read-only variables.
+
+```toml
+[pipeline]
+name = "generate-report"
+reads_from = {research_workflow = ["findings", "sources"]}
+```
+
+The `reads_from` field maps workflow names to lists of state field names. The scheduler resolves these at step execution time -- if the source workflow hasn't produced the field yet, the step blocks until it's available (with timeout). The values are read-only copies -- the consuming workflow cannot modify the source workflow's state.
+
+This enables coordination between concurrent workflows without shared mutable state. The Overseer can also wire data between workflows by generating appropriate steps, but declared read-only access is more efficient for simple data sharing.
+
 ## Cancellation
 
 - **asyncio cancellation** -- the caller cancels the scheduler's task. Catches `CancelledError`, cleans up sessions, writes partial results.
@@ -171,12 +257,15 @@ All persistence via `trace/` module. The scheduler calls `trace.write_step_resul
 
 | File | Contents |
 |---|---|
-| `_types.py` | `StepContext`, `StepResult`, `WorkflowConfig` (parsed TOML), `WorkflowState`. Step schema field definitions. |
+| `_types.py` | `StepContext`, `StepResult`, `WorkflowConfig` (parsed TOML), `WorkflowState`, `ServiceConfig`. Step schema field definitions. |
 | `_loader.py` | `load_workflow(path_or_str)` -- reads workflow TOML, validates schema, returns `WorkflowConfig`. |
 | `_graph.py` | Dependency graph construction. Topological sort. Cycle detection. Parallelizable step identification. |
 | `_executor.py` | `Scheduler` class. Event loop, step execution, timeout enforcement, retry logic, verification dispatch, constraint enforcement, budget tracking, pause/resume, `abort()`. |
 | `_validator.py` | Workflow validation: schema checks + sanity-check subagent dispatch. |
 | `_checkpoint.py` | Crash recovery checkpointing. State serialization/deserialization at step boundaries. |
+| `_services.py` | Service lifecycle management. Start, health-check, stop. Runtime detail injection into workflow state. |
+| `_locks.py` | File-lock registry. Claim management, conflict detection, release on workflow completion. |
+| `_events.py` | Event registry for gate steps. Event registration, firing, and listener management. |
 
 ## Per-Workflow File Scopes (Open Design Problem)
 
