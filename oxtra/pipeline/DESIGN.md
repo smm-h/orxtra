@@ -208,19 +208,11 @@ The executor supports two cancellation mechanisms:
 
 ## Run Directory
 
-The executor writes a full trace to `{run_dir}/`:
-
-```
-{run_dir}/
-    result.json                    # Final pipeline result: pass/fail, total cost, total duration
-    steps/{step_name}.json         # Per-step: status, agent output, verification result, cost, duration, session_id
-    events/{step_name}.jsonl       # Transport events: tool calls, token counts per turn
-    notepad/                       # The JSONL notepad files (learnings, decisions, issues)
-```
+The executor delegates all persistence to the `trace/` module. See `trace/DESIGN.md` for the run directory structure, artifact formats, and query API. The pipeline executor calls `trace.write_step_result()` after each step and `trace.write_pipeline_result()` at the end.
 
 ## Crash Recovery
 
-Configurable. When enabled, the executor persists step results to `{run_dir}/steps/{step_name}.json` as each step completes. On restart, the caller can pass completed step results to skip already-finished steps. This is not automatic resume -- the caller decides what to reuse.
+The executor persists step results via `trace/` as each step completes. On restart, the caller can read previously completed step results from a prior run directory (via `trace.read_step_result()`) and pass them to the executor as `completed_steps` to skip already-finished steps. This is not automatic resume -- the caller decides what to reuse.
 
 ## Key Design Decisions
 

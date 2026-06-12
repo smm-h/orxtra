@@ -13,17 +13,18 @@ A Python library for orchestrating multi-agent AI workflows. You define agents a
 
 ## Architecture
 
-Seven modules, each with a single responsibility.
+Eight modules, each with a single responsibility.
 
 | Module | Responsibility |
 |---|---|
 | `agent/` | Load agent definitions from TOML + .md prompt files. Validate schema. Resolve categories and permissions. |
 | `tool/` | Tool registry. Each tool is a single Python object: name, description, parameters, execute. No separation between schema and implementation. |
 | `transport/` | LLM client via Provider protocol. Send messages to LLM APIs directly (Anthropic, OpenAI), stream responses, parse events, run the tool-call loop. No subprocess agents. |
-| `pipeline/` | Declare and execute multi-step agent workflows from TOML step files. Retry logic, step dependencies, auto-continuation. |
+| `pipeline/` | Declare and execute multi-step agent workflows from TOML step files. Dependency graph, parallel execution, retry logic, auto-continuation, cancellation. |
 | `verify/` | Run verification after each pipeline step. Two tiers: Python callables (mechanical gate), then verification agents (semantic checks). |
 | `notepad/` | Append-only filesystem-based IPC for cross-agent context sharing. Each pipeline run gets a directory. Workers append learnings, decisions, issues. No overwrites. |
-| `session/` | Session management wrapping transport. Track session IDs for resumption. Track cost (tokens, USD). |
+| `session/` | Session lifecycle management wrapping transport. Track session IDs for resumption. Track cost (tokens, USD). Trigger session handoff on context window limits. |
+| `trace/` | Persistence layer for pipeline runs. Owns the run directory structure: step results, transport event logs, session transcripts, pipeline results. Enables crash recovery and session handoff. |
 
 ## Design Axioms
 

@@ -60,9 +60,9 @@ The new agent has both a summary for quick reference and the full record for dee
 
 ## Session Transcript Store
 
-Sessions write their full transcript to the run directory as they execute. The transcript includes every message (user and assistant), every tool call (name, input, output), and per-turn token counts.
+Sessions persist their full transcript via the `trace/` module. The transcript includes every message (user and assistant), every tool call (name, input, output), and per-turn token counts. See `trace/DESIGN.md` for the transcript format and query API.
 
-A session can query another session's transcript by UUID. This is the mechanism that makes session handoff work -- the new session can look up specific details from the old session without carrying the full conversation in its context window.
+A session can query another session's transcript by UUID via `trace.read_transcript()` and `trace.query_transcript()`. This is the mechanism that makes session handoff work -- the new session can look up specific details from the old session without carrying the full conversation in its context window.
 
 ## Cost Tracking
 
@@ -103,5 +103,5 @@ def create_session(
 - Does not filter tools (that is agent/ permissions, applied before session creation)
 - Does not manage multiple sessions concurrently (that is pipeline/, which creates sessions as needed)
 - Does not implement retry logic (that is pipeline/)
-- Does not persist session history beyond the run directory transcript
+- Does not own transcript persistence (that's trace/)
 - Does not enforce cost limits (the caller checks `total_cost_usd` and decides whether to continue)
