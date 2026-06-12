@@ -40,8 +40,8 @@ oxtra provides **tool constructors** -- functions that return `Tool` objects. Th
 | Constructor | Purpose |
 |---|---|
 | `make_read_tool(cwd: Path) -> Tool` | Read files relative to cwd |
-| `make_write_tool(cwd: Path, scope: list[str] | None = None) -> Tool` | Write files relative to cwd. If `scope` is set, writes to paths outside the scope list are hard errors. |
-| `make_edit_tool(cwd: Path, scope: list[str] | None = None) -> Tool` | Edit files (find/replace). If `scope` is set, edits to paths outside the scope list are hard errors. |
+| `make_write_tool(cwd: Path) -> Tool` | Write files relative to cwd |
+| `make_edit_tool(cwd: Path) -> Tool` | Edit files (find/replace) |
 | `make_bash_tool(cwd: Path, timeout: int) -> Tool` | Run shell commands with timeout |
 | `make_grep_tool(cwd: Path) -> Tool` | Search file contents |
 | `make_glob_tool(cwd: Path) -> Tool` | Find files by pattern |
@@ -114,21 +114,6 @@ Error handling:
 - Tool name not in registry: hard error, not a graceful fallback
 - Argument validation fails: hard error with details sent back to the LLM
 - `execute()` raises: the exception message is sent back to the LLM as an error result
-
-## Scoped Tool Construction
-
-The `scope` parameter on `make_write_tool` and `make_edit_tool` enables per-step file scope enforcement. When the scheduler constructs tools for an agent step that declares `write_paths`, it passes those paths as the scope:
-
-```python
-write_tool = make_write_tool(cwd=project_dir, scope=step.write_paths)
-edit_tool = make_edit_tool(cwd=project_dir, scope=step.write_paths)
-```
-
-Scope enforcement is at the tool execution layer. Before writing or editing a file, the tool checks whether the target path matches any entry in the scope list. Scope entries can be exact paths (`"src/audio.ts"`) or directory prefixes (`"src/"`). A write to a path outside the scope is a hard error -- the tool returns an error message to the LLM, and the write does not happen.
-
-When `scope` is None, the tool is unscoped -- any path under `cwd` is writable. This is the default for steps that do not declare `write_paths`.
-
-Scope enforcement interacts with the file-lock registry: the registry handles cross-workflow conflicts; per-step scopes handle intra-workflow boundaries. Both are mechanical -- the agent cannot bypass either.
 
 ## Files
 

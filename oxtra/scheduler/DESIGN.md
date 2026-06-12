@@ -85,8 +85,7 @@ Each `[[steps]]` entry has these fields:
 | `decision_point` | boolean | no | If true, this step pauses execution and invokes the Overseer to decide what to do next. Mutually exclusive with `agent`/`task`/`callable`/`workflow`/`gate`. |
 | `gate` | string | no | Event name to wait for. Blocks until the named event fires or `timeout` expires. Mutually exclusive with `agent`/`task`/`callable`/`workflow`/`decision_point`. |
 | `on_success` | string | no | Python callable path. Runs after verification passes. For side effects like committing files, updating registries, or sending notifications. Not a hook -- a declared, per-step action. |
-| `pre_retry` | string | no | Python callable path. Runs before a retry attempt. For auto-fixing mechanically fixable failures (linting, formatting) before the agent retries. |
-| `write_paths` | array of strings | no | File paths this step may write to. If set, the scheduler constructs scoped write/edit tools that reject writes outside these paths. See "Per-Step File Scopes." |
+| `pre_retry` | string | no | Python callable path. Runs before a retry attempt. For cleaning up state before a fresh attempt -- reverting broken files, resetting environment, clearing caches. Distinct from `fix` on VerifyResult (which is verification-scoped). |
 
 *A step must declare exactly one of: `agent` + `task` (agent step), `callable` (function step), `workflow` (child workflow step), `decision_point` (Overseer decision), or `gate` (event wait).
 
@@ -109,33 +108,15 @@ The scheduler stores both versions (pre-refinement and post-refinement) via trac
 
 Context is filled in priority order until the token budget per call is reached.
 
-### Consumer Context Providers
+### Consumer Context
 
-Consumers can register context provider callables that contribute domain-specific sections to agent prompts. Three mechanisms are supported, and consumers can use any combination:
+Consumers have two mechanisms for injecting domain-specific content into agent prompts:
 
-**Context provider callables.** Python callables registered at pipeline setup time. Each callable receives step metadata and returns a prioritized section:
+**Pipeline variables.** Pre-computed context sections passed as pipeline variables and referenced in agent prompt templates via `{variable}` placeholders. The simplest mechanism -- no runtime computation, no new types. Suitable for context that can be computed before the pipeline runs.
 
-```python
-async def provide_context(ctx: ContextProviderInput) -> ContextSection | None:
-    ...
-```
+**Prompt file composition.** Agent prompt `.md` files support an `{include:filename.md}` directive that includes another `.md` file at load time. See `agent/DESIGN.md` for details. Enables maintaining prompts as composable pieces: a base agent prompt, domain-specific documentation, project conventions, and framework API references, each as separate files.
 
-`ContextProviderInput` contains: `task` (the step's task prompt), `step_name`, `variables` (the step's runtime variables), `run_dir`, `agent_name`. `ContextSection` contains: `title` (section heading), `content` (markdown text), `priority` (integer -- higher means kept when truncating), `max_tokens` (optional cap on this section's contribution).
-
-The scheduler calls all registered providers after Layer 2 and before Layer 3 (Overseer refinement). Sections are ordered by priority and truncated to fit the model's context budget. The Overseer's `context_decision` sees all provider sections and can reorder, trim, or remove them.
-
-```python
-executor = PipelineExecutor(
-    context_providers=[api_docs_provider, file_summary_provider, conventions_provider],
-    ...
-)
-```
-
-**Pipeline variables as context.** Pre-computed context sections passed as pipeline variables and referenced in agent prompt templates via `{variable}` placeholders. The simplest mechanism -- no runtime computation, no new types. Suitable for static context that does not change per step.
-
-**Prompt file composition.** Agent prompt `.md` files support an `{include:filename.md}` directive that includes another `.md` file at load time. See `agent/DESIGN.md` for details.
-
-All three mechanisms compose: a consumer can use prompt file includes for static documentation, pipeline variables for project-level context, and runtime callables for per-step adaptive context.
+Both mechanisms compose with the existing three-layer context assembly. For per-step adaptive context that changes based on runtime state, the Overseer's `context_decision` protocol (Layer 3) already handles refinement -- it can select relevant lessons, request additional code context, and trim sections.
 
 ## Event Loop
 
@@ -215,11 +196,11 @@ Both mechanisms are supported. `on_success` is syntactic sugar for a common patt
 
 ## Auto-Fix Before Retry
 
-When mechanical verification fails and the failure is mechanically fixable (linting auto-format, import sorting, whitespace normalization), three mechanisms support auto-fixing:
+When mechanical verification fails and the failure is mechanically fixable (linting auto-format, import sorting, whitespace normalization), two mechanisms address different lifecycle points:
 
-**Fix callable on VerifyResult.** The mechanical verification callable returns a `VerifyResult` with an optional `fix` callable. If the result is failed and `fix` is present, the scheduler runs the fix callable, then re-verifies (once -- no recursion). The verification function itself remains a check; the fix is a separate declared action. See `verify/DESIGN.md`.
+**Fix callable on VerifyResult (verification-scoped).** The mechanical verification callable returns a `VerifyResult` with an optional `fix` callable. If the result is failed and `fix` is present, the scheduler runs the fix callable, then re-verifies (once -- no recursion). The verification function itself remains a check; the fix is a separate declared action. No retry is consumed -- the agent does not re-run. See `verify/DESIGN.md`.
 
-**`pre_retry` callable on steps.** A Python callable that runs before a retry attempt. The consumer's pre_retry function can run auto-fixers, clean up state, or adjust the environment before the agent retries. Unlike `fix` on VerifyResult (which is verification-scoped), `pre_retry` runs before the full step retry (including the agent invocation).
+**`pre_retry` callable on steps (step-scoped).** A Python callable that runs before a full step retry, including agent re-invocation. For cleaning up state before a fresh attempt: reverting broken partial changes, resetting the working directory, clearing caches. Unlike `fix` on VerifyResult, `pre_retry` runs at a different lifecycle point -- after the step has failed and before the agent tries again.
 
 ```toml
 [[steps]]
@@ -232,13 +213,13 @@ timeout = 600
 retry = 3
 retry_resume = true
 retry_inject_failure = true
-pre_retry = "myproject.fixers:auto_format"
+pre_retry = "myproject.fixers:reset_working_dir"
 verify = "myproject.verify:lint_and_types"
 ```
 
-**Verification with side effects.** The consumer's verification callable can fix the issue and return passed -- combining the check and fix in one function. The framework does not enforce verification purity; consumers choose whether their verify functions have side effects. This is the simplest mechanism but makes verification non-idempotent.
+These are not alternatives -- they operate at different points. A typical flow: agent writes code → verification fails lint (auto-fixable) → `fix` runs linter auto-format → re-verification passes lint but fails type checking (not auto-fixable) → step fails → `pre_retry` reverts broken files → agent retries with failure context.
 
-All three mechanisms are available. The consumer picks whichever fits their use case: `fix` on VerifyResult for verification-scoped fixes, `pre_retry` for step-scoped pre-retry actions, or side-effecting verification for maximum simplicity.
+Consumers may also write verification functions that fix issues and return passed. The framework does not enforce verification purity.
 
 ## Dynamic Fan-Out from Agent Output
 
@@ -387,7 +368,7 @@ All persistence via `trace/` module. The scheduler calls `trace.write_step_resul
 
 | File | Contents |
 |---|---|
-| `_types.py` | `StepContext`, `StepResult`, `WorkflowConfig` (parsed TOML), `WorkflowState`, `ServiceConfig`, `ContextProviderInput`, `ContextSection`. Step schema field definitions. |
+| `_types.py` | `StepContext`, `StepResult`, `WorkflowConfig` (parsed TOML), `WorkflowState`, `ServiceConfig`. Step schema field definitions. |
 | `_loader.py` | `load_workflow(path_or_str)` -- reads workflow TOML, validates schema, returns `WorkflowConfig`. |
 | `_graph.py` | Dependency graph construction. Topological sort. Cycle detection. Parallelizable step identification. |
 | `_executor.py` | `Scheduler` class. Event loop, step execution, timeout enforcement, retry logic, verification dispatch, constraint enforcement, budget tracking, pause/resume, `abort()`. |

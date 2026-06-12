@@ -50,7 +50,7 @@ The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent 
 | Module | Responsibility |
 |---|---|
 | `overseer/` | Persistent LLM with read-only tools and SQLite memory. Makes judgment calls via structured decision protocols. Generates workflows. Manages assumptions, constraints, lessons. Session handoff when context fills. |
-| `scheduler/` | Deterministic event loop. Validates and executes workflows. Enforces budgets and mechanical constraints. Routes events to the Overseer. Classifies errors. Manages pause/resume and crash recovery. Assembles agent context from consumer-registered providers. Has no opinions. |
+| `scheduler/` | Deterministic event loop. Validates and executes workflows. Enforces budgets and mechanical constraints. Routes events to the Overseer. Classifies errors. Manages pause/resume and crash recovery. Has no opinions. |
 | `agent/` | Load agent definitions from TOML + .md prompt files. Validate schema. Resolve categories and permissions. |
 | `tool/` | Tool registry. Each tool is a single Python object: name, description, parameters, execute. No separation between schema and implementation. |
 | `transport/` | LLM client via Provider protocol. Send messages to LLM APIs directly (Anthropic, OpenAI), stream responses, parse events, run the tool-call loop. No subprocess agents. |
@@ -103,7 +103,7 @@ Ten patterns to avoid, identified from analysis of oh-my-openagent (omo) -- a si
 
 6. **No bloated background manager.** Async agent execution uses standard asyncio. One completion detection path, not three.
 
-7. **No skill system.** Agents get their prompt from composable .md files and runtime context providers. No skill loaders, mergers, MCP managers, or frontmatter parsers.
+7. **No skill system.** Agents get their prompt from composable .md files. No skill loaders, mergers, MCP managers, or frontmatter parsers.
 
 8. **No prompts in code.** All prompt text lives in .md files, never in Python strings. Python files contain logic, not prose.
 
