@@ -2,7 +2,7 @@
 
 ## What oxtra Is
 
-A Python library for orchestrating multi-agent AI workflows. You define agents as TOML + markdown, tools as Python objects, pipelines as TOML step files, and oxtra handles execution, delegation, verification, session management, and cross-agent context sharing.
+A Python library for autonomous multi-agent AI workflows. You provide intent; oxtra drives it to completion. An Overseer (persistent LLM with read-only tools and structured memory) makes judgment calls and generates workflows. A Scheduler (deterministic event loop) validates, executes, and enforces. Agent steps (scoped LLM calls) do the actual work.
 
 ## Project Structure
 
@@ -19,14 +19,15 @@ oxtra/
     scripts/                   # Reusable project scripts
     oxtra/
         __init__.py            # Public API: re-exports from submodules
+        overseer/              # The brain: persistent LLM, decisions, memory, learning
+        scheduler/             # The nervous system: event loop, validation, execution
         agent/                 # Agent definition loading and validation
         tool/                  # Tool contract, registry, constructors
         transport/             # LLM communication via Provider protocol
             providers/         # Per-provider API implementations
-        pipeline/              # Pipeline loading, execution, parallelism
         verify/                # Mechanical + semantic verification
         notepad/               # Cross-agent context sharing
-        session/               # Session lifecycle, cost tracking, handoff
+        session/               # Session lifecycle, cost tracking
         trace/                 # Run directory persistence and query
     tests/                     # One test module per source module
 ```
@@ -42,22 +43,25 @@ Each module directory contains a `DESIGN.md` (the spec) and Python files (the im
 
 ## Architecture
 
-Eight modules, each with a single responsibility.
+Three components, nine modules.
+
+The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent steps** are the hands.
 
 | Module | Responsibility |
 |---|---|
+| `overseer/` | Persistent LLM with read-only tools and SQLite memory. Makes judgment calls via structured decision protocols. Generates workflows. Manages assumptions, constraints, lessons. Session handoff when context fills. |
+| `scheduler/` | Deterministic event loop. Validates and executes workflows. Enforces budgets and mechanical constraints. Routes events to the Overseer. Classifies errors. Manages pause/resume and crash recovery. Has no opinions. |
 | `agent/` | Load agent definitions from TOML + .md prompt files. Validate schema. Resolve categories and permissions. |
 | `tool/` | Tool registry. Each tool is a single Python object: name, description, parameters, execute. No separation between schema and implementation. |
 | `transport/` | LLM client via Provider protocol. Send messages to LLM APIs directly (Anthropic, OpenAI), stream responses, parse events, run the tool-call loop. No subprocess agents. |
-| `pipeline/` | Declare and execute multi-step agent workflows from TOML step files. Dependency graph, parallel execution, retry logic, auto-continuation, cancellation. |
-| `verify/` | Run verification after each pipeline step. Two tiers: Python callables (mechanical gate), then verification agents (semantic checks). |
-| `notepad/` | Append-only filesystem-based IPC for cross-agent context sharing. Each pipeline run gets a directory. Workers append learnings, decisions, issues. No overwrites. |
-| `session/` | Session lifecycle management wrapping transport. Track session IDs for resumption. Track cost (tokens, USD). Trigger session handoff on context window limits. |
-| `trace/` | Persistence layer for pipeline runs. Owns the run directory structure: step results, transport event logs, session transcripts, pipeline results. Enables crash recovery and session handoff. |
+| `verify/` | Run verification after each step. Two tiers: Python callables (mechanical gate), then verification agents (semantic checks). |
+| `notepad/` | Append-only filesystem-based IPC for cross-agent context sharing. Each run gets a directory. Workers append learnings, decisions, issues. No overwrites. |
+| `session/` | Session lifecycle management wrapping transport. Track session IDs for resumption. Track cost (tokens, USD). |
+| `trace/` | Persistence layer for runs. Owns the run directory structure: step results, transport event logs, session transcripts, Overseer checkpoints. Enables crash recovery and session handoff. |
 
 ## Design Axioms
 
-Ten hard rules. Each is mechanically enforced, not prompt-requested.
+Twelve hard rules. Each is mechanically enforced, not prompt-requested.
 
 1. **Agents are data, not code.** TOML metadata + .md prompts. No factory functions, no classes, no lifecycle methods. An agent definition is a static document that the framework loads and interprets.
 
@@ -73,11 +77,15 @@ Ten hard rules. Each is mechanically enforced, not prompt-requested.
 
 7. **Mandatory parameters for consequential choices.** No implicit defaults for provider selection, model choice, or execution mode. Missing values are hard errors, not silent defaults.
 
-8. **Verification is mechanical, not requested.** After every pipeline step, verification runs automatically. The pipeline executor calls verification functions -- not the agent's prompt. The agent cannot skip verification. Verification agents are full agent definitions (TOML + .md prompt file), not framework-constructed templates. The executor invokes them via `consult`, injecting a verification context struct as template variables.
+8. **Verification is mechanical, not requested.** After every step, verification runs automatically. The scheduler runs verification functions -- not the agent's prompt. The agent cannot skip verification. Verification agents are full agent definitions (TOML + .md prompt file), not framework-constructed templates. The scheduler invokes them via `consult`, injecting a verification context struct as template variables.
 
-9. **Filesystem IPC + session resumption.** Cross-agent context via append-only notepad files. Session continuity via session IDs returned from every invocation. No in-memory shared state between agents. When an agent's conversation approaches ~90% of the model's context window, the session module detects the threshold and signals the pipeline executor to perform a session handoff: the current session produces a detailed summary, a new session starts with that summary as initial context plus the old session's UUID for querying its full transcript via the trace module.
+9. **Filesystem IPC + session resumption.** Cross-agent context via append-only notepad files. Session continuity via session IDs returned from every invocation. No in-memory shared state between agents.
 
-10. **Auto-continuation.** The pipeline executor refuses to stop while steps remain incomplete. If a step fails and retries are available, it retries. If a step succeeds, it moves to the next. Only exhausted retries or explicit abort stop execution.
+10. **Auto-continuation.** The scheduler refuses to stop while steps remain incomplete. If a step fails and retries are available, the Overseer decides strategy. If a step succeeds, the scheduler moves to the next. Only exhausted retries, explicit abort, or budget exhaustion stop execution.
+
+11. **The Overseer is the only long-lived entity.** Agent steps are scoped and short-lived -- they get a task, do it, and report back within their context window. If an agent step can't finish within its context window, that's a decomposition problem. Only the Overseer receives session handoff when its context fills: summary + UUID for querying the full transcript via trace/.
+
+12. **Structured decisions, not free-form.** The Overseer makes decisions via typed protocols with closed output schemas. It picks from menus, never free-forms. If a situation doesn't match any registered protocol, it escalates to the human.
 
 ## Anti-Patterns
 

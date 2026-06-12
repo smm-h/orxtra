@@ -48,23 +48,11 @@ The key mechanism for efficient retries and multi-turn conversations:
 
 This is an explicit choice per pipeline step, not a transport-level default. The `retry_resume` field is required when `retry > 0`.
 
-## Session Handoff (Context Compaction)
-
-When an agent's conversation approaches ~90% of the model's context window, the session module detects the threshold (it tracks token usage per turn via `StepFinish` events) and signals the pipeline executor to trigger a handoff:
-
-1. The session module detects that cumulative token usage has crossed the 90% threshold for the model's context window.
-2. The session asks the current agent to produce a detailed summary of everything that has happened so far.
-3. The session module persists the full transcript via `trace/`.
-4. The pipeline executor creates a new session with that summary as initial context.
-5. The new session receives the old session's UUID, enabling it to query the old session's full transcript -- inputs, outputs, tool calls, token stats -- via the trace module.
-
-The new agent has both a summary for quick reference and the full record for deep lookups. This avoids the information loss of simple truncation while keeping the active context within limits.
-
 ## Session Transcript Store
 
 Sessions persist their full transcript via the `trace/` module. The transcript includes every message (user and assistant), every tool call (name, input, output), and per-turn token counts. See `trace/DESIGN.md` for the transcript format and query API.
 
-A session can query another session's transcript by UUID via `trace.read_transcript()` and `trace.query_transcript()`. This is the mechanism that makes session handoff work -- the new session can look up specific details from the old session without carrying the full conversation in its context window.
+Session handoff (context compaction) is an Overseer-only concern. Regular agent steps are scoped and short-lived -- they finish within their context window. See `overseer/DESIGN.md` for the handoff mechanism.
 
 ## Cost Tracking
 
@@ -105,7 +93,6 @@ def create_session(
 |---|---|
 | `_session.py` | `Session` class. Wraps transport, accumulates cost/tokens/turns, tracks session_id, exposes `send()` and `resume_id()`. |
 | `_factory.py` | `create_session(transport, model, system_prompt, tools, session_id?)` -- constructs a `Session`. |
-| `_handoff.py` | `HandoffDetector` -- monitors token usage per turn, signals when cumulative usage crosses 90% of the model's context window. `perform_handoff(session, trace_writer)` -- asks the agent for a summary, persists transcript, returns the summary and old session UUID for the new session. |
 
 ## What This Module Does NOT Do
 
