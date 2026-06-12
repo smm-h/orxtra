@@ -4,7 +4,7 @@ Persistence layer for pipeline runs. Owns the run directory structure, writes th
 
 ## Responsibility
 
-Write and read the artifacts of a pipeline run: per-step results, transport event logs, session transcripts, and the final pipeline result. This module is the single owner of the run directory format. Pipeline and session modules call into trace to persist data; they do not write to the run directory directly.
+Write and read the artifacts of a pipeline run: per-step results, transport event logs, session transcripts, and the final pipeline result. This module is the single owner of the run directory format. Scheduler and session modules call into trace to persist data; they do not write to the run directory directly.
 
 ## Run Directory Structure
 
@@ -25,7 +25,7 @@ Write and read the artifacts of a pipeline run: per-step results, transport even
         issues.jsonl               # Cross-agent issues
 ```
 
-The run directory is created by the pipeline executor at the start of a run. The trace module provides functions to write each artifact type. The directory persists after the run completes or fails -- it is the permanent record.
+The run directory is created by the scheduler at the start of a run. The trace module provides functions to write each artifact type. The directory persists after the run completes or fails -- it is the permanent record.
 
 ## Artifacts
 
@@ -145,10 +145,10 @@ def list_runs(data_dir: Path, pipeline_name: str) -> list[Path]:
 
 ## Crash Recovery
 
-The trace module enables crash recovery by persisting step results incrementally. The pipeline executor writes each `StepResult` to `steps/{step_name}.json` as soon as the step completes. On restart:
+The trace module enables crash recovery by persisting step results incrementally. The scheduler writes each `StepResult` to `steps/{step_name}.json` as soon as the step completes. On restart:
 
 1. The caller reads existing step results from a previous run directory via `read_step_result`
-2. The caller passes them to the pipeline executor as `completed_steps`
+2. The caller passes them to the scheduler as `completed_steps`
 3. The executor skips steps that have a completed result and proceeds from the first incomplete step
 
 This is not automatic resume -- the caller decides which run directory to read from and which results to trust. The trace module provides the persistence; the caller provides the policy.
@@ -180,7 +180,7 @@ The trace module stores both the mechanically assembled context and the Overseer
 
 ## Key Design Decisions
 
-**Single owner of the run directory.** No other module writes directly to the run directory. Pipeline calls `trace.write_step_result()`. Session calls `trace.write_transcript()`. The notepad tool calls `trace.write_notepad_entry()`. This prevents format drift and conflicting writes.
+**Single owner of the run directory.** No other module writes directly to the run directory. Scheduler calls `trace.write_step_result()`. Session calls `trace.write_transcript()`. The notepad tool calls `trace.write_notepad_entry()`. This prevents format drift and conflicting writes.
 
 **JSONL for streaming artifacts.** Events and transcripts use JSONL because they are written incrementally as the run progresses. Step results and the pipeline result use plain JSON because they are written once.
 
@@ -199,7 +199,7 @@ The trace module stores both the mechanically assembled context and the Overseer
 
 ## What This Module Does NOT Do
 
-- Does not decide when to write (that's pipeline/ and session/)
+- Does not decide when to write (that's scheduler/ and session/)
 - Does not decide what to verify (that's verify/)
 - Does not enforce retention policies or disk limits
 - Does not implement the session handoff decision logic (that's the Overseer via the scheduler)

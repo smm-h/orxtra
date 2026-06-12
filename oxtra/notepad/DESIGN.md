@@ -8,7 +8,7 @@ When multiple agents work on the same pipeline (e.g., researcher -> generator ->
 
 ## Solution: Append-Only Notepad Files
 
-Each pipeline run gets a notepad directory. Agents append entries to shared notepad files. Later agents read the notepad before starting their work. The pipeline executor injects notepad content into agent prompts automatically.
+Each pipeline run gets a notepad directory. Agents append entries to shared notepad files. Later agents read the notepad before starting their work. The scheduler injects notepad content into agent prompts automatically.
 
 ## Directory Structure
 
@@ -42,7 +42,7 @@ The `step` and `agent` fields in each JSONL entry are injected by the executor -
 
 ## Read API (Injection)
 
-Before spawning an agent, the pipeline executor:
+Before spawning an agent, the scheduler:
 
 1. Reads all notepad files
 2. Formats them as a section appended to the agent's prompt:

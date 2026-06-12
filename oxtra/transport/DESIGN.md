@@ -141,6 +141,6 @@ The transport wraps a provider and runs the tool-call loop. The caller does not 
 - Does not decide which model to use (that's category resolution in agent/)
 - Does not filter tools by permissions (that's done before tools reach transport)
 - Does not track costs across sessions (that's session/)
-- Does not retry on API errors (that's pipeline/, which decides retry policy)
-- Does not manage multiple concurrent transports (that's pipeline/)
+- Does not retry on API errors (that's scheduler/, which decides retry policy)
+- Does not manage multiple concurrent transports (that's scheduler/)
 - Does not implement fallback between providers

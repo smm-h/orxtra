@@ -21,7 +21,7 @@ That's the entire contract. No `ToolDefinition` vs `ToolImpl`. No `register()` c
 
 - A `ToolRegistry` is a `dict[str, Tool]` -- literally a dictionary
 - No singleton, no global state, no auto-discovery
-- The caller constructs the registry and passes it to the pipeline executor
+- The caller constructs the registry and passes it to the scheduler
 - Adding a tool: `registry["my_tool"] = Tool(name="my_tool", ...)`
 - Removing a tool: `del registry["my_tool"]`
 
@@ -53,7 +53,7 @@ These are convenience functions, not special. They return plain `Tool` objects. 
 
 ## Spawn Tool
 
-Creates a full agent session with write access. The pipeline executor uses this tool internally -- it is the single code path for all agent invocation.
+Creates a full agent session with write access. The scheduler uses this tool internally -- it is the single code path for all agent invocation.
 
 Parameters:
 
@@ -67,7 +67,7 @@ Parameters:
 
 Returns: `{session_id: str, output: str}` -- the session ID for resumption and the agent's text output.
 
-`spawn` is mechanically stripped from all spawned agents' tool sets, regardless of their `allow` list. Only the pipeline executor and orchestrator-level agents retain access. This prevents orchestration recursion.
+`spawn` is mechanically stripped from all spawned agents' tool sets, regardless of their `allow` list. Only the scheduler and orchestrator-level agents retain access. This prevents orchestration recursion.
 
 ## Consult Tool
 
@@ -128,7 +128,7 @@ Error handling:
 
 ## What This Module Does NOT Do
 
-- Does not manage tool permissions (that's agent/ and pipeline/)
-- Does not execute tools autonomously (that's pipeline/)
+- Does not manage tool permissions (that's agent/ and scheduler/)
+- Does not execute tools autonomously (that's scheduler/)
 - Does not define mandatory tools or require specific tools to exist
 - Does not have a plugin system for tool discovery

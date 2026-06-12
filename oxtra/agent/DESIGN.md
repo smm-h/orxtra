@@ -25,7 +25,7 @@ A `.toml` file with three required sections.
 
 This is a pure whitelist. There is no deny list. If a tool is not in `allow`, it does not exist from the agent's perspective.
 
-`spawn` receives special treatment: it is **mechanically stripped** from the tool set for all spawned agents, regardless of what `allow` says. Even if an agent's TOML lists `spawn` in `allow`, the pipeline executor removes it when spawning that agent as a worker. Only the pipeline executor itself can invoke `spawn`. This prevents orchestration recursion without requiring the agent author to remember to omit it.
+`spawn` receives special treatment: it is **mechanically stripped** from the tool set for all spawned agents, regardless of what `allow` says. Even if an agent's TOML lists `spawn` in `allow`, the scheduler removes it when spawning that agent as a worker. Only the scheduler itself can invoke `spawn`. This prevents orchestration recursion without requiring the agent author to remember to omit it.
 
 ## Prompt Files
 
@@ -48,7 +48,7 @@ This is a pure whitelist. There is no deny list. If a tool is not in `allow`, it
 The `allow` list is the sole authority on which tools an agent can use. Before sending a request to the LLM, the executor filters the tool registry to only include tools in the agent's `allow` list. The agent never sees tools outside its whitelist -- they do not exist from its perspective. This is not a prompt instruction ("do not use X"); the tool is literally absent from the API call.
 
 Special cases:
-- `spawn` is mechanically stripped from all spawned agents, regardless of `allow`. Only the pipeline executor can spawn agents.
+- `spawn` is mechanically stripped from all spawned agents, regardless of `allow`. Only the scheduler can spawn agents.
 - `consult` (read-only agent invocation) follows the normal whitelist rule -- include it in `allow` to make it available.
 - `notepad` follows the normal whitelist rule -- include it in `allow` to make it available.
 
@@ -59,7 +59,7 @@ Special cases:
 | `spawn` | Creates a full agent session with write access. | Pipeline executor only. Mechanically stripped from all spawned agents. | Full tool access per the spawned agent's `allow` list. |
 | `consult` | Creates a read-only agent session. | Any agent with `consult` in its `allow` list. | Cannot use write/edit/bash tools. For research, not execution. |
 
-This prevents orchestration recursion: the pipeline executor spawns workers, workers can consult other agents for information, but workers cannot spawn more workers.
+This prevents orchestration recursion: the scheduler spawns workers, workers can consult other agents for information, but workers cannot spawn more workers.
 
 ## Loading
 
@@ -91,7 +91,7 @@ No version field in agent definitions. Agent format changes are breaking changes
 
 ## What This Module Does NOT Do
 
-- Does not execute agents. Execution is handled by `pipeline/` and `session/`.
+- Does not execute agents. Execution is handled by `scheduler/` and `session/`.
 - Does not define any built-in agents. Those are the user's domain.
 - Does not handle model selection beyond category lookup. No availability checks, no fallbacks, no provider negotiation.
 - Does not parse or interpret prompt content. It loads the text as a string. Substitution happens at spawn time, not load time.

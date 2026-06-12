@@ -71,7 +71,7 @@ Twelve hard rules. Each is mechanically enforced, not prompt-requested.
 
 4. **Permissions are whitelists.** Each agent declares which tools it can use. Everything else is mechanically absent -- the LLM never sees unlisted tools. Not a prompt instruction. No deny lists, no RBAC, no inheritance. This includes framework-provided tools like `spawn`, `consult`, and `notepad` -- they follow the same whitelist rules as any domain tool. There is no separate 'framework tool' category.
 
-5. **Subagents cannot delegate -- enforced mechanically.** Worker agents spawned by a pipeline step do not have access to the `spawn` tool. This prevents orchestration recursion. The constraint is in the tool list construction, not in the prompt.
+5. **Subagents cannot delegate -- enforced mechanically.** Worker agents spawned by a workflow step do not have access to the `spawn` tool. This prevents orchestration recursion. The constraint is in the tool list construction, not in the prompt.
 
 6. **Two-tier delegation.** Two levels of agent invocation: `spawn` (full agent with write access, orchestrator-only) and `consult` (read-only agent for research, available to workers). Workers can research but cannot spawn other workers.
 
@@ -93,7 +93,7 @@ Ten patterns to avoid, identified from analysis of oh-my-openagent (omo) -- a si
 
 1. **No config sprawl.** The configuration surface is: agent TOML files, pipeline TOML files, one categories TOML file, and Python tool definitions. No 100-knob config objects with nested sections.
 
-2. **No hook/middleware system.** Behavior is in the pipeline executor, not in interceptor chains. No lifecycle hooks, no plugin registry, no event bus.
+2. **No hook/middleware system.** Behavior is in the scheduler, not in interceptor chains. No lifecycle hooks, no plugin registry, no event bus.
 
 3. **No built-in agents.** oxtra is a framework. It defines zero agents -- those are the user's domain. The framework provides loading, validation, and execution. It does not ship "Sisyphus" or "Atlas."
 

@@ -4,7 +4,7 @@ How agent work is checked.
 
 ## Core Axiom
 
-Verification is mechanical, not requested. The pipeline executor runs verification after every step completion, regardless of what the agent reports. The agent cannot skip verification, opt out, or influence what gets checked.
+Verification is mechanical, not requested. The scheduler runs verification after every step completion, regardless of what the agent reports. The agent cannot skip verification, opt out, or influence what gets checked.
 
 ## Two Tiers
 
@@ -105,6 +105,6 @@ Step variables are also injected, but namespaced with a `var_` prefix to prevent
 ## What This Module Does NOT Do
 
 - Does not define what to verify (that's the consuming project's verification functions)
-- Does not implement retry logic (that's `pipeline/`)
+- Does not implement retry logic (that's `scheduler/`)
 - Does not track verification history across runs
 - Does not provide a "fix it" capability -- verification reports problems, it doesn't solve them

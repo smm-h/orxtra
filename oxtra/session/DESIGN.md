@@ -4,7 +4,7 @@ Session lifecycle management on top of transport.
 
 ## Responsibility
 
-Manage the lifecycle of agent sessions. Track session IDs for resumption. Track costs (tokens and USD). Provide a clean interface between the pipeline executor and the transport layer.
+Manage the lifecycle of agent sessions. Track session IDs for resumption. Track costs (tokens and USD). Provide a clean interface between the scheduler and the transport layer.
 
 ## Session Lifecycle
 
@@ -67,7 +67,7 @@ Each session accumulates costs from `StepFinish` events:
 | `cache_read_tokens` | `StepFinish.cache_read_tokens` |
 | `cache_write_tokens` | `StepFinish.cache_write_tokens` |
 
-The pipeline executor sums these across all sessions in a run for the total pipeline cost.
+The scheduler sums these across all sessions in a run for the total pipeline cost.
 
 ## Session Factory
 
@@ -98,7 +98,7 @@ def create_session(
 
 - Does not choose models (that is agent/ category resolution)
 - Does not filter tools (that is agent/ permissions, applied before session creation)
-- Does not manage multiple sessions concurrently (that is pipeline/, which creates sessions as needed)
-- Does not implement retry logic (that is pipeline/)
+- Does not manage multiple sessions concurrently (that is scheduler/, which creates sessions as needed)
+- Does not implement retry logic (that is scheduler/)
 - Does not own transcript persistence (that's trace/)
 - Does not enforce cost limits (the caller checks `total_cost_usd` and decides whether to continue)
