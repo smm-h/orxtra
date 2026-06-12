@@ -50,7 +50,7 @@ The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent 
 | Module | Responsibility |
 |---|---|
 | `overseer/` | Persistent LLM with read-only tools and SQLite memory. Makes judgment calls via structured decision protocols. Generates workflows. Manages assumptions, constraints, lessons. Session handoff when context fills. |
-| `scheduler/` | Deterministic event loop. Validates and executes workflows. Enforces budgets and mechanical constraints. Routes events to the Overseer. Classifies errors. Manages pause/resume and crash recovery. Has no opinions. |
+| `scheduler/` | Deterministic event loop. Validates and executes workflows. Enforces budgets and mechanical constraints. Routes events to the Overseer. Classifies errors. Manages pause/resume and crash recovery. Assembles agent context from consumer-registered providers. Has no opinions. |
 | `agent/` | Load agent definitions from TOML + .md prompt files. Validate schema. Resolve categories and permissions. |
 | `tool/` | Tool registry. Each tool is a single Python object: name, description, parameters, execute. No separation between schema and implementation. |
 | `transport/` | LLM client via Provider protocol. Send messages to LLM APIs directly (Anthropic, OpenAI), stream responses, parse events, run the tool-call loop. No subprocess agents. |
@@ -103,7 +103,7 @@ Ten patterns to avoid, identified from analysis of oh-my-openagent (omo) -- a si
 
 6. **No bloated background manager.** Async agent execution uses standard asyncio. One completion detection path, not three.
 
-7. **No skill system.** Agents get their prompt from a .md file. That's it. No skill loaders, mergers, MCP managers, frontmatter parsers.
+7. **No skill system.** Agents get their prompt from composable .md files and runtime context providers. No skill loaders, mergers, MCP managers, or frontmatter parsers.
 
 8. **No prompts in code.** All prompt text lives in .md files, never in Python strings. Python files contain logic, not prose.
 
@@ -217,6 +217,7 @@ A consuming project defines all domain-specific content. oxtra provides the fram
 - **Tools** (navigate, screenshot, extract_content, etc.) as Python tool objects
 - **Pipelines** (process-data, etl-pipeline, etc.) as TOML step files
 - **Verification functions** (research_complete, output_valid, review_passed) as Python callables
+- **Knowledge** (conventions, constraints, banned patterns) as .md and .toml files in a `knowledge/` directory
 
 The consumer builds a tool registry from oxtra's tool constructors (`make_read_tool`, `make_write_tool`, `make_bash_tool`, `make_spawn_tool`, `make_consult_tool`, `make_notepad_tool`, etc.) plus any custom domain tools, then calls oxtra's Python API to run pipelines. oxtra handles the rest: agent loading, tool filtering, model selection, step execution, verification, retries, notepad IPC, and session tracking.
 
@@ -268,4 +269,45 @@ name = "publish"
 callable = "myproject.steps:write_output"
 variables = ["data_dir"]
 depends_on = ["extract"]
+```
+
+### Fan-Out from Agent Decomposition
+
+A pipeline where a planner agent decomposes a task into subtasks, then a worker agent executes each subtask independently. Demonstrates structured output flowing into `for_each` iteration, with verification and post-step actions:
+
+```toml
+[pipeline]
+name = "generate-components"
+description = "Decompose a task into components, implement each, then integrate"
+
+[[steps]]
+name = "plan"
+agent = "planner"
+task = "Decompose this task into independent subtasks with clear file scopes:\n\n{goal}"
+variables = ["goal"]
+depends_on_previous = false
+timeout = 300
+output_schema = "schemas/subtask_list.json"
+verify = "myproject.verify:plan_valid"
+
+[[steps]]
+name = "implement"
+agent = "coder"
+task = "Implement this subtask:\n\nGoal: {item.goal}\nScope: {item.scope}\nContext: {item.context}"
+for_each = "plan_output"
+for_each_abort_on_failure = false
+variables = ["plan_output", "work_dir"]
+depends_on = ["plan"]
+timeout = 600
+verify = "myproject.verify:code_compiles"
+on_success = "myproject.actions:commit_changes"
+
+[[steps]]
+name = "review"
+agent = "reviewer"
+task = "Review the implementation for correctness and consistency."
+variables = ["work_dir"]
+depends_on = ["implement"]
+timeout = 300
+verify_agent = "code-reviewer"
 ```
