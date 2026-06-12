@@ -378,27 +378,23 @@ All persistence via `trace/` module. The scheduler calls `trace.write_step_resul
 | `_locks.py` | File-lock registry. Claim management, conflict detection, release on workflow completion. |
 | `_events.py` | Event registry for gate steps. Event registration, firing, and listener management. |
 
-## Per-Step File Scopes (Open Design Problem)
+## Per-Step File Scopes
 
-Beyond tool whitelists (which control WHICH tools an agent can use), consumers need per-step file scopes (which control WHERE tools can operate). This operates at two levels:
+Beyond tool whitelists (which control WHICH tools an agent can use), per-step file scopes control WHERE tools can operate. This operates at two levels:
 
 **Inter-workflow: the file-lock registry** (described above) prevents conflicting writes between concurrent workflows. File-level claims, all-or-nothing, Overseer decides scope expansion.
 
-**Intra-workflow: per-step scopes** are an open design problem. Several approaches under consideration:
+**Intra-workflow: tool-constructor scoping.** Steps declare `write_paths` in the workflow TOML. The scheduler passes these to scoped tool constructors (`make_write_tool(cwd, scope=["src/audio.ts", "src/types.ts"])` and `make_edit_tool(cwd, scope=[...])`). Writes outside scope are hard errors at the tool execution layer. This is mechanical enforcement -- the agent cannot bypass it.
 
-**Tool-constructor scoping.** Steps declare `write_paths` in the workflow TOML. The scheduler passes these to scoped tool constructors (`make_write_tool(cwd, scope=["src/audio.ts", "src/types.ts"])`). Writes outside scope are hard errors at the tool execution layer. This is mechanical enforcement -- the agent cannot bypass it. However, it requires the scheduler to re-construct tools per step (currently tools are shared per pipeline run).
+The scheduler re-constructs write and edit tools per step when `write_paths` is declared. This is the cost of mechanical enforcement. Steps without `write_paths` get unrestricted tools (scope=None). The step schema gains a new field:
 
-**Overseer-assigned scopes.** The Overseer assigns file scopes when generating workflows. Scopes derive from the task description and the project's file structure. More autonomous but less predictable. The Overseer could assign scopes incorrectly, and the consumer has no way to override.
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `write_paths` | array of strings | no | File paths (relative to cwd) this step is allowed to write/edit. When present, `make_write_tool` and `make_edit_tool` are constructed with `scope=write_paths`. Absent means unrestricted. |
 
-**Append-only access.** Some operations (logging, notepad) need to append but not overwrite. Read/write scopes do not capture this. A scope model might need three levels: read, append, write.
+When an agent step discovers it needs a file outside its declared scope, the tool rejects the write. The step fails. The Overseer's `scope_decision` protocol decides: approve expansion (scheduler reconstructs tools with expanded scope and retries), deny, or spawn a child workflow with the needed scope.
 
-**Secrets and environment files.** An agent may need to read `.env` for API keys but should not see other sensitive files. Path-level scoping is too coarse for this. A separate secrets mechanism may be needed.
-
-**Legitimate out-of-scope needs.** An agent step discovers it needs a file outside its scope. The Overseer's `scope_decision` protocol handles this, but the enforcement mechanism must support runtime expansion.
-
-**Interaction with consumer-provided tools.** The scheduler could wrap tool execution with path validation, or the tool constructors could accept scope parameters. Both have tradeoffs -- wrapping is universal but opaque; constructor parameters are explicit but require consumer cooperation.
-
-This section will be consolidated into a concrete design when the enforcement mechanism is chosen.
+Consumer-provided tools that write files are the consumer's responsibility to scope. The scheduler does not wrap arbitrary tool execution with path validation -- only framework-provided write and edit tools enforce scopes.
 
 ## Append-Only Access Model (Open Design Problem)
 

@@ -12,8 +12,11 @@ Typed dataclasses for each event in the stream:
 |---|---|---|
 | `StepStart` | `session_id` | A new agent turn begins |
 | `Text` | `text` | Text output from the model |
+| `StreamDelta` | `text` | Partial token from the SSE stream. Opt-in: only emitted when `stream_deltas=True` is passed to `Transport.send()`. Consumers that want real-time output subscribe to these; the scheduler and trace module ignore them by default. |
+| `Thinking` | `text` | Extended thinking block from the model. Provider-specific: emitted by AnthropicProvider for models that support extended thinking, not emitted by OpenAIProvider. Stored by the trace module. Reasoning token costs are tracked separately in `StepFinish.reasoning_tokens`. |
 | `ToolUse` | `tool_name, input, output, status, error` | A tool was called |
 | `StepFinish` | `reason, input_tokens, output_tokens, cost_usd, reasoning_tokens, cache_read_tokens, cache_write_tokens` | Turn complete |
+| `ApiRetry` | `attempt, max_retries, delay_ms, status_code, error` | A transient API error was retried. Emitted by the transport's auto-retry mechanism (see below). |
 | `Error` | `name, message, metadata` | Something went wrong |
 | `Result` | `text, session_id, total_input_tokens, total_output_tokens, total_cost_usd, tool_calls` | Summary of the full invocation |
 
@@ -62,6 +65,18 @@ The transport runs a provider-agnostic loop:
 5. If the response contains only `text` blocks: the turn is complete. Emit `Result`.
 
 The loop is the same for all providers. The provider only handles serialization and deserialization.
+
+## Auto-Retry
+
+The transport retries transient API errors automatically before escalating to the caller:
+
+- **Retried status codes**: 429 (rate limit), 500, 502, 503 (server errors)
+- **Max retries**: 3
+- **Backoff**: exponential (1s, 2s, 4s) with jitter
+- **On each retry**: emit an `ApiRetry` event with attempt number, delay, status code, and error message. The scheduler and trace module can observe retry frequency for health monitoring.
+- **After max retries exhausted**: emit an `Error` event and return to the caller. The scheduler's retry_decision protocol handles persistent failures.
+
+This is a pragmatic concession to axiom 11 (auto-continuation). Transient 429s are mechanical, not judgmental -- routing them through the Overseer's retry_decision protocol wastes tokens on a decision that is always "wait and retry." Persistent failures (4+ consecutive errors) still escalate.
 
 ## Providers
 
@@ -121,6 +136,7 @@ class Transport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
+        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
         ...
 ```
@@ -131,7 +147,7 @@ The transport wraps a provider and runs the tool-call loop. The caller does not 
 
 | File | Contents |
 |---|---|
-| `_events.py` | Frozen dataclasses for all event types: `StepStart`, `Text`, `ToolUse`, `StepFinish`, `Error`, `Result`. Also `ContentBlock`, `Usage`. |
+| `_events.py` | Frozen dataclasses for all event types: `StepStart`, `Text`, `StreamDelta`, `Thinking`, `ToolUse`, `StepFinish`, `ApiRetry`, `Error`, `Result`. Also `ContentBlock`, `Usage`. |
 | `_provider.py` | `Provider` protocol definition. |
 | `_transport.py` | `Transport` class. Wraps a provider, runs the tool-call loop, manages in-memory conversation history keyed by session_id. |
 | `providers/` | Provider implementations. See `providers/DESIGN.md`. |

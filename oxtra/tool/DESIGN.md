@@ -40,8 +40,8 @@ oxtra provides **tool constructors** -- functions that return `Tool` objects. Th
 | Constructor | Purpose |
 |---|---|
 | `make_read_tool(cwd: Path) -> Tool` | Read files relative to cwd |
-| `make_write_tool(cwd: Path) -> Tool` | Write files relative to cwd |
-| `make_edit_tool(cwd: Path) -> Tool` | Edit files (find/replace) |
+| `make_write_tool(cwd: Path, scope: list[str] | None = None) -> Tool` | Write files relative to cwd. When `scope` is provided, writes outside the listed paths are hard errors at the tool execution layer. Paths are relative to `cwd`. `None` means unrestricted. |
+| `make_edit_tool(cwd: Path, scope: list[str] | None = None) -> Tool` | Edit files (find/replace). Same `scope` semantics as `make_write_tool`. |
 | `make_bash_tool(cwd: Path, timeout: int) -> Tool` | Run shell commands with timeout |
 | `make_grep_tool(cwd: Path) -> Tool` | Search file contents |
 | `make_glob_tool(cwd: Path) -> Tool` | Find files by pattern |
