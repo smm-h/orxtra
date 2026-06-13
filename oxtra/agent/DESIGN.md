@@ -6,7 +6,7 @@ Load agent definitions from TOML files. Validate schema. Resolve prompt file ref
 
 ## Agent Definition Format
 
-A `.toml` file with three required sections.
+A `.toml` file with two required sections.
 
 ### [agent]
 
@@ -27,13 +27,18 @@ This is a pure whitelist. There is no deny list. If a tool is not in `allow`, it
 
 `spawn` receives special treatment: it is **mechanically stripped** from the tool set for all spawned agents, regardless of what `allow` says. Even if an agent's TOML lists `spawn` in `allow`, the scheduler removes it when spawning that agent as a worker. Only the scheduler itself can invoke `spawn`. This prevents orchestration recursion without requiring the agent author to remember to omit it.
 
+Schema validation is strict (pydantic with `strict=True, extra='forbid'`):
+- Unknown keys are errors. No extra fields allowed.
+- Missing required keys are errors. No defaults filled in.
+- Type mismatches are errors.
+
 ## Prompt Files
 
 - Live alongside the TOML file as `.md` files.
 - Can contain `{variable}` placeholders that get substituted at runtime from workflow step variables.
-- Simple string substitution only. No Jinja2, no loops, no conditionals, no filters. Complexity in prompts is a smell.
+- Simple string substitution only. No Jinja2, no loops, no conditionals, no filters.
 - Read once at agent load time, substituted at spawn time.
-- Variable substitution is strict both ways. Unresolved placeholders (present in the template but not in the provided variables) are hard errors. Unused provided variables (provided but not referenced in the template) are also hard errors. The template and the variable set must match exactly.
+- Variable substitution is strict both ways. Unresolved placeholders are hard errors. Unused provided variables are also hard errors. The template and the variable set must match exactly.
 
 ## Prompt Composition
 
@@ -56,15 +61,13 @@ You are a code generation agent. Follow the project conventions below.
 ```
 
 Include resolution:
-- Paths are relative to the TOML file's directory (same as the prompt file itself)
+- Paths are relative to the TOML file's directory
 - Includes are resolved at load time, before variable substitution
 - Nesting is supported (included files can include other files)
-- Circular includes are hard errors (detected via path tracking during resolution)
+- Circular includes are hard errors (detected via path tracking)
 - A missing include target is a hard error
 
-`{include:...}` directives are syntactically distinct from `{variable}` placeholders -- they use a colon after `include`, while variables are bare names. The include directive is the only non-variable use of curly braces in prompt files.
-
-This enables maintaining prompts as composable pieces: a base agent prompt, domain-specific documentation, project conventions, and framework API references can each be separate files updated independently. The consumer controls composition by editing the agent's root .md file.
+`{include:...}` directives are syntactically distinct from `{variable}` placeholders -- they use a colon after `include`.
 
 ## Categories
 
@@ -76,54 +79,47 @@ This enables maintaining prompts as composable pieces: a base agent prompt, doma
 
 ## Permissions -- Mechanical Enforcement
 
-The `allow` list is the sole authority on which tools an agent can use. Before sending a request to the LLM, the executor filters the tool registry to only include tools in the agent's `allow` list. The agent never sees tools outside its whitelist -- they do not exist from its perspective. This is not a prompt instruction ("do not use X"); the tool is literally absent from the API call.
+The `allow` list is the sole authority. Before sending a request to the LLM, the executor filters the tool registry to only include tools in the agent's `allow` list. The agent never sees tools outside its whitelist.
 
 Special cases:
-- `spawn` is mechanically stripped from all spawned agents, regardless of `allow`. Only the scheduler can spawn agents.
-- `consult` (read-only agent invocation) follows the normal whitelist rule -- include it in `allow` to make it available.
-- `notepad` follows the normal whitelist rule -- include it in `allow` to make it available.
+- `spawn` is mechanically stripped from all spawned agents, regardless of `allow`.
+- `consult` (read-only agent invocation) follows the normal whitelist rule.
+- `notepad` follows the normal whitelist rule.
 
 ## Two-Tier Delegation
 
 | Level | Description | Who can use it | Agent capabilities |
 |---|---|---|---|
 | `spawn` | Creates a full agent session with write access. | Scheduler only. Mechanically stripped from all spawned agents. | Full tool access per the spawned agent's `allow` list. |
-| `consult` | Creates a read-only agent session. | Any agent with `consult` in its `allow` list. | Cannot use write/edit/bash tools. For research, not execution. |
-
-This prevents orchestration recursion: the scheduler spawns workers, workers can consult other agents for information, but workers cannot spawn more workers.
+| `consult` | Creates a read-only agent session. | Any agent with `consult` in its `allow` list. | Cannot use write/edit/delete/move/mkdir/set_executable/spawn/git-mutations/exec tools. For research, not execution. |
 
 ## Loading
 
 ```
 load_agent(path: Path) -> Agent
 ```
-Reads a single TOML file, validates schema, resolves prompt path relative to the TOML file's directory, reads prompt content. Returns an `Agent` data object.
+Reads a single TOML file, validates schema, resolves prompt path, reads prompt content. Returns an `Agent` data object.
 
 ```
 load_agents(directory: Path) -> dict[str, Agent]
 ```
 Discovers all `*.toml` files in the given directory (non-recursive). Loads each one. Returns a dict keyed by agent name. Duplicate names are hard errors.
 
-Schema validation is strict:
-- Unknown keys are errors. No extra fields allowed.
-- Missing required keys are errors. No defaults filled in.
-- Type mismatches are errors.
-
-No version field in agent definitions. Agent format changes are breaking changes to oxtra, not versioned migrations within the format.
+No version field in agent definitions. Agent format changes are breaking changes to oxtra.
 
 ## Files
 
 | File | Contents |
 |---|---|
-| `_types.py` | `Agent` frozen dataclass. Fields mirror the TOML schema: name, description, prompt (loaded text), category, allow list. |
-| `_loader.py` | `load_agent(path)`, `load_agents(directory)`. TOML parsing, schema validation, prompt file resolution. |
+| `_types.py` | `Agent` frozen dataclass / pydantic model. Fields mirror the TOML schema: name, description, prompt (loaded text), category, allow list. |
+| `_loader.py` | `load_agent(path)`, `load_agents(directory)`. TOML parsing, pydantic validation, prompt file resolution. |
 | `_categories.py` | `load_categories(path)` -- reads `categories.toml`, returns `dict[str, str]`. `resolve_category(agent, categories)` -- looks up the agent's category, returns model string or raises. |
-| `_prompt.py` | `resolve_prompt(template, variables)` -- `{variable}` substitution with strict-both-ways validation. `resolve_includes(template, base_dir)` -- `{include:filename.md}` resolution with circular detection. Called before variable substitution. |
+| `_prompt.py` | `resolve_prompt(template, variables)` -- `{variable}` substitution with strict-both-ways validation. `resolve_includes(template, base_dir)` -- `{include:filename.md}` resolution with circular detection. |
 
 ## What This Module Does NOT Do
 
-- Does not execute agents. Execution is handled by `scheduler/` and `session/`.
-- Does not define any built-in agents. Those are the user's domain.
-- Does not handle model selection beyond category lookup. No availability checks, no fallbacks, no provider negotiation.
-- Does not parse or interpret prompt content. It loads the text as a string. Substitution happens at spawn time, not load time.
-- Does not validate that tools referenced in `allow` actually exist. That validation happens at workflow execution time when the tool registry is available.
+- Does not execute agents.
+- Does not define any built-in agents.
+- Does not handle model selection beyond category lookup.
+- Does not parse or interpret prompt content beyond placeholder substitution.
+- Does not validate that tools referenced in `allow` actually exist (that happens at workflow execution time).

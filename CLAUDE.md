@@ -4,12 +4,12 @@ A Python library for autonomous multi-agent AI workflows. You provide intent; ox
 
 ## Status
 
-Design phase. The directory structure is a scaffold for the Python package. Each module directory has a DESIGN.md that serves as the implementation spec -- it describes the module's architecture, its public API, and a Files section listing the exact Python files to be created with their contents. When implementation begins, the Python files replace the DESIGN.md descriptions. The DESIGN.md files remain as architectural documentation alongside the code.
+Design phase, hardened. The directory structure is a scaffold for the Python package. Each module directory has a DESIGN.md that serves as the implementation spec -- it describes the module's architecture, its public API, and a Files section listing the exact Python files to be created with their contents. When implementation begins, the Python files replace the DESIGN.md descriptions. The DESIGN.md files remain as architectural documentation alongside the code.
 
 ## Three components
 
-- **Overseer** -- the brain. One persistent agent with read-only tools (read, grep, glob), SQLite memory (decisions, constraints, assumptions, lessons), and structured decision protocols. It observes everything, decides what should happen, generates workflows, and orders agent steps to do the work. It never writes files or executes tasks. It is the only long-lived entity -- it receives session handoff when context fills.
-- **Scheduler** -- the nervous system. A deterministic event loop that validates workflows (schema + sanity-check subagent), executes steps, enforces budgets and mechanical constraints, classifies errors, routes events to the Overseer, and manages crash recovery. It has no opinions.
+- **Overseer** -- the brain. One persistent agent with read-only tools (read, grep, glob), PostgreSQL memory (decisions, constraints, assumptions, lessons), and 11 structured decision protocols. It observes everything, decides what should happen, generates workflows, and orders agent steps to do the work. It never writes files or executes tasks. It is the only long-lived entity -- it receives session handoff when context fills.
+- **Scheduler** -- the nervous system. A deterministic event loop that validates workflows (schema + sanity-check subagent), executes steps, enforces USD budgets and mechanical constraints, classifies errors, routes events to the Overseer, and manages crash recovery via three-pass idempotent startup sequence. It has no opinions.
 - **Agent steps** -- the hands. Scoped LLM calls inside workflows. Each sees only what the workflow gives it. Short-lived -- they finish within their context window and report back.
 
 ## Project structure
@@ -19,7 +19,7 @@ oxtra/
     DESIGN.md              # Architecture, axioms, anti-patterns, examples
     CLAUDE.md
     README.md
-    pyproject.toml         # uv-managed, strictcli + rlsbl + selfdoc as dependencies
+    pyproject.toml         # uv-managed; pydantic, httpx, asyncpg, uuid6, strictcli
     selfdoc.json           # selfdoc configuration for generated docs
     .rlsbl/                # rlsbl release scaffolding
         config.json
@@ -35,36 +35,46 @@ oxtra/
         overseer/          # The brain: persistent LLM, decisions, memory, learning
         scheduler/         # The nervous system: event loop, validation, execution
         agent/             # Agent definition loading and validation
-        tool/              # Tool contract, registry, constructors (spawn, consult, notepad, etc.)
-        transport/         # LLM communication via Provider protocol
+        tool/              # Tool contract, registry, constructors (no bash tool)
+        transport/         # LLM communication via Provider protocol (raw httpx)
             providers/     # AnthropicProvider, OpenAIProvider
-        verify/            # Mechanical (Python callable) + semantic (verification agent) checks
-        notepad/           # Append-only JSONL IPC for cross-agent context
-        session/           # Session lifecycle, cost tracking
-        trace/             # Run directory: step results, event logs, session transcripts
+        verify/            # Ordered chains + semantic verification agents (structured verdicts)
+        notepad/           # Append-only cross-agent context (PG-backed)
+        session/           # Session lifecycle, token tracking
+        trace/             # PG schema owner: events, results, transcripts, inbox
+        services/          # Shared business logic for all frontends
+        cli/               # strictcli CLI (agents are the primary users)
+        mcp/               # MCP server (human interface via dashboard/AI client)
     tests/
 ```
 
 ## Key concepts
 
-- **Overseer** is a persistent agent with read-only tools and SQLite memory. It makes decisions via typed protocols with closed output schemas (picks from menus, never free-forms). It generates workflows that the scheduler validates and executes. See `overseer/DESIGN.md`.
-- **Scheduler** is a deterministic event loop. It validates workflows, executes steps, enforces budgets and constraints, classifies errors, and routes events to the Overseer. Assembles agent context in three layers (task + runtime system context + Overseer-selected lessons). See `scheduler/DESIGN.md`.
+- **Overseer** is a persistent agent with read-only tools and PostgreSQL memory. It makes decisions via 11 typed protocols with closed output schemas (picks from menus, never free-forms). It generates workflows that the scheduler validates and executes. See `overseer/DESIGN.md`.
+- **Scheduler** is a deterministic event loop. It validates workflows, executes steps, enforces USD budgets and constraints, classifies errors, and routes events to the Overseer. Assembles agent context in three layers (task + runtime system context + Overseer-selected lessons). See `scheduler/DESIGN.md`.
 - **Agents** are TOML + composable .md files. TOML has name, description, category, and an `allow` tool whitelist. The .md file is the system prompt with `{variable}` placeholders and `{include:filename.md}` directives for composition. See `agent/DESIGN.md`.
-- **Tools** are `{name, description, parameters, execute}` objects. oxtra provides constructors (`make_read_tool`, `make_spawn_tool`, etc.) but ships no mandatory tools.
+- **Tools** are `{name, description, parameters, execute}` objects. oxtra provides granular constructors (read, write, edit, list_dir, grep, glob, stat, diff, mkdir, move, copy, delete, set_executable, git, exec, http, spawn, consult, notepad) but ships no bash tool and no mandatory tools. See `tool/DESIGN.md`.
 - **Workflows** are TOML files declaring steps with dependencies, timeouts, retry policy, and verification. Generated by the Overseer, validated and executed by the scheduler. Step types: agent, callable, workflow (child), decision_point, gate.
-- **Verification** is two-tier: mechanical callables (fast, deterministic, optional `fix` for auto-fixable failures) then verification agents (semantic, read-only). Steps can declare `on_success` (post-verification action) and `pre_retry` (state cleanup before retries). See `verify/DESIGN.md`.
+- **Verification** is two-tier: ordered chains of mechanical callables (cheapest first, short-circuit on failure, optional `fix` for auto-fixable failures) then verification agents (semantic, read-only, structured verdicts with severity-gated blocking). See `verify/DESIGN.md`.
 - **Categories** map intent strings ("quick", "deep") to model strings ("anthropic/claude-sonnet-4-6") via a flat `categories.toml`. No fallback chains.
-- **Providers** implement a 4-method protocol (`build_request`, `parse_response`, `parse_stream`, `extract_usage`). The transport runs a provider-agnostic tool-call loop.
-- **Decision protocols** are typed protocols for Overseer decisions: retry, budget, escalation, assumption, constraint, scope, context, audit. Each has a system prompt template, input schema, output schema (closed menu), and context assembly rule.
-- **Human inbox** is a structured async queue. The system never blocks on human input. The Overseer makes assumptions when needed, records them, and proceeds. Assumptions are never rewound.
-- **Consumer knowledge** is domain-specific .md and .toml files in `knowledge/`. Loaded as permanent entries in the Overseer's SQLite memory. See `overseer/DESIGN.md`.
+- **Providers** implement a 4-method protocol (`build_request`, `parse_response`, `parse_stream`, `extract_usage`) using raw httpx (no SDKs). The transport runs a provider-agnostic tool-call loop with explicit retry policy for transient API errors.
+- **Decision protocols** are 11 typed protocols for Overseer decisions: intent, workflow, retry, budget, escalation, assumption, concurrency, constraint, scope, context, audit. Each has a system prompt template, input schema, output schema (closed menu), and context assembly rule.
+- **Human inbox** is a structured async queue backed by PG. The system assumes-records-proceeds by default. Three explicit blocking mechanisms (autonomy action-gating, hard errors on missing inputs, declared gate steps) handle cases requiring real waits. Inbox items carry tags and a four-status lifecycle (pending/answered/skipped/expired). Answers fire events for gate steps to await.
+- **Consumer knowledge** is domain-specific .md and .toml files in `knowledge/`. Loaded as permanent entries in the Overseer's PostgreSQL memory. See `overseer/DESIGN.md`.
+- **PostgreSQL** is the backbone. All persistent state in PG. Immutable tables (events, transcripts, notepad) via REVOKE UPDATE/DELETE. LISTEN/NOTIFY for cross-process observation. Advisory locks for mutual exclusion. UUIDv7 primary keys.
+- **Services layer** is shared business logic consumed by three frontends: the Python API, the strictcli CLI, and the MCP server.
 
 ## Tooling
 
 This project uses:
 
+- **pydantic v2** with `strict=True, extra='forbid'` for all schema validation (agent TOML, workflow TOML, decision protocol outputs, verification verdicts).
+- **mypy --strict** with the pydantic plugin for static type checking.
+- **ruff** with `select = ["ALL"]` and documented per-rule ignores for linting and formatting.
+- **httpx** for all LLM API communication (no official SDKs).
+- **asyncpg** for PostgreSQL.
 - **rlsbl** for release orchestration, changelog enforcement, and CI scaffolding. Run `rlsbl scaffold` to set up `.rlsbl/`. See the rlsbl protocol in `~/Projects/CLAUDE.md`.
-- **strictcli** for the CLI layer (if one is built on top of the library). Schema-driven, no implicit flags.
+- **strictcli** for the CLI layer. Schema-driven, no implicit flags.
 - **selfdoc** for generated documentation. Templates live in `docs/` (`_README.md`, `_CLAUDE.md`). Generated root files are read-only. Run `selfdoc gen` to regenerate.
 
 ## Conventions
@@ -72,13 +82,17 @@ This project uses:
 - Use `uv` for dependency management, never pip.
 - All prompt text lives in .md files, never in Python strings. Prompts are composable via `{include:filename.md}`.
 - Variable substitution is strict both ways: unresolved placeholders and unused provided variables are both hard errors.
-- No implicit defaults for provider, model, timeout, or retry behavior. Missing values are hard errors.
-- Every step must declare `depends_on` or `depends_on_previous`. Every agent step must declare `timeout`. `retry_resume` is required when `retry > 0`. `for_each_abort_on_failure` is required when `for_each` is set.
-- The trace module is the single owner of the run directory. No other module writes to it directly.
+- No implicit defaults for provider, model, database URL, timeout, or retry behavior. Missing values are hard errors.
+- Every step must declare `depends_on` or `depends_on_previous`. Every agent step must declare `timeout`. `retry_resume` is required when `retry > 0`. `for_each_abort_on_failure` is required when `for_each` is set. `verify_block_threshold` is required when `verify_agent` is set.
+- The trace module is the single owner of the PostgreSQL schema. No other module writes to the database directly.
 - The Overseer makes decisions via closed-menu protocols. It never free-forms.
 - Agent steps are short-lived. If one can't finish within its context window, the task was decomposed wrong.
-- Tests belong in `tests/`, never in `/tmp/`. One test module per source module.
+- Tests belong in `tests/`, never in `/tmp/`. One test module per source module. All tests require a PostgreSQL instance.
+- Budgets are denominated in USD. oxtra maintains an internal pricing table. Reports track both tokens and best-effort USD.
+- No bash tool. Granular purpose-built tools with typed parameters and mechanical path enforcement.
+- Write safety: atomic replace, per-path write queue, transient-only replay, stale-write detection.
+- No truncation. Tool output is always persisted in full. Large results return a preview with opt-in full retrieval.
 
 ## Design docs
 
-Each module has a DESIGN.md that serves as the implementation spec. Read it before working on that module. The root DESIGN.md has the full architecture, design axioms, and anti-patterns. The design originated from analysis of oh-my-openagent (omo) and a prior design document (AUTONOMOUS.MD / Forge).
+Each module has a DESIGN.md that serves as the implementation spec. Read it before working on that module. The root DESIGN.md has the full architecture, design axioms, and anti-patterns. The design originated from analysis of oh-my-openagent (omo), Superagent (an abandoned predecessor), and a prior design document (AUTONOMOUS.MD / Forge).

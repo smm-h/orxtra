@@ -3,7 +3,16 @@ name = "oxtra"
 version = "0.0.0"
 description = "Autonomous multi-agent AI workflow orchestration"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2",
+    "httpx",
+    "asyncpg",
+    "uuid6",
+    "strictcli",
+]
+
+[project.scripts]
+oxtra = "oxtra.cli._cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -13,4 +22,42 @@ build-backend = "hatchling.build"
 dev-dependencies = [
     "pytest>=8",
     "pytest-asyncio>=0.24",
+    "ruff",
+    "mypy",
+    "mypy-pydantic",
 ]
+
+[tool.ruff]
+target-version = "py312"
+select = ["ALL"]
+ignore = [
+    "D",       # pydocstyle -- no docstrings by convention
+    "ANN101",  # missing type annotation for self
+    "ANN102",  # missing type annotation for cls
+    "COM812",  # trailing comma (conflicts with ruff format)
+    "ISC001",  # implicit string concat (conflicts with ruff format)
+    "T201",    # print() -- needed in CLI
+    "FBT",     # boolean positional args -- too noisy for tool constructors
+    "TD",      # todo comments -- not relevant
+    "FIX",     # fixme comments -- not relevant
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",    # assert in tests is fine
+    "PLR2004", # magic values in tests are fine
+    "ARG",     # unused args in fixtures are fine
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
