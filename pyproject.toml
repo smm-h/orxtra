@@ -24,11 +24,13 @@ dev-dependencies = [
     "pytest-asyncio>=0.24",
     "ruff",
     "mypy",
-    "mypy-pydantic",
+    "pydantic[mypy]",
 ]
 
 [tool.ruff]
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["ALL"]
 ignore = [
     "D",       # pydocstyle -- no docstrings by convention

@@ -99,6 +99,7 @@ def create_session(
 |---|---|
 | `_session.py` | `Session` class. Wraps transport, accumulates tokens/turns, tracks session_id, persists transcripts via trace, exposes `send()` and `resume_id()`. |
 | `_factory.py` | `create_session(transport, model, system_prompt, tools, trace_writer, run_id, session_id?)` -- constructs a `Session`. |
+| `_pricing.py` | Internal pricing table: per-model input/output/cache/reasoning token rates. `compute_cost_usd(model, usage) -> Decimal`. Updated by oxtra's developers when provider prices change. Used at reporting time to compute best-effort USD from token counts. |
 
 ## What This Module Does NOT Do
 

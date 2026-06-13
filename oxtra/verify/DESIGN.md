@@ -177,7 +177,7 @@ The fix callable is a separate action from the check. The verification function 
 
 **No built-in verification functions.** oxtra provides the framework for running verification, but defines zero verification functions.
 
-**Verification agents are read-only.** Spawned via `consult`, which mechanically removes write/edit/bash/spawn tools.
+**Verification agents are read-only.** Spawned via `consult`, which mechanically removes write/edit/delete/move/mkdir/set_executable/spawn/git-mutations/exec tools.
 
 **Verification failure = step failure.** No "warning" or "soft fail." If verification fails, the step failed.
 

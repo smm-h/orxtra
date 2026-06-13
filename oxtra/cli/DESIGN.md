@@ -74,7 +74,7 @@ The CLI is registered as a console script entry point in `pyproject.toml`:
 
 ```toml
 [project.scripts]
-oxtra = "oxtra.cli:main"
+oxtra = "oxtra.cli._cli:main"
 ```
 
 ## Files
