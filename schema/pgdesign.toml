@@ -1,0 +1,6 @@
+[project]
+name = "oxtra"
+
+[suppress]
+"overseer_workflow_status.W005" = "Uses last_updated instead of created_at; this table is intentionally overwritten, not appended"
+"step_attempts.W005" = "Uses started_at which serves the same purpose; attempt is created and started in the same transaction"

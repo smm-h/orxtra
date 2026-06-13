@@ -76,25 +76,25 @@ comment = "Duration in seconds (nullable)"
 [types.run_status]
 kind = "enum"
 values = ["created", "running", "paused", "completed", "failed", "aborted"]
-default = "'created'"
+default = "created"
 comment = "Run lifecycle status"
 
 [types.workflow_status]
 kind = "enum"
 values = ["created", "running", "paused", "completed", "failed", "aborted"]
-default = "'created'"
+default = "created"
 comment = "Workflow lifecycle status"
 
 [types.step_status]
 kind = "enum"
 values = ["pending", "ready", "running", "completed", "failed", "skipped"]
-default = "'pending'"
+default = "pending"
 comment = "Step lifecycle status"
 
 [types.attempt_status]
 kind = "enum"
 values = ["running", "completed", "failed"]
-default = "'running'"
+default = "running"
 comment = "Step attempt lifecycle status"
 
 [types.step_type]
@@ -110,7 +110,7 @@ comment = "Notepad entry category"
 [types.inbox_status]
 kind = "enum"
 values = ["pending", "answered", "skipped", "expired"]
-default = "'pending'"
+default = "pending"
 comment = "Human inbox item lifecycle status"
 
 [types.constraint_tier]
@@ -121,7 +121,7 @@ comment = "Constraint enforcement level"
 [types.assumption_status]
 kind = "enum"
 values = ["pending", "confirmed", "contradicted"]
-default = "'pending'"
+default = "pending"
 comment = "Assumption lifecycle status"
 
 [types.assumption_scope]
@@ -368,7 +368,8 @@ columns = ["step_id", "attempt"]
 # ---------------------------------------------------------------------------
 
 [tables.events]
-comment = "Append-only audit log. REVOKE UPDATE, DELETE at DB-role level."
+comment = "Append-only audit log. Immutability enforced by trigger."
+append_only = true
 
 [tables.events.columns.id]
 type = "id"
@@ -430,7 +431,8 @@ columns = ["event_type", "created_at DESC"]
 # ---------------------------------------------------------------------------
 
 [tables.transcripts]
-comment = "Full conversation history per transport session. Append-only: REVOKE UPDATE, DELETE."
+comment = "Full conversation history per transport session. Immutability enforced by trigger."
+append_only = true
 
 [tables.transcripts.columns.id]
 type = "id"
@@ -483,7 +485,8 @@ columns = ["run_id"]
 # ---------------------------------------------------------------------------
 
 [tables.notepad_entries]
-comment = "Cross-agent context sharing within a run. Append-only: REVOKE UPDATE, DELETE."
+comment = "Cross-agent context sharing within a run. Immutability enforced by trigger."
+append_only = true
 
 [tables.notepad_entries.columns.id]
 type = "id"
@@ -552,7 +555,9 @@ type = "str"
 comment = "What happens if the human picks differently"
 
 [tables.inbox_items.columns.tags]
-type = "json_array"
+type = "str"
+array = true
+default = "'{}'"
 comment = "Framework auto-injects protocol_type; Overseer may add free-form tags"
 
 [tables.inbox_items.columns.status]
@@ -771,7 +776,9 @@ comment = "NULL for permanent entries loaded from consumer knowledge files"
 type = "str"
 
 [tables.lessons.columns.relevance_tags]
-type = "json_array"
+type = "str"
+array = true
+nullable = true
 comment = "Relevance tags for context assembly queries"
 
 [tables.lessons.columns.permanent]
