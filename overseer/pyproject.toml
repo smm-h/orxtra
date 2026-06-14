@@ -8,6 +8,7 @@ dependencies = [
     "orxt-protocols",
     "trace",
     "session",
+    "knowledge-module",
 ]
 
 [build-system]
@@ -21,3 +22,4 @@ packages = ["src/orxt"]
 orxt-protocols = { path = "../protocols", editable = true }
 trace = { path = "../trace", editable = true }
 session = { path = "../session", editable = true }
+knowledge-module = { path = "../knowledge-module", editable = true }

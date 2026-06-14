@@ -73,7 +73,7 @@ depends_on = ["protocols", "agent", "tool", "write-safety", "session", "trace", 
 [[projects]]
 path = "overseer"
 description = "Persistent LLM with action tools, PG memory, session handoff"
-depends_on = ["protocols", "trace", "session"]
+depends_on = ["protocols", "trace", "session", "knowledge-module"]
 
 [[projects]]
 path = "knowledge-module"

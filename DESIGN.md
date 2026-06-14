@@ -119,7 +119,7 @@ When an agent cannot satisfy post-checks:
 
 Agents delegate work by creating subtasks, not by spawning free-floating sub-agents:
 - `create_task` -- concrete: "modify function X, update callers." A task agent executes it.
-- `create_workflow` -- goal-oriented: "refactor auth to use JWT." A workflow agent decomposes it.
+- `create_workflow` -- goal-oriented: "refactor auth to use JWT." A consumer-provided workflow agent decomposes it into subtasks.
 
 Both create structured subtasks within the parent task. Subtasks have their own pre/post-checks. Failure escalates to the parent. Budget flows from parent to child.
 
