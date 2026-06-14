@@ -92,3 +92,8 @@ async def test_stress_100_tasks(tmp_path: Path) -> None:
     tasks = [asyncio.create_task(worker()) for _ in range(100)]
     await asyncio.gather(*tasks)
     assert counter == 100
+
+
+async def test_release_without_acquire(tmp_path: Path) -> None:
+    q = WriteQueue()
+    q.release(tmp_path / "never_acquired.txt")

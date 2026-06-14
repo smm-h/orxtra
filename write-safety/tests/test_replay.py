@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import errno
+from unittest.mock import AsyncMock, call, patch
 
 import pytest
 from orxt.write_safety import is_transient_error, with_transient_retry
@@ -90,3 +91,28 @@ async def test_non_oserror_no_retry() -> None:
     with pytest.raises(ValueError, match="bad value"):
         await with_transient_retry(value_error)
     assert calls == 1
+
+
+@patch("orxt.write_safety._replay.asyncio.sleep", new_callable=AsyncMock)
+async def test_retry_backoff_timing(mock_sleep: AsyncMock) -> None:
+    calls = 0
+
+    async def flaky() -> str:
+        nonlocal calls
+        calls += 1
+        if calls <= 3:
+            raise OSError(errno.EIO, "transient")
+        return "ok"
+
+    result = await with_transient_retry(flaky, max_retries=3)
+    assert result == "ok"
+    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.1), call(0.2), call(0.4)]
+
+
+async def test_retry_forwards_kwargs() -> None:
+    async def fn(a: int, *, key: str) -> str:
+        return f"{a}-{key}"
+
+    result = await with_transient_retry(fn, 42, key="hello")
+    assert result == "42-hello"
