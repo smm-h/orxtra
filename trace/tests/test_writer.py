@@ -82,6 +82,28 @@ class TestTransitionRun:
         ), pytest.raises(InvalidTransitionError):
             await writer.transition_run(RUN_ID, "completed")
 
+    async def test_transition_run_callback(
+        self, mock_pool: MockPool,
+    ) -> None:
+        callback = AsyncMock()
+        writer = TraceWriter(
+            mock_pool,  # type: ignore[arg-type]
+            event_callback=callback,
+        )
+        mock_pool.conn.queue_fetchrow({"status": "created"})
+
+        with patch(
+            "orxt.trace._writer.uuid6.uuid7",
+            return_value=TEST_UUID,
+        ):
+            await writer.transition_run(RUN_ID, "running")
+
+        callback.assert_called_once_with(
+            TEST_UUID, RUN_ID, "run_transition",
+            {"old_status": "created", "new_status": "running",
+             "reason": None},
+        )
+
     async def test_transition_run_not_found(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
@@ -112,6 +134,27 @@ class TestCreateTask:
         assert args == (
             TEST_UUID, RUN_ID, None,
             "deploy", "step", json.dumps({}),
+        )
+
+    async def test_create_task_with_config(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        with patch(
+            "orxt.trace._writer.uuid6.uuid7",
+            return_value=TEST_UUID,
+        ):
+            result = await writer.create_task(
+                RUN_ID, None, "deploy", "step",
+                config={"timeout": 30, "retries": 3},
+            )
+
+        assert result == TEST_UUID
+        sql, args = mock_pool.conn.executed[0]
+        assert "insert into tasks" in sql.lower()
+        assert args == (
+            TEST_UUID, RUN_ID, None,
+            "deploy", "step",
+            json.dumps({"timeout": 30, "retries": 3}),
         )
 
     async def test_create_task_with_parent(
@@ -153,6 +196,30 @@ class TestTransitionTask:
         assert "select status, run_id from tasks" in calls[0][0].lower()
         assert "update tasks set status" in calls[1][0].lower()
         assert "insert into events" in calls[2][0].lower()
+
+    async def test_transition_task_callback(
+        self, mock_pool: MockPool,
+    ) -> None:
+        callback = AsyncMock()
+        writer = TraceWriter(
+            mock_pool,  # type: ignore[arg-type]
+            event_callback=callback,
+        )
+        mock_pool.conn.queue_fetchrow(
+            {"status": "created", "run_id": RUN_ID},
+        )
+
+        with patch(
+            "orxt.trace._writer.uuid6.uuid7",
+            return_value=TEST_UUID,
+        ):
+            await writer.transition_task(TASK_ID, "prechecking")
+
+        callback.assert_called_once_with(
+            TEST_UUID, RUN_ID, "task_transition",
+            {"task_id": str(TASK_ID), "old_status": "created",
+             "new_status": "prechecking", "reason": None},
+        )
 
     async def test_transition_task_invalid(
         self, writer: TraceWriter, mock_pool: MockPool,
