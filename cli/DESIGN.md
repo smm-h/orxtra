@@ -16,42 +16,42 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 
 | Command | Description |
 |---|---|
-| `oxtra run list` | List all runs, newest first. |
-| `oxtra run show <run_id>` | Show a run's full report. |
-| `oxtra run abort <run_id>` | Signal a running run to abort. |
+| `orxt run list` | List all runs, newest first. |
+| `orxt run show <run_id>` | Show a run's full report. |
+| `orxt run abort <run_id>` | Signal a running run to abort. |
 
 ### Inbox Commands
 
 | Command | Description |
 |---|---|
-| `oxtra inbox list --run <run_id> [--status pending]` | List inbox items. |
-| `oxtra inbox show <item_id>` | Show a single inbox item with full context. |
-| `oxtra inbox respond <item_id> <answer>` | Answer an inbox item. |
-| `oxtra inbox skip <item_id>` | Skip an inbox item (bless the assumption). |
+| `orxt inbox list --run <run_id> [--status pending]` | List inbox items. |
+| `orxt inbox show <item_id>` | Show a single inbox item with full context. |
+| `orxt inbox respond <item_id> <answer>` | Answer an inbox item. |
+| `orxt inbox skip <item_id>` | Skip an inbox item (bless the assumption). |
 
 ### Trace Commands
 
 | Command | Description |
 |---|---|
-| `oxtra trace events <run_id> [--type <event_type>] [--limit N]` | Query events. |
-| `oxtra trace transcript <session_id>` | Show a session's full transcript. |
-| `oxtra trace steps <run_id>` | Show step statuses and attempt counts. |
-| `oxtra trace notepad <run_id>` | Show notepad entries. |
+| `orxt trace events <run_id> [--type <event_type>] [--limit N]` | Query events. |
+| `orxt trace transcript <session_id>` | Show a session's full transcript. |
+| `orxt trace steps <run_id>` | Show step statuses and attempt counts. |
+| `orxt trace notepad <run_id>` | Show notepad entries. |
 
 ### Validation Commands
 
 | Command | Description |
 |---|---|
-| `oxtra validate agent <path>` | Validate an agent TOML file. |
-| `oxtra validate workflow <path>` | Validate a workflow TOML file. |
-| `oxtra validate categories <path>` | Validate a categories TOML file. |
+| `orxt validate agent <path>` | Validate an agent TOML file. |
+| `orxt validate workflow <path>` | Validate a workflow TOML file. |
+| `orxt validate categories <path>` | Validate a categories TOML file. |
 
 ### Config Commands
 
 | Command | Description |
 |---|---|
-| `oxtra config show <run_id>` | Show the config snapshot for a run. |
-| `oxtra config pricing` | Show the current internal pricing table. |
+| `orxt config show <run_id>` | Show the config snapshot for a run. |
+| `orxt config pricing` | Show the current internal pricing table. |
 
 ## Global Flags
 
@@ -74,7 +74,7 @@ The CLI is registered as a console script entry point in `pyproject.toml`:
 
 ```toml
 [project.scripts]
-oxtra = "cli._cli:main"
+orxt = "cli._cli:main"
 ```
 
 ## Files

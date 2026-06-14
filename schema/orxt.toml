@@ -1,4 +1,4 @@
-# oxtra PostgreSQL schema
+# orxt PostgreSQL schema
 # Single owner: the trace module. No other module writes to these tables directly.
 # All primary keys use the built-in `id` type (uuid, NOT NULL, gen_random_uuid()).
 # Application generates UUIDv7 for time-ordering; DB default is v4 fallback.
@@ -176,7 +176,7 @@ type = "counter"
 
 [tables.runs.columns.total_cost_usd]
 type = "amount"
-comment = "Best-effort USD from oxtra internal pricing table"
+comment = "Best-effort USD from orxt internal pricing table"
 
 [tables.runs.columns.coherence_summary]
 type = "str_nullable"

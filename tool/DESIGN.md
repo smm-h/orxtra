@@ -51,7 +51,7 @@ The scheduler re-constructs write/edit tools per step when `write_paths` is decl
 
 ## No-Truncation Design
 
-oxtra never discards tool output. Every tool result is persisted in full to the database.
+orxt never discards tool output. Every tool result is persisted in full to the database.
 
 For tools that can produce large output (read, exec, http, grep):
 
@@ -72,9 +72,9 @@ The executor enforces four write-safety mechanisms on all file-mutating tools:
 
 ## Built-in Tool Constructors
 
-oxtra provides tool constructors -- functions that return `Tool` objects. The consumer calls them and adds results to the registry. There is no distinction between 'framework tools' and 'domain tools' -- all tools are the same type.
+orxt provides tool constructors -- functions that return `Tool` objects. The consumer calls them and adds results to the registry. There is no distinction between 'framework tools' and 'domain tools' -- all tools are the same type.
 
-No bash tool. A consumer who truly needs raw shell writes their own `Tool` in ten lines -- oxtra refuses to bless one.
+No bash tool. A consumer who truly needs raw shell writes their own `Tool` in ten lines -- orxt refuses to bless one.
 
 ### Enforced Discipline via Tool Design
 
@@ -236,7 +236,7 @@ Delete a file or directory. **Wraps saferm, not rm.** Every deletion has an audi
 | `recursive` | boolean | yes | Required for directories. Hard error if deleting a directory without `recursive=true`. |
 
 The constructor configures saferm at build time:
-- `SAFERM_HOME` set to an oxtra-managed directory (per-run or per-project isolation)
+- `SAFERM_HOME` set to an orxt-managed directory (per-run or per-project isolation)
 - Each invocation passes `--meta run_id=<id> --meta step_name=<name> --meta agent_name=<name>` for traceability
 - saferm automatically captures git context (branch, HEAD) and parent process info
 

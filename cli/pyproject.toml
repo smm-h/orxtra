@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-oxtra = "cli._cli:main"
+orxt = "cli._cli:main"
 
 [build-system]
 requires = ["hatchling"]

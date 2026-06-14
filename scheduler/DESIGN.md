@@ -137,7 +137,7 @@ Topological sort at load time. Cycles are hard errors.
 
 Each workflow has its own USD budget (set by the Overseer). A failing workflow burns its own allocation. When a workflow's accumulated cost approaches its budget, the scheduler invokes the Overseer's `budget_decision` protocol. The Overseer can reallocate from completed workflows, increase allocation, or abort.
 
-Cost is computed from token counts using oxtra's internal pricing table.
+Cost is computed from token counts using orxt's internal pricing table.
 
 ## Mechanical Constraint Enforcement
 

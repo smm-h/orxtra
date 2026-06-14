@@ -1,10 +1,10 @@
 # MCP Module Design
 
-MCP server exposing the oxtra public API as MCP tools. The human's interface via dashboard or conversational AI client.
+MCP server exposing the orxt public API as MCP tools. The human's interface via dashboard or conversational AI client.
 
 ## Responsibility
 
-Project the services layer as MCP tools. Any MCP client -- including a conversational AI agent in a dashboard, Claude Desktop, or other MCP-aware tools -- becomes a human interface to a running oxtra system.
+Project the services layer as MCP tools. Any MCP client -- including a conversational AI agent in a dashboard, Claude Desktop, or other MCP-aware tools -- becomes a human interface to a running orxt system.
 
 ## MCP Tools
 
@@ -45,7 +45,7 @@ Each tool maps 1:1 to a service function. The MCP server adds no logic -- it tra
 
 ## Live Event Subscription
 
-The MCP server subscribes to PG `LISTEN oxtra_events` and can push event notifications to connected clients via MCP's notification mechanism (if the client supports it). This enables real-time dashboards without polling.
+The MCP server subscribes to PG `LISTEN orxt_events` and can push event notifications to connected clients via MCP's notification mechanism (if the client supports it). This enables real-time dashboards without polling.
 
 ## Configuration
 

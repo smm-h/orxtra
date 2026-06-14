@@ -175,7 +175,7 @@ The fix callable is a separate action from the check. The verification function 
 
 **Callables are synchronous checks, not hooks.** They run at a specific point in the workflow (after agent completion), not as middleware.
 
-**No built-in verification functions.** oxtra provides the framework for running verification, but defines zero verification functions.
+**No built-in verification functions.** orxt provides the framework for running verification, but defines zero verification functions.
 
 **Verification agents are read-only.** Spawned via `consult`, which mechanically removes write/edit/delete/move/mkdir/set_executable/spawn/git-mutations/exec tools.
 

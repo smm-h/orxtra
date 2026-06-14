@@ -1,4 +1,4 @@
-# oxtra monorepo root
+# orxt monorepo root
 # Not a publishable package. Each sub-project has its own pyproject.toml.
 # This file holds shared tool configuration only.
 

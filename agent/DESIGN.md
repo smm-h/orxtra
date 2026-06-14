@@ -1,4 +1,4 @@
-# oxtra/agent -- Design
+# orxt/agent -- Design
 
 ## Responsibility
 
@@ -105,7 +105,7 @@ load_agents(directory: Path) -> dict[str, Agent]
 ```
 Discovers all `*.toml` files in the given directory (non-recursive). Loads each one. Returns a dict keyed by agent name. Duplicate names are hard errors.
 
-No version field in agent definitions. Agent format changes are breaking changes to oxtra.
+No version field in agent definitions. Agent format changes are breaking changes to orxt.
 
 ## Files
 

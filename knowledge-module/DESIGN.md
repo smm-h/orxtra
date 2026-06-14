@@ -37,11 +37,11 @@ This module does NOT own:
 - Not the primary knowledge store. The lessons table is.
 - Not the Overseer's decision memory. Decisions, constraints, assumptions remain flat PG tables.
 - Not a code intelligence system. No ASTs, symbol tables, or import graphs.
-- Not required for oxtra to function. Context assembly works with flat SQL alone.
+- Not required for orxt to function. Context assembly works with flat SQL alone.
 
 ## Why Cognee
 
-Cognee won empirical benchmarks (kb-bench, 700 queries, 7 frameworks) on retrieval quality with an average score of 89.8, beating mem0 (81.8), fast-graphrag (79.3), and five others. It supports PG+pgvector as its storage backend (no external graph database), aligning with oxtra's PG backbone. Its ECL pipeline handles structured document ingestion -- the exact workload consumer knowledge files represent.
+Cognee won empirical benchmarks (kb-bench, 700 queries, 7 frameworks) on retrieval quality with an average score of 89.8, beating mem0 (81.8), fast-graphrag (79.3), and five others. It supports PG+pgvector as its storage backend (no external graph database), aligning with orxt's PG backbone. Its ECL pipeline handles structured document ingestion -- the exact workload consumer knowledge files represent.
 
 These results are on a static document retrieval benchmark, not on evolving agent memory. Whether the advantage holds for the Overseer's runtime workload is an open question -- the reason this is experimental.
 
@@ -49,12 +49,12 @@ These results are on a static document retrieval benchmark, not on evolving agen
 
 ### Storage Backend
 
-Cognee is configured to use the same PostgreSQL instance as the rest of oxtra:
+Cognee is configured to use the same PostgreSQL instance as the rest of orxt:
 - **Relational store**: `db_provider = "postgres"` -- same `db_url` as the trace module
 - **Vector store**: `vector_db_provider = "pgvector"` -- pgvector extension on the same PG instance
 - **Graph store**: cognee's default embedded graph engine (Kuzu) -- no external graph DB
 
-The pgvector extension must be enabled on the oxtra database. This is the only additional PG requirement beyond the trace module's schema.
+The pgvector extension must be enabled on the orxt database. This is the only additional PG requirement beyond the trace module's schema.
 
 ### Data Flow
 

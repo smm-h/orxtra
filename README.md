@@ -1,4 +1,4 @@
-# oxtra
+# orxt
 
 Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
 

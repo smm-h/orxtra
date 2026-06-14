@@ -28,7 +28,7 @@ Top-level run records.
 | `total_input_tokens` | bigint DEFAULT 0 | |
 | `total_output_tokens` | bigint DEFAULT 0 | |
 | `total_reasoning_tokens` | bigint DEFAULT 0 | |
-| `total_cost_usd` | numeric DEFAULT 0 | Best-effort, from oxtra's internal pricing table |
+| `total_cost_usd` | numeric DEFAULT 0 | Best-effort, from orxt's internal pricing table |
 | `coherence_summary` | text | Overseer's end-of-run assessment |
 
 #### `workflows`
@@ -109,7 +109,7 @@ Append-only audit log. Immutable by design.
 
 Indexes: `(run_id, created_at DESC)`, `(workflow_id, created_at DESC)`, `(step_id, created_at DESC)`, `(event_type, created_at DESC)`.
 
-**LISTEN/NOTIFY**: every INSERT fires a NOTIFY on channel `oxtra_events` with `{event_id, run_id, event_type}` as payload. Full event data stays in the table -- NOTIFY carries only routing IDs to avoid the 8KB payload limit.
+**LISTEN/NOTIFY**: every INSERT fires a NOTIFY on channel `orxt_events` with `{event_id, run_id, event_type}` as payload. Full event data stays in the table -- NOTIFY carries only routing IDs to avoid the 8KB payload limit.
 
 Event types include:
 - `run.started`, `run.completed`, `run.failed`, `run.aborted`
@@ -369,7 +369,7 @@ When the scheduler detects the Overseer's context approaching 90% of the model's
 Two mechanisms at different process boundaries:
 
 - **In-process callback**: `TraceWriter` accepts an optional async callable, invoked with each event dict as it's written. Push-style, one hook point. For the scheduler and in-process consumers.
-- **Cross-process NOTIFY**: every event INSERT fires NOTIFY on `oxtra_events`. The MCP server and dashboard subscribe via LISTEN. NOTIFY carries only `{event_id, run_id, event_type}` -- full data read from the table.
+- **Cross-process NOTIFY**: every event INSERT fires NOTIFY on `orxt_events`. The MCP server and dashboard subscribe via LISTEN. NOTIFY carries only `{event_id, run_id, event_type}` -- full data read from the table.
 
 These are not dual paths -- they serve different boundaries. The callback is the library-level hook; NOTIFY is the network-level channel.
 

@@ -33,15 +33,15 @@ class Provider(Protocol):
         system: str,
         model: str,
     ) -> dict:
-        """Convert oxtra's internal message format to the provider's API request format."""
+        """Convert orxt's internal message format to the provider's API request format."""
         ...
 
     def parse_response(self, response: dict) -> list[ContentBlock]:
-        """Convert the provider's API response to oxtra's content blocks (text, tool_use)."""
+        """Convert the provider's API response to orxt's content blocks (text, tool_use)."""
         ...
 
     async def parse_stream(self, stream: AsyncIterator[bytes]) -> AsyncIterator[Event]:
-        """Parse the provider's SSE stream into typed oxtra events."""
+        """Parse the provider's SSE stream into typed orxt events."""
         ...
 
     def extract_usage(self, response: dict) -> Usage:
@@ -94,7 +94,7 @@ Calls the Anthropic Messages API directly via httpx.
 - Requires: `ANTHROPIC_API_KEY` environment variable (or explicit parameter). Missing key is a hard error.
 - API endpoint: `https://api.anthropic.com/v1/messages`
 - System prompt: passed as the `system` parameter (not as a user message)
-- Tools: converted from oxtra Tool objects to Anthropic's tool format (`name`, `description`, `input_schema`)
+- Tools: converted from orxt Tool objects to Anthropic's tool format (`name`, `description`, `input_schema`)
 - Streaming: SSE parsing via httpx async streaming
 - Event mapping:
   - `StepStart` -> emitted when the API call begins
@@ -110,7 +110,7 @@ Calls the Anthropic Messages API directly via httpx.
 Calls OpenAI-compatible APIs (OpenAI, Azure OpenAI, and compatible endpoints) via httpx.
 
 - Requires: API key and endpoint. Missing credentials is a hard error.
-- Tools: converted from oxtra Tool objects to OpenAI's function calling format
+- Tools: converted from orxt Tool objects to OpenAI's function calling format
 - Streaming: SSE parsing via httpx async streaming
 - Tool results: sent as `role: "tool"` messages with `tool_call_id`
 - Does not emit `Thinking` events (OpenAI does not expose reasoning content)

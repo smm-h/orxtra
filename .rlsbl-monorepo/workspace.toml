@@ -1,4 +1,4 @@
-# oxtra monorepo workspace
+# orxt monorepo workspace
 # Philosophy: complexity if you need it, simplicity if you don't.
 # Each sub-project is independently useful for a narrow purpose.
 # Together they compose into a full autonomous agent orchestration system.

@@ -1,8 +1,8 @@
-# oxtra -- Design
+# orxt -- Design
 
-## What oxtra Is
+## What orxt Is
 
-A Python library for autonomous multi-agent AI workflows. You provide intent; oxtra drives it to completion. An Overseer (persistent LLM with read-only tools and structured memory) makes judgment calls and generates workflows. A Scheduler (deterministic event loop) validates, executes, and enforces. Agent steps (scoped LLM calls) do the actual work.
+A Python library for autonomous multi-agent AI workflows. You provide intent; orxt drives it to completion. An Overseer (persistent LLM with read-only tools and structured memory) makes judgment calls and generates workflows. A Scheduler (deterministic event loop) validates, executes, and enforces. Agent steps (scoped LLM calls) do the actual work.
 
 ## Philosophy
 
@@ -17,9 +17,9 @@ Every module is independently useful for a narrow purpose. Together they compose
 rlsbl monorepo with 13 sub-projects. Each has its own `pyproject.toml`, `DESIGN.md`, `src/`, and `tests/`.
 
 ```
-oxtra/
+orxt/
     .rlsbl-monorepo/workspace.toml
-    schema/oxtra.toml              # pgdesign database schema
+    schema/orxt.toml              # pgdesign database schema
     knowledge/                     # Consumer domain knowledge (.md and .toml)
 
     transport/                     # Foundation: typed LLM client
@@ -40,12 +40,12 @@ oxtra/
     mcp/                           # Interface: MCP server
 ```
 
-## What oxtra Is NOT
+## What orxt Is NOT
 
-- **Not a plugin for OpenCode or any other agent runtime.** oxtra is standalone. It does not extend, wrap, or integrate into an existing agent system.
+- **Not a plugin for OpenCode or any other agent runtime.** orxt is standalone. It does not extend, wrap, or integrate into an existing agent system.
 - **Not a prompt engineering framework.** It loads prompts from files and passes them through. It does not template, optimize, or manipulate prompt content.
 - **Not a model router with fallback chains.** Category-to-model is a flat dictionary lookup. If the category is missing, it errors. No fallback, no retry with a different model.
-- **Not a plugin system.** No language plugins, toolchain registries, write hooks, or aspect generators. Consumers extend oxtra via Tool objects, verify callables, and constructor parameters.
+- **Not a plugin system.** No language plugins, toolchain registries, write hooks, or aspect generators. Consumers extend orxt via Tool objects, verify callables, and constructor parameters.
 
 ## Architecture
 
@@ -99,7 +99,7 @@ Dependency: `asyncpg`.
 
 ## Budget Model
 
-Budgets are denominated and enforced in **USD**. oxtra maintains an internal pricing table (per-model input/output/cache token rates). The consumer is never bothered with pricing.
+Budgets are denominated and enforced in **USD**. orxt maintains an internal pricing table (per-model input/output/cache token rates). The consumer is never bothered with pricing.
 
 - Per-workflow budgets set by the Overseer
 - Per-step budgets optional
@@ -112,11 +112,11 @@ Reports track **both** in parallel:
 - Raw per-type token counts (input, output, reasoning, cache_read, cache_write) -- provider-attested, for audit
 - USD figures computed from the internal pricing table -- labeled best-effort
 
-The pricing table is maintained by oxtra's developers, not the consumer. When provider prices change, oxtra publishes an update. Best-effort means: the table may lag real pricing briefly, but enforcement and reporting always agree with each other.
+The pricing table is maintained by orxt's developers, not the consumer. When provider prices change, orxt publishes an update. Best-effort means: the table may lag real pricing briefly, but enforcement and reporting always agree with each other.
 
 ## Secrets Model
 
-Agents often need credentials (API keys, tokens) but anything that enters a prompt is persisted forever in transcripts. oxtra solves this with indirection + scrubbing:
+Agents often need credentials (API keys, tokens) but anything that enters a prompt is persisted forever in transcripts. orxt solves this with indirection + scrubbing:
 
 1. **Registration**: consumers pass `secrets={"NAME": "value"}` at run construction. Paste-friendly, no env-file ceremony.
 2. **Indirection**: the LLM only ever sees `{{secret:NAME}}` placeholders. The executor substitutes real values into tool arguments immediately before `execute()`, so agents can use credentialed tools without seeing credentials.
@@ -138,7 +138,7 @@ Four mechanisms, each killing a distinct failure class:
 
 ## No-Truncation Design
 
-oxtra never discards tool output. "Too big" only governs what enters the agent's context window, not what is persisted.
+orxt never discards tool output. "Too big" only governs what enters the agent's context window, not what is persisted.
 
 - **Full persistence**: every tool result is stored in full in the database
 - **Small results** (under a consumer-configured threshold `r1`): returned to the agent in full
@@ -158,7 +158,7 @@ One **services layer** consumed by three thin frontends:
 
 Logic lives once in `services/`. The frontends are thin projections. This prevents behavior drift between the programmatic API and the CLI/MCP surfaces.
 
-The **web dashboard** (with its conversational AI agent) lives as a **sibling project**, not inside oxtra core. It consumes the MCP server + LISTEN/NOTIFY.
+The **web dashboard** (with its conversational AI agent) lives as a **sibling project**, not inside orxt core. It consumes the MCP server + LISTEN/NOTIFY.
 
 ## Design Axioms
 
@@ -200,7 +200,7 @@ Eleven patterns to avoid, identified from analysis of oh-my-openagent (omo) and 
 
 2. **No hook/middleware system.** Behavior is in the scheduler, not in interceptor chains. No lifecycle hooks, no plugin registry, no event bus.
 
-3. **No built-in agents.** oxtra is a framework. It defines zero agents -- those are the user's domain. The framework provides loading, validation, and execution. The analyzer/implementor/auditor/fixer taxonomy from Superagent is documented as example agent definitions consumers can copy and adapt.
+3. **No built-in agents.** orxt is a framework. It defines zero agents -- those are the user's domain. The framework provides loading, validation, and execution. The analyzer/implementor/auditor/fixer taxonomy from Superagent is documented as example agent definitions consumers can copy and adapt.
 
 4. **No model routing complexity.** Category to model is a flat dictionary lookup. No fallback chains, no fuzzy matching, no availability checks, no provider resolution layers.
 
@@ -214,7 +214,7 @@ Eleven patterns to avoid, identified from analysis of oh-my-openagent (omo) and 
 
 9. **No feature flags on framework behavior.** Features are either shipped or not. No `experimental` config sections, no `enabled: false` defaults. Optional subsystems (Overseer, verification, cognee enrichment) are activated by providing their config object, not by toggling a boolean -- presence of config IS the signal.
 
-10. **No bash tool.** The framework ships no general-purpose shell tool. Instead, granular purpose-built tools (read, write, edit, git, exec, http, etc.) with typed parameters and mechanical scoping. A consumer who truly needs raw shell writes their own Tool in ten lines -- oxtra refuses to bless one.
+10. **No bash tool.** The framework ships no general-purpose shell tool. Instead, granular purpose-built tools (read, write, edit, git, exec, http, etc.) with typed parameters and mechanical scoping. A consumer who truly needs raw shell writes their own Tool in ten lines -- orxt refuses to bless one.
 
 11. **No LLM calls hidden inside tools.** Every LLM interaction flows through budgeted, visible, whitelisted channels (spawn, consult). No tools that internally spawn LLM subprocesses with confidence-threshold auto-caching.
 
@@ -351,15 +351,15 @@ One file, one flat map. No nesting, no provider sections, no fallback lists.
 
 ## Example Consumer
 
-A consuming project defines all domain-specific content. oxtra provides the framework; the consumer provides:
+A consuming project defines all domain-specific content. orxt provides the framework; the consumer provides:
 
 - **Agents** (researcher, generator, reviewer, extractor, etc.) as TOML + .md files
-- **Tools** as Python tool objects, built from oxtra's constructors plus custom domain tools
+- **Tools** as Python tool objects, built from orxt's constructors plus custom domain tools
 - **Intent** as the starting point for the Overseer to generate workflows
 - **Verification functions** (research_complete, output_valid, review_passed) as Python callables
 - **Knowledge** (conventions, constraints, banned patterns) as .md and .toml files in a `knowledge/` directory
 
-The consumer builds a tool registry from oxtra's tool constructors (`make_read_tool`, `make_write_tool`, `make_edit_tool`, `make_git_tool`, `make_exec_tool`, `make_http_tool`, `make_spawn_tool`, `make_consult_tool`, `make_notepad_tool`, etc.) plus any custom domain tools, then calls oxtra's Python API to run. oxtra handles the rest: agent loading, tool filtering, model selection, Overseer-driven workflow generation, step execution, verification, retries, notepad IPC, and session tracking.
+The consumer builds a tool registry from orxt's tool constructors (`make_read_tool`, `make_write_tool`, `make_edit_tool`, `make_git_tool`, `make_exec_tool`, `make_http_tool`, `make_spawn_tool`, `make_consult_tool`, `make_notepad_tool`, etc.) plus any custom domain tools, then calls orxt's Python API to run. orxt handles the rest: agent loading, tool filtering, model selection, Overseer-driven workflow generation, step execution, verification, retries, notepad IPC, and session tracking.
 
 ### Mixed Workflow Example
 

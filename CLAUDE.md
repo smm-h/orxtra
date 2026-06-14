@@ -1,4 +1,4 @@
-# oxtra
+# orxt
 
 Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
 
@@ -15,7 +15,7 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ## Monorepo structure
 
 ```
-oxtra/
+orxt/
     .rlsbl-monorepo/           # Monorepo workspace config
         workspace.toml
     schema/                     # pgdesign database schema
@@ -84,13 +84,13 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 
 ### Our tools
 
-The following are all projects under `~/Projects/`, maintained by us. Any feature gap, bug, or shortcoming identified during oxtra development can be filed as a todo in the respective project's `todo/` directory and will be addressed -- these are not external dependencies we're stuck with, they're internal tools that evolve with our needs.
+The following are all projects under `~/Projects/`, maintained by us. Any feature gap, bug, or shortcoming identified during orxt development can be filed as a todo in the respective project's `todo/` directory and will be addressed -- these are not external dependencies we're stuck with, they're internal tools that evolve with our needs.
 
 - **safegit** (`~/Projects/safegit`) -- concurrency-safe git operations. The git tool's mutation subcommands wrap safegit, not raw git.
 - **saferm** (`~/Projects/saferm`) -- audited file deletion with mandatory descriptions, audit trail, and recovery. The delete tool wraps saferm, not raw rm.
 - **rlsbl** (`~/Projects/rlsbl`) -- release orchestration, changelog enforcement, CI scaffolding, monorepo workspace management.
 - **strictcli** (`~/Projects/strictcli`) -- schema-driven CLI framework. No implicit flags.
-- **pgdesign** (`~/Projects/pgdesign`) -- PostgreSQL schema compiler. Owns `schema/oxtra.toml`.
+- **pgdesign** (`~/Projects/pgdesign`) -- PostgreSQL schema compiler. Owns `schema/orxt.toml`.
 - **selfdoc** (`~/Projects/selfdoc`) -- documentation generation from templates.
 
 ## Conventions
@@ -100,7 +100,7 @@ The following are all projects under `~/Projects/`, maintained by us. Any featur
 - Variable substitution is strict both ways.
 - No implicit defaults for provider, model, database URL, timeout, or retry behavior.
 - The trace module is the single owner of the PostgreSQL schema.
-- Budgets denominated in USD with oxtra-maintained internal pricing table.
+- Budgets denominated in USD with orxt-maintained internal pricing table.
 - No bash tool. Granular purpose-built tools with typed parameters.
 - Git mutations wrap safegit; file deletion wraps saferm. Agents cannot bypass these -- there is no raw git or rm.
 - Write safety: atomic replace, per-path write queue, transient-only replay, stale-write detection.
