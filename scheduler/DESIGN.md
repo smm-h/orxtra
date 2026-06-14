@@ -48,7 +48,7 @@ Exception: `start_task` itself can be called without an active task -- it is how
 Agents create subtasks via `create_task` (concrete work) or `create_workflow` (goal-oriented decomposition):
 
 - `create_task`: the agent specifies an agent definition, task prompt, pre-checks, post-checks, variables, timeout, budget, and write paths. The scheduler validates the specification, creates the task as a child of the agent's current active task, and spawns the specified agent.
-- `create_workflow`: the agent specifies goals, description, post-checks, and budget. The scheduler creates the workflow task and assigns a workflow agent to decompose it into subtasks.
+- `create_workflow`: the agent specifies goals, description, post-checks, and budget. The scheduler creates the workflow task and assigns the consumer-configured workflow agent to decompose it into subtasks. The workflow agent is a regular agent definition (TOML + .md) provided by the consumer — orxt does not ship a built-in workflow agent. The consumer specifies which agent handles workflow decomposition in the run configuration.
 
 Both tools return a task/workflow ID. The parent agent can continue working while subtasks execute. When the parent calls `end_task`, the scheduler verifies that all subtasks within the parent's scope are completed. Incomplete subtasks block `end_task`.
 
@@ -146,7 +146,10 @@ Topological sort at load time. Cycles are hard errors.
 
 ## Per-Task Budgets
 
-Each task (including workflows) can have a USD budget. Budget is the natural depth limit for task nesting. When a task's accumulated cost approaches its budget, the scheduler sends a `BudgetThresholdCrossed` event to the Overseer.
+Each task (including workflows) can have a USD budget. Budget is the natural depth limit for task nesting.
+
+- **Threshold warning**: when a task's accumulated cost approaches its budget (configurable percentage), the scheduler sends a `BudgetThresholdCrossed` event to the Overseer. The Overseer can reallocate, increase, or acknowledge.
+- **Exhaustion**: when a task's budget is fully depleted, the scheduler sends a `BudgetExhausted` event and blocks further spending on that task. No new subtasks can be created, no new agent sessions can be started. Running subtasks complete but cannot spawn new work. The Overseer must respond (reallocate from completed tasks, increase allocation, or abort).
 
 Cost is computed from token counts using the internal pricing table (in the session module).
 
