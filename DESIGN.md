@@ -77,7 +77,7 @@ orxt/
 
 | Layer | Sub-projects | Rule |
 |---|---|---|
-| Foundation | protocols, secrets, write-safety, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + write-safety, verify -> protocols) |
+| Foundation | protocols, secrets, write-safety, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + secrets + write-safety, trace -> secrets, verify -> protocols) |
 | Orchestration | scheduler | Depends on foundation |
 | Intelligence | overseer, knowledge-module | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Interfaces | services, cli, mcp | Depends on orchestration + intelligence |

@@ -6,11 +6,13 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "orxt-protocols",
+    "orxt-secrets",
     "orxt-write-safety",
 ]
 
 [tool.uv.sources]
 orxt-protocols = { path = "../protocols", editable = true }
+orxt-secrets = { path = "../secrets", editable = true }
 orxt-write-safety = { path = "../write-safety", editable = true }
 
 [build-system]

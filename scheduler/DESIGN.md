@@ -242,7 +242,7 @@ Catches `CancelledError`, cleans up sessions, writes partial results.
 | `_overseer.py` | Overseer interaction: send events, receive responses, verify actions, degraded mode per event type. |
 | `_services.py` | Service lifecycle management. Start, health-check, stop. |
 | `_locks.py` | File-lock registry. Claim management, conflict detection, release on completion. |
-| `_events.py` | Event registry for gate tasks. Event registration, firing, listener management. PG LISTEN/NOTIFY integration. |
+| `_events.py` | Event registry for wait-for tasks. Event registration, firing, listener management. PG LISTEN/NOTIFY integration. |
 
 ## What This Module Does NOT Do
 

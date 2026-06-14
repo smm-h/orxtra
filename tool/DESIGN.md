@@ -32,7 +32,7 @@ In `consult` mode (read-only agents), the following tools are mechanically strip
 - Execution: `exec`
 - Git mutations: `git` (mutation subcommands)
 - HTTP mutations: `http` (POST, PUT, DELETE, PATCH methods stripped; GET and HEAD retained)
-- Task lifecycle: `start_task`, `end_task`, `create_task`, `create_workflow`
+- Task lifecycle: `start_task`, `end_task`, `create_task`, `create_workflow`, `create_wait_for`
 
 ## Active Task Enforcement
 
@@ -294,7 +294,7 @@ Returns: `task_id` or validation error.
 
 ## Tool Execution
 
-When the LLM requests a tool call, the transport's tool-call loop:
+When the LLM requests a tool call, the executor (scheduler) intercepts before and after transport's tool-call loop:
 
 1. Checks that the agent has an active task (hard error if not, except for `start_task`)
 2. Looks up the tool in the filtered registry by name

@@ -1,13 +1,17 @@
 [project]
 name = "trace"
 version = "0.0.0"
-description = "PG schema owner. Events, step results, transcripts, inbox, state machines, crash recovery."
+description = "PG schema owner. Events, task results, transcripts, inbox, state machines, crash recovery."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "asyncpg",
     "uuid6",
+    "orxt-secrets",
 ]
+
+[tool.uv.sources]
+orxt-secrets = { path = "../secrets", editable = true }
 
 [build-system]
 requires = ["hatchling"]

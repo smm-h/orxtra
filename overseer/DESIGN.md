@@ -57,6 +57,7 @@ The Overseer's system prompt encodes a systemic bias toward correctness:
 | `end_task` | Complete a task (post-checks run) |
 | `create_workflow` | Create a goal-oriented task tree with goals and postchecks |
 | `create_task` | Create a concrete subtask with agent, prompt, and checks |
+| `create_wait_for` | Create a wait-for task (blocks until named event or timeout) |
 
 ### Memory Tools
 
@@ -256,9 +257,10 @@ The Overseer sees the classification and applies type-appropriate strategies.
 | `_handoff.py` | Session handoff detection and execution. |
 | `_inbox.py` | Human inbox item creation. Structured async queue for escalations and assumptions. |
 | `_autonomy.py` | Autonomy knob. Level definitions, action-type-to-level mapping, escalation routing, action-gating enforcement. |
-| `_errors.py` | Error taxonomy. Classification logic: exit codes, stderr patterns, error messages to category. |
 | `_learning.py` | Cross-run knowledge base queries against the lessons table. Staleness detection via git, expiry after N runs. |
 | `_knowledge.py` | Consumer knowledge file loading. Reads .md and .toml files from the knowledge directory, writes to lessons table and constraints table via trace. |
+
+Note: error classification logic lives in the scheduler (which does the classifying), not in the overseer. The `ErrorCategory` enum is in `orxt.protocols._errors`.
 
 ## What This Module Does NOT Do
 

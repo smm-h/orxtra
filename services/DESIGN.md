@@ -40,6 +40,8 @@ async def reject_inbox_item(pool, item_id, reason: str) -> InboxItem:
 ### Trace Service
 
 ```python
+async def list_tasks(pool, run_id) -> list[TaskSummary]:
+    """List all tasks for a run with statuses and attempt counts."""
 async def get_task_attempts(pool, task_id) -> list[TaskAttempt]: ...
 async def get_transcript(pool, session_id) -> list[dict]: ...
 async def search_transcript(pool, session_id, query: str) -> list[dict]:
