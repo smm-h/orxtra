@@ -232,11 +232,11 @@ Can be called without an active task (it is how the agent enters one).
 
 #### `make_end_task_tool(scheduler_ref) -> Tool`
 
-Complete the active task. The scheduler runs the task's post-checks. If all pass, the task completes. If any fail, returns the check results -- the agent must fix its work and call `end_task` again.
+Complete the active task. The `message` parameter serves two purposes: it is always recorded as the task summary in the trace, and if the task produced file changes (any file-mutating tool was called during the task), it is also used as the commit message via safegit. If file-mutating tools were called and uncommitted changes exist, the executor commits automatically before running post-checks. Post-checks verify the committed state.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `summary` | string | yes | What the agent accomplished |
+| `message` | string | yes | What the agent accomplished. Always required. Used as task summary and commit message. |
 
 Returns: success or post-check failure details.
 
