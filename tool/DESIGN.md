@@ -6,6 +6,8 @@ A tool is a single Python object that bundles schema and implementation together
 
 ## Tool Contract
 
+The `Tool` dataclass is defined in `orxt.protocols._tool` (shared across transport, tool, and scheduler):
+
 ```python
 @dataclass(frozen=True)
 class Tool:
@@ -292,7 +294,7 @@ When the LLM requests a tool call, the transport's tool-call loop:
 
 | File | Contents |
 |---|---|
-| `_types.py` | `Tool` frozen dataclass. `ToolError` exception. |
+| `_types.py` | Re-exports `Tool` and `ToolError` from `orxt.protocols._tool`. |
 | `_path.py` | Canonical path enforcement. |
 | `_preview.py` | No-truncation preview logic. |
 | `_write_queue.py` | Per-path write serialization, stale-write detection, transient replay. |

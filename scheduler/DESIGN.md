@@ -93,7 +93,7 @@ Key fields:
 | `on_success` | string | no | Python callable path, runs after postchecks pass (non-fatal) |
 | `pre_retry` | string | no | Python callable path, runs before retry (exceptions abort retry) |
 
-*A task must declare exactly one of: `agent` + `task_prompt`, `callable`, or `subtasks`.
+*A task must declare exactly one of: `agent` + `task_prompt`, `callable`, `subtasks`, `gate`, or `decision_point`.
 
 **Every task must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
 

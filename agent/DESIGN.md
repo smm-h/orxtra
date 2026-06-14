@@ -35,7 +35,7 @@ Schema validation is strict (pydantic with `strict=True, extra='forbid'`):
 The `allow` list is the sole authority. Before sending a request to the LLM, the executor filters the tool registry to only include tools in the agent's `allow` list.
 
 In `consult` mode (read-only agents), the following tools are mechanically stripped regardless of `allow`:
-- File mutation: write, edit, delete, move, mkdir, set_executable
+- File mutation: write, edit, delete, move, copy (destination), mkdir, set_executable
 - Execution: exec
 - Git mutations: git (mutation subcommands)
 - HTTP mutations: http (POST/PUT/DELETE/PATCH stripped, GET/HEAD retained)
