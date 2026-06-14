@@ -188,7 +188,7 @@ Thirteen hard rules. Each is mechanically enforced, not prompt-requested.
 
 12. **Structured decisions, not free-form.** The Overseer makes decisions via typed protocols with closed output schemas. It picks from menus, never free-forms. If a situation doesn't match any registered protocol, it escalates to the human.
 
-13. **Modules share protocols, not implementations.** No module imports another module directly. They declare interfaces they consume (Python protocols/ABCs), and composition wires implementations at the consumer's entry point. Every module is independently testable and replaceable.
+13. **Modules compose via layer boundaries.** Foundation modules have zero intra-workspace dependencies and expose stable interfaces. Higher-layer modules may depend on lower-layer concrete types (scheduler depends on trace's TraceWriter, session depends on transport's Transport). The critical constraint is architectural: no downward dependencies (higher layers never imported by lower layers), and the Overseer and scheduler never import each other -- they share protocols at that seam. Every foundation module is independently testable and usable.
 
 ## Anti-Patterns
 

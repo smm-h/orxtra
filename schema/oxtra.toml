@@ -3,7 +3,7 @@
 # All primary keys use the built-in `id` type (uuid, NOT NULL, gen_random_uuid()).
 # Application generates UUIDv7 for time-ordering; DB default is v4 fallback.
 # Immutable tables (events, transcripts, notepad_entries) enforce append-only
-# via REVOKE UPDATE, DELETE at the DB-role level.
+# via deny-mutation triggers (pgdesign append_only = true).
 
 [meta]
 version = 16

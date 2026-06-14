@@ -41,7 +41,7 @@ pip install ./cli
 
 ## Design principles
 
-- **Each module is independently useful.** Modules declare interfaces (protocols), not implementations. No module imports another directly.
+- **Each module is independently useful.** Foundation modules have zero dependencies. Higher layers depend on lower layers via concrete types. No downward dependencies. Overseer and scheduler share protocols, not imports.
 - **Complexity if you need it, simplicity if you don't.** The Overseer, verification, notepad, and knowledge enrichment are all opt-in. A bare scheduler + transport is a valid system.
 - **No bash tool.** Granular tools (read, write, edit, git, exec, http) with typed parameters and path enforcement.
 - **PostgreSQL backbone.** All state in PG. Append-only immutable tables. LISTEN/NOTIFY. Advisory locks.

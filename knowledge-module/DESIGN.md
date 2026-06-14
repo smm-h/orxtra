@@ -139,8 +139,8 @@ async def retrieve_knowledge(
     Retrieve relevant knowledge from the cognee graph.
 
     Uses cognee's GRAPH_COMPLETION search type for multi-hop graph traversal
-    combined with semantic similarity. Returns empty list if cognee is not
-    configured or unavailable.
+    combined with semantic similarity. Returns empty list if KnowledgeConfig
+    was not provided.
     """
     ...
 ```
@@ -161,7 +161,7 @@ The Overseer's context assembly (Layer 3) has two knowledge sources:
 1. **Flat SQL** (always available): `SELECT * FROM lessons WHERE (run_id = $1 OR permanent = true) AND relevance_tags && $2` — deterministic, bounded, zero external dependency
 2. **Cognee retrieval** (when configured): `retrieve_knowledge(query)` — semantic, graph-traversal, nondeterministic
 
-The `context_decision` protocol receives results from both and refines them. If cognee is not configured, only flat SQL results are provided — the system works fully without it.
+The `context_decision` protocol receives results from both and refines them. If `KnowledgeConfig` was not provided, only flat SQL results are available — the system works fully without cognee.
 
 ## Custom Graph Model
 
@@ -209,7 +209,6 @@ The schema is extensible — consumers can provide additional DataPoint subclass
 ```python
 @dataclass(frozen=True)
 class KnowledgeConfig:
-    enabled: bool                  # False to disable cognee entirely; flat SQL only
     db_url: str                    # Same PG connection as trace
     knowledge_dir: Path            # Consumer's knowledge/ directory
     cognify_model: str             # Model for cognee's entity extraction
@@ -217,7 +216,7 @@ class KnowledgeConfig:
     max_retrieval_results: int     # Default max results for retrieve_knowledge()
 ```
 
-When `enabled = false`, the module is inert — no cognee calls, no ingestion, no retrieval. Context assembly uses flat SQL only. This is the default until cognee proves its value.
+Cognee is active when a `KnowledgeConfig` is provided to the run. When it is not provided (`None`), the module is inert — no cognee calls, no ingestion, no retrieval. Context assembly uses flat SQL only. Presence of the config object IS the signal, not a boolean flag (anti-pattern #9).
 
 ## Files
 
@@ -225,7 +224,7 @@ When `enabled = false`, the module is inert — no cognee calls, no ingestion, n
 |---|---|
 | `_types.py` | `KnowledgeConfig`, `KnowledgeResult` pydantic models. Custom DataPoint subclasses (`DomainConcept`, `Convention`, `FailurePattern`, `LearnedFact`). |
 | `_ingest.py` | `ingest_consumer_knowledge(config, knowledge_dir, trace_writer)` — loads .md and .toml files, writes to lessons table via trace, ingests into cognee. `ingest_runtime_learnings(config, run_id, trace_reader)` — indexes lessons table rows from a completed run into cognee. |
-| `_retrieve.py` | `retrieve_knowledge(query, tags, max_results)` — wraps cognee.search(), returns KnowledgeResult list. Returns empty list if cognee is disabled. |
+| `_retrieve.py` | `retrieve_knowledge(query, tags, max_results)` — wraps cognee.search(), returns KnowledgeResult list. Returns empty list if KnowledgeConfig was not provided. |
 | `_config.py` | Cognee backend configuration: db_provider, vector_db_provider, graph model registration, LLM provider for cognify. |
 | `_freshness.py` | Content-hash tracking for consumer files. Memify dispatch after runtime learning ingestion. |
 
@@ -235,5 +234,5 @@ When `enabled = false`, the module is inert — no cognee calls, no ingestion, n
 - Does not write lessons (the Overseer writes via trace.write_lesson())
 - Does not store or query decisions, constraints, assumptions, or workflow status
 - Does not replace flat SQL retrieval — it enriches it
-- Does not function when disabled — flat SQL carries the full load
+- Does not function when KnowledgeConfig is not provided — flat SQL carries the full load
 - Does not build code intelligence

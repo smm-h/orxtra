@@ -10,7 +10,7 @@ Design phase, hardened. Monorepo with 13 sub-projects, each independently useful
 
 Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `transport/`. One wanting deterministic workflow execution without an Overseer brain uses `scheduler/`. The full system composes all 13.
 
-Modules declare interfaces they consume (protocols), never implementations. No module imports another module directly -- they share protocol definitions. Composition happens at the consumer's entry point.
+Foundation modules have zero intra-workspace dependencies and expose stable interfaces. Higher-layer modules depend on lower-layer concrete types. The critical constraint: no downward dependencies, and the Overseer and scheduler never import each other (they share protocols at that seam).
 
 ## Monorepo structure
 
@@ -94,4 +94,4 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - No bash tool. Granular purpose-built tools with typed parameters.
 - Write safety: atomic replace, per-path write queue, transient-only replay, stale-write detection.
 - No truncation. Tool output always persisted in full; large results return a preview with opt-in full retrieval.
-- Modules share protocols, not implementations. No cross-module imports.
+- No downward dependencies between layers. Overseer and scheduler share protocols, not imports.
