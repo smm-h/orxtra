@@ -280,6 +280,18 @@ Create a goal-oriented task tree within the current active task. A workflow agen
 
 Returns: `workflow_id` or validation error.
 
+#### `make_create_wait_for_tool(scheduler_ref) -> Tool`
+
+Create a wait-for task within the current active task. Blocks until a named event fires or timeout expires.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Task name |
+| `event_name` | string | yes | Event to wait for |
+| `timeout` | integer | yes | Max seconds to wait |
+
+Returns: `task_id` or validation error.
+
 ## Tool Execution
 
 When the LLM requests a tool call, the transport's tool-call loop:
@@ -306,7 +318,7 @@ When the LLM requests a tool call, the transport's tool-call loop:
 | `_constructors.py` | File read/write tool constructors: `make_read_tool`, `make_write_tool`, `make_edit_tool`, `make_list_dir_tool`, `make_glob_tool`, `make_grep_tool`, `make_stat_tool`, `make_diff_tool`, `make_mkdir_tool`, `make_move_tool`, `make_copy_tool`, `make_delete_tool`, `make_set_executable_tool`, `make_git_tool`, `make_exec_tool`, `make_http_tool`. |
 | `_consult.py` | `make_consult_tool(executor)` -- consult tool with read-only stripping. |
 | `_notepad.py` | `make_notepad_tool(trace_writer)` -- notepad tool. |
-| `_task_tools.py` | `make_start_task_tool`, `make_end_task_tool`, `make_create_task_tool`, `make_create_workflow_tool`. Task lifecycle tools. |
+| `_task_tools.py` | `make_start_task_tool`, `make_end_task_tool`, `make_create_task_tool`, `make_create_workflow_tool`, `make_create_wait_for_tool`. Task lifecycle tools. |
 | `_validation.py` | JSON Schema argument validation. |
 
 ## What This Module Does NOT Do

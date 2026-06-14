@@ -11,6 +11,11 @@ description = "Shared types: Execution, task lifecycle, event descriptors, actio
 library = true
 
 [[projects]]
+path = "secrets"
+description = "Secret registry, substitution, and scrubbing"
+library = true
+
+[[projects]]
 path = "transport"
 description = "Typed LLM client via Provider protocol"
 depends_on = ["protocols"]
@@ -92,7 +97,7 @@ depends_on = ["services"]
 order = ["foundation", "orchestration", "intelligence", "interfaces"]
 
 [layers.assignments]
-foundation = ["protocols", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
+foundation = ["protocols", "secrets", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
 orchestration = ["scheduler"]
 intelligence = ["overseer", "knowledge-module"]
 interfaces = ["services", "cli", "mcp"]

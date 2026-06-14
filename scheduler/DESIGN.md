@@ -93,7 +93,7 @@ Key fields:
 | `on_success` | string | no | Python callable path, runs after postchecks pass (non-fatal) |
 | `pre_retry` | string | no | Python callable path, runs before retry (exceptions abort retry) |
 
-*A task must declare exactly one of: `agent` + `task_prompt`, `callable`, `subtasks`, `gate`, or `decision_point`.
+*A task must declare exactly one of: `agent` + `task_prompt`, `callable`, `subtasks`, `wait_for`, or `decision_point`.
 
 **Every task must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
 
@@ -152,7 +152,11 @@ Cost is computed from token counts using the internal pricing table (in the sess
 
 ## Mechanical Constraint Enforcement
 
-After each task's postchecks pass, the scheduler checks all active mechanical constraints (from the constraints table). Violations are immediate task failures.
+After each task's postchecks pass but before the task transitions to `completed`, the scheduler runs all active mechanical constraints as built-in postchecks. These run after the consumer's postchecks, acting as a final guardrail.
+
+Cheap constraints (no_removed_exports, no_changed_signatures, no_new_dependencies, no_new_files_outside) are fast static checks and run after every task. Expensive constraints (tests_pass, lint_clean) are scoped to workflow completion -- they run only when the outermost workflow task completes, not after every leaf task. This prevents the test suite from running 20+ times per workflow.
+
+Violations are immediate task failures.
 
 ## Transport Registry
 
@@ -186,9 +190,11 @@ When task B depends on task A, B has access to A's outputs:
 
 Variable name collisions between task outputs and workflow variables are hard errors.
 
-## Gate Tasks
+## Wait-For Tasks
 
-A gate task blocks until a named event fires or the timeout expires. Internal events (inter-workflow) use PG NOTIFY directly. External events use the services API's `fire_event`. If the event fires before timeout, the task succeeds and the event payload is available as `{task_name_event}`. If timeout expires, the task fails.
+A wait-for task blocks until a named event fires or the timeout expires. Internal events (inter-workflow) use PG NOTIFY directly. External events use the services API's `fire_event`. If the event fires before timeout, the task succeeds and the event payload is available as `{task_name_event}`. If timeout expires, the task fails.
+
+Wait-for tasks are TOML-only (defined in workflow TOML by the Overseer) with one exception: `create_wait_for` is available as a runtime tool for agents that need to create synchronization points.
 
 ## Decision Point Tasks
 
