@@ -139,7 +139,7 @@ Mechanical constraints use a closed vocabulary of checkable primitives:
 - `no_new_dependencies` -- no additions to dependency manifests
 - `no_new_files_outside(directory)` -- no file creation outside specified directory
 
-The scheduler checks mechanical constraints after each task's postchecks pass. Violations are immediate failures.
+Cheap mechanical constraints (no_removed_exports, no_changed_signatures, no_new_dependencies, no_new_files_outside) run after every task. Expensive constraints (tests_pass, lint_clean) run at workflow completion only. All run as built-in postchecks after the consumer's postchecks. Violations are immediate failures.
 
 Advisory constraints are freeform text included in agent task context. Not mechanically enforced.
 

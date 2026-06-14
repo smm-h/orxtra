@@ -10,7 +10,7 @@ An **Overseer** (persistent LLM with action tools and structured memory) makes j
 
 Complexity if you need it, simplicity if you don't.
 
-Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxt.transport`. One wanting deterministic workflow execution uses `orxt.scheduler`. The full system composes all fourteen.
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxt.transport`. One wanting deterministic workflow execution uses `orxt.scheduler`. The full system composes all fifteen.
 
 ### Structured Programming for AI Workflows
 
@@ -29,7 +29,7 @@ Every piece of work is a task with explicit boundaries (`start_task` / `end_task
 
 ## Monorepo Structure
 
-rlsbl monorepo with 14 sub-projects. Each has its own `pyproject.toml`, `DESIGN.md`, `src/orxt/<name>/`, and `tests/`.
+rlsbl monorepo with 15 sub-projects. Each has its own `pyproject.toml`, `DESIGN.md`, `src/orxt/<name>/`, and `tests/`.
 
 ```
 orxt/
@@ -38,6 +38,7 @@ orxt/
     knowledge/                     # Consumer domain knowledge (.md and .toml)
 
     protocols/                     # Foundation: shared types and interfaces
+    secrets/                       # Foundation: secret registry + scrubbing
     transport/                     # Foundation: typed LLM client
     agent/                         # Foundation: TOML+md agent loader
     tool/                          # Foundation: tool registry + constructors
@@ -60,7 +61,7 @@ orxt/
 
 | Layer | Sub-projects | Rule |
 |---|---|---|
-| Foundation | protocols, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols, verify -> protocols) |
+| Foundation | protocols, secrets, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols, verify -> protocols) |
 | Orchestration | scheduler | Depends on foundation |
 | Intelligence | overseer, knowledge-module | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Interfaces | services, cli, mcp | Depends on orchestration + intelligence |
@@ -176,7 +177,7 @@ The system never blocks on human input by default. Three mechanisms:
 
 2. **Autonomy action-gating.** Irreversible actions are mechanically forbidden below the configured autonomy level. They require an answered approval inbox item to proceed.
 
-3. **Gate tasks.** The Overseer creates gate tasks with a timeout and escalation path. Gate tasks await named events via PG LISTEN/NOTIFY. External systems fire events via the services API.
+3. **Wait-for tasks.** The Overseer creates wait-for tasks with a timeout and escalation path. Wait-for tasks await named events via PG LISTEN/NOTIFY. External systems fire events via the services API.
 
 ### Inbox Item Schema
 
