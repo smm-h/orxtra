@@ -25,6 +25,9 @@ ignore = [
     "PLR2004", # magic values in tests are fine
     "ARG",     # unused args in fixtures are fine
 ]
+"**/_task.py" = ["TC002", "TC003"]   # pydantic models need runtime imports
+"**/_tools.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
+"**/_execution.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
 
 [tool.mypy]
 python_version = "3.12"
