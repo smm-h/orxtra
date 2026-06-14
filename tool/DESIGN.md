@@ -68,7 +68,7 @@ For tools that can produce large output (read, exec, http, grep):
 
 ## Write Safety
 
-The executor enforces four write-safety mechanisms on all file-mutating tools:
+The scheduler instantiates write-safety infrastructure at run start and passes it to tool constructors. Tools enforce the mechanisms at execution time:
 
 1. **Atomic replace**: temp file + fsync + rename
 2. **Per-path write queue**: concurrent writes serialized
@@ -256,8 +256,13 @@ Create a concrete subtask within the current active task. The scheduler validate
 | `variables` | object | no | Variables for prompt substitution |
 | `timeout` | integer | yes | Max wall-clock seconds |
 | `context_refinement` | boolean | yes | Whether the Overseer refines context |
+| `category` | string | no | Override agent's default category |
 | `budget` | number | no | Per-task USD budget |
 | `write_paths` | array | no | File paths this task may write |
+| `retry` | integer | no | Max retry count (default 0) |
+| `retry_resume` | boolean | conditional | Required if retry > 0 |
+| `retry_inject_failure` | boolean | conditional | Required if retry > 0 |
+| `depends_on` | array of strings | no | Sibling task names that must complete first |
 
 Returns: `task_id` or validation error.
 

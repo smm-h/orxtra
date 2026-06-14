@@ -18,7 +18,7 @@ Typed dataclasses for each event in the stream:
 | `StepFinish` | `reason, input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_write_tokens` | Turn complete. |
 | `ApiRetry` | `attempt, max_retries, delay_ms, status_code, error` | A transient API error was retried. |
 | `Error` | `name, message, metadata` | Something went wrong. |
-| `Result` | `text, session_id, total_input_tokens, total_output_tokens, tool_calls` | Summary of the full invocation. |
+| `Result` | `text, session_id, total_input_tokens, total_output_tokens, total_reasoning_tokens, total_cache_read_tokens, total_cache_write_tokens, tool_calls` | Summary of the full invocation. |
 
 These are frozen dataclasses. They are the public API of the transport layer.
 

@@ -3,11 +3,17 @@
 # Each sub-project is independently useful for a narrow purpose.
 # Together they compose into a full autonomous agent orchestration system.
 
-# --- Foundation layer: zero intra-workspace dependencies ---
+# --- Foundation layer ---
+
+[[projects]]
+path = "protocols"
+description = "Shared types: Execution, task lifecycle, event descriptors, action tool schemas"
+library = true
 
 [[projects]]
 path = "transport"
 description = "Typed LLM client via Provider protocol"
+depends_on = ["protocols"]
 library = true
 
 [[projects]]
@@ -18,11 +24,13 @@ library = true
 [[projects]]
 path = "tool"
 description = "Tool registry with granular constructors"
+depends_on = ["protocols"]
 library = true
 
 [[projects]]
 path = "verify"
-description = "Verification runner (callable chains + structured verdicts)"
+description = "Check runner (pre/post-check Execution dispatch)"
+depends_on = ["protocols"]
 library = true
 
 [[projects]]
@@ -36,25 +44,25 @@ description = "Append-only cross-agent context sharing"
 depends_on = ["trace"]
 library = true
 
-# --- Orchestration layer ---
-
 [[projects]]
 path = "session"
 description = "Session lifecycle, token tracking, cross-restart resumption"
 depends_on = ["transport", "trace"]
 library = true
 
+# --- Orchestration layer ---
+
 [[projects]]
 path = "scheduler"
-description = "Deterministic workflow executor"
-depends_on = ["agent", "tool", "session", "trace", "verify", "notepad"]
+description = "Task executor (recursive hierarchy, budgets, constraints)"
+depends_on = ["protocols", "agent", "tool", "session", "trace", "verify", "notepad"]
 
 # --- Intelligence layer ---
 
 [[projects]]
 path = "overseer"
-description = "Persistent LLM with structured decision protocols"
-depends_on = ["trace", "session"]
+description = "Persistent LLM with action tools, PG memory, session handoff"
+depends_on = ["protocols", "trace", "session"]
 
 [[projects]]
 path = "knowledge-module"
@@ -84,7 +92,7 @@ depends_on = ["services"]
 order = ["foundation", "orchestration", "intelligence", "interfaces"]
 
 [layers.assignments]
-foundation = ["transport", "agent", "tool", "verify", "trace", "notepad"]
-orchestration = ["session", "scheduler"]
+foundation = ["protocols", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
+orchestration = ["scheduler"]
 intelligence = ["overseer", "knowledge-module"]
 interfaces = ["services", "cli", "mcp"]

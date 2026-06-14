@@ -94,7 +94,6 @@ Returns empty list if `KnowledgeConfig` was not provided.
 @dataclass(frozen=True)
 class KnowledgeConfig:
     db_url: str
-    knowledge_dir: Path
     cognify_model: str
     cognify_api_key: str
     max_retrieval_results: int

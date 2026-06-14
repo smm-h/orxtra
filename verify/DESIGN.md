@@ -36,8 +36,11 @@ async def run_checks(
     checks: list[Execution],
     ctx: CheckContext,
     phase: str,  # "pre" or "post"
+    executor: CheckExecutor,  # injected by scheduler
 ) -> list[CheckResult]:
 ```
+
+The `executor` parameter is a protocol interface (defined in `orxt.protocols`) that the scheduler injects. It provides the ability to spawn consult agents (for agent-type checks) and create subtasks (for workflow-type checks). The verify module defines what it needs; the scheduler provides the implementation. This avoids a dependency from verify to tool or scheduler.
 
 ### Pre-Check Behavior
 

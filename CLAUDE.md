@@ -78,7 +78,7 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **Notepad** is PG-backed append-only cross-agent IPC. See `notepad/DESIGN.md`.
 - **Session** wraps transport with token tracking, transcript persistence, cross-restart resumption. See `session/DESIGN.md`.
 - **Scheduler** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints. See `scheduler/DESIGN.md`.
-- **Overseer** is a persistent LLM with action tools, PG memory, health monitoring, session handoff. The root task's agent. See `overseer/DESIGN.md`.
+- **Overseer** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent. See `overseer/DESIGN.md`.
 - **Knowledge-module** is an experimental cognee enrichment layer over the flat lessons table. Disabled by default. May be removed. See `knowledge-module/DESIGN.md`.
 - **Services** is shared business logic consumed by CLI, MCP, and the Python API. See `services/DESIGN.md`.
 - **CLI** is a strictcli frontend. Agents are the primary users. See `cli/DESIGN.md`.

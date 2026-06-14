@@ -27,17 +27,17 @@ Every piece of work is a task with explicit boundaries, entry conditions, and ex
 
 A typed LLM client with streaming and tools:
 ```
-pip install ./transport
+uv pip install ./transport
 ```
 
 Deterministic task execution (no AI brain, consumer provides task trees):
 ```
-pip install ./scheduler
+uv pip install ./scheduler
 ```
 
 Full autonomous system with Overseer, verification, and human inbox:
 ```
-pip install ./cli
+uv pip install ./cli
 ```
 
 ## Design principles
