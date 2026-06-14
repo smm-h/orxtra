@@ -39,7 +39,7 @@ In `consult` mode (read-only agents), the following tools are mechanically strip
 - Execution: exec
 - Git mutations: git (mutation subcommands)
 - HTTP mutations: http (POST/PUT/DELETE/PATCH stripped, GET/HEAD retained)
-- Task lifecycle: start_task, end_task, create_task, create_workflow
+- Task lifecycle: start_task, end_task, create_task, create_workflow, create_wait_for
 
 ## Delegation
 

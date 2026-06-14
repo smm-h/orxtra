@@ -45,7 +45,7 @@ Each tool maps 1:1 to a service function.
 
 | MCP Tool | Service Function | Description |
 |---|---|---|
-| `fire_event` | `events.fire_event` | Fire a named event for gate tasks |
+| `fire_event` | `events.fire_event` | Fire a named event for wait-for tasks |
 
 ### Config Tools
 

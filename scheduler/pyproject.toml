@@ -1,11 +1,12 @@
 [project]
 name = "scheduler"
 version = "0.0.0"
-description = "Deterministic workflow executor. Dependency graphs, parallel steps, budgets, constraints, crash recovery."
+description = "Task executor. Recursive task hierarchy, dependency graphs, budgets, constraints, crash recovery."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "orxt-protocols",
+    "orxt-write-safety",
     "agent",
     "tool",
     "session",
@@ -23,6 +24,7 @@ packages = ["src/orxt"]
 
 [tool.uv.sources]
 orxt-protocols = { path = "../protocols", editable = true }
+orxt-write-safety = { path = "../write-safety", editable = true }
 agent = { path = "../agent", editable = true }
 tool = { path = "../tool", editable = true }
 session = { path = "../session", editable = true }

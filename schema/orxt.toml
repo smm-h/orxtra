@@ -99,7 +99,7 @@ comment = "Step attempt lifecycle status"
 
 [types.step_type]
 kind = "enum"
-values = ["agent", "callable", "workflow", "decision_point", "gate"]
+values = ["agent", "callable", "workflow", "decision_point", "wait_for"]
 comment = "Type of workflow step"
 
 [types.entry_type]
@@ -539,7 +539,7 @@ columns = ["run_id"]
 # ---------------------------------------------------------------------------
 
 [tables.inbox_items]
-comment = "Human inbox. Items created by the Overseer. Tags for triage, five-status lifecycle (pending/answered/skipped/expired/rejected), answer events for gate integration."
+comment = "Human inbox. Items created by the Overseer. Tags for triage, five-status lifecycle (pending/answered/skipped/expired/rejected), answer events for wait-for task integration."
 
 [tables.inbox_items.columns.id]
 type = "id"
@@ -592,7 +592,7 @@ type = "timestamp_optional"
 
 [tables.inbox_items.columns.answer_event]
 type = "str_nullable"
-comment = "Event name fired when answered, for gate steps to await"
+comment = "Event name fired when answered, for wait-for tasks to await"
 
 [tables.inbox_items.columns.created_at]
 type = "timestamp"

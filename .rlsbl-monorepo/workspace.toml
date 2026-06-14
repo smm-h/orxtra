@@ -34,7 +34,7 @@ library = true
 [[projects]]
 path = "tool"
 description = "Tool registry with granular constructors"
-depends_on = ["protocols", "write-safety"]
+depends_on = ["protocols", "secrets", "write-safety"]
 library = true
 
 [[projects]]
@@ -45,7 +45,8 @@ library = true
 
 [[projects]]
 path = "trace"
-description = "PG schema owner (events, results, transcripts, inbox, state machines)"
+description = "PG schema owner (events, task results, transcripts, inbox, state machines)"
+depends_on = ["secrets"]
 library = true
 
 [[projects]]
@@ -65,7 +66,7 @@ library = true
 [[projects]]
 path = "scheduler"
 description = "Task executor (recursive hierarchy, budgets, constraints)"
-depends_on = ["protocols", "agent", "tool", "session", "trace", "verify", "notepad"]
+depends_on = ["protocols", "agent", "tool", "write-safety", "session", "trace", "verify", "notepad"]
 
 # --- Intelligence layer ---
 

@@ -1,7 +1,7 @@
 [project]
 name = "overseer"
 version = "0.0.0"
-description = "Persistent LLM with structured decision protocols, PG memory, health monitoring, session handoff."
+description = "Persistent LLM with action tools, PG memory, health monitoring, session handoff."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",

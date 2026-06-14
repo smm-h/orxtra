@@ -118,7 +118,7 @@ class TaskSpec:
     prechecks: list[Execution]
     postchecks: list[Execution]
 
-    # Exactly one of: agent + task_prompt, callable, subtasks, gate, or decision_point
+    # Exactly one of: agent + task_prompt, callable, subtasks, wait_for, or decision_point
     agent: str | None = None             # agent definition name
     task_prompt: str | None = None       # prompt template with {variable} placeholders
     callable: str | None = None          # Python callable path for function tasks
@@ -347,6 +347,7 @@ Create a human inbox item.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
+| `decision_type` | string | yes | What kind of decision prompted this item (e.g., "scope_change", "architecture") |
 | `question` | string | yes | The question for the human |
 | `options` | array | yes | Options considered |
 | `assumed_option` | string | yes | Which option the Overseer assumed |
@@ -354,7 +355,7 @@ Create a human inbox item.
 | `contradiction_impact` | string | yes | What happens if the human picks differently |
 | `tags` | array of strings | no | Tags for triage |
 | `deadline` | string | no | ISO timestamp deadline for response |
-| `answer_event` | string | no | Event name fired when answered (for gate tasks to await) |
+| `answer_event` | string | no | Event name fired when answered (for wait-for tasks to await) |
 
 Returns: `item_id` (UUID).
 
@@ -478,8 +479,8 @@ class ErrorCategory(str, Enum):
 
 The closed set of mechanical constraint primitives that the scheduler can check programmatically. These are the valid values for mechanical constraints:
 
-- `tests_pass` -- test suite must pass (expensive: runs at workflow completion only)
-- `lint_clean` -- linter must pass (expensive: runs at workflow completion only)
+- `tests_pass` -- test suite must pass (expensive: runs at workflow completion only, always implicitly active)
+- `lint_clean` -- linter must pass (expensive: runs at workflow completion only, always implicitly active)
 - `no_removed_exports(glob)` -- public API symbols cannot be removed from matching files
 - `no_changed_signatures(glob)` -- function/method signatures cannot change
 - `no_new_dependencies` -- no additions to dependency manifests
