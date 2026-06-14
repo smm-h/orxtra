@@ -919,3 +919,156 @@ class TestThinkingBlocks:
         thinking_events = [e for e in events if isinstance(e, Thinking)]
         assert len(thinking_events) == 1
         assert thinking_events[0].text == "Let me think..."
+
+
+class TestRetryOn502:
+    @respx.mock
+    async def test_retries_then_succeeds(self) -> None:
+        response_iter = iter([
+            httpx.Response(502, text="bad gateway"),
+            httpx.Response(200, json={"mock": True}),
+        ])
+        respx.post(_MOCK_URL).mock(side_effect=lambda _req: next(response_iter))
+
+        provider = MockProvider(
+            responses=[
+                (
+                    [ContentBlock(type="text", text="OK")],
+                    Usage(),
+                ),
+            ],
+        )
+        transport = Transport(provider=provider, retry_policy=_retry_policy())
+        events = await _collect(transport, "Hi", **_default_send_kwargs())
+
+        retry_events = [e for e in events if isinstance(e, ApiRetry)]
+        assert len(retry_events) == 1
+        assert retry_events[0].status_code == 502
+
+        results = [e for e in events if isinstance(e, Result)]
+        assert len(results) == 1
+
+
+class TestRetryOn503:
+    @respx.mock
+    async def test_retries_then_succeeds(self) -> None:
+        response_iter = iter([
+            httpx.Response(503, text="service unavailable"),
+            httpx.Response(200, json={"mock": True}),
+        ])
+        respx.post(_MOCK_URL).mock(side_effect=lambda _req: next(response_iter))
+
+        provider = MockProvider(
+            responses=[
+                (
+                    [ContentBlock(type="text", text="OK")],
+                    Usage(),
+                ),
+            ],
+        )
+        transport = Transport(provider=provider, retry_policy=_retry_policy())
+        events = await _collect(transport, "Hi", **_default_send_kwargs())
+
+        retry_events = [e for e in events if isinstance(e, ApiRetry)]
+        assert len(retry_events) == 1
+        assert retry_events[0].status_code == 503
+
+        results = [e for e in events if isinstance(e, Result)]
+        assert len(results) == 1
+
+
+class TestMultiRoundToolCalls:
+    @respx.mock
+    async def test_two_rounds_then_text(self) -> None:
+        respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
+
+        async def exec_a(args: dict[str, Any]) -> str:
+            return "result_a"
+
+        async def exec_b(args: dict[str, Any]) -> str:
+            return "result_b"
+
+        tool_a = _make_tool(name="tool_a", execute_fn=exec_a)
+        tool_b = _make_tool(name="tool_b", execute_fn=exec_b)
+
+        provider = MockProvider(
+            responses=[
+                # Round 1: tool_a
+                (
+                    [
+                        ContentBlock(
+                            type="tool_use",
+                            tool_use_id="tu_1",
+                            tool_name="tool_a",
+                            tool_input={"x": "1"},
+                        ),
+                    ],
+                    Usage(input_tokens=10, output_tokens=5),
+                ),
+                # Round 2: tool_b
+                (
+                    [
+                        ContentBlock(
+                            type="tool_use",
+                            tool_use_id="tu_2",
+                            tool_name="tool_b",
+                            tool_input={"x": "2"},
+                        ),
+                    ],
+                    Usage(input_tokens=15, output_tokens=8),
+                ),
+                # Round 3: text
+                (
+                    [ContentBlock(type="text", text="All rounds done")],
+                    Usage(input_tokens=20, output_tokens=10),
+                ),
+            ],
+        )
+        transport = Transport(provider=provider, retry_policy=_retry_policy())
+        events = await _collect(
+            transport, "Do it", **_default_send_kwargs(tools=[tool_a, tool_b]),
+        )
+
+        tool_events = [e for e in events if isinstance(e, ToolUse)]
+        assert len(tool_events) == 2
+        assert tool_events[0].tool_name == "tool_a"
+        assert tool_events[1].tool_name == "tool_b"
+
+        text_events = [e for e in events if isinstance(e, Text)]
+        assert len(text_events) == 1
+        assert text_events[0].text == "All rounds done"
+
+        result = next(e for e in events if isinstance(e, Result))
+        assert result.tool_calls == 2
+
+
+class TestMaxRetriesZero:
+    @respx.mock
+    async def test_no_retries_on_failure(self) -> None:
+        respx.post(_MOCK_URL).mock(
+            return_value=httpx.Response(500, text="server error"),
+        )
+
+        provider = MockProvider(
+            responses=[
+                (
+                    [ContentBlock(type="text", text="never reached")],
+                    Usage(),
+                ),
+            ],
+        )
+        transport = Transport(
+            provider=provider, retry_policy=_retry_policy(max_retries=0),
+        )
+        events = await _collect(transport, "Hi", **_default_send_kwargs())
+
+        retry_events = [e for e in events if isinstance(e, ApiRetry)]
+        assert len(retry_events) == 0
+
+        error_events = [e for e in events if isinstance(e, Error)]
+        assert len(error_events) == 1
+        assert error_events[0].name == "max_retries_exceeded"
+        assert "1 attempts" in error_events[0].message
+
+        results = [e for e in events if isinstance(e, Result)]
+        assert len(results) == 0
