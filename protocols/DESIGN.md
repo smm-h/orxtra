@@ -293,7 +293,7 @@ Create a concrete subtask within the current active task.
 | `task_prompt` | string | yes | Task prompt template |
 | `prechecks` | array of Executions | no | Checks before the agent can start |
 | `postchecks` | array of Executions | no | Checks the agent must satisfy to finish |
-| `variables` | object | no | Variables for prompt substitution |
+| `variable_values` | object | no | Variable values for prompt substitution (key-value pairs, resolved at runtime) |
 | `timeout` | integer | yes | Max wall-clock seconds |
 | `budget` | number | no | Per-task USD budget |
 | `write_paths` | array of strings | no | File paths this task may write |

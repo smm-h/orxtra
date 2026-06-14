@@ -8,7 +8,7 @@ Project the services layer as MCP tools. Any MCP client becomes a human interfac
 
 ## MCP Tools
 
-Each tool maps 1:1 to a service function.
+Each tool maps to a service function. Validation tools are omitted (development-time concern, not runtime observation).
 
 ### Run Tools
 
@@ -38,6 +38,7 @@ Each tool maps 1:1 to a service function.
 | `query_events` | `trace.query_events` | Query events for a run |
 | `get_transcript` | `trace.get_transcript` | Get a session transcript |
 | `search_transcript` | `trace.search_transcript` | Search a transcript |
+| `list_tasks` | `trace.list_tasks` | List tasks for a run |
 | `get_task_attempts` | `trace.get_task_attempts` | Get attempts for a task |
 | `get_notepad` | `trace.get_notepad` | Get notepad entries |
 

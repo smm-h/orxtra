@@ -205,7 +205,7 @@ Creates a read-only agent session for research.
 |---|---|---|---|
 | `agent` | string | yes | Agent name |
 | `question` | string | yes | The question or research task |
-| `variables` | dict | no | Variables for prompt substitution |
+| `variable_values` | dict | no | Variable values for prompt substitution |
 
 Returns: `str` -- the agent's text response. The spawned agent has write/edit/delete/move/mkdir/set_executable/exec/git-mutations stripped. HTTP has mutating methods stripped. Task lifecycle tools stripped.
 
@@ -253,7 +253,7 @@ Create a concrete subtask within the current active task. The scheduler validate
 | `task_prompt` | string | yes | Task prompt template |
 | `prechecks` | array | no | Pre-check Execution specs |
 | `postchecks` | array | no | Post-check Execution specs |
-| `variables` | object | no | Variables for prompt substitution |
+| `variable_values` | object | no | Variable values for prompt substitution (key-value pairs) |
 | `timeout` | integer | yes | Max wall-clock seconds |
 | `context_refinement` | boolean | yes | Whether the Overseer refines context |
 | `category` | string | no | Override agent's default category |
@@ -289,6 +289,7 @@ Create a wait-for task within the current active task. Blocks until a named even
 | `name` | string | yes | Task name |
 | `event_name` | string | yes | Event to wait for |
 | `timeout` | integer | yes | Max seconds to wait |
+| `depends_on` | array of strings | no | Sibling task names that must complete first |
 
 Returns: `task_id` or validation error.
 
