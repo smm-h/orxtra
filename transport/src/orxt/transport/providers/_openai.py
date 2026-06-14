@@ -101,3 +101,37 @@ class OpenAIProvider:
             cache_read_tokens=prompt_details.get("cached_tokens", 0),
             cache_write_tokens=0,
         )
+
+    def format_tool_result(
+        self, tool_use_id: str, content: str, is_error: bool,  # noqa: ARG002
+    ) -> dict[str, Any]:
+        return {
+            "role": "tool",
+            "tool_call_id": tool_use_id,
+            "content": content,
+        }
+
+    def format_assistant_message(
+        self, blocks: list[ContentBlock],
+    ) -> dict[str, Any]:
+        message: dict[str, Any] = {"role": "assistant"}
+        text_parts = [b.text for b in blocks if b.type == "text" and b.text is not None]
+        if text_parts:
+            message["content"] = " ".join(text_parts)
+        else:
+            message["content"] = None
+        tool_calls = [
+            {
+                "id": b.tool_use_id,
+                "type": "function",
+                "function": {
+                    "name": b.tool_name,
+                    "arguments": json.dumps(b.tool_input),
+                },
+            }
+            for b in blocks
+            if b.type == "tool_use"
+        ]
+        if tool_calls:
+            message["tool_calls"] = tool_calls
+        return message

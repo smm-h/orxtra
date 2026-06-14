@@ -32,25 +32,6 @@ from orxt.protocols import Tool, ToolError
 _TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503})
 
 
-def _blocks_to_message_content(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
-    for b in blocks:
-        if b.type == "text":
-            result.append({"type": "text", "text": b.text})
-        elif b.type == "tool_use":
-            result.append(
-                {
-                    "type": "tool_use",
-                    "id": b.tool_use_id,
-                    "name": b.tool_name,
-                    "input": b.tool_input,
-                }
-            )
-        elif b.type == "thinking":
-            result.append({"type": "thinking", "thinking": b.text})
-    return result
-
-
 def _validate_tool_args(args: dict[str, Any], schema: dict[str, Any]) -> str | None:
     required = schema.get("required", [])
     for field in required:
@@ -155,8 +136,7 @@ class Transport:
                     yield Text(text=block.text)
 
             if tool_use_blocks:
-                assistant_content = _blocks_to_message_content(blocks)
-                history.append({"role": "assistant", "content": assistant_content})
+                history.append(self._provider.format_assistant_message(blocks))
 
                 tool_results: list[dict[str, Any]] = []
 
@@ -176,12 +156,11 @@ class Transport:
                             error=f"Unknown tool: {tool_name}",
                         )
                         tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tool_use_id,
-                                "content": f"Error: Unknown tool: {tool_name}",
-                                "is_error": True,
-                            }
+                            self._provider.format_tool_result(
+                                tool_use_id=tool_use_id,
+                                content=f"Error: Unknown tool: {tool_name}",
+                                is_error=True,
+                            )
                         )
                         continue
 
@@ -195,12 +174,11 @@ class Transport:
                             error=validation_error,
                         )
                         tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tool_use_id,
-                                "content": f"Error: {validation_error}",
-                                "is_error": True,
-                            }
+                            self._provider.format_tool_result(
+                                tool_use_id=tool_use_id,
+                                content=f"Error: {validation_error}",
+                                is_error=True,
+                            )
                         )
                         continue
 
@@ -216,11 +194,11 @@ class Transport:
                             duration_ms=duration_ms,
                         )
                         tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tool_use_id,
-                                "content": result_text,
-                            }
+                            self._provider.format_tool_result(
+                                tool_use_id=tool_use_id,
+                                content=result_text,
+                                is_error=False,
+                            )
                         )
                     except ToolError as e:
                         duration_ms = (time.monotonic_ns() - start) // 1_000_000
@@ -234,12 +212,11 @@ class Transport:
                             duration_ms=duration_ms,
                         )
                         tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tool_use_id,
-                                "content": f"Error: {error_msg}",
-                                "is_error": True,
-                            }
+                            self._provider.format_tool_result(
+                                tool_use_id=tool_use_id,
+                                content=f"Error: {error_msg}",
+                                is_error=True,
+                            )
                         )
 
                 history.append({"role": "user", "content": tool_results})
@@ -248,8 +225,7 @@ class Transport:
             full_text = " ".join(
                 block.text for block in text_blocks if block.text is not None
             )
-            assistant_content = _blocks_to_message_content(blocks)
-            history.append({"role": "assistant", "content": assistant_content})
+            history.append(self._provider.format_assistant_message(blocks))
 
             yield StepFinish(
                 reason="end_turn",
