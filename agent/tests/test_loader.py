@@ -83,6 +83,46 @@ class TestLoadAgent:
         agent = load_agent(path)
         assert agent.allow == []
 
+    def test_missing_tools_section_raises(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("p")
+        toml_path = tmp_path / "a.toml"
+        toml_path.write_text(
+            '[agent]\nname = "a"\ndescription = "d"\n'
+            'prompt = "prompt.md"\ncategory = "c"\n'
+        )
+        with pytest.raises(ValueError, match="Missing \\[tools\\] section"):
+            load_agent(toml_path)
+
+    def test_missing_allow_key_raises(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("p")
+        toml_path = tmp_path / "a.toml"
+        toml_path.write_text(
+            '[agent]\nname = "a"\ndescription = "d"\n'
+            'prompt = "prompt.md"\ncategory = "c"\n\n'
+            "[tools]\n"
+        )
+        with pytest.raises(ValueError, match="Missing 'allow' key"):
+            load_agent(toml_path)
+
+    def test_unknown_keys_in_tools_raises(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("p")
+        toml_path = tmp_path / "a.toml"
+        toml_path.write_text(
+            '[agent]\nname = "a"\ndescription = "d"\n'
+            'prompt = "prompt.md"\ncategory = "c"\n\n'
+            "[tools]\nallow = []\nunknown = true\n"
+        )
+        with pytest.raises(ValueError, match="Unknown keys in \\[tools\\] section"):
+            load_agent(toml_path)
+
+    def test_self_circular_include_raises(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("{include:prompt.md}")
+        path = _write_agent(
+            tmp_path, "a.toml", "a", "d", "prompt.md", "c", [],
+        )
+        with pytest.raises(ValueError, match="Circular include"):
+            load_agent(path)
+
 
 class TestLoadAgents:
     def test_multiple_agents(self, tmp_path: Path) -> None:
@@ -109,5 +149,15 @@ class TestLoadAgents:
         _write_agent(tmp_path, "a.toml", "alpha", "d", "p.md", "c", [])
         (tmp_path / "readme.md").write_text("not an agent")
         (tmp_path / "notes.txt").write_text("also not an agent")
+        agents = load_agents(tmp_path)
+        assert set(agents.keys()) == {"alpha"}
+
+    def test_ignores_subdirectories(self, tmp_path: Path) -> None:
+        (tmp_path / "p.md").write_text("p")
+        _write_agent(tmp_path, "a.toml", "alpha", "d", "p.md", "c", [])
+        subdir = tmp_path / "sub"
+        subdir.mkdir()
+        (subdir / "p.md").write_text("p")
+        _write_agent(subdir, "b.toml", "beta", "d", "p.md", "c", [])
         agents = load_agents(tmp_path)
         assert set(agents.keys()) == {"alpha"}

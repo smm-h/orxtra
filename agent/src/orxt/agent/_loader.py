@@ -18,7 +18,10 @@ def load_agent(path: Path) -> Agent:
         data = tomllib.load(f)
 
     agent_section: dict[str, Any] = dict(data.get("agent", {}))
-    tools_section: dict[str, Any] = data.get("tools", {})
+    if "tools" not in data:
+        msg = f"Missing [tools] section in {path}"
+        raise ValueError(msg)
+    tools_section: dict[str, Any] = data["tools"]
 
     prompt_rel = agent_section.pop("prompt", "")
     prompt_path = (path.parent / prompt_rel).resolve()
@@ -29,7 +32,15 @@ def load_agent(path: Path) -> Agent:
     prompt_text = resolve_includes(prompt_text, prompt_path.parent)
 
     agent_section["prompt"] = prompt_text
-    agent_section["allow"] = tools_section.get("allow", [])
+    if "allow" not in tools_section:
+        msg = f"Missing 'allow' key in [tools] section in {path}"
+        raise ValueError(msg)
+    unknown_keys = set(tools_section.keys()) - {"allow"}
+    if unknown_keys:
+        names = ", ".join(sorted(unknown_keys))
+        msg = f"Unknown keys in [tools] section: {names}"
+        raise ValueError(msg)
+    agent_section["allow"] = tools_section["allow"]
 
     return Agent(**agent_section)
 
