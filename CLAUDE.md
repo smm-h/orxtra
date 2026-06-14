@@ -59,7 +59,7 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 
 - **Transport** is a standalone typed LLM client. Provider protocol, raw httpx, streaming events, tool-call loop, auto-retry. See `transport/DESIGN.md`.
 - **Agent** is a standalone TOML+md agent definition loader. Strict validation, prompt composition, category resolution. See `agent/DESIGN.md`.
-- **Tool** is a standalone tool registry. Granular constructors (read, write, edit, git, exec, http, etc.), path enforcement, write safety, no-truncation previews. No bash tool. See `tool/DESIGN.md`.
+- **Tool** is a standalone tool registry. Granular constructors (read, write, edit, git, exec, http, etc.), path enforcement, write safety, no-truncation previews. No bash tool. Git mutations wrap safegit; file deletion wraps saferm. See `tool/DESIGN.md`.
 - **Verify** is a standalone verification runner. Ordered callable chains, structured verdicts, severity-gated blocking. See `verify/DESIGN.md`.
 - **Trace** is a standalone PG event store. Schema owner for all persistent state. State machines, LISTEN/NOTIFY, append-only tables, crash recovery. See `trace/DESIGN.md`.
 - **Notepad** is PG-backed append-only cross-agent IPC. See `notepad/DESIGN.md`.
@@ -79,6 +79,8 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **httpx** for all LLM API communication (no official SDKs).
 - **asyncpg** for PostgreSQL.
 - **cognee** (experimental) for semantic enrichment of the lessons table.
+- **safegit** wraps git for concurrency-safe commits. The git tool's mutation subcommands use safegit, not raw git.
+- **saferm** wraps rm with mandatory descriptions, audit trail, and recovery. The delete tool uses saferm, not raw rm.
 - **rlsbl** monorepo for release orchestration and changelog enforcement.
 - **strictcli** for the CLI.
 - **pgdesign** for database schema definition (`schema/oxtra.toml`).
@@ -92,6 +94,7 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - The trace module is the single owner of the PostgreSQL schema.
 - Budgets denominated in USD with oxtra-maintained internal pricing table.
 - No bash tool. Granular purpose-built tools with typed parameters.
+- Git mutations wrap safegit; file deletion wraps saferm. Agents cannot bypass these -- there is no raw git or rm.
 - Write safety: atomic replace, per-path write queue, transient-only replay, stale-write detection.
 - No truncation. Tool output always persisted in full; large results return a preview with opt-in full retrieval.
 - No downward dependencies between layers. Overseer and scheduler share protocols, not imports.

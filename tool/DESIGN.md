@@ -76,6 +76,17 @@ oxtra provides tool constructors -- functions that return `Tool` objects. The co
 
 No bash tool. A consumer who truly needs raw shell writes their own `Tool` in ten lines -- oxtra refuses to bless one.
 
+### Enforced Discipline via Tool Design
+
+Agents are prone to shortcuts. The tool constructors enforce disciplined workflows by construction, not by instruction:
+
+- **Git mutations wrap safegit.** `commit` uses `safegit commit` which is concurrency-safe and requires explicit file lists. No `git add .`, no `git stash`, no destructive resets -- these operations don't exist in the tool's parameter schema.
+- **File deletion wraps saferm.** Every deletion requires a mandatory `description` explaining why. Deletions have an audit trail and are recoverable. No raw `rm`.
+- **No push.** Absent from the git tool entirely. Pushes happen through rlsbl release flows, not through agent tools.
+- **No bash escape hatch.** Since there's no shell tool, agents cannot bypass safegit/saferm by running raw commands. The disciplined tools are the only path.
+
+This embodies the "agent experience over agent convenience" principle: make the agent's life harder when it produces more correct outcomes. The tool constructors are the mechanical enforcement of conventions that would otherwise be ignored.
+
 ### File Read Tools
 
 #### `make_read_tool(read_root, preview_threshold, preview_lines, previewer=None) -> Tool`
@@ -216,11 +227,12 @@ Asymmetric: source uses read boundary, destination uses write scope. Preserves f
 
 #### `make_delete_tool(read_root, write_scope=None) -> Tool`
 
-Delete a file or directory.
+Delete a file or directory. **Wraps saferm, not rm.** Every deletion has an audit trail and is recoverable via `saferm undelete`. Agents cannot bypass this -- there is no raw `rm` tool.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `path` | string | yes | Path to delete |
+| `description` | string | yes | Why this deletion is needed. Mandatory -- saferm requires it for the audit trail. |
 | `recursive` | boolean | yes | Required for directories. Hard error if deleting a directory without `recursive=true`. |
 
 #### `make_set_executable_tool(read_root, write_scope=None) -> Tool`
@@ -237,7 +249,7 @@ Sets user/group/other executable bits (chmod +x).
 
 #### `make_git_tool(read_root, allowed_subcommands) -> Tool`
 
-Git operations with subcommand-level granularity.
+Git operations with subcommand-level granularity. **Mutation subcommands wrap safegit, not raw git.** `commit` uses `safegit commit -m "message" -- file1 file2` which is concurrency-safe and handles both tracked and untracked files. Agents cannot use raw git -- there is no bash tool and no raw git tool.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
@@ -246,13 +258,19 @@ Git operations with subcommand-level granularity.
 
 `allowed_subcommands` is a required constructor parameter -- no default. The consumer picks from the menu:
 
-**Read-only tier**: `status`, `diff`, `log`, `show`, `blame`, `branches`, `changed_files`
+**Read-only tier** (raw git): `status`, `diff`, `log`, `show`, `blame`, `branches`, `changed_files`
 
-**Mutation tier**: `stage`, `commit`
+**Mutation tier** (safegit): `commit`
 
-Subcommands not in the allowed list are hard errors. `push`, `pull`, `reset`, `checkout` are deliberately absent from the framework tool -- a consumer wanting them writes their own Tool.
+The `commit` subcommand:
+- Takes `message` (required) and `files` (required, explicit list -- no `git add .` or `git add -A`)
+- Wraps `safegit commit -m "message" -- file1 file2`
+- Concurrency-safe: multiple agents can commit simultaneously without corruption
+- Hard error if `files` is empty or if `message` is empty
 
-Working directory is the read_root (or write_scope root for mutation subcommands).
+`stage` is removed -- safegit handles staging internally within the commit operation. `push`, `pull`, `reset`, `checkout`, `stash`, `restore` are deliberately absent. Pushes happen through rlsbl, not through agent tools.
+
+Working directory is the read_root.
 
 ### Execution Tool
 

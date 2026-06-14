@@ -162,7 +162,7 @@ The **web dashboard** (with its conversational AI agent) lives as a **sibling pr
 
 ## Design Axioms
 
-Thirteen hard rules. Each is mechanically enforced, not prompt-requested.
+Fourteen hard rules. Each is mechanically enforced, not prompt-requested.
 
 1. **Agents are data, not code.** TOML metadata + .md prompts. No factory functions, no classes, no lifecycle methods. An agent definition is a static document that the framework loads and interprets.
 
@@ -189,6 +189,8 @@ Thirteen hard rules. Each is mechanically enforced, not prompt-requested.
 12. **Structured decisions, not free-form.** The Overseer makes decisions via typed protocols with closed output schemas. It picks from menus, never free-forms. If a situation doesn't match any registered protocol, it escalates to the human.
 
 13. **Modules compose via layer boundaries.** Foundation modules have zero intra-workspace dependencies and expose stable interfaces. Higher-layer modules may depend on lower-layer concrete types (scheduler depends on trace's TraceWriter, session depends on transport's Transport). The critical constraint is architectural: no downward dependencies (higher layers never imported by lower layers), and the Overseer and scheduler never import each other -- they share protocols at that seam. Every foundation module is independently testable and usable.
+
+14. **Disciplined tools enforce conventions by construction.** Git mutations wrap safegit (concurrency-safe, explicit file lists, no `git add .`). File deletion wraps saferm (mandatory description, audit trail, recoverable). Push is absent -- it happens through rlsbl. Since there's no bash tool, agents cannot bypass these disciplined tools. The tool constructors mechanically enforce what prompts and documentation cannot.
 
 ## Anti-Patterns
 
