@@ -1,200 +1,151 @@
-# Verification Module Design
+# Verify Module Design
 
-How agent work is checked.
+The check runner. Runs pre-checks and post-checks for tasks, where each check is an Execution: a script, an agent, or a workflow.
 
 ## Core Axiom
 
-Verification is mechanical, not requested. The scheduler runs verification after every step completion, regardless of what the agent reports. The agent cannot skip verification, opt out, or influence what gets checked.
+Verification is mechanical, not requested. The scheduler runs checks automatically at task boundaries (`start_task` and `end_task`). The agent cannot skip checks, opt out, or influence what gets checked. When post-checks fail, the agent is told why and can fix its work. When the agent cannot fix it, failure escalates to the parent task's agent.
 
-## Two Tiers
+## Execution Types
 
-**Tier 1: Mechanical Verification (ordered chain of Python callables)**
+Each check is an Execution (defined in `orxt.protocols._execution`):
 
-- An ordered list of Python functions, each taking a context and returning a `VerifyResult`
-- Run in declared order, cheapest first, short-circuiting on first failure
-- Fast, deterministic, testable
-- Examples: file exists, file is valid Python, linter passes, test suite passes, product count > 0
+| Type | What it is | How it runs | Typical use |
+|---|---|---|---|
+| Script | Python callable path (`module:function`) | Import, call with `CheckContext`, return `CheckResult` | Mechanical: lint passes, file exists, tests pass |
+| Agent | Agent definition name + task prompt | Spawn read-only agent via `consult`, structured verdict | Intelligent: code review, architecture consistency |
+| Workflow | Task tree (concrete or goal-oriented) | Create subtasks, run to completion, aggregate results | Complex: full integration test workflow, audit |
 
-**Tier 2: Semantic Verification (verification agent)**
+## Check Result
 
-- A read-only agent spawned via `consult` (cannot write, edit, or spawn)
-- Runs only if all mechanical verification callables pass
-- Returns a structured verdict against a framework-defined schema
-- Slow, non-deterministic, costs tokens
-- Examples: code quality review, architecture consistency check, correctness review
-
-## Verify Result
+Every Execution produces a `CheckResult`:
 
 ```python
 @dataclass(frozen=True)
-class VerifyResult:
+class CheckResult:
     passed: bool
-    message: str           # human-readable explanation
-    details: dict | None   # structured data (optional) -- e.g., test results, file list
-    fix: Callable | None   # optional auto-fix callable -- see "Fixable Failures" below
+    message: str
+    details: dict | None = None
+    fix: Callable | None = None  # auto-fix callable (script checks only)
 ```
 
-## Verification Chain
-
-The `verify` field on a workflow step is an ordered list of Python callable paths:
-
-```toml
-verify = [
-    "myproject.verify:format_check",
-    "myproject.verify:lint_check",
-    "myproject.verify:type_check",
-    "myproject.verify:test_suite"
-]
-```
-
-The scheduler runs them in order. On the first failure:
-- If the failed result has a `fix` callable, run it, then re-verify that single callable (once -- no recursion)
-- If re-verification passes, continue the chain
-- If re-verification fails or no fix callable exists, the step fails (triggering retry if available)
-
-Convention: cheapest first (format -> lint -> typecheck -> tests). The framework documents this convention but does not enforce ordering.
-
-## Callable Specification
-
-Verification callables are referenced as dotted Python paths with a colon separator:
-
-```
-verify = ["myproject.verify:step_complete"]
-```
-
-This means: `from myproject.verify import step_complete`. The function signature is:
+## Check Runner
 
 ```python
-async def step_complete(ctx: VerifyContext) -> VerifyResult:
+async def run_checks(
+    checks: list[Execution],
+    ctx: CheckContext,
+    phase: str,  # "pre" or "post"
+) -> list[CheckResult]:
+```
+
+### Pre-Check Behavior
+
+Pre-checks run in order. On the first failure:
+- If the failed result has a `fix` callable, run it, re-verify that single check (once -- no recursion)
+- If re-verification passes, continue the chain
+- If re-verification fails or no fix callable exists, the pre-check phase fails
+- `start_task` returns the failure details to the agent
+
+### Post-Check Behavior
+
+Post-checks run in order. On the first failure:
+- If the failed result has a `fix` callable, run it, re-verify (once)
+- If re-verification passes, continue the chain
+- If re-verification fails, the post-check phase fails
+- `end_task` returns the failure details to the agent
+- The agent can fix its work and call `end_task` again
+- If the agent cannot satisfy post-checks, failure escalates to the parent
+
+### Fix-Then-Re-Verify
+
+Some checks are mechanically fixable: linter formatting, import sorting, whitespace normalization. The `fix` field supports this:
+
+1. The check runner calls `fix(ctx)` where `ctx` is the `CheckContext`
+2. Re-runs that single check
+3. If it passes, continue the chain
+4. If it fails, the check fails normally
+5. Fix-then-re-verify runs at most once per check
+
+The fix callable is separate from the check itself. Only script-type checks support auto-fix.
+
+## Script Checks
+
+Script-type Executions are Python callables:
+
+```python
+async def my_check(ctx: CheckContext) -> CheckResult:
     ...
 ```
 
-Where `VerifyContext` contains:
+Referenced as dotted paths with a colon separator: `"myproject.verify:lint_check"`.
 
-| Field | Type | Description |
-|---|---|---|
-| `variables` | `dict` | The step's runtime variables |
-| `agent_output` | `str` | The text output from the agent |
-| `run_id` | `uuid.UUID` | Current run ID |
-| `session_id` | `str` | The agent's session ID |
-| `step_name` | `str` | The workflow step name |
-| `attempt` | `int` | Attempt number (1-indexed) |
+`CheckContext` provides: `variables`, `agent_output` (None for pre-checks), `run_id`, `session_id`, `task_name`, `task_id`, `attempt`, `parent_task_id`. Defined in `orxt.protocols._checks`.
 
-## Verification Agent
+## Agent Checks
 
-The verification agent is a full agent definition (TOML + .md prompt file), not a framework-constructed template. The consuming project defines it like any other agent. The executor invokes it via `consult`, injecting a verification context struct as template variables.
-
-### Structured Verdict Schema
-
-Verification agents must return structured output against a framework-defined verdict schema. This is enforced like any `output_schema` -- the transport validates the output, retrying on mismatch.
+Agent-type Executions spawn a read-only agent via `consult`. The agent returns a structured `CheckVerdict`:
 
 ```python
 @dataclass(frozen=True)
-class VerifyVerdict:
+class CheckVerdict:
     verdict: str               # "pass" or "fail"
-    issues: list[VerdictIssue]
+    issues: list[CheckIssue]
     criteria_review: list[CriterionReview]
     summary: str
-
-@dataclass(frozen=True)
-class VerdictIssue:
-    severity: str              # "critical", "major", "minor", "nit"
-    file: str | None
-    line_range: tuple[int, int] | None
-    description: str
-    blocking: bool             # derived from severity vs verify_block_threshold
-
-@dataclass(frozen=True)
-class CriterionReview:
-    criterion: str
-    met: bool
-    evidence: str
 ```
 
 ### Severity and Blocking
 
-Four severity levels: `critical | major | minor | nit`.
+Four severity levels: `critical > major > minor > nit`.
 
-The `verify_block_threshold` field is **required** whenever `verify_agent` is set on a step. It is one of the four severity levels. Findings at the threshold severity or worse fail the step; findings below it are recorded in the verdict but do not block.
+The `block_threshold` on the `AgentExecution` determines which findings block. Findings at the threshold severity or worse set `blocking = true`. The verdict is `"pass"` only if zero issues have `blocking = true`.
 
-The `blocking` field on each `VerdictIssue` is derived mechanically: `issue.severity >= step.verify_block_threshold`.
+### Correctness Bias
 
-The verdict's `verdict` field is `"pass"` only if zero issues have `blocking = true`.
+Agent-type postchecks should be biased toward flagging shortcuts and suggesting the more correct approach. When a check agent finds that the work technically passes but a more correct approach exists, it should flag this as a `minor` or `major` issue (depending on impact), not silently accept. The check agent's prompt should encode: "if a more correct solution exists regardless of effort, flag it."
 
 ### Context Injection
 
-When `verify_agent` is set on a workflow step:
+The check runner builds a `CheckAgentContext` and passes its fields as template variables to the agent:
+- `task`: the original task prompt
+- `agent_output`: the agent's text output (post-checks only)
+- `mechanical_results`: formatted results from script checks that ran before this
+- `task_name`, `attempt`, `notepad`: runtime context
 
-1. The executor loads the named agent definition.
-2. The executor builds a `VerifyAgentContext` and passes its fields as template variables:
+Task variables are injected with a `var_` prefix.
 
-```python
-@dataclass(frozen=True)
-class VerifyAgentContext:
-    task: str              # the original task prompt given to the agent
-    agent_output: str      # the agent's text output
-    mechanical_results: str # formatted results from the mechanical verify chain (or empty if none)
-    step_name: str
-    attempt: int
-    notepad: str           # formatted notepad content
-```
+## Workflow Checks
 
-Step variables are also injected, namespaced with a `var_` prefix to prevent collisions. A step variable named `target` becomes `{var_target}`.
+Workflow-type Executions create a nested task tree and run it to completion. The workflow's result determines the check result:
+- If the workflow completes: check passes
+- If the workflow fails: check fails with the workflow's failure details
 
-3. The executor spawns the agent via `consult` (read-only mode).
-4. The agent's prompt uses `{task}`, `{agent_output}`, `{mechanical_results}`, `{var_target}`, etc. as placeholders. Variable strictness applies.
-5. The structured verdict is validated and the blocking rule applied.
-6. If the verdict fails (blocking issues exist), it counts as a step failure.
+Workflow checks are expensive (they spawn full agent sessions) and should be used sparingly -- for complex verification that requires multiple coordinated steps.
 
-## Retry Failure Context
+## Escalation Payload
 
-When a failed step retries with `retry_inject_failure = true`, the retrying agent receives the full structured failure picture:
+When an agent cannot satisfy post-checks, the check runner assembles an `EscalationPayload` (defined in `orxt.protocols._task`):
+- Task name and ID
+- Agent name
+- Number of attempts
+- All failed check results with details
+- The agent's summary from its last `end_task` attempt
+- The task context
 
-- The `VerifyResult` from the mechanical chain (if that's where failure occurred)
-- The `VerifyVerdict` from the semantic verification (if it ran)
-- The agent's own previous output
-- The attempt number
-
-This is injected as structured data into the retry prompt context, not flattened into a message string.
-
-## Fixable Failures
-
-Some mechanical verification failures are mechanically fixable: linter formatting, import sorting, whitespace normalization. The `fix` field on `VerifyResult` supports this pattern.
-
-When a mechanical verification callable returns a failed result with a non-None `fix` callable:
-
-1. The scheduler calls `fix(ctx)` where `ctx` is the same `VerifyContext`
-2. The scheduler re-runs that single verification callable
-3. If re-verification passes, the chain continues to the next callable
-4. If it fails, the step fails normally (triggering retry if available)
-5. The fix-then-re-verify cycle runs at most once per callable. No recursion.
-
-The fix callable is a separate action from the check. The verification function itself stays a check. The scheduler orchestrates the fix-then-re-verify cycle.
-
-## Key Design Decisions
-
-**Callables are synchronous checks, not hooks.** They run at a specific point in the workflow (after agent completion), not as middleware.
-
-**No built-in verification functions.** orxt provides the framework for running verification, but defines zero verification functions.
-
-**Verification agents are read-only.** Spawned via `consult`, which mechanically removes write/edit/delete/move/mkdir/set_executable/spawn/git-mutations/exec tools.
-
-**Verification failure = step failure.** No "warning" or "soft fail." If verification fails, the step failed.
-
-**Verification purity is not enforced.** The framework provides the `fix` callable mechanism for clean separation. However, consumers may write verification functions that fix issues and return passed. Both patterns are valid.
-
-**Verification verdicts are structured, not free-text.** The framework defines the verdict schema. Verification agents cannot free-form their assessment -- they return typed findings.
+This payload is delivered to the parent task's agent.
 
 ## Files
 
 | File | Contents |
 |---|---|
-| `_types.py` | `VerifyResult` (with optional `fix` callable), `VerifyContext` (for mechanical callables), `VerifyAgentContext` (for verification agents), `VerifyVerdict`, `VerdictIssue`, `CriterionReview`. All frozen dataclasses / pydantic models. |
-| `_runner.py` | `run_verify_chain(callable_paths, ctx)` -- imports and calls each verification function in order, handles fix-then-re-verify, short-circuits on first non-fixable failure. `run_agent_verify(agent_name, verify_ctx, executor, block_threshold)` -- builds `VerifyAgentContext`, invokes the verification agent via `consult`, validates the structured verdict, applies blocking rule. |
+| `_types.py` | Re-exports from `orxt.protocols`: `CheckResult`, `CheckVerdict`, `CheckIssue`, `CriterionReview`, `CheckContext`, `CheckAgentContext`. |
+| `_runner.py` | `run_checks(checks, ctx, phase)` -- the unified check runner. Handles script, agent, and workflow Executions. Fix-then-re-verify for scripts. Short-circuits on first non-fixable failure. |
+| `_execution.py` | Execution dispatch: given an Execution spec, determine type and run it. Import and call for scripts. Spawn consult for agents. Create subtasks for workflows. |
 
 ## What This Module Does NOT Do
 
-- Does not define what to verify (that's the consuming project)
-- Does not implement retry logic (that's `scheduler/`)
-- Does not track verification history across runs
-- Does not decide retry strategy on failure
+- Does not define what to check (that is the consuming project)
+- Does not track check history across runs
+- Does not decide retry strategy on failure (that is the parent task's agent)
+- Does not implement the task lifecycle (that is the scheduler)

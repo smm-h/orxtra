@@ -15,23 +15,28 @@ class Tool:
     execute: Callable[[dict], Awaitable[str]]  # async function: args dict -> result string
 ```
 
-That's the entire contract. No `ToolDefinition` vs `ToolImpl`. No `register()` ceremony. No lifecycle hooks. No side-channel state.
-
 ## Tool Registry
 
 - A `ToolRegistry` is a `dict[str, Tool]` -- literally a dictionary
 - No singleton, no global state, no auto-discovery
 - The caller constructs the registry and passes it to the scheduler
-- Adding a tool: `registry["my_tool"] = Tool(name="my_tool", ...)`
-- Removing a tool: `del registry["my_tool"]`
 
 ## Tool Filtering (Permission Enforcement)
 
-- When spawning an agent, the executor filters the registry to only include tools in the agent's `allow` list
-- `spawn` is mechanically stripped from all spawned agents regardless of `allow`
-- The filtered registry is what gets sent to the LLM as available tools
-- The agent never sees tools that aren't in its filtered set
-- This is the mechanical enforcement of permissions -- no prompt instructions needed
+When spawning an agent, the executor filters the registry to only include tools in the agent's `allow` list. The agent never sees tools that are not in its filtered set.
+
+In `consult` mode (read-only agents), the following tools are mechanically stripped regardless of the `allow` list:
+- File mutation: `write`, `edit`, `delete`, `move`, `copy` (destination), `mkdir`, `set_executable`
+- Execution: `exec`
+- Git mutations: `git` (mutation subcommands)
+- HTTP mutations: `http` (POST, PUT, DELETE, PATCH methods stripped; GET and HEAD retained)
+- Task lifecycle: `start_task`, `end_task`, `create_task`, `create_workflow`
+
+## Active Task Enforcement
+
+All tool calls require an active task. The executor checks with the scheduler that the calling agent has an active task. A tool call without an active task is a hard error.
+
+Exception: `start_task` can be called without an active task -- it is how the agent enters one.
 
 ## Path Enforcement
 
@@ -42,50 +47,33 @@ Every scoped tool (file tools, git, exec) enforces path containment via a single
 3. Validate: `canonical == root` or `canonical` starts with `root + os.sep`
 4. Escapes are hard errors at the tool layer (`ToolError`)
 
-Two boundaries, configured at construction:
+Two boundaries:
+- **Read boundary** (`read_root`): the project root. Read tools cannot see files outside.
+- **Write scope** (`write_scope`): per-task file paths. Write tools cannot mutate files outside. When `None`, writes are unrestricted within the read boundary.
 
-- **Read boundary** (`read_root`): the project root. Read tools (read, list_dir, grep, glob, stat, diff) cannot see files outside this root.
-- **Write scope** (`write_scope`): per-step file paths. Write tools (write, edit, delete, move, copy destination, mkdir, set_executable) cannot mutate files outside this scope. When `None`, writes are unrestricted within the read boundary.
-
-The scheduler re-constructs write/edit tools per step when `write_paths` is declared in the workflow TOML. Steps without `write_paths` get unrestricted tools (scope=None). Out-of-scope writes trigger the Overseer's `scope_decision` protocol.
+The scheduler re-constructs write/edit tools per task when `write_paths` is declared.
 
 ## No-Truncation Design
 
 orxt never discards tool output. Every tool result is persisted in full to the database.
 
 For tools that can produce large output (read, exec, http, grep):
-
 - Constructor takes `preview_threshold` (required): results under this size are returned in full
 - Constructor takes `preview_lines` (required): how many head/tail lines the preview shows
-- Large results return a preview: line/byte count, first N lines, last N lines, and the note that `full=true` is available
-- `full=true` only works if the session already received the preview for that path -- the executor enforces this
-- `make_read_tool` accepts an optional `previewer` callable replacing the default head/tail preview with domain-specific output
+- Large results return a preview with the note that `full=true` is available
+- `full=true` only works if the session already received the preview for that path
+- `make_read_tool` accepts an optional `previewer` callable for domain-specific output
 
 ## Write Safety
 
 The executor enforces four write-safety mechanisms on all file-mutating tools:
 
-1. **Atomic replace**: temp file + fsync + rename in the same directory; a crash never leaves a torn file
-2. **Per-path write queue**: concurrent writes to the same path are serialized; edit's read-modify-replace is race-free
-3. **Transient-only executor replay**: if a write fails for transient OS reasons (EIO, EBUSY), the executor retries from the recorded tool arguments -- the agent is never asked to re-emit content. Deterministic errors (scope violation, hunk mismatch, stale-write) always surface to the agent.
-4. **Stale-write detection**: the executor tracks the content hash of each file at each agent's last read. Write/edit on an existing file hard-errors if (a) the agent has never read its current version, or (b) the file changed since the agent's last read. New file creation needs no prior read.
+1. **Atomic replace**: temp file + fsync + rename
+2. **Per-path write queue**: concurrent writes serialized
+3. **Transient-only executor replay**: transient OS errors retried from recorded args
+4. **Stale-write detection**: content hash tracking per agent session
 
 ## Built-in Tool Constructors
-
-orxt provides tool constructors -- functions that return `Tool` objects. The consumer calls them and adds results to the registry. There is no distinction between 'framework tools' and 'domain tools' -- all tools are the same type.
-
-No bash tool. A consumer who truly needs raw shell writes their own `Tool` in ten lines -- orxt refuses to bless one.
-
-### Enforced Discipline via Tool Design
-
-Agents are prone to shortcuts. The tool constructors enforce disciplined workflows by construction, not by instruction:
-
-- **Git mutations wrap safegit.** `commit` uses `safegit commit` which is concurrency-safe and requires explicit file lists. No `git add .`, no `git stash`, no destructive resets -- these operations don't exist in the tool's parameter schema.
-- **File deletion wraps saferm.** Every deletion requires a mandatory `description` explaining why. Deletions have an audit trail and are recoverable. No raw `rm`.
-- **No push.** Absent from the git tool entirely. Pushes happen through rlsbl release flows, not through agent tools.
-- **No bash escape hatch.** Since there's no shell tool, agents cannot bypass safegit/saferm by running raw commands. The disciplined tools are the only path.
-
-This embodies the "agent experience over agent convenience" principle: make the agent's life harder when it produces more correct outcomes. The tool constructors are the mechanical enforcement of conventions that would otherwise be ignored.
 
 ### File Read Tools
 
@@ -98,9 +86,7 @@ Read file contents with line numbers.
 | `path` | string | yes | File path relative to read_root |
 | `offset` | integer | no | 1-based start line |
 | `limit` | integer | no | Number of lines to read |
-| `full` | boolean | no | Request full content after receiving a preview. Only honored if a preview for this path was already returned in the current session. |
-
-Returns file content with line numbers (cat -n format). Binary files are detected and rejected.
+| `full` | boolean | no | Request full content after preview |
 
 #### `make_list_dir_tool(read_root) -> Tool`
 
@@ -108,201 +94,96 @@ List directory contents with type and size information.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `path` | string | yes | Directory path relative to read_root |
+| `path` | string | yes | Directory path |
 | `recursive` | boolean | no | Recurse into subdirectories (default false) |
-| `pattern` | string | no | fnmatch filter pattern |
-| `max_results` | integer | no | Cap on returned entries (default 500) |
-
-Returns tab-separated entries: `{file|dir|link}\t{size}\t{path}`. Respects .gitignore patterns.
+| `pattern` | string | no | fnmatch filter |
+| `max_results` | integer | no | Cap on entries (default 500) |
 
 #### `make_glob_tool(read_root) -> Tool`
 
-Find files by glob pattern.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `pattern` | string | yes | Glob pattern |
-| `path` | string | no | Base directory (default: read_root) |
-| `max_results` | integer | no | Cap on returned entries (default 200) |
-
-Returns relative paths sorted by path (not mtime -- deterministic across runs). Respects .gitignore.
+Find files by glob pattern. Results sorted by path (deterministic).
 
 #### `make_grep_tool(read_root, preview_threshold, preview_lines) -> Tool`
 
-Search file contents.
+Search file contents by regex.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `pattern` | string | yes | Regex pattern |
 | `path` | string | no | Search directory (default: read_root) |
 | `case_sensitive` | boolean | no | Default true |
-| `context_lines` | integer | no | Lines of context around matches (default 0) |
-| `max_results` | integer | no | Cap on returned matches (default 100) |
+| `context_lines` | integer | no | Context around matches (default 0) |
+| `max_results` | integer | no | Cap on matches (default 100) |
 | `include` | string | no | fnmatch filter for filenames |
 | `mode` | enum | no | `content` (default), `files_only`, `count` |
 
-Returns matching lines with file path and line number. Subject to the no-truncation preview mechanism for large result sets.
-
 #### `make_stat_tool(read_root) -> Tool`
 
-File metadata.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `path` | string | yes | File path (supports glob patterns) |
-
-Returns JSON: `{path, byte_size, line_count, language, mtime, binary, exists}`. Glob patterns return an array.
+File metadata. Returns JSON: `{path, byte_size, line_count, language, mtime, binary, exists}`.
 
 #### `make_diff_tool(read_root) -> Tool`
 
 Unified diff between two files.
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `path_a` | string | yes | First file path |
-| `path_b` | string | yes | Second file path |
-
-Returns unified diff format.
-
 ### File Write Tools
 
-All write tools enforce write scope, atomic replace, per-path serialization, stale-write detection, and transient replay.
+All enforce write scope, atomic replace, per-path serialization, stale-write detection, and transient replay.
 
 #### `make_write_tool(read_root, write_scope=None) -> Tool`
 
-Create or overwrite a file.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `path` | string | yes | File path relative to read_root |
-| `content` | string | yes | File content |
-| `create_dirs` | boolean | no | Create parent directories (default false) |
-
-Stale-write detection: hard error if the file exists and the agent has not read its current version.
+Create or overwrite a file. Stale-write detection: hard error if the file exists and the agent has not read its current version.
 
 #### `make_edit_tool(read_root, write_scope=None) -> Tool`
 
-Find-and-replace in a file.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `path` | string | yes | File path |
-| `old_string` | string | yes | Text to find |
-| `new_string` | string | yes | Replacement text |
-| `replace_all` | boolean | no | Replace all occurrences (default false) |
-
-Requires exactly one match unless `replace_all=true`. Zero matches or multiple matches (without `replace_all`) are hard errors. Subject to stale-write detection.
+Find-and-replace. Requires exactly one match unless `replace_all=true`.
 
 #### `make_mkdir_tool(read_root, write_scope=None) -> Tool`
 
-Create a directory.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `path` | string | yes | Directory path |
-
-Creates parents (`mkdir -p` behavior). No error if exists.
+Create a directory. Creates parents. No error if exists.
 
 #### `make_move_tool(read_root, write_scope=None) -> Tool`
 
-Move/rename a file or directory.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `source` | string | yes | Source path |
-| `destination` | string | yes | Destination path |
-
-Both source and destination must be within write scope.
+Move/rename. Both source and destination must be within write scope.
 
 #### `make_copy_tool(read_root, write_scope=None) -> Tool`
 
-Copy a file.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `source` | string | yes | Source path (read boundary -- can copy from anywhere in the project) |
-| `destination` | string | yes | Destination path (write scope) |
-
-Asymmetric: source uses read boundary, destination uses write scope. Preserves file metadata.
+Copy a file. Source uses read boundary, destination uses write scope.
 
 #### `make_delete_tool(read_root, write_scope=None) -> Tool`
 
-Delete a file or directory. **Wraps saferm, not rm.** Every deletion has an audit trail and is recoverable via `saferm undelete`. Agents cannot bypass this -- there is no raw `rm` tool.
+Delete a file or directory. **Wraps saferm.** Every deletion has a mandatory `description` for the audit trail.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `path` | string | yes | Path to delete |
-| `description` | string | yes | Why this deletion is needed. Mandatory -- saferm requires it for the audit trail. |
-| `recursive` | boolean | yes | Required for directories. Hard error if deleting a directory without `recursive=true`. |
-
-The constructor configures saferm at build time:
-- `SAFERM_HOME` set to an orxt-managed directory (per-run or per-project isolation)
-- Each invocation passes `--meta run_id=<id> --meta step_name=<name> --meta agent_name=<name>` for traceability
-- saferm automatically captures git context (branch, HEAD) and parent process info
+| `description` | string | yes | Why this deletion is needed |
+| `recursive` | boolean | yes | Required for directories |
 
 #### `make_set_executable_tool(read_root, write_scope=None) -> Tool`
 
-Set the executable bit on a file.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `path` | string | yes | File path |
-
-Sets user/group/other executable bits (chmod +x).
+Set executable bit (chmod +x).
 
 ### Git Tool
 
 #### `make_git_tool(read_root, allowed_subcommands) -> Tool`
 
-Git operations with subcommand-level granularity. **Mutation subcommands wrap safegit, not raw git.** `commit` uses `safegit commit -m "message" -- file1 file2` which is concurrency-safe and handles both tracked and untracked files. Agents cannot use raw git -- there is no bash tool and no raw git tool.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `subcommand` | string | yes | Git subcommand (must be in the allowed list) |
-| `args` | array of strings | no | Arguments to the subcommand |
-
-`allowed_subcommands` is a required constructor parameter -- no default. The consumer picks from the menu:
+Git operations with subcommand-level granularity. **Mutation subcommands wrap safegit.**
 
 **Read-only tier** (raw git): `status`, `diff`, `log`, `show`, `blame`, `branches`, `changed_files`
 
 **Mutation tier** (safegit): `commit`
 
-The `commit` subcommand:
-- Takes `message` (required) and `files` (required, explicit list -- no `git add .` or `git add -A`)
-- Wraps `safegit commit -m "message" --trailer "Run-ID: <run_id>" --trailer "Step-Name: <step_name>" --trailer "Agent-Name: <agent_name>" -- file1 file2`
-- The constructor injects `--trailer` flags from the current run/step/agent context automatically; the agent only provides `message` and `files`
-- Concurrency-safe: multiple agents can commit simultaneously without corruption
-- Hard error if `files` is empty or if `message` is empty
-- `CLAUDE_CODE_SESSION_ID` is not set -- no CC-specific trailers are added
+The `commit` subcommand takes `message` (required) and `files` (required, explicit list). Wraps `safegit commit` with run/task/agent context trailers.
 
-`stage` is removed -- safegit handles staging internally within the commit operation. `push`, `pull`, `reset`, `checkout`, `stash`, `restore` are deliberately absent. Pushes happen through rlsbl, not through agent tools.
-
-Working directory is the read_root.
+`push`, `pull`, `reset`, `checkout`, `stash`, `restore` are absent. Pushes happen through rlsbl.
 
 ### Execution Tool
 
 #### `make_exec_tool(executable, description, arg_schema, read_root, timeout_ceiling) -> Tool`
 
-Bind one fixed executable with typed arguments.
+Bind one fixed executable with typed arguments. The agent cannot control which binary runs.
 
-| Constructor param | Type | Required | Description |
-|---|---|---|---|
-| `executable` | string | yes | The fixed executable name (e.g., "pytest", "uv", "npm"). The agent cannot control which binary runs. |
-| `description` | string | yes | Tool description for the LLM |
-| `arg_schema` | dict | yes | JSON Schema for the arguments the agent can pass |
-| `read_root` | Path | yes | Working directory |
-| `timeout_ceiling` | integer | yes | Maximum allowed timeout in seconds |
-
-The tool's runtime parameters:
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `args` | array of strings | no | Arguments to pass to the executable |
-| `timeout` | integer | no | Per-call timeout (capped at `timeout_ceiling`) |
-
-**Timeout discipline**: default timeout = `timeout_ceiling`. On timeout: SIGTERM → 5s grace wait → SIGKILL. The `timed_out` flag is set in the result.
-
-**Structured result**: `{stdout, stderr, exit_code, timed_out, duration_ms}`. Non-zero exit codes are data, not exceptions. Subject to the no-truncation preview mechanism for large stdout/stderr.
+Returns: `{stdout, stderr, exit_code, timed_out, duration_ms}`.
 
 ### HTTP Tool
 
@@ -310,38 +191,9 @@ The tool's runtime parameters:
 
 HTTP requests with host-level access control.
 
-| Constructor param | Type | Required | Description |
-|---|---|---|---|
-| `allowed_hosts` | list of strings or `"allow_all"` | yes | Hostnames the tool can reach. Required -- no default. |
-| `timeout_ceiling` | integer | no | Maximum allowed timeout in seconds (default 30) |
+In consult mode, POST/PUT/DELETE/PATCH are stripped. Only GET and HEAD are available.
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `method` | enum | yes | GET, POST, PUT, DELETE, PATCH, HEAD |
-| `url` | string | yes | Target URL (hostname must be in `allowed_hosts`) |
-| `headers` | object | no | Request headers |
-| `body` | string | no | Request body |
-| `timeout` | integer | no | Per-request timeout (capped at `timeout_ceiling`) |
-
-Returns JSON: `{status_code, headers, body, elapsed_ms}`. Response body subject to the no-truncation preview mechanism.
-
-### Agent Tools
-
-#### `make_spawn_tool(executor) -> Tool`
-
-Creates a full agent session with write access.
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `agent` | string | yes | Agent name (must exist in loaded agents) |
-| `task` | string | yes | Task prompt for the agent |
-| `category` | string | no | Override the agent's default category |
-| `variables` | dict | no | Variables to substitute into the agent's prompt template |
-| `run_in_background` | boolean | yes | True = async (returns session_id immediately), false = sync. No default -- must be explicit. |
-
-Returns: `{session_id, output}`.
-
-`spawn` is mechanically stripped from all spawned agents' tool sets. Only the scheduler retains access.
+### Delegation Tools
 
 #### `make_consult_tool(executor) -> Tool`
 
@@ -351,11 +203,9 @@ Creates a read-only agent session for research.
 |---|---|---|---|
 | `agent` | string | yes | Agent name |
 | `question` | string | yes | The question or research task |
-| `variables` | dict | no | Variables to substitute into the agent's prompt template |
+| `variables` | dict | no | Variables for prompt substitution |
 
-Returns: `str` -- the agent's text response.
-
-The spawned agent has write, edit, delete, move, mkdir, set_executable, spawn, git (mutation subcommands), and exec mechanically removed from its tool set.
+Returns: `str` -- the agent's text response. The spawned agent has write/edit/delete/move/mkdir/set_executable/exec/git-mutations stripped. HTTP has mutating methods stripped. Task lifecycle tools stripped.
 
 #### `make_notepad_tool(trace_writer) -> Tool`
 
@@ -364,52 +214,99 @@ Writes an entry to the run's shared notepad.
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `type` | enum | yes | `learning`, `decision`, `issue` |
-| `text` | string | yes | Free-form content. One fact/decision/issue per entry. |
+| `text` | string | yes | One fact/decision/issue per entry |
 
-The `step` and `agent` fields in the entry are injected by the executor.
+### Task Lifecycle Tools
+
+#### `make_start_task_tool(scheduler_ref) -> Tool`
+
+Enter a task. The scheduler runs the task's pre-checks. If all pass, the task becomes active and tool calls are permitted. If any fail, returns the check results as an error.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `task_id` | string | yes | The task to enter (injected into agent prompt) |
+
+Returns: success or pre-check failure details.
+
+Can be called without an active task (it is how the agent enters one).
+
+#### `make_end_task_tool(scheduler_ref) -> Tool`
+
+Complete the active task. The scheduler runs the task's post-checks. If all pass, the task completes. If any fail, returns the check results -- the agent must fix its work and call `end_task` again.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `summary` | string | yes | What the agent accomplished |
+
+Returns: success or post-check failure details.
+
+#### `make_create_task_tool(scheduler_ref) -> Tool`
+
+Create a concrete subtask within the current active task. The scheduler validates the specification, creates the subtask, and spawns the specified agent.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Task name |
+| `agent` | string | yes | Agent definition name |
+| `task_prompt` | string | yes | Task prompt template |
+| `prechecks` | array | no | Pre-check Execution specs |
+| `postchecks` | array | no | Post-check Execution specs |
+| `variables` | object | no | Variables for prompt substitution |
+| `timeout` | integer | yes | Max wall-clock seconds |
+| `context_refinement` | boolean | yes | Whether the Overseer refines context |
+| `budget` | number | no | Per-task USD budget |
+| `write_paths` | array | no | File paths this task may write |
+
+Returns: `task_id` or validation error.
+
+#### `make_create_workflow_tool(scheduler_ref) -> Tool`
+
+Create a goal-oriented task tree within the current active task. A workflow agent decomposes it into subtasks.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Workflow name |
+| `description` | string | yes | What this workflow accomplishes |
+| `goals` | array of strings | yes | Goal descriptions |
+| `postchecks` | array | no | Post-check Execution specs |
+| `budget` | number | no | USD budget |
+
+Returns: `workflow_id` or validation error.
 
 ## Tool Execution
 
 When the LLM requests a tool call, the transport's tool-call loop:
 
-1. Looks up the tool in the filtered registry by name
-2. Validates the arguments against `parameters` (JSON Schema validation)
-3. Records the tool call start time
-4. For write tools: acquires the per-path write lock, checks stale-write detection
-5. For secret-bearing arguments: substitutes `{{secret:NAME}}` placeholders with real values
-6. Calls `execute(args)` and awaits the result
-7. For the result: scrubs any registered secret values, replacing them with their placeholders
-8. Records duration_ms in the ToolUse trace event
-9. Returns the result string to the LLM (applying preview if over threshold)
-
-Error handling:
-
-- Tool name not in registry: hard error, not a graceful fallback
-- Argument validation fails: hard error with details sent back to the LLM
-- Stale-write detection fails: hard error ("file changed since you read it")
-- Path escapes boundary: hard error
-- `execute()` raises: the exception message is sent back to the LLM as an error result
-- Transient write failure (EIO, EBUSY): executor replays from recorded args (invisible to agent)
+1. Checks that the agent has an active task (hard error if not, except for `start_task`)
+2. Looks up the tool in the filtered registry by name
+3. Validates arguments against `parameters` (JSON Schema)
+4. Records tool call start time
+5. For write tools: acquires per-path write lock, checks stale-write detection
+6. For secret-bearing arguments: substitutes `{{secret:NAME}}` placeholders
+7. Calls `execute(args)` and awaits the result
+8. Scrubs registered secret values from the result
+9. Records duration_ms in the ToolUse trace event
+10. Returns the result (applying preview if over threshold)
 
 ## Files
 
 | File | Contents |
 |---|---|
-| `_types.py` | `Tool` frozen dataclass: name, description, parameters (JSON Schema dict), execute (async callable). `ToolError` exception. |
-| `_path.py` | Canonical path enforcement: `resolve_and_check(raw_path, root)`. Used by every scoped tool. |
-| `_preview.py` | No-truncation preview logic: check threshold, build head/tail preview, enforce escalation guard (full=true only after preview). |
-| `_write_queue.py` | Per-path write serialization, stale-write detection (content hash tracking per session), transient-only replay logic. |
-| `_constructors.py` | `make_read_tool`, `make_write_tool`, `make_edit_tool`, `make_list_dir_tool`, `make_glob_tool`, `make_grep_tool`, `make_stat_tool`, `make_diff_tool`, `make_mkdir_tool`, `make_move_tool`, `make_copy_tool`, `make_delete_tool`, `make_set_executable_tool`, `make_git_tool`, `make_exec_tool`, `make_http_tool`. Each returns a `Tool`. |
-| `_spawn.py` | `make_spawn_tool(executor)` -- returns the spawn `Tool`. Contains the spawn execution logic. |
-| `_consult.py` | `make_consult_tool(executor)` -- returns the consult `Tool`. Contains the consult execution logic and tool stripping. |
-| `_notepad.py` | `make_notepad_tool(trace_writer)` -- returns the notepad `Tool`. Delegates writes to the trace module. |
-| `_validation.py` | JSON Schema argument validation used by the tool-call loop. |
+| `_types.py` | `Tool` frozen dataclass. `ToolError` exception. |
+| `_path.py` | Canonical path enforcement. |
+| `_preview.py` | No-truncation preview logic. |
+| `_write_queue.py` | Per-path write serialization, stale-write detection, transient replay. |
+| `_constructors.py` | File read/write tool constructors: `make_read_tool`, `make_write_tool`, `make_edit_tool`, `make_list_dir_tool`, `make_glob_tool`, `make_grep_tool`, `make_stat_tool`, `make_diff_tool`, `make_mkdir_tool`, `make_move_tool`, `make_copy_tool`, `make_delete_tool`, `make_set_executable_tool`, `make_git_tool`, `make_exec_tool`, `make_http_tool`. |
+| `_consult.py` | `make_consult_tool(executor)` -- consult tool with read-only stripping. |
+| `_notepad.py` | `make_notepad_tool(trace_writer)` -- notepad tool. |
+| `_task_tools.py` | `make_start_task_tool`, `make_end_task_tool`, `make_create_task_tool`, `make_create_workflow_tool`. Task lifecycle tools. |
+| `_validation.py` | JSON Schema argument validation. |
 
 ## What This Module Does NOT Do
 
-- Does not manage tool permissions (that's agent/ and scheduler/)
-- Does not execute tools autonomously (that's scheduler/)
+- Does not manage tool permissions (that is the agent module and scheduler)
+- Does not execute tools autonomously (that is the scheduler)
 - Does not define mandatory tools or require specific tools to exist
 - Does not have a plugin system for tool discovery
 - Does not ship a bash/shell tool
-- Does not hide LLM calls inside any tool implementation
+- Does not hide LLM calls inside any tool implementation (except consult, which is explicit delegation)

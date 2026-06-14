@@ -1,29 +1,40 @@
 # Overseer Module Design
 
-The Overseer is the brain of the system. One persistent agent with read-only tools, a long memory, and structured decision protocols. It observes everything, decides what should happen, and orders short-lived agent steps to do the work. It never mutates files, runs commands, or executes tasks directly.
+The Overseer is the brain of the system. One persistent agent with action tools, structured memory in PostgreSQL, and the root task's agent. It observes everything, makes judgment calls by taking actions via tools, and drives intent to completion. It never mutates files, runs commands, or executes tasks directly.
 
 ## Responsibility
 
-Drive intent to completion. The Overseer receives the user's intent at the start of a run and makes every judgment call needed to fulfill it: what to do, how to decompose it, when to retry, when to escalate, how to allocate budget, what assumptions to make. It produces workflows (TOML definitions) that the scheduler validates and executes. It monitors execution and reacts to events (step failures, budget thresholds, human responses).
+Drive intent to completion. The Overseer receives the user's intent at the start of a run and makes every judgment call needed to fulfill it: what to do, how to decompose it, when to retry, when to escalate, how to allocate budget, what assumptions to make. It creates workflows and tasks via action tools. It monitors execution by handling events from the scheduler.
 
 ## What the Overseer Is
 
-- One agent with persistent context across the entire run
-- Has read-only tools (read, grep, glob -- inspection, not mutation)
-- Has structured memory (PostgreSQL tables via the trace module)
-- Makes decisions via typed protocols with closed output schemas
-- Generates workflows directly (validated by the scheduler before execution)
+- The agent of the root task -- the top of the task hierarchy for the entire run
+- One persistent LLM session that spans the run's lifetime
+- Has read-only file tools (read, grep, glob) for codebase inspection
+- Has `consult` for spawning read-only research agents
+- Has action tools for system-level mutations (create_workflow, add_constraint, etc.)
+- Has `start_task` / `end_task` for participating in the task lifecycle
+- Has structured memory in PostgreSQL (decisions, constraints, assumptions, lessons)
 - Receives session handoff when context approaches the model's window limit
 
 ## What the Overseer Is NOT
 
-- Not an executor. It never runs workflows, invokes agent steps, or manages state. That's the scheduler.
-- Not a worker. It never writes files, runs tests, or produces code. That's agent steps.
-- Not a router. It doesn't pick models or resolve categories. That's agent/ and the scheduler.
+- Not an executor. It never runs tasks, manages state machines, or enforces timeouts. That is the scheduler.
+- Not a worker. It never writes files, runs tests, or produces code. That is task agents.
+- Not a router. It does not pick models or resolve categories. That is the agent module and scheduler.
+
+## Correctness Over Convenience
+
+The Overseer's system prompt encodes a systemic bias toward correctness:
+
+- **Prefer the most correct solution regardless of effort.** Never factor in effort when evaluating options. Never recommend deferring work. Never overestimate effort as a reason to avoid the right approach.
+- **When creating inbox items, always include the hard-but-right option.** Every inbox item's `options` array must contain the most correct solution, even if it requires significant work.
+- **Structural advisories are suggestions, not commands.** When the scheduler sends a `StructuralAdvisory` (e.g., "consider front-loading read-only tasks"), the Overseer evaluates whether the suggestion makes sense in context. It should not blindly follow mechanical advice -- it has context the scheduler does not. It should not blindly ignore it either.
+- **When an inbox item is rejected**, the Overseer must re-investigate via tools (read/grep/glob/consult) and create a new inbox item with genuinely better options. Resubmitting the same options with different wording is not acceptable.
 
 ## Tools
 
-Read-only inspection tools only. The Overseer can look at anything but touch nothing.
+### Read-Only File Tools
 
 | Tool | Purpose |
 |---|---|
@@ -31,52 +42,85 @@ Read-only inspection tools only. The Overseer can look at anything but touch not
 | `grep` | Search file contents |
 | `glob` | Find files by pattern |
 
-No write, edit, bash, spawn, consult, or notepad. The Overseer's influence on the world is entirely through its structured decision outputs, which the scheduler acts on.
+### Delegation Tools
 
-## Decision Protocol Registry
+| Tool | Purpose |
+|---|---|
+| `consult` | Spawn a read-only research agent |
 
-Each decision type is a registered protocol with a fixed structure:
+### Task Lifecycle Tools
 
-| Protocol | When it fires | Output (closed menu) |
+| Tool | Purpose |
+|---|---|
+| `start_task` | Enter a task (pre-checks run) |
+| `end_task` | Complete a task (post-checks run) |
+| `create_workflow` | Create a goal-oriented task tree with goals and postchecks |
+| `create_task` | Create a concrete subtask with agent, prompt, and checks |
+
+### Memory Tools
+
+| Tool | Purpose |
+|---|---|
+| `record_decision` | Record a decision with rationale in the decisions table |
+| `add_constraint` | Add a mechanical or advisory constraint |
+| `record_assumption` | Record an assumption, optionally create inbox item |
+| `write_lesson` | Write to the cross-run knowledge base |
+
+### System Tools
+
+| Tool | Purpose |
+|---|---|
+| `create_inbox_item` | Create a human inbox item for escalation |
+| `update_workflow_status` | Update the Overseer's health assessment of a workflow |
+
+Tool parameter schemas are defined in `orxt.protocols`. Implementations live in this module's `_tools.py`.
+
+## Interaction Model
+
+The Overseer interacts with the scheduler through its persistent session. See `protocols/DESIGN.md` for the full specification.
+
+1. The scheduler detects an event (run started, task failed, budget crossed, inbox answered, etc.)
+2. The scheduler sends a structured event message to the Overseer's session
+3. The Overseer's tool-call loop runs: inspect files, research via consult, take actions via tools
+4. The Overseer produces a text response summarizing what it did
+5. The scheduler verifies the Overseer's actions mechanically:
+   - Created workflows/tasks pass schema validation
+   - New constraints do not contradict existing ones
+   - This is not the same action taken for the same failure last time (repetition check)
+   - Budget allocation is proportional to remaining work
+6. If verification passes: the event is handled
+7. If verification fails: failure details sent back to the Overseer in the same session
+8. Loop up to N times. Degraded mode if the Overseer cannot satisfy verification.
+
+### Event Types
+
+Events the scheduler sends to the Overseer (defined in `orxt.protocols._events`):
+
+| Event | When | Typical Overseer Response |
 |---|---|---|
-| `intent_decision` | Start of run | Intent description, initial constraints, initial assumptions |
-| `workflow_decision` | Overseer determines work is needed | Workflow TOML definition (validated before execution) |
-| `retry_decision` | Step or workflow fails | Retry with same context / retry with wider context / re-decompose / defer to human |
-| `budget_decision` | Budget threshold crossed or workflow exhausted | Reallocate from completed workflows / increase allocation / pause / abort |
-| `escalation_decision` | Agent step suggests modification or unknown situation | Accept suggestion / reject / escalate to human |
-| `assumption_decision` | Information needed, human not available | Make assumption (recorded) / escalate to human inbox |
-| `concurrency_decision` | Multiple workflows or iterations could run in parallel | Degree of parallelism, which workflows to parallelize |
-| `constraint_decision` | New constraint discovered during execution | Add mechanical constraint / add advisory constraint / ignore |
-| `scope_decision` | Agent step needs resources outside its scope | Approve expansion / deny / spawn child workflow |
-| `context_decision` | Before each agent step | Refine the mechanically assembled context: select lessons, request additional code context, reorder/trim layers, or accept as-is |
-| `audit_decision` | Overseer suspects quality issues | Spawn audit workflow (read-only) / skip |
-
-Each protocol defines:
-- A system prompt template (fixed per type, with slots for assembled context)
-- An input schema (what the scheduler provides)
-- An output schema (closed set of actions -- the Overseer picks from a menu)
-- A context assembly rule (which PG tables/fields to query for this decision type)
-
-If a situation does not match any registered protocol, that itself is an escalation to the human via `protocol_gap` inbox item.
+| `RunStarted` | Run begins | Create initial workflow via `create_workflow` |
+| `TaskFailed` | Task's postchecks failed, agent gave up | Create fix task, adjust constraints, escalate to human |
+| `TaskEscalated` | Child task failed and escalated | Retry strategy, re-decompose, escalate further |
+| `BudgetThresholdCrossed` | Budget approaching limit | Reallocate from completed workflows, increase, or abort |
+| `BudgetExhausted` | Budget depleted | Abort or escalate to human |
+| `InboxAnswered` | Human responded | Update assumptions, adjust if contradicted |
+| `InboxRejected` | Human rejected options as insufficient | Re-investigate via tools, create new inbox item with better options |
+| `StructuralAdvisory` | Scheduler detected structural improvement | Evaluate suggestion, modify task tree if warranted, or dismiss with rationale |
+| `HealthDegraded` | Overseer health metrics crossed threshold | Acknowledge, adjust behavior |
 
 ## Memory: PostgreSQL Tables
 
-Structured, queryable store. Tables owned by the trace module, read/written by the Overseer.
+Structured, queryable store. Tables owned by the trace module, read/written by the Overseer via action tools.
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| `decisions` | id, run_id, protocol_type, choice, rationale, outcome | outcome updated when known |
+| `decisions` | id, run_id, decision_type, choice, rationale, outcome | outcome updated when known |
 | `constraints` | text, source_decision_id, active, tier | tier is `mechanical` or `advisory` |
-| `assumptions` | text, status, scope, inbox_item_id | status: pending / confirmed / contradicted. scope: understanding / decomposition / task |
-| `lessons` | text, relevance_tags, permanent, source_file | Primary store for learned facts. The knowledge module indexes these into cognee for semantic retrieval. |
-| `workflow_status` | workflow_id, current_step, health | overwritten, not appended |
+| `assumptions` | text, status, scope, inbox_item_id | status: pending / confirmed / contradicted |
+| `lessons` | text, relevance_tags, permanent, source_file | primary store for cross-run knowledge |
+| `overseer_workflow_status` | workflow_id, current_step, health | overwritten, not appended |
 
-Context assembly queries this database per decision type:
-- Retry decision gets: active constraints + failing workflow's status + last 3 retry decisions + relevant lessons + error classification
-- Budget decision gets: all workflow statuses + budget history + last 3 budget decisions
-- Each query returns bounded, relevant context. The database grows but context per call does not.
-
-Each decision can declare `constrains_future` in its output -- a list of constraint strings written to the constraints table. Constraint accumulation is explicit, auditable, and traceable.
+The Overseer can self-serve context by querying its memory via read-only file tools and consult agents. The scheduler also assembles relevant context from these tables when constructing event messages.
 
 ## Constraint Tiers
 
@@ -88,55 +132,76 @@ Mechanical constraints use a closed vocabulary of checkable primitives:
 - `no_new_dependencies` -- no additions to dependency manifests
 - `no_new_files_outside(directory)` -- no file creation outside specified directory
 
-The scheduler checks mechanical constraints after each step's verification chain. Violations are immediate failures.
+The scheduler checks mechanical constraints after each task's postchecks pass. Violations are immediate failures.
 
-Advisory constraints are freeform text included in agent step context and Overseer calls. Not mechanically enforced.
-
-## Sanity-Check Subagents
-
-After every Overseer decision, before the scheduler executes it, independent cheap LLM calls check:
-- **Constraint consistency**: does this decision contradict any active constraint?
-- **Repetition**: is this the same action for the same failure as last time?
-- **Proportionality** (for budget/concurrency): is this allocation proportional to remaining work?
-
-Narrow, structured, tiny context, fast model. They catch self-contradiction, repeating failed strategies, and disproportionate allocation.
+Advisory constraints are freeform text included in agent task context. Not mechanically enforced.
 
 ## Health Monitoring
 
-The scheduler tracks Overseer health metrics:
-- Parse failure rate (output did not match protocol schema)
-- Contradiction rate (sanity check flagged constraint violation)
-- Repetition rate (sanity check flagged same-action-on-same-failure)
+The scheduler tracks Overseer health metrics per event type:
+- Post-check failure rate (Overseer's actions failed mechanical verification)
+- Repetition rate (same action for same failure type)
+- Tool-call error rate (action tools returned errors)
 
-If any rate exceeds threshold over a rolling window, the scheduler enters degraded mode for that specific decision type:
+If any rate exceeds threshold over a rolling window, the scheduler enters degraded mode for that event type:
 
-| Decision Type | Degraded Behavior |
+| Event Type | Degraded Behavior |
 |---|---|
-| Retry | Fixed escalation ladder: same context, then wider context, then mark failed |
-| Budget | Maintain current allocations |
-| Escalation | Escalate everything to human |
-| Concurrency | Serialize everything |
+| TaskFailed / TaskEscalated | Fixed escalation ladder: retry same context, then wider context, then mark failed |
+| BudgetThresholdCrossed | Maintain current allocations |
+| Any | Escalate to human inbox |
 
-The Overseer is not disabled -- it is bypassed for the failing decision type only. Other types continue normally. If rates recover, degraded mode exits automatically.
+The Overseer is not disabled -- it is bypassed for the failing event type only. Other event types continue normally. If rates recover, degraded mode exits automatically.
 
 Overseer calls are funded from the triggering workflow's budget.
 
 ## Session Handoff
 
-The Overseer is the only entity that receives session handoff. Agent steps are scoped and short-lived.
+The Overseer is the only entity that receives session handoff. Task agents are scoped and short-lived.
 
 When the Overseer's conversation approaches ~90% of the model's context window:
 
 1. The scheduler detects the threshold (it tracks token usage).
 2. The scheduler asks the Overseer to produce a detailed summary.
 3. The transcript is already fully persisted in PG.
-4. The scheduler creates a new Overseer session with the summary as initial context plus the old session's UUID for querying the full transcript.
+4. A new Overseer session is created with the summary as initial context plus the old session's UUID for querying the full transcript.
 
-## Audit Workflows
+## Context Assembly for Task Agents
 
-When the Overseer suspects quality issues (via `audit_decision`), it can spawn an audit workflow. Audit workflows are regular workflows with `write_paths = []` -- read-only, no mutations.
+Before each agent task (when `context_refinement = true`), the scheduler sends a context-refinement event to the Overseer. The Overseer can select relevant lessons, request additional code context, reorder, or accept as-is.
 
-Audits can run concurrent with in-progress work or post-hoc on completed work. The Overseer reviews audit findings and decides: spawn remediation workflows, adjust constraints, escalate to human, or accept.
+When `context_refinement = false`, the agent receives layers 1-2 only (task template + runtime context: constraints, notepad, prior failures). No Overseer call.
+
+The scheduler stores pre-refinement context and a unified diff of the Overseer's changes via the trace module's `context_diffs` table.
+
+## Consumer Knowledge Loading
+
+The Overseer owns loading consumer knowledge files from the `knowledge/` directory at the start of each run.
+
+**Markdown files** (`.md`) -- free-form domain knowledge. Written to the lessons table as permanent entries via `write_lesson`.
+
+**TOML files** (`.toml`) -- structured constraints:
+
+```toml
+[[constraints]]
+text = "All generated code must pass lint and type checks before commit"
+tier = "mechanical"
+```
+
+Written to the constraints table via `add_constraint`.
+
+Consumer knowledge is loaded once at run start. Files are re-loaded only if their content hash changes since the last run.
+
+## Cross-Run Learning
+
+The `lessons` table is the primary store for cross-run knowledge. The Overseer reads it at the start of every run. Entries have timestamps and source file paths.
+
+- The scheduler checks via git whether source files have changed and flags stale entries
+- Entries expire after N runs unless explicitly confirmed by a human
+- Contradicting evidence marks entries as disputed and escalates
+- Permanent entries are human-curated or loaded from consumer knowledge files
+
+The `knowledge-module/` (experimental) additionally indexes lessons into a cognee knowledge graph for semantic retrieval. When enabled, context assembly receives results from both flat SQL and cognee. See `knowledge-module/DESIGN.md`.
 
 ## Coherence Summary
 
@@ -148,22 +213,23 @@ Single scalar. Mechanical action-type rules, not Overseer judgment.
 
 | Level | Overseer handles autonomously |
 |---|---|
-| Low | Read-only decisions only. Almost everything goes to human inbox. |
+| Low | Read-only decisions only. Almost everything escalated to human inbox. |
 | Medium | Retry, budget reallocation, concurrency, task-level assumptions. Scope changes, architecture decisions, understanding-level assumptions escalate. |
 | High | Everything except: modifying external API contracts, changing auth/security flows, deleting data, deploying, adding new external dependencies. |
 | Max | Everything. Human inbox empty. Report is audit trail. |
 
 Each level maps to an explicit list of action types that are autonomous vs escalated. The mapping is published and deterministic. Can change mid-run.
 
-**Action-gating**: irreversible actions (deploy, delete data, external sends) are forbidden below the configured autonomy level by the scheduler's action-type mapping. They require an answered approval inbox item to proceed. This is one of the three explicit blocking mechanisms (see root DESIGN.md).
+**Action-gating**: irreversible actions (deploy, delete data, external sends) are forbidden below the configured autonomy level by the scheduler's action-type mapping. They require an answered approval inbox item to proceed.
 
 ## Error Taxonomy
 
-The scheduler classifies every failure before escalating to the Overseer:
+The scheduler classifies every failure before sending it to the Overseer:
 
 | Category | Pattern | Example |
 |---|---|---|
-| infra | Timeout, network error, disk full, OOM, transient API errors exhausted | ETIMEDOUT, No space left, 429 after retries |
+| infra | Timeout, network error, disk full, OOM, transient API errors exhausted | ETIMEDOUT, No space left |
+| context_limit | Token limit exceeded for the model | Context too large |
 | parse | LLM output did not match schema | JSON parse error, missing field |
 | flaky | Non-deterministic test failure | Test passed on re-run without changes |
 | build_env | Missing dependency, wrong version | ModuleNotFoundError |
@@ -172,60 +238,25 @@ The scheduler classifies every failure before escalating to the Overseer:
 
 The Overseer sees the classification and applies type-appropriate strategies.
 
-## Cross-Run Learning
-
-The `lessons` table (owned by trace/) is the primary store for cross-run knowledge:
-- Architecture patterns, failure patterns, flaky tests, conventions, environment requirements
-- Entries have timestamps and source file paths
-- The scheduler checks via git whether source files have changed and flags stale entries
-- Entries expire after N runs unless explicitly confirmed by a human
-- If the Overseer encounters contradicting evidence, it marks the entry as disputed and escalates
-- Permanent entries are human-curated or loaded from consumer knowledge files
-
-The Overseer reads the lessons table at the start of every run. Context assembly queries it with flat SQL filtered by relevance tags.
-
-The `knowledge/` module (experimental) additionally indexes lessons into a cognee knowledge graph for semantic retrieval. When enabled, context assembly receives results from both flat SQL and cognee's graph traversal. See `knowledge/DESIGN.md`.
-
-### Consumer Knowledge Files
-
-Consumers provide domain-specific knowledge as files in a `knowledge/` directory. Two formats:
-
-**Markdown files** (`.md`) -- free-form domain knowledge. Written to the lessons table as permanent entries. Optionally indexed into cognee when the knowledge module is enabled.
-
-**TOML files** (`.toml`) -- structured constraints that map to the constraint system:
-
-```toml
-[[constraints]]
-text = "All generated code must pass lint and type checks before commit"
-tier = "mechanical"
-
-[[constraints]]
-text = "Prefer composition over inheritance in generated components"
-tier = "advisory"
-```
-
-Consumer knowledge files are loaded at the start of every run. They are permanent -- they do not expire and are not subject to staleness detection.
-
 ## Files
 
 | File | Contents |
 |---|---|
-| `_overseer.py` | `Overseer` class. Manages the persistent session, assembles context per decision type, parses structured outputs, records decisions via trace. |
-| `_protocols.py` | Decision protocol registry. Each protocol: system prompt template, input schema, output schema, context assembly rule. All schemas are pydantic models with `strict=True, extra='forbid'`. |
-| `_memory.py` | Context assembly queries against PG tables (decisions, constraints, assumptions, lessons, workflow_status). Also calls knowledge module retrieval for semantic graph results when available. |
-| `_health.py` | Health monitoring. Tracks parse failure rate, contradiction rate, repetition rate. Degraded mode logic per decision type. |
+| `_overseer.py` | `Overseer` class. Manages the persistent session, handles events from the scheduler, takes actions via tools. |
+| `_tools.py` | Action tool implementations. Each tool calls the trace module's write API. Parameter validation uses schemas from `orxt.protocols._tools`. |
+| `_memory.py` | Context queries against PG tables (decisions, constraints, assumptions, lessons, workflow status). Used for self-serve context and event message assembly. |
+| `_health.py` | Health monitoring. Tracks post-check failure rate, repetition rate, tool error rate per event type. Degraded mode logic. |
 | `_handoff.py` | Session handoff detection and execution. |
 | `_inbox.py` | Human inbox item creation. Structured async queue for escalations and assumptions. |
 | `_autonomy.py` | Autonomy knob. Level definitions, action-type-to-level mapping, escalation routing, action-gating enforcement. |
 | `_errors.py` | Error taxonomy. Classification logic: exit codes, stderr patterns, error messages to category. |
 | `_learning.py` | Cross-run knowledge base queries against the lessons table. Staleness detection via git, expiry after N runs. |
 | `_knowledge.py` | Consumer knowledge file loading. Reads .md and .toml files from the knowledge directory, writes to lessons table and constraints table via trace. |
-| `_sanity.py` | Sanity-check subagent dispatch. Constraint consistency, repetition, proportionality checks. |
 
 ## What This Module Does NOT Do
 
-- Does not execute workflows or agent steps (that's scheduler/)
+- Does not execute tasks or manage state machines (that is the scheduler)
 - Does not write files, run commands, or produce code
-- Does not validate workflow TOML schema (that's scheduler/)
-- Does not manage transport connections or sessions (that's session/)
-- Does not know about specific workflow templates (those are consumer domain)
+- Does not validate task/workflow schemas (that is the scheduler, using tool-level validation)
+- Does not manage transport connections (that is the session module)
+- Does not own the database schema (that is the trace module)

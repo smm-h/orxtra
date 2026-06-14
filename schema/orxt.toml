@@ -1,7 +1,7 @@
 # orxt PostgreSQL schema
 # Single owner: the trace module. No other module writes to these tables directly.
-# All primary keys use the built-in `id` type (uuid, NOT NULL, gen_random_uuid()).
-# Application generates UUIDv7 for time-ordering; DB default is v4 fallback.
+# All primary keys use the built-in `id` type (uuid, NOT NULL).
+# Default uses pg-uuidv7 extension function for time-ordered UUIDs. No v4 fallback.
 # Immutable tables (events, transcripts, notepad_entries) enforce append-only
 # via deny-mutation triggers (pgdesign append_only = true).
 
@@ -109,7 +109,7 @@ comment = "Notepad entry category"
 
 [types.inbox_status]
 kind = "enum"
-values = ["pending", "answered", "skipped", "expired"]
+values = ["pending", "answered", "skipped", "expired", "rejected"]
 default = "pending"
 comment = "Human inbox item lifecycle status"
 
@@ -172,6 +172,12 @@ type = "counter"
 type = "counter"
 
 [tables.runs.columns.total_reasoning_tokens]
+type = "counter"
+
+[tables.runs.columns.total_cache_read_tokens]
+type = "counter"
+
+[tables.runs.columns.total_cache_write_tokens]
 type = "counter"
 
 [tables.runs.columns.total_cost_usd]
@@ -337,6 +343,12 @@ type = "counter"
 type = "counter"
 
 [tables.step_attempts.columns.reasoning_tokens]
+type = "counter"
+
+[tables.step_attempts.columns.cache_read_tokens]
+type = "counter"
+
+[tables.step_attempts.columns.cache_write_tokens]
 type = "counter"
 
 [tables.step_attempts.columns.cost_usd]
@@ -567,6 +579,10 @@ type = "inbox_status"
 type = "str_nullable"
 comment = "Human response text"
 
+[tables.inbox_items.columns.rejection_reason]
+type = "str_nullable"
+comment = "Why the human rejected this item (requires re-investigation and a new item)"
+
 [tables.inbox_items.columns.deadline]
 type = "timestamp_optional"
 
@@ -606,9 +622,9 @@ type = "ref"
 type = "str"
 comment = "Mechanically assembled context (layers 1+2)"
 
-[tables.context_diffs.columns.post_refinement]
-type = "str"
-comment = "Overseer-refined context (layer 3 applied)"
+[tables.context_diffs.columns.refinement_diff]
+type = "str_nullable"
+comment = "Unified diff of Overseer's context changes (null if context_refinement=false)"
 
 [tables.context_diffs.columns.created_at]
 type = "timestamp"
@@ -711,7 +727,7 @@ columns = ["run_id"]
 columns = ["source_decision_id"]
 
 [tables.constraints.indexes.idx_constraints_run_active]
-columns = ["run_id"]
+columns = ["run_id", "active"]
 
 # ---------------------------------------------------------------------------
 
