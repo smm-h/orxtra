@@ -28,6 +28,8 @@ ignore = [
 "**/_task.py" = ["TC002", "TC003"]   # pydantic models need runtime imports
 "**/_tools.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
 "**/_execution.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
+"**/_types.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
+"**/_writer.py" = ["PLR0913"]  # DB write methods have many columns
 
 [tool.mypy]
 python_version = "3.12"
