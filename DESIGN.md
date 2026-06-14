@@ -4,40 +4,41 @@
 
 A Python library for autonomous multi-agent AI workflows. You provide intent; oxtra drives it to completion. An Overseer (persistent LLM with read-only tools and structured memory) makes judgment calls and generates workflows. A Scheduler (deterministic event loop) validates, executes, and enforces. Agent steps (scoped LLM calls) do the actual work.
 
-## Project Structure
+## Philosophy
+
+Complexity if you need it, simplicity if you don't.
+
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `transport/`. One wanting deterministic workflow execution uses `scheduler/`. The full system composes all thirteen.
+
+**Modules share protocols, not implementations.** No module imports another module directly. They declare interfaces they consume (Python protocols/ABCs), and composition wires the implementations at the consumer's entry point. This makes every module testable in isolation and replaceable without cascading changes.
+
+## Monorepo Structure
+
+rlsbl monorepo with 13 sub-projects. Each has its own `pyproject.toml`, `DESIGN.md`, `src/`, and `tests/`.
 
 ```
 oxtra/
-    DESIGN.md
-    CLAUDE.md
-    README.md
-    pyproject.toml
-    selfdoc.json
-    .rlsbl/                    # rlsbl release scaffolding
-    docs/                      # selfdoc templates
-    todo/                      # Work items
-    scripts/                   # Reusable project scripts
-    knowledge/                 # Consumer domain knowledge (.md and .toml)
-    oxtra/
-        __init__.py            # Public API: re-exports from submodules
-        overseer/              # The brain: persistent LLM, decisions, memory, learning
-        scheduler/             # The nervous system: event loop, validation, execution
-        agent/                 # Agent definition loading and validation
-        tool/                  # Tool contract, registry, constructors (no bash tool)
-        transport/             # LLM communication via Provider protocol
-            providers/         # Per-provider raw httpx implementations
-        verify/                # Mechanical chains + semantic verification agents
-        notepad/               # Cross-agent context sharing (PG-backed)
-        session/               # Session lifecycle, token tracking
-        trace/                 # PG schema owner: events, results, transcripts, inbox
-        knowledge/             # Knowledge ingestion and retrieval via cognee
-        services/              # Shared business logic consumed by all frontends
-        cli/                   # strictcli CLI (agents are the primary users)
-        mcp/                   # MCP server exposing the public API
-    tests/                     # One test module per source module
-```
+    .rlsbl-monorepo/workspace.toml
+    schema/oxtra.toml              # pgdesign database schema
+    knowledge/                     # Consumer domain knowledge (.md and .toml)
 
-Each module directory contains a `DESIGN.md` (the spec) and Python files (the implementation). See each module's DESIGN.md for its file listing.
+    transport/                     # Foundation: typed LLM client
+    agent/                         # Foundation: TOML+md agent loader
+    tool/                          # Foundation: tool registry + constructors
+    verify/                        # Foundation: verification runner
+    trace/                         # Foundation: PG schema owner
+    notepad/                       # Foundation: cross-agent IPC
+
+    session/                       # Orchestration: session lifecycle
+    scheduler/                     # Orchestration: workflow executor
+
+    overseer/                      # Intelligence: persistent LLM brain
+    knowledge-module/              # Intelligence: cognee enrichment (experimental)
+
+    services/                      # Interface: shared business logic
+    cli/                           # Interface: strictcli CLI
+    mcp/                           # Interface: MCP server
+```
 
 ## What oxtra Is NOT
 
@@ -48,7 +49,7 @@ Each module directory contains a `DESIGN.md` (the spec) and Python files (the im
 
 ## Architecture
 
-Three components, thirteen modules.
+Three components, thirteen modules, four architecture layers.
 
 The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent steps** are the hands.
 
@@ -63,10 +64,21 @@ The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent 
 | `notepad/` | Append-only cross-agent context sharing. Workers append learnings, decisions, issues. PG-backed via the trace schema. No overwrites. |
 | `session/` | Session lifecycle management wrapping transport. Track session IDs for resumption. Track token counts. Conversation history in PG enables cross-restart resumption. |
 | `trace/` | Single owner of the PostgreSQL schema. Tables: events, step results (per-attempt), transcripts, inbox items, notepad entries, config snapshots, workflow/step state. REVOKE UPDATE/DELETE on immutable tables. LISTEN/NOTIFY for cross-process observers. UUIDv7 primary keys. |
-| `knowledge/` | Experimental semantic enrichment layer over the flat lessons table via cognee (PG+pgvector). Indexes lessons into a knowledge graph for semantic retrieval alongside flat SQL. Disabled by default; must prove measurable value before becoming load-bearing. |
+| `knowledge-module/` | Experimental semantic enrichment layer over the flat lessons table via cognee (PG+pgvector). Indexes lessons into a knowledge graph for semantic retrieval alongside flat SQL. Disabled by default; must prove measurable value before becoming load-bearing. |
 | `services/` | Shared business logic consumed by all three frontends (Python API, CLI, MCP server). One service per domain: runs, inbox, trace queries, config, validation. |
 | `cli/` | strictcli-based CLI. Thin frontend over the services layer. Commands: run inspection, trace queries, TOML validation, inbox list/respond, config dump. Agents are the primary users. |
 | `mcp/` | MCP server exposing the public API as MCP tools. The human's interface via dashboard or conversational AI client. |
+
+## Architecture Layers
+
+| Layer | Sub-projects | Rule |
+|---|---|---|
+| Foundation | transport, agent, tool, verify, trace, notepad | Zero intra-workspace deps (except notepad -> trace). Each is independently useful. |
+| Orchestration | session, scheduler | Depend on foundation only. |
+| Intelligence | overseer, knowledge-module | Depend on foundation only (NOT orchestration -- the Overseer and scheduler share protocols, not imports). |
+| Interfaces | services, cli, mcp | Depend on orchestration + intelligence. |
+
+Higher layers can depend on lower layers. Lower layers cannot depend on higher layers. Enforced by `rlsbl check --tag workspace`.
 
 ## PostgreSQL as Backbone
 
@@ -150,7 +162,7 @@ The **web dashboard** (with its conversational AI agent) lives as a **sibling pr
 
 ## Design Axioms
 
-Twelve hard rules. Each is mechanically enforced, not prompt-requested.
+Thirteen hard rules. Each is mechanically enforced, not prompt-requested.
 
 1. **Agents are data, not code.** TOML metadata + .md prompts. No factory functions, no classes, no lifecycle methods. An agent definition is a static document that the framework loads and interprets.
 
@@ -176,6 +188,8 @@ Twelve hard rules. Each is mechanically enforced, not prompt-requested.
 
 12. **Structured decisions, not free-form.** The Overseer makes decisions via typed protocols with closed output schemas. It picks from menus, never free-forms. If a situation doesn't match any registered protocol, it escalates to the human.
 
+13. **Modules share protocols, not implementations.** No module imports another module directly. They declare interfaces they consume (Python protocols/ABCs), and composition wires implementations at the consumer's entry point. Every module is independently testable and replaceable.
+
 ## Anti-Patterns
 
 Eleven patterns to avoid, identified from analysis of oh-my-openagent (omo) and Superagent -- similar projects that got many things right but suffered from complexity creep.
@@ -196,7 +210,7 @@ Eleven patterns to avoid, identified from analysis of oh-my-openagent (omo) and 
 
 8. **No prompts in code.** All prompt text lives in .md files, never in Python strings. Python files contain logic, not prose.
 
-9. **No feature flags.** Features are either shipped or not. No `experimental` config sections, no `enabled: false` defaults. (The knowledge module's `enabled` flag is a dependency toggle for an external system, not a feature flag on framework behavior -- oxtra works identically with it off.)
+9. **No feature flags on framework behavior.** Features are either shipped or not. No `experimental` config sections, no `enabled: false` defaults. Optional subsystems (Overseer, verification, cognee enrichment) are activated by providing their config object, not by toggling a boolean -- presence of config IS the signal.
 
 10. **No bash tool.** The framework ships no general-purpose shell tool. Instead, granular purpose-built tools (read, write, edit, git, exec, http, etc.) with typed parameters and mechanical scoping. A consumer who truly needs raw shell writes their own Tool in ten lines -- oxtra refuses to bless one.
 

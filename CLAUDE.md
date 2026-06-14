@@ -1,100 +1,97 @@
 # oxtra
 
-A Python library for autonomous multi-agent AI workflows. You provide intent; oxtra drives it to completion. An Overseer (persistent LLM with read-only tools and structured memory) makes judgment calls and generates workflows. A Scheduler (deterministic event loop) validates, executes, and enforces. Agent steps (scoped LLM calls) do the actual work.
+Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
 
 ## Status
 
-Design phase, hardened. The directory structure is a scaffold for the Python package. Each module directory has a DESIGN.md that serves as the implementation spec -- it describes the module's architecture, its public API, and a Files section listing the exact Python files to be created with their contents. When implementation begins, the Python files replace the DESIGN.md descriptions. The DESIGN.md files remain as architectural documentation alongside the code.
+Design phase, hardened. Monorepo with 13 sub-projects, each independently useful. Each sub-project has a DESIGN.md serving as its implementation spec. Implementation has not started.
 
-## Three components
+## Philosophy
 
-- **Overseer** -- the brain. One persistent agent with read-only tools (read, grep, glob), PostgreSQL memory (decisions, constraints, assumptions, lessons), and 11 structured decision protocols. It observes everything, decides what should happen, generates workflows, and orders agent steps to do the work. It never writes files or executes tasks. It is the only long-lived entity -- it receives session handoff when context fills.
-- **Scheduler** -- the nervous system. A deterministic event loop that validates workflows (schema + sanity-check subagent), executes steps, enforces USD budgets and mechanical constraints, classifies errors, routes events to the Overseer, and manages crash recovery via three-pass idempotent startup sequence. It has no opinions.
-- **Agent steps** -- the hands. Scoped LLM calls inside workflows. Each sees only what the workflow gives it. Short-lived -- they finish within their context window and report back.
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `transport/`. One wanting deterministic workflow execution without an Overseer brain uses `scheduler/`. The full system composes all 13.
 
-## Project structure
+Modules declare interfaces they consume (protocols), never implementations. No module imports another module directly -- they share protocol definitions. Composition happens at the consumer's entry point.
+
+## Monorepo structure
 
 ```
 oxtra/
-    DESIGN.md              # Architecture, axioms, anti-patterns, examples
-    CLAUDE.md
-    README.md
-    pyproject.toml         # uv-managed; pydantic, httpx, asyncpg, uuid6, strictcli
-    selfdoc.json           # selfdoc configuration for generated docs
-    .rlsbl/                # rlsbl release scaffolding
-        config.json
-        changes/
-            unreleased.jsonl
-    docs/                  # selfdoc templates (_README.md, _CLAUDE.md)
-    todo/                  # Work items (active)
-        .done/             # Completed items
-    scripts/               # Reusable project scripts
-    knowledge/             # Consumer domain knowledge (.md and .toml)
-    oxtra/
-        __init__.py
-        overseer/          # The brain: persistent LLM, decisions, memory, learning
-        scheduler/         # The nervous system: event loop, validation, execution
-        agent/             # Agent definition loading and validation
-        tool/              # Tool contract, registry, constructors (no bash tool)
-        transport/         # LLM communication via Provider protocol (raw httpx)
-            providers/     # AnthropicProvider, OpenAIProvider
-        verify/            # Ordered chains + semantic verification agents (structured verdicts)
-        notepad/           # Append-only cross-agent context (PG-backed)
-        session/           # Session lifecycle, token tracking
-        trace/             # PG schema owner: events, results, transcripts, inbox
-        knowledge/         # Knowledge ingestion and retrieval via cognee
-        services/          # Shared business logic for all frontends
-        cli/               # strictcli CLI (agents are the primary users)
-        mcp/               # MCP server (human interface via dashboard/AI client)
-    tests/
+    .rlsbl-monorepo/           # Monorepo workspace config
+        workspace.toml
+    schema/                     # pgdesign database schema
+    knowledge/                  # Consumer domain knowledge (.md and .toml)
+    docs/                       # selfdoc templates
+    todo/
+    scripts/
+
+    transport/                  # Foundation: typed LLM client
+    agent/                      # Foundation: TOML+md agent loader
+    tool/                       # Foundation: tool registry + constructors
+    verify/                     # Foundation: verification runner
+    trace/                      # Foundation: PG schema owner
+    notepad/                    # Foundation: cross-agent IPC
+
+    session/                    # Orchestration: session lifecycle
+    scheduler/                  # Orchestration: workflow executor
+
+    overseer/                   # Intelligence: persistent LLM brain
+    knowledge-module/           # Intelligence: cognee enrichment (experimental)
+
+    services/                   # Interface: shared business logic
+    cli/                        # Interface: strictcli CLI
+    mcp/                        # Interface: MCP server
 ```
+
+Each sub-project has: `pyproject.toml`, `DESIGN.md`, `src/<name>/`, `tests/`.
+
+## Architecture layers
+
+| Layer | Sub-projects | Dependencies |
+|---|---|---|
+| Foundation | transport, agent, tool, verify, trace, notepad | Zero intra-workspace deps (except notepad -> trace) |
+| Orchestration | session, scheduler | Depend on foundation |
+| Intelligence | overseer, knowledge-module | Depend on foundation (not orchestration -- protocol boundaries) |
+| Interfaces | services, cli, mcp | Depend on orchestration + intelligence |
+
+Higher layers can depend on lower layers. Lower layers cannot depend on higher layers. Enforced by `rlsbl check --tag workspace`.
 
 ## Key concepts
 
-- **Overseer** is a persistent agent with read-only tools and PostgreSQL memory. It makes decisions via 11 typed protocols with closed output schemas (picks from menus, never free-forms). It generates workflows that the scheduler validates and executes. See `overseer/DESIGN.md`.
-- **Scheduler** is a deterministic event loop. It validates workflows, executes steps, enforces USD budgets and constraints, classifies errors, and routes events to the Overseer. Assembles agent context in three layers (task + runtime system context + Overseer-selected lessons). See `scheduler/DESIGN.md`.
-- **Agents** are TOML + composable .md files. TOML has name, description, category, and an `allow` tool whitelist. The .md file is the system prompt with `{variable}` placeholders and `{include:filename.md}` directives for composition. See `agent/DESIGN.md`.
-- **Tools** are `{name, description, parameters, execute}` objects. oxtra provides granular constructors (read, write, edit, list_dir, grep, glob, stat, diff, mkdir, move, copy, delete, set_executable, git, exec, http, spawn, consult, notepad) but ships no bash tool and no mandatory tools. See `tool/DESIGN.md`.
-- **Workflows** are TOML files declaring steps with dependencies, timeouts, retry policy, and verification. Generated by the Overseer, validated and executed by the scheduler. Step types: agent, callable, workflow (child), decision_point, gate.
-- **Verification** is two-tier: ordered chains of mechanical callables (cheapest first, short-circuit on failure, optional `fix` for auto-fixable failures) then verification agents (semantic, read-only, structured verdicts with severity-gated blocking). See `verify/DESIGN.md`.
-- **Categories** map intent strings ("quick", "deep") to model strings ("anthropic/claude-sonnet-4-6") via a flat `categories.toml`. No fallback chains.
-- **Providers** implement a 4-method protocol (`build_request`, `parse_response`, `parse_stream`, `extract_usage`) using raw httpx (no SDKs). The transport runs a provider-agnostic tool-call loop with explicit retry policy for transient API errors.
-- **Decision protocols** are 11 typed protocols for Overseer decisions: intent, workflow, retry, budget, escalation, assumption, concurrency, constraint, scope, context, audit. Each has a system prompt template, input schema, output schema (closed menu), and context assembly rule.
-- **Human inbox** is a structured async queue backed by PG. The system assumes-records-proceeds by default. Three explicit blocking mechanisms (autonomy action-gating, hard errors on missing inputs, declared gate steps) handle cases requiring real waits. Inbox items carry tags and a four-status lifecycle (pending/answered/skipped/expired). Answers fire events for gate steps to await.
-- **Consumer knowledge** is domain-specific .md and .toml files in `knowledge/`. Written to the lessons table as the primary store; optionally indexed into a cognee knowledge graph (PG+pgvector) by the knowledge module when enabled. Retrieved during Overseer context assembly via flat SQL (always) and cognee semantic retrieval (when enabled). See `knowledge/DESIGN.md`.
-- **PostgreSQL** is the backbone. All persistent state in PG. Immutable tables (events, transcripts, notepad) via REVOKE UPDATE/DELETE. LISTEN/NOTIFY for cross-process observation. Advisory locks for mutual exclusion. UUIDv7 primary keys.
-- **Services layer** is shared business logic consumed by three frontends: the Python API, the strictcli CLI, and the MCP server.
+- **Transport** is a standalone typed LLM client. Provider protocol, raw httpx, streaming events, tool-call loop, auto-retry. See `transport/DESIGN.md`.
+- **Agent** is a standalone TOML+md agent definition loader. Strict validation, prompt composition, category resolution. See `agent/DESIGN.md`.
+- **Tool** is a standalone tool registry. Granular constructors (read, write, edit, git, exec, http, etc.), path enforcement, write safety, no-truncation previews. No bash tool. See `tool/DESIGN.md`.
+- **Verify** is a standalone verification runner. Ordered callable chains, structured verdicts, severity-gated blocking. See `verify/DESIGN.md`.
+- **Trace** is a standalone PG event store. Schema owner for all persistent state. State machines, LISTEN/NOTIFY, append-only tables, crash recovery. See `trace/DESIGN.md`.
+- **Notepad** is PG-backed append-only cross-agent IPC. See `notepad/DESIGN.md`.
+- **Session** wraps transport with token tracking, transcript persistence, cross-restart resumption. See `session/DESIGN.md`.
+- **Scheduler** is a deterministic workflow executor. Dependency graphs, parallel steps, budgets, constraints, verification dispatch. See `scheduler/DESIGN.md`.
+- **Overseer** is a persistent LLM with 11 structured decision protocols, PG memory, health monitoring, session handoff. See `overseer/DESIGN.md`.
+- **Knowledge-module** is an experimental cognee enrichment layer over the flat lessons table. Disabled by default. See `knowledge-module/DESIGN.md`.
+- **Services** is shared business logic consumed by CLI, MCP, and the Python API. See `services/DESIGN.md`.
+- **CLI** is a strictcli frontend. Agents are the primary users. See `cli/DESIGN.md`.
+- **MCP** is an MCP server for human interface via dashboard/AI client. See `mcp/DESIGN.md`.
 
 ## Tooling
 
-This project uses:
-
-- **pydantic v2** with `strict=True, extra='forbid'` for all schema validation (agent TOML, workflow TOML, decision protocol outputs, verification verdicts).
-- **mypy --strict** with the pydantic plugin for static type checking.
-- **ruff** with `select = ["ALL"]` and documented per-rule ignores for linting and formatting.
+- **pydantic v2** with `strict=True, extra='forbid'` for all schema validation.
+- **mypy --strict** with the pydantic plugin.
+- **ruff** with `select = ["ALL"]` and documented ignores.
 - **httpx** for all LLM API communication (no official SDKs).
 - **asyncpg** for PostgreSQL.
-- **cognee** (experimental) for semantic enrichment of the lessons table via knowledge graph (PG+pgvector backend). Disabled by default; must prove measurable value. The flat lessons table is the primary store regardless.
-- **rlsbl** for release orchestration, changelog enforcement, and CI scaffolding. Run `rlsbl scaffold` to set up `.rlsbl/`. See the rlsbl protocol in `~/Projects/CLAUDE.md`.
-- **strictcli** for the CLI layer. Schema-driven, no implicit flags.
-- **selfdoc** for generated documentation. Templates live in `docs/` (`_README.md`, `_CLAUDE.md`). Generated root files are read-only. Run `selfdoc gen` to regenerate.
+- **cognee** (experimental) for semantic enrichment of the lessons table.
+- **rlsbl** monorepo for release orchestration and changelog enforcement.
+- **strictcli** for the CLI.
+- **pgdesign** for database schema definition (`schema/oxtra.toml`).
 
 ## Conventions
 
 - Use `uv` for dependency management, never pip.
-- All prompt text lives in .md files, never in Python strings. Prompts are composable via `{include:filename.md}`.
-- Variable substitution is strict both ways: unresolved placeholders and unused provided variables are both hard errors.
-- No implicit defaults for provider, model, database URL, timeout, or retry behavior. Missing values are hard errors.
-- Every step must declare `depends_on` or `depends_on_previous`. Every agent step must declare `timeout`. `retry_resume` is required when `retry > 0`. `for_each_abort_on_failure` is required when `for_each` is set. `verify_block_threshold` is required when `verify_agent` is set.
-- The trace module is the single owner of the PostgreSQL schema. No other module writes to the database directly.
-- The Overseer makes decisions via closed-menu protocols. It never free-forms.
-- Agent steps are short-lived. If one can't finish within its context window, the task was decomposed wrong.
-- Tests belong in `tests/`, never in `/tmp/`. One test module per source module. All tests require a PostgreSQL instance.
-- Budgets are denominated in USD. oxtra maintains an internal pricing table. Reports track both tokens and best-effort USD.
-- No bash tool. Granular purpose-built tools with typed parameters and mechanical path enforcement.
+- All prompt text lives in .md files, never in Python strings.
+- Variable substitution is strict both ways.
+- No implicit defaults for provider, model, database URL, timeout, or retry behavior.
+- The trace module is the single owner of the PostgreSQL schema.
+- Budgets denominated in USD with oxtra-maintained internal pricing table.
+- No bash tool. Granular purpose-built tools with typed parameters.
 - Write safety: atomic replace, per-path write queue, transient-only replay, stale-write detection.
-- No truncation. Tool output is always persisted in full. Large results return a preview with opt-in full retrieval.
-
-## Design docs
-
-Each module has a DESIGN.md that serves as the implementation spec. Read it before working on that module. The root DESIGN.md has the full architecture, design axioms, and anti-patterns. The design originated from analysis of oh-my-openagent (omo), Superagent (an abandoned predecessor), and a prior design document (AUTONOMOUS.MD / Forge).
+- No truncation. Tool output always persisted in full; large results return a preview with opt-in full retrieval.
+- Modules share protocols, not implementations. No cross-module imports.

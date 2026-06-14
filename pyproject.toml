@@ -1,32 +1,6 @@
-[project]
-name = "oxtra"
-version = "0.0.0"
-description = "Autonomous multi-agent AI workflow orchestration"
-requires-python = ">=3.12"
-dependencies = [
-    "pydantic>=2",
-    "httpx",
-    "asyncpg",
-    "uuid6",
-    "strictcli",
-    "cognee",
-]
-
-[project.scripts]
-oxtra = "oxtra.cli._cli:main"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.uv]
-dev-dependencies = [
-    "pytest>=8",
-    "pytest-asyncio>=0.24",
-    "ruff",
-    "mypy",
-    "pydantic[mypy]",
-]
+# oxtra monorepo root
+# Not a publishable package. Each sub-project has its own pyproject.toml.
+# This file holds shared tool configuration only.
 
 [tool.ruff]
 target-version = "py312"
@@ -46,7 +20,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = [
+"**/tests/**" = [
     "S101",    # assert in tests is fine
     "PLR2004", # magic values in tests are fine
     "ARG",     # unused args in fixtures are fine

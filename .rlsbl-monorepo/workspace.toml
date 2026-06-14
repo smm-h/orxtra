@@ -1,0 +1,90 @@
+# oxtra monorepo workspace
+# Philosophy: complexity if you need it, simplicity if you don't.
+# Each sub-project is independently useful for a narrow purpose.
+# Together they compose into a full autonomous agent orchestration system.
+
+# --- Foundation layer: zero intra-workspace dependencies ---
+
+[[projects]]
+path = "transport"
+description = "Typed LLM client via Provider protocol"
+library = true
+
+[[projects]]
+path = "agent"
+description = "Agent definition loader (TOML + composable .md prompts)"
+library = true
+
+[[projects]]
+path = "tool"
+description = "Tool registry with granular constructors"
+library = true
+
+[[projects]]
+path = "verify"
+description = "Verification runner (callable chains + structured verdicts)"
+library = true
+
+[[projects]]
+path = "trace"
+description = "PG schema owner (events, results, transcripts, inbox, state machines)"
+library = true
+
+[[projects]]
+path = "notepad"
+description = "Append-only cross-agent context sharing"
+depends_on = ["trace"]
+library = true
+
+# --- Orchestration layer ---
+
+[[projects]]
+path = "session"
+description = "Session lifecycle, token tracking, cross-restart resumption"
+depends_on = ["transport", "trace"]
+library = true
+
+[[projects]]
+path = "scheduler"
+description = "Deterministic workflow executor"
+depends_on = ["agent", "tool", "session", "trace", "verify", "notepad"]
+
+# --- Intelligence layer ---
+
+[[projects]]
+path = "overseer"
+description = "Persistent LLM with structured decision protocols"
+depends_on = ["trace", "session"]
+
+[[projects]]
+path = "knowledge-module"
+description = "Experimental semantic enrichment via cognee"
+depends_on = ["trace"]
+
+# --- Interface layer ---
+
+[[projects]]
+path = "services"
+description = "Shared business logic for all frontends"
+depends_on = ["scheduler", "overseer", "trace"]
+
+[[projects]]
+path = "cli"
+description = "strictcli CLI frontend (agents are the primary users)"
+depends_on = ["services"]
+
+[[projects]]
+path = "mcp"
+description = "MCP server (human interface via dashboard/AI client)"
+depends_on = ["services"]
+
+# --- Architecture layers ---
+
+[layers]
+order = ["foundation", "orchestration", "intelligence", "interfaces"]
+
+[layers.assignments]
+foundation = ["transport", "agent", "tool", "verify", "trace", "notepad"]
+orchestration = ["session", "scheduler"]
+intelligence = ["overseer", "knowledge-module"]
+interfaces = ["services", "cli", "mcp"]

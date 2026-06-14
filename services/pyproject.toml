@@ -1,0 +1,24 @@
+[project]
+name = "services"
+version = "0.0.0"
+description = "Shared business logic for all frontends. Run, inbox, trace queries, validation, config."
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2",
+    "asyncpg",
+    "scheduler",
+    "overseer",
+    "trace",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/services"]
+
+[tool.uv.sources]
+scheduler = { path = "../scheduler", editable = true }
+overseer = { path = "../overseer", editable = true }
+trace = { path = "../trace", editable = true }
