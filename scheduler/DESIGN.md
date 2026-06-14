@@ -33,7 +33,7 @@ created -> prechecking -> active -> postchecking -> completed
 
 - `prechecking`: the scheduler runs the task's pre-checks (via verify module). If all pass, task transitions to `active`. If any fail, the error is returned to the agent that called `start_task`.
 - `active`: the agent is working. All tool calls are permitted within this task.
-- `postchecking`: the scheduler runs the task's post-checks. If all pass, task transitions to `completed`. If any fail, the error is returned to the agent that called `end_task`.
+- `postchecking`: the scheduler auto-commits any uncommitted file changes via safegit (using the `message` from `end_task` as the commit message), then runs the task's post-checks against the committed state. If all pass, task transitions to `completed`. If any fail, the error is returned to the agent that called `end_task`.
 - `postcheck_failed -> active`: the agent receives the failure, fixes its work, and calls `end_task` again.
 - `escalated`: the agent cannot satisfy post-checks. The failure is packaged as an `EscalationPayload` (defined in `orxt.protocols`) and delivered to the parent task's agent.
 
