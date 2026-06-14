@@ -18,6 +18,8 @@ Each tool maps 1:1 to a service function.
 | `list_runs` | `run.list_runs` | List all runs |
 | `get_run` | `run.get_run` | Get a run's full report |
 | `abort_run` | `run.abort_run` | Abort a running run |
+| `pause_run` | `run.pause_run` | Pause a running run |
+| `resume_run` | `run.resume_run` | Resume a paused run |
 
 ### Inbox Tools
 
@@ -35,6 +37,7 @@ Each tool maps 1:1 to a service function.
 |---|---|---|
 | `query_events` | `trace.query_events` | Query events for a run |
 | `get_transcript` | `trace.get_transcript` | Get a session transcript |
+| `search_transcript` | `trace.search_transcript` | Search a transcript |
 | `get_task_attempts` | `trace.get_task_attempts` | Get attempts for a task |
 | `get_notepad` | `trace.get_notepad` | Get notepad entries |
 

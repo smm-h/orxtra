@@ -39,6 +39,7 @@ The Overseer's system prompt encodes a systemic bias toward correctness:
 | Tool | Purpose |
 |---|---|
 | `read` | Read file contents |
+| `list_dir` | List directory contents |
 | `grep` | Search file contents |
 | `glob` | Find files by pattern |
 
@@ -65,6 +66,12 @@ The Overseer's system prompt encodes a systemic bias toward correctness:
 | `add_constraint` | Add a mechanical or advisory constraint |
 | `record_assumption` | Record an assumption, optionally create inbox item |
 | `write_lesson` | Write to the cross-run knowledge base |
+
+### Context Tools
+
+| Tool | Purpose |
+|---|---|
+| `notepad` | Write entries to the run's shared notepad |
 
 ### System Tools
 

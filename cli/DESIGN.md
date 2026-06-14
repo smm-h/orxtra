@@ -20,6 +20,8 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 | `orxt run list` | List all runs, newest first. |
 | `orxt run show <run_id>` | Show a run's full report. |
 | `orxt run abort <run_id>` | Signal a running run to abort. |
+| `orxt run pause <run_id>` | Pause a running run. |
+| `orxt run resume <run_id>` | Resume a paused run. |
 
 ### Inbox Commands
 
@@ -37,6 +39,7 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 |---|---|
 | `orxt trace events <run_id> [--type <event_type>] [--limit N]` | Query events. |
 | `orxt trace transcript <session_id>` | Show a session's full transcript. |
+| `orxt trace search <session_id> <query>` | Search a transcript (case-insensitive substring). |
 | `orxt trace tasks <run_id>` | Show task statuses and attempt counts. |
 | `orxt trace notepad <run_id>` | Show notepad entries. |
 

@@ -221,7 +221,7 @@ Three-pass idempotent startup recovery (see `trace/DESIGN.md`):
 
 ## Pause/Resume
 
-Pause persists cursor + state via trace. Resume reloads and restores. Pauseable at every level (task, workflow, entire run).
+Pause transitions the run to paused state via trace. Resume reloads task states from the database and resumes pending/ready tasks. The task states in PG are the cursor -- no separate cursor structure is needed. Pauseable at every level (task, workflow, entire run).
 
 ## Cancellation
 
@@ -231,7 +231,7 @@ Catches `CancelledError`, cleans up sessions, writes partial results.
 
 | File | Contents |
 |---|---|
-| `_types.py` | `TaskContext`, `TaskResult`, `WorkflowConfig` (parsed TOML), `ServiceConfig`. All pydantic models with `strict=True, extra='forbid'`. |
+| `_types.py` | Re-exports `TaskContext`, `TaskResult` from `orxt.protocols._task`. Plus scheduler-specific: `WorkflowConfig` (parsed TOML), `ServiceConfig`. All pydantic models with `strict=True, extra='forbid'`. |
 | `_loader.py` | `load_workflow(path_or_str)` -- reads workflow TOML, validates schema, returns task tree. |
 | `_graph.py` | Dependency graph construction. Topological sort. Cycle detection. Parallelizable task identification. |
 | `_executor.py` | `Scheduler` class. Event loop, task execution, start_task/end_task enforcement, active-task tracking, pre/postcheck dispatch via verify, timeout enforcement, retry logic, constraint enforcement, budget tracking, pause/resume, `abort()`. Write safety orchestration. |
@@ -246,6 +246,6 @@ Catches `CancelledError`, cleans up sessions, writes partial results.
 - Does not make judgment calls (that is the Overseer)
 - Does not generate workflows or decompose goals (that is the Overseer and workflow agents)
 - Does not define agents or tools (those are loaded externally)
-- Does not manage transport connections (that is the session module)
+- Does not create transport connections (those are constructed by the services layer and passed in via the transport registry)
 - Does not implement model selection logic (that is agent category resolution)
 - Does not compute USD costs (reads the pricing table; computation is mechanical)

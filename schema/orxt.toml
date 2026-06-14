@@ -129,6 +129,11 @@ kind = "enum"
 values = ["understanding", "decomposition", "task"]
 comment = "Scope at which an assumption was made"
 
+[types.autonomy_level]
+kind = "enum"
+values = ["low", "medium", "high", "max"]
+comment = "Run autonomy setting"
+
 [types.workflow_health]
 kind = "enum"
 values = ["healthy", "degraded", "failing"]
@@ -152,8 +157,7 @@ comment = "The user's original intent"
 type = "run_status"
 
 [tables.runs.columns.autonomy_level]
-type = "str"
-comment = "Autonomy setting at run start (low/medium/high/max)"
+type = "autonomy_level"
 
 [tables.runs.columns.config_snapshot]
 type = "json"
@@ -535,7 +539,7 @@ columns = ["run_id"]
 # ---------------------------------------------------------------------------
 
 [tables.inbox_items]
-comment = "Human inbox. Items created by the Overseer. Tags for triage, four-status lifecycle, answer events for gate integration."
+comment = "Human inbox. Items created by the Overseer. Tags for triage, five-status lifecycle (pending/answered/skipped/expired/rejected), answer events for gate integration."
 
 [tables.inbox_items.columns.id]
 type = "id"
@@ -543,9 +547,9 @@ type = "id"
 [tables.inbox_items.columns.run_id]
 type = "ref"
 
-[tables.inbox_items.columns.protocol_type]
+[tables.inbox_items.columns.decision_type]
 type = "str"
-comment = "Decision protocol that emitted this item"
+comment = "Decision type that emitted this item (e.g., retry_strategy, budget_reallocation)"
 
 [tables.inbox_items.columns.question]
 type = "str"
@@ -570,7 +574,7 @@ comment = "What happens if the human picks differently"
 type = "str"
 array = true
 default = "{}"
-comment = "Framework auto-injects protocol_type; Overseer may add free-form tags"
+comment = "Framework auto-injects decision_type; Overseer may add free-form tags"
 
 [tables.inbox_items.columns.status]
 type = "inbox_status"
@@ -643,7 +647,7 @@ columns = ["step_attempt_id"]
 # ---------------------------------------------------------------------------
 
 [tables.decisions]
-comment = "Overseer decision records. Every protocol invocation is recorded."
+comment = "Overseer decision records. Every decision is recorded with its type, choice, and rationale."
 
 [tables.decisions.columns.id]
 type = "id"
@@ -651,13 +655,13 @@ type = "id"
 [tables.decisions.columns.run_id]
 type = "ref"
 
-[tables.decisions.columns.protocol_type]
+[tables.decisions.columns.decision_type]
 type = "str"
-comment = "Decision protocol name"
+comment = "What kind of decision (e.g., retry_strategy, budget_reallocation)"
 
 [tables.decisions.columns.choice]
 type = "json"
-comment = "Structured output from the protocol (closed menu selection)"
+comment = "Structured decision details"
 
 [tables.decisions.columns.rationale]
 type = "str_nullable"
@@ -678,8 +682,8 @@ on_delete = "CASCADE"
 [tables.decisions.indexes.idx_decisions_run]
 columns = ["run_id", "created_at DESC"]
 
-[tables.decisions.indexes.idx_decisions_run_protocol]
-columns = ["run_id", "protocol_type"]
+[tables.decisions.indexes.idx_decisions_run_type]
+columns = ["run_id", "decision_type"]
 
 # ---------------------------------------------------------------------------
 
@@ -697,6 +701,8 @@ type = "str"
 
 [tables.constraints.columns.source_decision_id]
 type = "ref"
+nullable = true
+comment = "NULL for constraints loaded from consumer knowledge files"
 
 [tables.constraints.columns.tier]
 type = "constraint_tier"
@@ -794,7 +800,6 @@ type = "str"
 [tables.lessons.columns.relevance_tags]
 type = "str"
 array = true
-nullable = true
 comment = "Relevance tags for flat SQL queries"
 
 [tables.lessons.columns.permanent]

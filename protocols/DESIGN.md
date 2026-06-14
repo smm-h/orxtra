@@ -129,6 +129,7 @@ class TaskSpec:
     variables: list[str] = field(default_factory=list)
     depends_on: list[str] | None = None
     depends_on_previous: bool | None = None
+    category: str | None = None          # override agent's default category
     timeout: int | None = None           # seconds, required for agent tasks
     context_refinement: bool | None = None  # required for agent tasks
     retry: int = 0
@@ -295,9 +296,11 @@ Create a concrete subtask within the current active task.
 | `budget` | number | no | Per-task USD budget |
 | `write_paths` | array of strings | no | File paths this task may write |
 | `context_refinement` | boolean | yes | Whether the Overseer refines context |
+| `category` | string | no | Override agent's default category |
 | `retry` | integer | no | Max retry count (default 0) |
 | `retry_resume` | boolean | conditional | Required if retry > 0 |
 | `retry_inject_failure` | boolean | conditional | Required if retry > 0 |
+| `depends_on` | array of strings | no | Sibling task names that must complete first |
 
 Returns: `task_id` (UUID) or validation error.
 
@@ -348,6 +351,8 @@ Create a human inbox item.
 | `work_proceeding` | string | yes | What work continues under the assumption |
 | `contradiction_impact` | string | yes | What happens if the human picks differently |
 | `tags` | array of strings | no | Tags for triage |
+| `deadline` | string | no | ISO timestamp deadline for response |
+| `answer_event` | string | no | Event name fired when answered (for gate tasks to await) |
 
 Returns: `item_id` (UUID).
 
@@ -461,7 +466,7 @@ async def pre_retry(ctx: TaskContext) -> None:
 | `_task.py` | `TaskSpec`, `TaskContext`, `TaskResult`, `AttemptSummary`, `EscalationPayload`. Task lifecycle state enum. |
 | `_events.py` | `RunStarted`, `TaskFailed`, `TaskEscalated`, `BudgetThresholdCrossed`, `BudgetExhausted`, `InboxAnswered`, `InboxRejected`, `StructuralAdvisory`, `HealthDegraded`. |
 | `_tools.py` | Parameter and return schemas for all Overseer action tools. Pydantic models for validation. |
-| `_checks.py` | `CheckContext`, `CheckAgentContext`. Callback type aliases for `on_success` and `pre_retry`. |
+| `_checks.py` | `CheckContext`, `CheckAgentContext`, `CheckExecutor` protocol (interface for spawning consult agents and creating subtasks, injected by scheduler). Callback type aliases for `on_success` and `pre_retry`. |
 
 ## What This Module Does NOT Do
 
