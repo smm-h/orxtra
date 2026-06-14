@@ -235,6 +235,11 @@ Delete a file or directory. **Wraps saferm, not rm.** Every deletion has an audi
 | `description` | string | yes | Why this deletion is needed. Mandatory -- saferm requires it for the audit trail. |
 | `recursive` | boolean | yes | Required for directories. Hard error if deleting a directory without `recursive=true`. |
 
+The constructor configures saferm at build time:
+- `SAFERM_HOME` set to an oxtra-managed directory (per-run or per-project isolation)
+- Each invocation passes `--meta run_id=<id> --meta step_name=<name> --meta agent_name=<name>` for traceability
+- saferm automatically captures git context (branch, HEAD) and parent process info
+
 #### `make_set_executable_tool(read_root, write_scope=None) -> Tool`
 
 Set the executable bit on a file.
@@ -264,9 +269,11 @@ Git operations with subcommand-level granularity. **Mutation subcommands wrap sa
 
 The `commit` subcommand:
 - Takes `message` (required) and `files` (required, explicit list -- no `git add .` or `git add -A`)
-- Wraps `safegit commit -m "message" -- file1 file2`
+- Wraps `safegit commit -m "message" --trailer "Run-ID: <run_id>" --trailer "Step-Name: <step_name>" --trailer "Agent-Name: <agent_name>" -- file1 file2`
+- The constructor injects `--trailer` flags from the current run/step/agent context automatically; the agent only provides `message` and `files`
 - Concurrency-safe: multiple agents can commit simultaneously without corruption
 - Hard error if `files` is empty or if `message` is empty
+- `CLAUDE_CODE_SESSION_ID` is not set -- no CC-specific trailers are added
 
 `stage` is removed -- safegit handles staging internally within the commit operation. `push`, `pull`, `reset`, `checkout`, `stash`, `restore` are deliberately absent. Pushes happen through rlsbl, not through agent tools.
 
