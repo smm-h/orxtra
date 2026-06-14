@@ -133,7 +133,7 @@ async def format_notepad(entries) -> str: ...
 
 Three-pass idempotent startup recovery:
 1. Reclaim interrupted tasks (transition to `failed`)
-2. Re-evaluate blocked/gated work
+2. Re-evaluate blocked/waiting work
 3. Clean orphaned resources (services, locks, stale advisory locks)
 
 ## Files

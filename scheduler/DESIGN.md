@@ -77,7 +77,7 @@ Key fields:
 | `task_prompt` | string | yes* | Task prompt template |
 | `callable` | string | yes* | Python callable path (function tasks) |
 | `subtasks` | list of TaskSpec | yes* | Nested tasks (composite/workflow tasks) |
-| `variables` | list of strings | yes | Variable names this task needs |
+| `variables` | list of strings | no | Variable names this task needs (default: empty) |
 | `depends_on` | list of strings | no | Tasks that must complete first (declared in `[dependencies]` section for TOML, or inline for runtime) |
 | `timeout` | integer | yes (agent tasks) | Max wall-clock seconds |
 | `context_refinement` | boolean | yes (agent tasks) | Whether the Overseer refines context before this task |
@@ -86,6 +86,7 @@ Key fields:
 | `retry_inject_failure` | boolean | conditional | Required when retry > 0 |
 | `for_each` | string | no | Variable name resolving to a list |
 | `for_each_abort_on_failure` | boolean | conditional | Required when for_each is set |
+| `max_concurrency` | integer | conditional | Required when for_each is set |
 | `output_schema` | string | no | JSON Schema path for structured output validation |
 | `budget` | number | no | Per-task USD budget |
 | `write_paths` | list of strings | no | File paths this task may write |
@@ -219,7 +220,7 @@ The scheduler instantiates write-safety infrastructure from `orxt.write_safety` 
 
 Three-pass idempotent startup recovery (see `trace/DESIGN.md`):
 1. Reclaim interrupted tasks (transition to `failed`)
-2. Re-evaluate blocked/gated work
+2. Re-evaluate blocked/waiting work
 3. Clean orphaned resources (services, locks, stale advisory locks)
 
 ## Pause/Resume
@@ -251,4 +252,4 @@ Catches `CancelledError`, cleans up sessions, writes partial results.
 - Does not define agents or tools (those are loaded externally)
 - Does not create transport connections (those are constructed by the services layer and passed in via the transport registry)
 - Does not implement model selection logic (that is agent category resolution)
-- Does not compute USD costs (reads the pricing table; computation is mechanical)
+- Does not own USD cost computation (delegates to the session module's pricing table)
