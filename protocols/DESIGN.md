@@ -127,8 +127,9 @@ class TaskSpec:
     decision_point: bool | None = None   # pauses execution and sends event to Overseer
 
     variables: list[str] = field(default_factory=list)
+    # Dependencies are declared in a separate [dependencies] section in TOML,
+    # not inline on each task. For runtime create_task, depends_on is a parameter.
     depends_on: list[str] | None = None
-    depends_on_previous: bool | None = None
     category: str | None = None          # override agent's default category
     timeout: int | None = None           # seconds, required for agent tasks
     context_refinement: bool | None = None  # required for agent tasks
@@ -137,6 +138,7 @@ class TaskSpec:
     retry_inject_failure: bool | None = None  # required when retry > 0
     for_each: str | None = None
     for_each_abort_on_failure: bool | None = None  # required when for_each is set
+    max_concurrency: int | None = None             # required when for_each is set
     output_schema: str | None = None     # JSON Schema path
     budget: Decimal | None = None        # per-task USD budget
     write_paths: list[str] | None = None
@@ -144,7 +146,7 @@ class TaskSpec:
     pre_retry: str | None = None         # callable path
 ```
 
-A task must declare exactly one execution mode: `agent` + `task_prompt` (agent task), `callable` (function task), `subtasks` (workflow/composite task), `wait_for` (wait for named event), or `decision_point` (pause and invoke Overseer). Every task must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
+A task must declare exactly one execution mode: `agent` + `task_prompt` (agent task), `callable` (function task), `subtasks` (workflow/composite task), `wait_for` (wait for named event), or `decision_point` (pause and invoke Overseer). Dependencies are declared in a separate `[dependencies]` section in the workflow TOML (after all tasks are listed), or via the `depends_on` parameter on `create_task` for runtime creation. Tasks with no declared dependencies can run immediately.
 
 ### Task Context
 
@@ -457,6 +459,34 @@ async def pre_retry(ctx: TaskContext) -> None:
     ...
 ```
 
+## Error Taxonomy
+
+Error categories used by the scheduler to classify failures before sending them to the Overseer. Shared type so both modules use the same vocabulary.
+
+```python
+class ErrorCategory(str, Enum):
+    INFRA = "infra"                # timeout, network, disk full, OOM, API errors exhausted
+    CONTEXT_LIMIT = "context_limit" # token limit exceeded
+    PARSE = "parse"                # LLM output did not match schema
+    FLAKY = "flaky"                # non-deterministic test failure
+    BUILD_ENV = "build_env"        # missing dependency, wrong version
+    LOGIC = "logic"                # consistent test failure from code error
+    UNCLASSIFIED = "unclassified"  # no pattern matched
+```
+
+## Constraint Vocabulary
+
+The closed set of mechanical constraint primitives that the scheduler can check programmatically. These are the valid values for mechanical constraints:
+
+- `tests_pass` -- test suite must pass (expensive: runs at workflow completion only)
+- `lint_clean` -- linter must pass (expensive: runs at workflow completion only)
+- `no_removed_exports(glob)` -- public API symbols cannot be removed from matching files
+- `no_changed_signatures(glob)` -- function/method signatures cannot change
+- `no_new_dependencies` -- no additions to dependency manifests
+- `no_new_files_outside(directory)` -- no file creation outside specified directory
+
+The vocabulary is extensible by consumers who provide their own constraint checker implementations.
+
 ## Files
 
 | File | Contents |
@@ -467,6 +497,8 @@ async def pre_retry(ctx: TaskContext) -> None:
 | `_events.py` | `RunStarted`, `TaskFailed`, `TaskEscalated`, `BudgetThresholdCrossed`, `BudgetExhausted`, `InboxAnswered`, `InboxRejected`, `StructuralAdvisory`, `HealthDegraded`. |
 | `_tools.py` | Parameter and return schemas for all Overseer action tools. Pydantic models for validation. |
 | `_checks.py` | `CheckContext`, `CheckAgentContext`, `CheckExecutor` protocol (interface for spawning consult agents and creating subtasks, injected by scheduler). Callback type aliases for `on_success` and `pre_retry`. |
+| `_errors.py` | `ErrorCategory` enum. Shared between scheduler (classification) and overseer (reception). |
+| `_constraints.py` | Mechanical constraint vocabulary. Constraint primitive definitions. |
 
 ## What This Module Does NOT Do
 

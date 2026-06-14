@@ -78,8 +78,7 @@ Key fields:
 | `callable` | string | yes* | Python callable path (function tasks) |
 | `subtasks` | list of TaskSpec | yes* | Nested tasks (composite/workflow tasks) |
 | `variables` | list of strings | yes | Variable names this task needs |
-| `depends_on` | list of strings | yes** | Tasks that must complete first |
-| `depends_on_previous` | boolean | yes** | Depends on the immediately preceding task |
+| `depends_on` | list of strings | no | Tasks that must complete first (declared in `[dependencies]` section for TOML, or inline for runtime) |
 | `timeout` | integer | yes (agent tasks) | Max wall-clock seconds |
 | `context_refinement` | boolean | yes (agent tasks) | Whether the Overseer refines context before this task |
 | `retry` | integer | no | Max retry count (default 0) |
@@ -95,7 +94,7 @@ Key fields:
 
 *A task must declare exactly one of: `agent` + `task_prompt`, `callable`, `subtasks`, `wait_for`, or `decision_point`.
 
-**Every task must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
+Dependencies are declared in a `[dependencies]` section at the end of the workflow TOML (after all tasks are listed), so the LLM can see all task names before declaring the graph. Tasks not listed in the dependencies section have no dependencies and can run immediately. For runtime task creation via `create_task`, `depends_on` is an optional parameter.
 
 ## Structural Advisories
 
@@ -140,7 +139,7 @@ The scheduler stores pre-refinement context and a unified diff of the Overseer's
 
 ## Dependencies and Parallelism
 
-The scheduler builds a dependency graph from `depends_on` and `depends_on_previous` declarations within each level of the task hierarchy. Tasks with no dependency between them run in parallel via asyncio. `for_each` iterations are also parallel.
+The scheduler builds a dependency graph from the `[dependencies]` section in TOML or `depends_on` parameters on runtime-created tasks. Tasks with no dependency between them run in parallel via asyncio. `for_each` iterations are also parallel.
 
 Topological sort at load time. Cycles are hard errors.
 
@@ -170,9 +169,13 @@ A function task runs a Python callable instead of an LLM agent. The callable rec
 
 Tasks with `output_schema` get JSON extraction and validation after completion. Parse failure or validation failure triggers retry. Validated output available as `{task_name_output}`.
 
-## Batch Iteration
+## Batch Iteration (for_each)
 
-Tasks with `for_each` execute once per item in a list variable. Iterations run in parallel. `for_each_abort_on_failure` controls whether partial failures abort. `for_each` + `output_schema` validates per iteration, collects as list. The output variable `{task_name_output}` is an array of per-iteration results (null for failed iterations when `for_each_abort_on_failure = false`).
+Tasks with `for_each` execute once per item in a list variable. This is the SPT iteration construct -- not subtask creation, not retry attempts. Each run is an **iteration**: the same task spec executing with different `{item}` data.
+
+Iterations run in parallel, bounded by `max_concurrency` (required when `for_each` is set). Each iteration has its own lifecycle (start_task/end_task), its own postchecks, and its own output. Iterations are persisted as iteration rows linked to the for_each task, each with status, output, and check results.
+
+`for_each_abort_on_failure` controls whether a failed iteration aborts remaining iterations. The output variable `{task_name_output}` is an array of per-iteration results (null for failed iterations when `for_each_abort_on_failure = false`).
 
 ## Post-Task Actions
 
@@ -210,13 +213,7 @@ When multiple workflows run concurrently, the file-lock registry prevents confli
 
 ## Write Safety Enforcement
 
-The scheduler manages the four write-safety mechanisms:
-1. Atomic replace (temp + fsync + rename)
-2. Per-path write queue
-3. Transient-only executor replay
-4. Stale-write detection
-
-It instantiates the per-path write queue at run start, passes it to tool constructors, and re-constructs scoped tools per task when `write_paths` is declared.
+The scheduler instantiates write-safety infrastructure from `orxt.write_safety` at run start (write queue, stale-write tracker) and passes it to tool constructors. It re-constructs scoped tools per task when `write_paths` is declared. See `write-safety/DESIGN.md` for the mechanisms.
 
 ## Crash Recovery
 

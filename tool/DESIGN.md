@@ -68,12 +68,12 @@ For tools that can produce large output (read, exec, http, grep):
 
 ## Write Safety
 
-The scheduler instantiates write-safety infrastructure at run start and passes it to tool constructors. Tools enforce the mechanisms at execution time:
+File-mutating tools use the `orxt.write_safety` module (see `write-safety/DESIGN.md`). The scheduler instantiates the write queue and stale-write tracker at run start and passes them to tool constructors. Tools enforce the mechanisms at execution time:
 
-1. **Atomic replace**: temp file + fsync + rename
-2. **Per-path write queue**: concurrent writes serialized
-3. **Transient-only executor replay**: transient OS errors retried from recorded args
-4. **Stale-write detection**: content hash tracking per agent session
+1. **Atomic replace**: temp file + fsync + rename (write-safety module)
+2. **Per-path write queue**: concurrent writes serialized (write-safety module)
+3. **Transient-only replay**: transient OS errors retried from recorded args (write-safety module)
+4. **Stale-write detection**: content hash tracking per agent session (write-safety module)
 
 ## Built-in Tool Constructors
 
@@ -314,7 +314,7 @@ When the LLM requests a tool call, the transport's tool-call loop:
 | `_types.py` | Re-exports `Tool` and `ToolError` from `orxt.protocols._tool`. |
 | `_path.py` | Canonical path enforcement. |
 | `_preview.py` | No-truncation preview logic. |
-| `_write_queue.py` | Per-path write serialization, stale-write detection, transient replay. |
+| `_write_integration.py` | Integration with `orxt.write_safety`: passes write queue and stale tracker to file-mutating tool constructors. |
 | `_constructors.py` | File read/write tool constructors: `make_read_tool`, `make_write_tool`, `make_edit_tool`, `make_list_dir_tool`, `make_glob_tool`, `make_grep_tool`, `make_stat_tool`, `make_diff_tool`, `make_mkdir_tool`, `make_move_tool`, `make_copy_tool`, `make_delete_tool`, `make_set_executable_tool`, `make_git_tool`, `make_exec_tool`, `make_http_tool`. |
 | `_consult.py` | `make_consult_tool(executor)` -- consult tool with read-only stripping. |
 | `_notepad.py` | `make_notepad_tool(trace_writer)` -- notepad tool. |

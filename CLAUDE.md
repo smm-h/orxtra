@@ -4,11 +4,11 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Design phase, hardened. Monorepo with 15 sub-projects, each independently useful. Each sub-project has a DESIGN.md serving as its implementation spec. Implementation has not started.
+Design phase, hardened. Monorepo with 16 sub-projects, each independently useful. Each sub-project has a DESIGN.md serving as its implementation spec. Implementation has not started.
 
 ## Philosophy
 
-Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxt.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxt.scheduler`. The full system composes all 15.
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxt.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxt.scheduler`. The full system composes all 16.
 
 ### Structured Programming for AI Workflows
 
@@ -37,6 +37,7 @@ orxt/
 
     protocols/                  # Foundation: shared types and interfaces
     secrets/                    # Foundation: secret registry + scrubbing
+    write-safety/               # Foundation: write queue + stale detection
     transport/                  # Foundation: typed LLM client
     agent/                      # Foundation: TOML+md agent loader
     tool/                       # Foundation: tool registry + constructors
@@ -61,7 +62,7 @@ Each sub-project has: `pyproject.toml`, `DESIGN.md`, `src/orxt/<name>/`, `tests/
 
 | Layer | Sub-projects | Dependencies |
 |---|---|---|
-| Foundation | protocols, secrets, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols, verify -> protocols) |
+| Foundation | protocols, secrets, write-safety, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + write-safety, verify -> protocols) |
 | Orchestration | scheduler | Depends on foundation |
 | Intelligence | overseer, knowledge-module | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Interfaces | services, cli, mcp | Depends on orchestration + intelligence |
@@ -70,6 +71,7 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 
 ## Key concepts
 
+- **Write-safety** owns the write queue, stale-write detection, atomic replace, and transient replay. Used by tool (enforcement) and scheduler (lifecycle). See `write-safety/DESIGN.md`.
 - **Secrets** owns the secret registry, substitution (`{{secret:NAME}}` -> real values in tool args), and scrubbing (real values -> placeholders in results and trace). See `secrets/DESIGN.md`.
 - **Protocols** defines shared types: Execution (script/agent/workflow), task lifecycle, event descriptors, action tool schemas, check results. See `protocols/DESIGN.md`.
 - **Transport** is a standalone typed LLM client. Provider protocol, raw httpx, streaming events, tool-call loop, auto-retry. See `transport/DESIGN.md`.

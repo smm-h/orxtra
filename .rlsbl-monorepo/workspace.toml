@@ -16,6 +16,11 @@ description = "Secret registry, substitution, and scrubbing"
 library = true
 
 [[projects]]
+path = "write-safety"
+description = "Write queue, stale-write detection, atomic replace, transient replay"
+library = true
+
+[[projects]]
 path = "transport"
 description = "Typed LLM client via Provider protocol"
 depends_on = ["protocols"]
@@ -29,7 +34,7 @@ library = true
 [[projects]]
 path = "tool"
 description = "Tool registry with granular constructors"
-depends_on = ["protocols"]
+depends_on = ["protocols", "write-safety"]
 library = true
 
 [[projects]]
@@ -97,7 +102,7 @@ depends_on = ["services"]
 order = ["foundation", "orchestration", "intelligence", "interfaces"]
 
 [layers.assignments]
-foundation = ["protocols", "secrets", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
+foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
 orchestration = ["scheduler"]
 intelligence = ["overseer", "knowledge-module"]
 interfaces = ["services", "cli", "mcp"]
