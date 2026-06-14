@@ -222,7 +222,7 @@ The scheduler instantiates write-safety infrastructure from `orxt.write_safety` 
 ## Crash Recovery
 
 Three-pass idempotent startup recovery (see `trace/DESIGN.md`):
-1. Reclaim interrupted tasks (transition to `failed`)
+1. Reclaim interrupted tasks (transition to `cancelled`)
 2. Re-evaluate blocked/waiting work
 3. Clean orphaned resources (services, locks, stale advisory locks)
 
