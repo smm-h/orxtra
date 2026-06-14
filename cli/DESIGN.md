@@ -4,11 +4,11 @@ strictcli-based command-line interface. Thin frontend over the services layer.
 
 ## Responsibility
 
-Parse arguments, call service functions, format output. No business logic. Agents are the primary users -- the CLI is designed for scriptability, not interactive human workflows.
+Parse arguments, call service functions, format output. No business logic. Agents are the primary users.
 
 ## Framework
 
-Built on **strictcli**. Schema-driven, no implicit flags, strict argument validation. The CLI schema is auto-dumped during releases via rlsbl.
+Built on **strictcli**. Schema-driven, no implicit flags, strict argument validation.
 
 ## Commands
 
@@ -16,6 +16,7 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 
 | Command | Description |
 |---|---|
+| `orxt run start --config <path> --intent "..."` | Start a run from a config file. |
 | `orxt run list` | List all runs, newest first. |
 | `orxt run show <run_id>` | Show a run's full report. |
 | `orxt run abort <run_id>` | Signal a running run to abort. |
@@ -25,9 +26,10 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 | Command | Description |
 |---|---|
 | `orxt inbox list --run <run_id> [--status pending]` | List inbox items. |
-| `orxt inbox show <item_id>` | Show a single inbox item with full context. |
+| `orxt inbox show <item_id>` | Show a single inbox item. |
 | `orxt inbox respond <item_id> <answer>` | Answer an inbox item. |
-| `orxt inbox skip <item_id>` | Skip an inbox item (bless the assumption). |
+| `orxt inbox skip <item_id>` | Skip an inbox item. |
+| `orxt inbox reject <item_id> <reason>` | Reject an inbox item (options insufficient). |
 
 ### Trace Commands
 
@@ -35,8 +37,14 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 |---|---|
 | `orxt trace events <run_id> [--type <event_type>] [--limit N]` | Query events. |
 | `orxt trace transcript <session_id>` | Show a session's full transcript. |
-| `orxt trace steps <run_id>` | Show step statuses and attempt counts. |
+| `orxt trace tasks <run_id>` | Show task statuses and attempt counts. |
 | `orxt trace notepad <run_id>` | Show notepad entries. |
+
+### Event Commands
+
+| Command | Description |
+|---|---|
+| `orxt event fire <run_id> <event_name> [--payload '...']` | Fire a named event for gate tasks. |
 
 ### Validation Commands
 
@@ -61,32 +69,22 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 | `--format` | Output format: `table` (default), `json`. |
 | `--quiet` | Suppress non-essential output. |
 
-## Output Formatting
-
-- **table**: human-readable tables for terminal display (default)
-- **json**: machine-parseable JSON for agent consumption
-
-When `--format json` is used, all output is valid JSON to stdout. Errors go to stderr.
-
 ## Entry Point
-
-The CLI is registered as a console script entry point in `pyproject.toml`:
 
 ```toml
 [project.scripts]
-orxt = "cli._cli:main"
+orxt = "orxt.cli._cli:main"
 ```
 
 ## Files
 
 | File | Contents |
 |---|---|
-| `_cli.py` | strictcli application definition. Command groups, argument schemas, dispatch to service functions. Entry point `main()`. |
-| `_formatters.py` | Output formatting: table and JSON renderers for each service result type. |
+| `_cli.py` | strictcli application definition. Command groups, dispatch to service functions. Entry point `main()`. |
+| `_formatters.py` | Output formatting: table and JSON renderers. |
 
 ## What This Module Does NOT Do
 
-- Does not implement business logic (that's services/)
-- Does not manage database connections beyond passing `--db` to the pool
-- Does not provide interactive modes (agents script individual commands)
-- Does not start runs (that's the Python API; the CLI is for inspection and inbox interaction)
+- Does not implement business logic (that is services/)
+- Does not manage database connections beyond passing `--db`
+- Does not provide interactive modes

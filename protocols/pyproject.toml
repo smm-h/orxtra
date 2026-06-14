@@ -1,11 +1,10 @@
 [project]
-name = "notepad"
+name = "orxt-protocols"
 version = "0.0.0"
-description = "Append-only cross-agent context sharing. PG-backed via the trace schema."
+description = "Shared types: Execution, task lifecycle, event descriptors, action tool schemas, check results."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
-    "trace",
 ]
 
 [build-system]
@@ -14,6 +13,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/orxt"]
-
-[tool.uv.sources]
-trace = { path = "../trace", editable = true }

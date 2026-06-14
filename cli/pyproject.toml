@@ -9,14 +9,14 @@ dependencies = [
 ]
 
 [project.scripts]
-orxt = "cli._cli:main"
+orxt = "orxt.cli._cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cli"]
+packages = ["src/orxt"]
 
 [tool.uv.sources]
 services = { path = "../services", editable = true }

@@ -4,16 +4,17 @@ MCP server exposing the orxt public API as MCP tools. The human's interface via 
 
 ## Responsibility
 
-Project the services layer as MCP tools. Any MCP client -- including a conversational AI agent in a dashboard, Claude Desktop, or other MCP-aware tools -- becomes a human interface to a running orxt system.
+Project the services layer as MCP tools. Any MCP client becomes a human interface to a running orxt system.
 
 ## MCP Tools
 
-Each tool maps 1:1 to a service function. The MCP server adds no logic -- it translates between the MCP protocol and the services layer.
+Each tool maps 1:1 to a service function.
 
 ### Run Tools
 
 | MCP Tool | Service Function | Description |
 |---|---|---|
+| `start_run` | `run.start_run_from_file` | Start a run from a config file |
 | `list_runs` | `run.list_runs` | List all runs |
 | `get_run` | `run.get_run` | Get a run's full report |
 | `abort_run` | `run.abort_run` | Abort a running run |
@@ -26,6 +27,7 @@ Each tool maps 1:1 to a service function. The MCP server adds no logic -- it tra
 | `get_inbox_item` | `inbox.get_inbox_item` | Get a single inbox item |
 | `respond_to_inbox` | `inbox.respond_to_inbox` | Answer an inbox item |
 | `skip_inbox_item` | `inbox.skip_inbox_item` | Skip an inbox item |
+| `reject_inbox_item` | `inbox.reject_inbox_item` | Reject an inbox item (options insufficient) |
 
 ### Trace Tools
 
@@ -33,8 +35,14 @@ Each tool maps 1:1 to a service function. The MCP server adds no logic -- it tra
 |---|---|---|
 | `query_events` | `trace.query_events` | Query events for a run |
 | `get_transcript` | `trace.get_transcript` | Get a session transcript |
-| `get_step_attempts` | `trace.get_step_attempts` | Get attempts for a step |
+| `get_task_attempts` | `trace.get_task_attempts` | Get attempts for a task |
 | `get_notepad` | `trace.get_notepad` | Get notepad entries |
+
+### Event Tools
+
+| MCP Tool | Service Function | Description |
+|---|---|---|
+| `fire_event` | `events.fire_event` | Fire a named event for gate tasks |
 
 ### Config Tools
 
@@ -45,31 +53,25 @@ Each tool maps 1:1 to a service function. The MCP server adds no logic -- it tra
 
 ## Live Event Subscription
 
-The MCP server subscribes to PG `LISTEN orxt_events` and can push event notifications to connected clients via MCP's notification mechanism (if the client supports it). This enables real-time dashboards without polling.
+The MCP server subscribes to PG `LISTEN orxt_events` and pushes event notifications to connected clients.
 
 ## Configuration
 
-The MCP server requires:
-
-- `db_url` -- PostgreSQL connection URL. Required, no default.
-
-The server connects to PG at startup, creates a connection pool, and passes it to all service function calls.
+`db_url` -- PostgreSQL connection URL. Required, no default.
 
 ## Transport
 
-The MCP server communicates via JSON-RPC 2.0 over stdio (standard MCP transport). It can be configured as an MCP server in any MCP-aware client.
+JSON-RPC 2.0 over stdio (standard MCP transport).
 
 ## Files
 
 | File | Contents |
 |---|---|
-| `_server.py` | MCP server implementation. JSON-RPC 2.0 handler, tool registry mapping MCP tool names to service functions, LISTEN/NOTIFY subscription for live events. |
-| `_tools.py` | MCP tool schema definitions. Each tool's name, description, and input_schema (JSON Schema) derived from the corresponding service function's parameters. |
+| `_server.py` | MCP server implementation. JSON-RPC 2.0, tool registry, LISTEN/NOTIFY subscription. |
+| `_tools.py` | MCP tool schema definitions derived from service function parameters. |
 
 ## What This Module Does NOT Do
 
-- Does not implement business logic (that's services/)
-- Does not own the database schema (that's trace/)
-- Does not serve a web dashboard (that's a sibling project)
-- Does not implement agent execution or scheduling
-- Does not add capabilities beyond what the services layer provides
+- Does not implement business logic (that is services/)
+- Does not serve a web dashboard (sibling project)
+- Does not add capabilities beyond the services layer

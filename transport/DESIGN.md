@@ -12,123 +12,82 @@ Typed dataclasses for each event in the stream:
 |---|---|---|
 | `StepStart` | `session_id` | A new agent turn begins |
 | `Text` | `text` | Text output from the model |
-| `StreamDelta` | `text` | Partial token from the SSE stream. Opt-in: only emitted when `stream_deltas=True` is passed to `Transport.send()`. |
-| `Thinking` | `text` | Extended thinking block from the model. Provider-specific: emitted by AnthropicProvider for models that support extended thinking, not emitted by OpenAIProvider. |
-| `ToolUse` | `tool_name, input, output, status, error, duration_ms` | A tool was called. `duration_ms` records wall-clock execution time. |
-| `StepFinish` | `reason, input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_write_tokens` | Turn complete. No cost_usd -- cost is computed at reporting time from the internal pricing table. |
-| `ApiRetry` | `attempt, max_retries, delay_ms, status_code, error` | A transient API error was retried by the transport. |
-| `Error` | `name, message, metadata` | Something went wrong (after retries exhausted, or non-transient) |
-| `Result` | `text, session_id, total_input_tokens, total_output_tokens, tool_calls` | Summary of the full invocation |
+| `StreamDelta` | `text` | Partial token from the SSE stream. Opt-in: only emitted when `stream_deltas=True`. |
+| `Thinking` | `text` | Extended thinking block. Provider-specific. |
+| `ToolUse` | `tool_name, input, output, status, error, duration_ms` | A tool was called. |
+| `StepFinish` | `reason, input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_write_tokens` | Turn complete. |
+| `ApiRetry` | `attempt, max_retries, delay_ms, status_code, error` | A transient API error was retried. |
+| `Error` | `name, message, metadata` | Something went wrong. |
+| `Result` | `text, session_id, total_input_tokens, total_output_tokens, tool_calls` | Summary of the full invocation. |
 
 These are frozen dataclasses. They are the public API of the transport layer.
+
+## Streaming Behavior
+
+`Transport.send()` returns an `AsyncIterator[Event]` that yields events from **all iterations** of the tool-call loop. When the LLM requests tool calls and the loop continues with another API call, the iterator continues yielding events from the next call. The consumer sees the entire multi-turn exchange as one continuous stream:
+
+`StepStart` -> `Text`/`ToolUse`/`Thinking` events (first API call) -> more `Text`/`ToolUse` events (subsequent calls) -> `StepFinish` (after final text response) -> `Result` (terminal).
 
 ## Provider Protocol
 
 ```python
 class Provider(Protocol):
-    def build_request(
-        self,
-        messages: list[dict],
-        tools: list[Tool],
-        system: str,
-        model: str,
-    ) -> dict:
-        """Convert orxt's internal message format to the provider's API request format."""
-        ...
-
-    def parse_response(self, response: dict) -> list[ContentBlock]:
-        """Convert the provider's API response to orxt's content blocks (text, tool_use)."""
-        ...
-
-    async def parse_stream(self, stream: AsyncIterator[bytes]) -> AsyncIterator[Event]:
-        """Parse the provider's SSE stream into typed orxt events."""
-        ...
-
-    def extract_usage(self, response: dict) -> Usage:
-        """Extract token counts from the provider's response."""
-        ...
+    def build_request(self, messages, tools, system, model) -> dict: ...
+    def parse_response(self, response: dict) -> list[ContentBlock]: ...
+    async def parse_stream(self, stream: AsyncIterator[bytes]) -> AsyncIterator[Event]: ...
+    def extract_usage(self, response: dict) -> Usage: ...
 ```
 
-This is a protocol (structural typing), not an abstract base class. Any object implementing these four methods is a valid provider. Adding a new LLM provider means implementing these methods, not writing a new transport.
+Structural typing. Any object implementing these four methods is a valid provider.
 
 ## Tool-Call Loop
 
-The transport runs a provider-agnostic loop:
+1. Build the API request via `provider.build_request()`
+2. Send via httpx
+3. Parse response into content blocks
+4. If `tool_use` blocks: validate args, call `tool.execute(args)`, record `duration_ms`, append results, go to 1
+5. If only `text` blocks: turn complete. Emit `Result`.
 
-1. Build the API request via `provider.build_request(messages, tools, system, model)`
-2. Send the request to the provider's API endpoint via httpx
-3. Parse the response via `provider.parse_response(response)` into content blocks
-4. If the response contains `tool_use` blocks:
-   - For each tool call: validate arguments against the tool's JSON Schema, call `tool.execute(args)`, collect the result, record `duration_ms`
-   - Append the tool results to the message history
-   - Go to step 1
-5. If the response contains only `text` blocks: the turn is complete. Emit `Result`.
-
-The loop is the same for all providers. The provider only handles serialization and deserialization.
+The loop is the same for all providers. The provider only handles serialization.
 
 ## Transient API Error Handling
 
-The transport auto-retries transient HTTP errors (429, 500, 502, 503) internally. The retry policy is a **required constructor parameter** on `Transport` -- no implicit defaults.
+Auto-retries transient HTTP errors (429, 500, 502, 503). The retry policy is a **required constructor parameter**:
 
 ```python
 @dataclass(frozen=True)
 class RetryPolicy:
-    max_retries: int           # e.g., 3
-    backoff_base_seconds: float  # e.g., 1.0
-    backoff_max_seconds: float   # e.g., 60.0
-    jitter: bool               # e.g., True
+    max_retries: int
+    backoff_base_seconds: float
+    backoff_max_seconds: float
+    jitter: bool
 ```
 
-On each retry, the transport emits an `ApiRetry` event so the scheduler can observe retry frequency. After retries are exhausted, an `Error` event propagates to the caller. The error is classified as `infra` by the scheduler's error taxonomy.
-
-Non-transient errors (400, 401, 403, 404) are never retried -- they propagate immediately as `Error` events.
+Non-transient errors (400, 401, 403, 404) propagate immediately as `Error` events.
 
 ## Providers
 
-All providers use **raw httpx** -- no official SDKs. This gives full control of SSE parsing, retry behavior, and event mapping.
+All providers use raw httpx -- no official SDKs.
 
 ### AnthropicProvider
 
-Calls the Anthropic Messages API directly via httpx.
-
-- Requires: `ANTHROPIC_API_KEY` environment variable (or explicit parameter). Missing key is a hard error.
-- API endpoint: `https://api.anthropic.com/v1/messages`
-- System prompt: passed as the `system` parameter (not as a user message)
-- Tools: converted from orxt Tool objects to Anthropic's tool format (`name`, `description`, `input_schema`)
-- Streaming: SSE parsing via httpx async streaming
-- Event mapping:
-  - `StepStart` -> emitted when the API call begins
-  - `Text` -> from `content[type="text"]` blocks
-  - `Thinking` -> from `content[type="thinking"]` blocks (models that support extended thinking)
-  - `ToolUse` -> from `content[type="tool_use"]` blocks
-  - `StepFinish` -> from `usage` field (input_tokens, output_tokens, reasoning tokens)
-  - `Error` -> from API error responses (4xx, 5xx)
-  - `Result` -> aggregated after the full tool-use loop completes
+Calls the Anthropic Messages API directly. Requires `ANTHROPIC_API_KEY`. Emits `Thinking` events from `content[type="thinking"]` blocks.
 
 ### OpenAIProvider
 
-Calls OpenAI-compatible APIs (OpenAI, Azure OpenAI, and compatible endpoints) via httpx.
+Calls OpenAI-compatible APIs. Does not emit `Thinking` events.
 
-- Requires: API key and endpoint. Missing credentials is a hard error.
-- Tools: converted from orxt Tool objects to OpenAI's function calling format
-- Streaming: SSE parsing via httpx async streaming
-- Tool results: sent as `role: "tool"` messages with `tool_call_id`
-- Does not emit `Thinking` events (OpenAI does not expose reasoning content)
-
-## Provider Selection and Model Routing
+## Provider Selection
 
 - `provider` is a required parameter on transport construction. No default.
-- Missing credentials for the selected provider is a hard error.
-- No auto-detection, no fallback between providers.
-
-Model strings in `categories.toml` use the format `"provider/model"` (e.g., `"anthropic/claude-haiku-4-5"`, `"openai/gpt-4o"`). The transport parses the provider prefix to validate that the model matches the configured provider. A model string with a mismatched prefix is a hard error. The model name after the prefix is passed to the provider's API as-is.
+- Model strings in `categories.toml` use `"provider/model"` format. The transport parses the provider prefix to validate the model matches.
+- The scheduler maintains a transport registry (`dict[str, Transport]`) for multi-provider support.
 
 ## Session ID Management
 
-- The transport generates a UUID for each new session
-- Session IDs are returned in every `Result` event
-- Passing `session_id` to a subsequent `send()` call continues the conversation
-- Conversation history is persisted in PostgreSQL via the trace module, enabling cross-restart resumption
+- The transport generates UUIDv7 (via the `uuid6` package) for each new session
+- Session IDs returned in every `Result` event
+- Passing `session_id` to a subsequent `send()` continues the conversation
 
 ## Transport Interface
 
@@ -149,21 +108,20 @@ class Transport:
         ...
 ```
 
-The transport wraps a provider and runs the tool-call loop. The caller does not interact with the provider directly.
-
 ## Files
 
 | File | Contents |
 |---|---|
-| `_events.py` | Frozen dataclasses for all event types: `StepStart`, `Text`, `StreamDelta`, `Thinking`, `ToolUse`, `StepFinish`, `ApiRetry`, `Error`, `Result`. Also `ContentBlock`, `Usage`. |
+| `_events.py` | Frozen dataclasses for all event types. `ContentBlock`, `Usage`. |
 | `_provider.py` | `Provider` protocol definition. `RetryPolicy` frozen dataclass. |
-| `_transport.py` | `Transport` class. Wraps a provider, runs the tool-call loop, manages conversation history via trace module, applies retry policy. |
+| `_transport.py` | `Transport` class. Wraps a provider, runs the tool-call loop, manages in-memory conversation history for multi-turn exchanges, applies retry policy. |
 | `providers/` | Provider implementations. See `providers/DESIGN.md`. |
 
 ## What This Module Does NOT Do
 
-- Does not decide which model to use (that's category resolution in agent/)
-- Does not filter tools by permissions (that's done before tools reach transport)
-- Does not track costs in USD (that's computed at reporting time from the pricing table)
-- Does not manage multiple concurrent transports (that's scheduler/)
+- Does not decide which model to use (that is category resolution in the agent module)
+- Does not filter tools by permissions (done before tools reach transport)
+- Does not track costs in USD (computed at reporting time)
+- Does not manage multiple concurrent transports (that is the scheduler)
 - Does not implement fallback between providers
+- Does not persist transcripts (that is the session module via trace)
