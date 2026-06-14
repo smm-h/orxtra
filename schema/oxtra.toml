@@ -557,7 +557,7 @@ comment = "What happens if the human picks differently"
 [tables.inbox_items.columns.tags]
 type = "str"
 array = true
-# default = "'{}'" -- blocked by pgdesign array quoting bug (todo filed), awaiting fix
+default = "{}"
 comment = "Framework auto-injects protocol_type; Overseer may add free-form tags"
 
 [tables.inbox_items.columns.status]
