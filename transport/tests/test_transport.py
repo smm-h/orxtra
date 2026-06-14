@@ -67,6 +67,38 @@ class MockProvider:
         self._call_index += 1
         return usage
 
+    def format_tool_result(
+        self, tool_use_id: str, content: str, is_error: bool,
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "type": "tool_result",
+            "tool_use_id": tool_use_id,
+            "content": content,
+        }
+        if is_error:
+            result["is_error"] = True
+        return result
+
+    def format_assistant_message(
+        self, blocks: list[ContentBlock],
+    ) -> dict[str, Any]:
+        content: list[dict[str, Any]] = []
+        for b in blocks:
+            if b.type == "text":
+                content.append({"type": "text", "text": b.text})
+            elif b.type == "tool_use":
+                content.append(
+                    {
+                        "type": "tool_use",
+                        "id": b.tool_use_id,
+                        "name": b.tool_name,
+                        "input": b.tool_input,
+                    }
+                )
+            elif b.type == "thinking":
+                content.append({"type": "thinking", "thinking": b.text})
+        return {"role": "assistant", "content": content}
+
 
 class CapturingProvider(MockProvider):
     """MockProvider that records the messages it receives."""
