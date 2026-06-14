@@ -10,6 +10,7 @@ Every piece of work is a task with explicit boundaries, entry conditions, and ex
 |---|---|---|
 | Foundation | `protocols/` | Shared types: Execution, task lifecycle, event descriptors |
 | Foundation | `secrets/` | Secret registry, substitution, and scrubbing |
+| Foundation | `write-safety/` | Write queue, stale-write detection, atomic replace |
 | Foundation | `transport/` | Typed LLM client: Provider protocol, raw httpx, streaming events, tool-call loop |
 | Foundation | `agent/` | Agent definition loader: TOML + composable .md prompts, strict validation |
 | Foundation | `tool/` | Tool registry: granular constructors, path enforcement, write safety |
