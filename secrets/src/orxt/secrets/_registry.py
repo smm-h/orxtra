@@ -9,6 +9,10 @@ class SecretRegistry:
 
     def __init__(self, secrets: dict[str, str]) -> None:
         self._secrets = dict(secrets)
+        empty = [name for name, value in self._secrets.items() if value == ""]
+        if empty:
+            msg = f"Secret {empty[0]!r} has an empty value"
+            raise ValueError(msg)
         # Pre-compute scrub ordering: longest values first so overlapping
         # values (e.g., "abcdef" before "abc") are replaced correctly.
         self._scrub_order: list[tuple[str, str]] = sorted(
