@@ -73,17 +73,25 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 
 ## Tooling
 
+### Third-party dependencies
+
 - **pydantic v2** with `strict=True, extra='forbid'` for all schema validation.
 - **mypy --strict** with the pydantic plugin.
 - **ruff** with `select = ["ALL"]` and documented ignores.
 - **httpx** for all LLM API communication (no official SDKs).
 - **asyncpg** for PostgreSQL.
-- **cognee** (experimental) for semantic enrichment of the lessons table.
-- **safegit** wraps git for concurrency-safe commits. The git tool's mutation subcommands use safegit, not raw git.
-- **saferm** wraps rm with mandatory descriptions, audit trail, and recovery. The delete tool uses saferm, not raw rm.
-- **rlsbl** monorepo for release orchestration and changelog enforcement.
-- **strictcli** for the CLI.
-- **pgdesign** for database schema definition (`schema/oxtra.toml`).
+- **cognee** (experimental, third-party) for semantic enrichment of the lessons table.
+
+### Our tools
+
+The following are all projects under `~/Projects/`, maintained by us. Any feature gap, bug, or shortcoming identified during oxtra development can be filed as a todo in the respective project's `todo/` directory and will be addressed -- these are not external dependencies we're stuck with, they're internal tools that evolve with our needs.
+
+- **safegit** (`~/Projects/safegit`) -- concurrency-safe git operations. The git tool's mutation subcommands wrap safegit, not raw git.
+- **saferm** (`~/Projects/saferm`) -- audited file deletion with mandatory descriptions, audit trail, and recovery. The delete tool wraps saferm, not raw rm.
+- **rlsbl** (`~/Projects/rlsbl`) -- release orchestration, changelog enforcement, CI scaffolding, monorepo workspace management.
+- **strictcli** (`~/Projects/strictcli`) -- schema-driven CLI framework. No implicit flags.
+- **pgdesign** (`~/Projects/pgdesign`) -- PostgreSQL schema compiler. Owns `schema/oxtra.toml`.
+- **selfdoc** (`~/Projects/selfdoc`) -- documentation generation from templates.
 
 ## Conventions
 
