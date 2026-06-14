@@ -143,7 +143,7 @@ This payload is delivered to the parent task's agent.
 | File | Contents |
 |---|---|
 | `_types.py` | Re-exports from `orxt.protocols`: `CheckResult`, `CheckVerdict`, `CheckIssue`, `CriterionReview`, `CheckContext`, `CheckAgentContext`. |
-| `_runner.py` | `run_checks(checks, ctx, phase)` -- the unified check runner. Handles script, agent, and workflow Executions. Fix-then-re-verify for scripts. Short-circuits on first non-fixable failure. |
+| `_runner.py` | `run_checks(checks, ctx, phase, executor)` -- the unified check runner. Handles script, agent, and workflow Executions. Fix-then-re-verify for scripts. Short-circuits on first non-fixable failure. |
 | `_execution.py` | Execution dispatch: given an Execution spec, determine type and run it. Import and call for scripts. Spawn consult for agents. Create subtasks for workflows. |
 
 ## What This Module Does NOT Do

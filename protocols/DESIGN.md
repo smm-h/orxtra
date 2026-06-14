@@ -29,8 +29,8 @@ class ScriptExecution:
 class AgentExecution:
     agent: str              # agent definition name
     task: str               # task prompt (supports {variable} substitution)
-    variables: list[str]    # variable names to inject
     block_threshold: str    # "critical" | "major" | "minor" | "nit"
+    variables: list[str] = field(default_factory=list)  # variable names to inject
 
 @dataclass(frozen=True)
 class WorkflowExecution:
@@ -360,6 +360,19 @@ Create a human inbox item.
 Returns: `item_id` (UUID).
 
 The `options` array must always include the most correct solution regardless of effort. Never omit the hard-but-right option in favor of easier alternatives.
+
+### create_wait_for
+
+Create a wait-for task within the current active task. Blocks until a named event fires or timeout expires.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Task name |
+| `event_name` | string | yes | Event to wait for |
+| `timeout` | integer | yes | Max seconds to wait |
+| `depends_on` | array of strings | no | Sibling task names that must complete first |
+
+Returns: `task_id` (UUID) or validation error.
 
 ### write_lesson
 

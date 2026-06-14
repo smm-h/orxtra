@@ -54,7 +54,7 @@ async def get_notepad(pool, run_id) -> list[NotepadEntry]: ...
 
 ```python
 async def fire_event(pool, run_id: uuid.UUID, event_name: str, payload: dict | None = None) -> None:
-    """Fire a named event for gate tasks. Issues PG NOTIFY."""
+    """Fire a named event for wait-for tasks. Issues PG NOTIFY."""
 ```
 
 ### Validation Service

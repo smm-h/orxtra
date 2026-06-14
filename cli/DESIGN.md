@@ -47,7 +47,7 @@ Built on **strictcli**. Schema-driven, no implicit flags, strict argument valida
 
 | Command | Description |
 |---|---|
-| `orxt event fire <run_id> <event_name> [--payload '...']` | Fire a named event for gate tasks. |
+| `orxt event fire <run_id> <event_name> [--payload '...']` | Fire a named event for wait-for tasks. |
 
 ### Validation Commands
 
