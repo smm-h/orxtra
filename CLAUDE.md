@@ -60,7 +60,7 @@ Each sub-project has: `pyproject.toml`, `DESIGN.md`, `src/orxt/<name>/`, `tests/
 
 | Layer | Sub-projects | Dependencies |
 |---|---|---|
-| Foundation | protocols, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, verify -> protocols) |
+| Foundation | protocols, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols, verify -> protocols) |
 | Orchestration | scheduler | Depends on foundation |
 | Intelligence | overseer, knowledge-module | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Interfaces | services, cli, mcp | Depends on orchestration + intelligence |

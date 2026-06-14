@@ -118,11 +118,13 @@ class TaskSpec:
     prechecks: list[Execution]
     postchecks: list[Execution]
 
-    # Exactly one of: agent + task_prompt, callable, or subtasks
+    # Exactly one of: agent + task_prompt, callable, subtasks, gate, or decision_point
     agent: str | None = None             # agent definition name
     task_prompt: str | None = None       # prompt template with {variable} placeholders
     callable: str | None = None          # Python callable path for function tasks
     subtasks: list[TaskSpec] | None = None  # nested task list (this task is a workflow)
+    gate: str | None = None              # event name to wait for (blocks until event or timeout)
+    decision_point: bool | None = None   # pauses execution and sends event to Overseer
 
     variables: list[str] = field(default_factory=list)
     depends_on: list[str] | None = None
@@ -141,7 +143,7 @@ class TaskSpec:
     pre_retry: str | None = None         # callable path
 ```
 
-A task must declare exactly one execution mode: `agent` + `task_prompt` (agent task), `callable` (function task), or `subtasks` (workflow/composite task). Every task must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
+A task must declare exactly one execution mode: `agent` + `task_prompt` (agent task), `callable` (function task), `subtasks` (workflow/composite task), `gate` (wait for named event), or `decision_point` (pause and invoke Overseer). Every task must declare either `depends_on` or `depends_on_previous`. Both missing or both present is a hard error.
 
 ### Task Context
 
@@ -454,6 +456,7 @@ async def pre_retry(ctx: TaskContext) -> None:
 
 | File | Contents |
 |---|---|
+| `_tool.py` | `Tool` frozen dataclass: name, description, parameters (JSON Schema dict), execute (async callable). `ToolError` exception. Shared across transport, tool, and scheduler. |
 | `_execution.py` | `ScriptExecution`, `AgentExecution`, `WorkflowExecution`, `Execution` union type. `CheckResult`, `CheckVerdict`, `CheckIssue`, `CriterionReview`. |
 | `_task.py` | `TaskSpec`, `TaskContext`, `TaskResult`, `AttemptSummary`, `EscalationPayload`. Task lifecycle state enum. |
 | `_events.py` | `RunStarted`, `TaskFailed`, `TaskEscalated`, `BudgetThresholdCrossed`, `BudgetExhausted`, `InboxAnswered`, `InboxRejected`, `StructuralAdvisory`, `HealthDegraded`. |

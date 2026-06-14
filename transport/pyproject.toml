@@ -7,7 +7,11 @@ dependencies = [
     "pydantic>=2",
     "httpx",
     "uuid6",
+    "orxt-protocols",
 ]
+
+[tool.uv.sources]
+orxt-protocols = { path = "../protocols", editable = true }
 
 [build-system]
 requires = ["hatchling"]

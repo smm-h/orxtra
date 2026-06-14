@@ -82,7 +82,7 @@ async def show_pricing() -> dict: ...
 | File | Contents |
 |---|---|
 | `_run.py` | Run service: start, start_from_file, get, list, abort, pause, resume. |
-| `_inbox.py` | Inbox service: list, get, respond, skip. |
+| `_inbox.py` | Inbox service: list, get, respond, skip, reject. |
 | `_trace.py` | Trace query service: task attempts, transcripts, transcript search, events, notepad. |
 | `_events.py` | Event service: fire_event. |
 | `_validate.py` | Validation service: agents, workflows, categories. |

@@ -60,7 +60,7 @@ orxt/
 
 | Layer | Sub-projects | Rule |
 |---|---|---|
-| Foundation | protocols, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, verify -> protocols) |
+| Foundation | protocols, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols, verify -> protocols) |
 | Orchestration | scheduler | Depends on foundation |
 | Intelligence | overseer, knowledge-module | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Interfaces | services, cli, mcp | Depends on orchestration + intelligence |
@@ -84,7 +84,7 @@ An Execution is a script (Python callable), an agent (spawned via consult), or a
 
 Agents interact with tasks via tool calls:
 - `start_task(task_id)` -- enter the task. Pre-checks run. If all pass, the task becomes active.
-- `end_task(summary)` -- complete the task. Post-checks run. If any fail, the agent is told why and can fix its work.
+- `end_task(message)` -- complete the task. Auto-commits file changes, then post-checks run. If any fail, the agent is told why and can fix its work.
 - `create_task(...)` -- create a concrete subtask within the current task.
 - `create_workflow(...)` -- create a goal-oriented subtask within the current task.
 
@@ -114,7 +114,7 @@ All persistent state lives in PostgreSQL. The `trace/` module is the single owne
 
 - **Overseer memory**: decisions, constraints, assumptions, lessons, workflow status
 - **Run state**: events, task results (per-attempt), transcripts, notepad entries
-- **Inbox**: human inbox items with tags and four-status lifecycle
+- **Inbox**: human inbox items with tags and five-status lifecycle
 - **Config snapshots**: fully resolved configuration persisted at run start
 - **Immutability enforcement**: `REVOKE UPDATE, DELETE` on events, notepad entries, and transcripts
 - **Cross-process observation**: `LISTEN/NOTIFY` on event inserts
@@ -190,7 +190,7 @@ Each inbox item has: the question, options considered, which option the Overseer
 
 ## Design Axioms
 
-Fourteen hard rules. Each is mechanically enforced.
+Sixteen hard rules. Each is mechanically enforced.
 
 1. **Agents are data, not code.** TOML metadata + .md prompts. No factory functions, no classes, no lifecycle methods.
 

@@ -5,7 +5,11 @@ description = "Tool registry with granular constructors. Path enforcement, write
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
+    "orxt-protocols",
 ]
+
+[tool.uv.sources]
+orxt-protocols = { path = "../protocols", editable = true }
 
 [build-system]
 requires = ["hatchling"]
