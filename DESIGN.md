@@ -54,7 +54,7 @@ The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent 
 
 | Module | Responsibility |
 |---|---|
-| `overseer/` | Persistent LLM with read-only tools and PostgreSQL memory. Makes judgment calls via structured decision protocols. Generates workflows. Manages assumptions and constraints. Session handoff when context fills. |
+| `overseer/` | Persistent LLM with read-only tools and PostgreSQL memory. Makes judgment calls via structured decision protocols. Generates workflows. Manages assumptions, constraints, and lessons. Session handoff when context fills. |
 | `scheduler/` | Deterministic event loop. Validates and executes workflows. Enforces budgets and mechanical constraints. Routes events to the Overseer. Manages pause/resume and crash recovery. Has no opinions. |
 | `agent/` | Load agent definitions from TOML + .md prompt files. Validate schema. Resolve categories and permissions. |
 | `tool/` | Tool registry. Each tool is a single Python object: name, description, parameters, execute. Granular constructors for file, git, exec, http operations. No bash tool. |
@@ -63,7 +63,7 @@ The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent 
 | `notepad/` | Append-only cross-agent context sharing. Workers append learnings, decisions, issues. PG-backed via the trace schema. No overwrites. |
 | `session/` | Session lifecycle management wrapping transport. Track session IDs for resumption. Track token counts. Conversation history in PG enables cross-restart resumption. |
 | `trace/` | Single owner of the PostgreSQL schema. Tables: events, step results (per-attempt), transcripts, inbox items, notepad entries, config snapshots, workflow/step state. REVOKE UPDATE/DELETE on immutable tables. LISTEN/NOTIFY for cross-process observers. UUIDv7 primary keys. |
-| `knowledge/` | Knowledge ingestion and retrieval via cognee. Ingests consumer knowledge files and runtime learnings into a knowledge graph (PG+pgvector). Replaces flat lessons table with graph-structured, semantically queryable knowledge. Cross-run learning with memify refinement. |
+| `knowledge/` | Experimental semantic enrichment layer over the flat lessons table via cognee (PG+pgvector). Indexes lessons into a knowledge graph for semantic retrieval alongside flat SQL. Disabled by default; must prove measurable value before becoming load-bearing. |
 | `services/` | Shared business logic consumed by all three frontends (Python API, CLI, MCP server). One service per domain: runs, inbox, trace queries, config, validation. |
 | `cli/` | strictcli-based CLI. Thin frontend over the services layer. Commands: run inspection, trace queries, TOML validation, inbox list/respond, config dump. Agents are the primary users. |
 | `mcp/` | MCP server exposing the public API as MCP tools. The human's interface via dashboard or conversational AI client. |
@@ -196,7 +196,7 @@ Eleven patterns to avoid, identified from analysis of oh-my-openagent (omo) and 
 
 8. **No prompts in code.** All prompt text lives in .md files, never in Python strings. Python files contain logic, not prose.
 
-9. **No feature flags.** Features are either shipped or not. No `experimental` config sections, no `enabled: false` defaults.
+9. **No feature flags.** Features are either shipped or not. No `experimental` config sections, no `enabled: false` defaults. (The knowledge module's `enabled` flag is a dependency toggle for an external system, not a feature flag on framework behavior -- oxtra works identically with it off.)
 
 10. **No bash tool.** The framework ships no general-purpose shell tool. Instead, granular purpose-built tools (read, write, edit, git, exec, http, etc.) with typed parameters and mechanical scoping. A consumer who truly needs raw shell writes their own Tool in ten lines -- oxtra refuses to bless one.
 
