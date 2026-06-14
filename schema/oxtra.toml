@@ -759,8 +759,47 @@ columns = ["run_id"]
 [tables.assumptions.indexes.idx_assumptions_inbox]
 columns = ["inbox_item_id"]
 
-# lessons table removed -- knowledge ingestion and cross-run learning
-# are now owned by the knowledge module (cognee graph, PG+pgvector)
+# ---------------------------------------------------------------------------
+
+[tables.lessons]
+comment = "Cross-run knowledge base. Primary store for learned facts; the knowledge module indexes these into cognee for semantic retrieval."
+
+[tables.lessons.columns.id]
+type = "id"
+
+[tables.lessons.columns.run_id]
+type = "ref"
+nullable = true
+comment = "NULL for permanent entries loaded from consumer knowledge files"
+
+[tables.lessons.columns.text]
+type = "str"
+
+[tables.lessons.columns.relevance_tags]
+type = "str"
+array = true
+nullable = true
+comment = "Relevance tags for flat SQL queries"
+
+[tables.lessons.columns.permanent]
+type = "flag"
+comment = "True for consumer knowledge; never expires"
+
+[tables.lessons.columns.source_file]
+type = "str_nullable"
+comment = "File path for git-based staleness detection"
+
+[tables.lessons.columns.created_at]
+type = "timestamp"
+
+[tables.lessons.fks.fk_lessons_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "SET NULL"
+
+[tables.lessons.indexes.idx_lessons_run]
+columns = ["run_id"]
 
 # ---------------------------------------------------------------------------
 

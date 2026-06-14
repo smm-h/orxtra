@@ -1,30 +1,49 @@
 # Knowledge Module Design
 
-Knowledge ingestion and retrieval via cognee. Wraps the cognee library to provide the Overseer with structured, queryable, evolving domain knowledge.
+Semantic enrichment layer over the flat `lessons` table. Wraps the cognee library to provide the Overseer with graph-structured, semantically queryable knowledge retrieval as an enhancement to plain SQL tag-matching.
+
+## Experimental Status
+
+Cognee integration is experimental. It must be thoroughly evaluated before it becomes load-bearing:
+
+- The flat `lessons` table (owned by trace/) is the **primary store** and the **source of truth**. Every learned fact is written there first — transactional, deterministic, queryable with plain SQL, no external dependency.
+- This module indexes lessons into cognee's knowledge graph as a **semantic enrichment layer**. If cognee is absent, misconfigured, or underperforming, context assembly falls back to flat SQL queries against the lessons table with tag-based filtering. This is not a "try A, if that fails try B" fallback — it's a primary store + optional index architecture, like a database + search engine.
+- Before cognee becomes the default retrieval path, it must demonstrate measurable improvement in Overseer decision quality on real workloads. The evaluation criteria: does semantic graph retrieval produce better context (measured by downstream step success rates and coherence scores) than flat tag-matching on the same lessons?
+
+If the evaluation concludes that cognee does not justify its complexity (token cost per ingestion, nondeterministic retrieval, third-party dependency), this module can be removed without affecting any other module. The lessons table carries the full load either way.
 
 ## Responsibility
 
-Ingest consumer knowledge files and runtime learnings into a knowledge graph. Retrieve relevant knowledge during the Overseer's context assembly. Manage the graph's lifecycle across runs: ingestion, refinement, staleness handling.
+Ingest lessons and consumer knowledge files into a cognee knowledge graph. Retrieve semantically relevant knowledge during the Overseer's context assembly (Layer 3). Manage the graph's lifecycle across runs: ingestion, refinement, staleness handling.
 
-This module replaces two pieces that previously lived in the Overseer module:
-- Consumer knowledge file loading (`_knowledge.py` -- moved here)
-- Cross-run knowledge base persistence and staleness detection (`_learning.py` -- moved here)
+This module owns:
+- Consumer knowledge file loading (`.md` and `.toml` from the `knowledge/` directory) — writes to both the lessons table (via trace) AND cognee's graph
+- Runtime learning ingestion — indexes notepad entries and failure patterns from the lessons table into cognee after run completion
+- Semantic retrieval — `retrieve_knowledge()` used by the Overseer's context assembly alongside flat SQL queries
+
+This module does NOT own:
+- The lessons table itself (that's trace/)
+- Writing lessons (the Overseer writes via `trace.write_lesson()`; this module reads and indexes)
+- Decisions, constraints, assumptions, workflow status (flat PG tables, never in the graph)
 
 ## What This Module Is
 
-- The knowledge layer between raw domain files and the Overseer's context
+- A semantic index over the lessons table, not a replacement for it
 - A wrapper around cognee's ECL pipeline (Extract, Cognify, Load) and retrieval API
-- The owner of the knowledge graph's lifecycle (ingestion, refinement, retrieval)
+- An experimental enrichment layer that must prove its value
 
 ## What This Module Is NOT
 
-- Not the Overseer's decision memory. Decisions, constraints, assumptions, and workflow status remain flat PG tables owned by the trace module. Those are structured, bounded, and well-served by SQL.
-- Not a code intelligence system. The knowledge graph stores domain knowledge and learned patterns, not ASTs, symbol tables, or import graphs.
-- Not a general-purpose graph database. The graph is consumed exclusively by the Overseer's context assembly.
+- Not the primary knowledge store. The lessons table is.
+- Not the Overseer's decision memory. Decisions, constraints, assumptions remain flat PG tables.
+- Not a code intelligence system. No ASTs, symbol tables, or import graphs.
+- Not required for oxtra to function. Context assembly works with flat SQL alone.
 
 ## Why Cognee
 
-Cognee won empirical benchmarks (kb-bench, 700 queries, 7 frameworks) on retrieval quality with an average score of 89.8, beating mem0 (81.8), fast-graphrag (79.3), and five others. It supports PG+pgvector as its storage backend (no external graph database), aligning with oxtra's PG backbone. Its ECL pipeline handles structured document ingestion -- the exact workload consumer knowledge files and runtime learnings represent.
+Cognee won empirical benchmarks (kb-bench, 700 queries, 7 frameworks) on retrieval quality with an average score of 89.8, beating mem0 (81.8), fast-graphrag (79.3), and five others. It supports PG+pgvector as its storage backend (no external graph database), aligning with oxtra's PG backbone. Its ECL pipeline handles structured document ingestion -- the exact workload consumer knowledge files represent.
+
+These results are on a static document retrieval benchmark, not on evolving agent memory. Whether the advantage holds for the Overseer's runtime workload is an open question -- the reason this is experimental.
 
 ## Architecture
 
@@ -43,23 +62,27 @@ The pgvector extension must be enabled on the oxtra database. This is the only a
 Consumer knowledge files (.md, .toml)
         |
         v
-  knowledge/_ingest.py  --cognee.add()--> cognee.cognify() --> knowledge graph
+  trace.write_lesson()  -----> lessons table (primary store, flat SQL)
+        |
+        v
+  knowledge/_ingest.py  --cognee.add()--> cognee.cognify() --> knowledge graph (semantic index)
         ^                                                           |
         |                                                           v
   Runtime learnings                                    knowledge/_retrieve.py
-  (notepad entries,                                           |
-   step outcomes,                                             v
-   failure patterns)                              Overseer context assembly
-                                                       (Layer 3)
+  (lessons table rows                                         |
+   from completed runs)                                       v
+                                                  Overseer context assembly
+                                                       (Layer 3, alongside
+                                                        flat SQL queries)
 ```
 
 ### Integration with Existing Modules
 
-**Overseer** -- `_memory.py` context assembly gains a call to `knowledge/_retrieve.py` for Layer 3 (Overseer-selected lessons). Flat PG queries for decisions, constraints, and assumptions are unchanged.
+**Overseer** — `_memory.py` context assembly queries the lessons table with flat SQL (always available) AND calls `knowledge/_retrieve.py` for semantic graph retrieval (when the knowledge module is configured). Both results are provided to the `context_decision` protocol.
 
-**Trace** -- the `lessons` table is removed from the trace schema. Knowledge persistence moves to cognee's graph. All other trace tables are unaffected.
+**Trace** — owns the `lessons` table. This module reads from it for ingestion into cognee. Never writes to it — the Overseer writes lessons via `trace.write_lesson()`.
 
-**Notepad** -- notepad entries from completed runs can be selectively ingested into the knowledge graph as runtime learnings (via a post-run ingestion step), enabling cross-run knowledge accumulation.
+**Notepad** — notepad entries from completed runs can be selectively ingested into the knowledge graph as runtime learnings.
 
 ## Ingestion
 
@@ -67,7 +90,11 @@ Consumer knowledge files (.md, .toml)
 
 At the start of every run, the module loads files from the consumer's `knowledge/` directory:
 
-**Markdown files** (`.md`) -- free-form domain knowledge. Each file is ingested via `cognee.add()` and `cognee.cognify()`, producing graph nodes and edges from the content. Files can contain YAML front matter for metadata:
+**Markdown files** (`.md`) — free-form domain knowledge. Each file is:
+1. Written to the lessons table as a permanent entry (via `trace.write_lesson()`)
+2. Ingested into cognee via `cognee.add()` + `cognee.cognify()`, producing graph nodes and edges
+
+Files can contain YAML front matter for metadata:
 
 ```markdown
 ---
@@ -76,39 +103,27 @@ tags: [code-quality, determinism]
 Never use Math.random() or Date.now() in generated code. These break deterministic replay.
 ```
 
-Front matter `tags` become metadata on the ingested nodes, improving retrieval relevance.
+**TOML files** (`.toml`) — structured constraints. Written to the constraints table (via `trace.write_constraint()`) AND ingested into cognee as typed constraint nodes.
 
-**TOML files** (`.toml`) -- structured constraints. These are ingested into the knowledge graph as typed nodes with `constraint` type and `mechanical`/`advisory` tier:
-
-```toml
-[[constraints]]
-text = "All generated code must pass lint and type checks before commit"
-tier = "mechanical"
-
-[[constraints]]
-text = "Prefer composition over inheritance in generated components"
-tier = "advisory"
-```
-
-Consumer knowledge is marked as permanent in the graph -- it does not decay via memify and is not subject to staleness detection.
+Consumer knowledge is marked as permanent in both the lessons table AND the cognee graph — it does not decay via memify and is not subject to staleness detection.
 
 ### Runtime Learnings
 
-After a run completes, the module can ingest runtime observations into the knowledge graph:
+After a run completes, the module can ingest lessons table rows from that run into cognee's graph:
 
-- **Notepad entries** tagged as `learning` from the completed run
-- **Failure patterns** -- recurring error categories and their resolutions
-- **Constraint outcomes** -- which constraints were useful vs. which were violated and relaxed
+- Notepad entries tagged as `learning`
+- Failure patterns — recurring error categories and their resolutions
+- Constraint outcomes — which constraints were useful vs. violated and relaxed
 
-Runtime learnings are transient in the graph -- subject to memify refinement (staleness pruning, frequency reweighting) and staleness detection via git (if a source file path is associated).
+Runtime learnings are transient in cognee's graph — subject to memify refinement (staleness pruning, frequency reweighting). In the lessons table, they follow the existing staleness/expiry rules.
 
 ### Ingestion Cost
 
 Every `cognee.cognify()` call uses the LLM for entity/relationship extraction. This cost is:
 - **Per-run for consumer knowledge**: bounded by the size of the `knowledge/` directory. Consumer files are re-ingested only if their content hash changes since the last ingestion.
-- **Post-run for runtime learnings**: bounded by the number of notepad entries and failure records. Selective -- only `learning`-type entries, not all notepad content.
+- **Post-run for runtime learnings**: bounded by the number of new lessons table rows.
 
-The LLM used for cognify is configured separately from the Overseer's model -- it should use a cheap, fast model (e.g., the `quick` category) since extraction is a batch operation, not a judgment call.
+The LLM used for cognify is configured separately from the Overseer's model — it should use a cheap, fast model since extraction is a batch operation, not a judgment call.
 
 ## Retrieval
 
@@ -121,10 +136,11 @@ async def retrieve_knowledge(
     max_results: int = 10,
 ) -> list[KnowledgeResult]:
     """
-    Retrieve relevant knowledge from the graph for context assembly.
+    Retrieve relevant knowledge from the cognee graph.
 
     Uses cognee's GRAPH_COMPLETION search type for multi-hop graph traversal
-    combined with semantic similarity.
+    combined with semantic similarity. Returns empty list if cognee is not
+    configured or unavailable.
     """
     ...
 ```
@@ -132,34 +148,24 @@ async def retrieve_knowledge(
 ```python
 @dataclass(frozen=True)
 class KnowledgeResult:
-    text: str              # The knowledge content, serialized for prompt injection
-    source: str            # Where this knowledge came from (file path, run ID, step name)
-    permanent: bool        # True for consumer knowledge, false for runtime learnings
+    text: str              # The knowledge content
+    source: str            # Where this came from (file path, run ID, step name)
+    permanent: bool        # True for consumer knowledge
     relevance_score: float # Cognee's relevance ranking
 ```
 
 ### Integration with Context Assembly
 
-The Overseer's context assembly (scheduler, Layer 3) calls `retrieve_knowledge()` with a query derived from the current step's task and type. The Overseer's `context_decision` protocol then refines the results: selecting which knowledge to include, reordering for relevance, or discarding irrelevant items.
+The Overseer's context assembly (Layer 3) has two knowledge sources:
 
-The context assembly code constructs the query from:
-- The step's task prompt (what the agent will do)
-- The step's agent name and category (what kind of work)
-- Active constraints (what rules apply)
+1. **Flat SQL** (always available): `SELECT * FROM lessons WHERE (run_id = $1 OR permanent = true) AND relevance_tags && $2` — deterministic, bounded, zero external dependency
+2. **Cognee retrieval** (when configured): `retrieve_knowledge(query)` — semantic, graph-traversal, nondeterministic
 
-Results are formatted as a "Relevant Knowledge" section in the agent's context, alongside the existing notepad injection and constraint listing.
-
-### Retrieval Modes
-
-Cognee supports 14 retrieval modes. The module uses:
-- **`GRAPH_COMPLETION`** as the default: multi-hop graph traversal + semantic similarity, producing synthesized answers from the graph
-- **`CHUNKS`** as a fallback for simple keyword lookups: returns raw matched text without graph traversal
-
-The retrieval mode is not configurable per query -- it uses GRAPH_COMPLETION for all context assembly queries. If retrieval quality proves insufficient for specific decision types, this can be revisited.
+The `context_decision` protocol receives results from both and refines them. If cognee is not configured, only flat SQL results are provided — the system works fully without it.
 
 ## Custom Graph Model
 
-To constrain cognee's entity extraction and reduce hallucinated edges, the module defines a custom graph model (Pydantic DataPoint subclasses) for the kinds of nodes oxtra cares about:
+To constrain cognee's entity extraction:
 
 ```python
 class DomainConcept(DataPoint):
@@ -188,49 +194,46 @@ class LearnedFact(DataPoint):
     permanent: bool = False
 ```
 
-This schema constrains what cognee extracts from ingested content. The LLM produces nodes of these types and edges between them, not arbitrary graph structures. The schema is extensible -- consumers can provide additional DataPoint subclasses via a registration API.
+The schema is extensible — consumers can provide additional DataPoint subclasses via a registration API.
 
 ## Staleness and Freshness
 
-Two mechanisms:
+**Content-hash tracking**: consumer knowledge files are hashed at ingestion. On subsequent runs, only changed files are re-ingested.
 
-**Content-hash tracking**: consumer knowledge files are hashed at ingestion. On subsequent runs, only files whose hash changed are re-ingested. Unchanged files skip the cognify step entirely (no LLM cost).
+**Memify refinement**: after each run's learnings are ingested, `cognee.memify()` runs to prune stale nodes and strengthen frequent connections.
 
-**Memify refinement**: after each run's learnings are ingested, `cognee.memify()` runs to prune stale nodes, strengthen frequently-accessed connections, and reweight edges. This is cognee's built-in memory refinement -- it makes the graph self-improving over time.
-
-**Git-based staleness** (from the prior design): if a `LearnedFact` node carries a `source_file` path, the module checks via git whether that file has changed since the fact was learned. Changed-source facts are flagged as potentially stale and deprioritized in retrieval.
+**Git-based staleness**: if a lesson carries a `source_file` path, the lessons table's staleness detection (in the Overseer module) checks via git whether that file has changed. This applies to the flat table regardless of cognee.
 
 ## Configuration
-
-The module requires explicit configuration -- no implicit defaults:
 
 ```python
 @dataclass(frozen=True)
 class KnowledgeConfig:
+    enabled: bool                  # False to disable cognee entirely; flat SQL only
     db_url: str                    # Same PG connection as trace
     knowledge_dir: Path            # Consumer's knowledge/ directory
-    cognify_model: str             # Model for cognee's entity extraction (e.g., "quick" category)
+    cognify_model: str             # Model for cognee's entity extraction
     cognify_api_key: str           # API key for the extraction LLM
     max_retrieval_results: int     # Default max results for retrieve_knowledge()
 ```
 
-All fields are required. Missing values are hard errors.
+When `enabled = false`, the module is inert — no cognee calls, no ingestion, no retrieval. Context assembly uses flat SQL only. This is the default until cognee proves its value.
 
 ## Files
 
 | File | Contents |
 |---|---|
-| `_types.py` | `KnowledgeConfig`, `KnowledgeResult` frozen dataclasses / pydantic models. Custom DataPoint subclasses (`DomainConcept`, `Convention`, `FailurePattern`, `LearnedFact`). |
-| `_ingest.py` | `ingest_consumer_knowledge(config, knowledge_dir)` -- loads .md and .toml files, content-hash checks, calls cognee.add() + cognee.cognify(). `ingest_runtime_learnings(config, run_id, trace_reader)` -- selectively ingests notepad entries and failure patterns from a completed run. |
-| `_retrieve.py` | `retrieve_knowledge(query, tags, max_results)` -- wraps cognee.search() with GRAPH_COMPLETION mode, returns typed KnowledgeResult list. |
-| `_config.py` | Cognee backend configuration: sets db_provider, vector_db_provider, graph model registration, LLM provider for cognify. |
-| `_freshness.py` | Content-hash tracking for consumer files (skip re-ingestion of unchanged files). Git-based staleness detection for learned facts with source file paths. Memify dispatch after runtime learning ingestion. |
+| `_types.py` | `KnowledgeConfig`, `KnowledgeResult` pydantic models. Custom DataPoint subclasses (`DomainConcept`, `Convention`, `FailurePattern`, `LearnedFact`). |
+| `_ingest.py` | `ingest_consumer_knowledge(config, knowledge_dir, trace_writer)` — loads .md and .toml files, writes to lessons table via trace, ingests into cognee. `ingest_runtime_learnings(config, run_id, trace_reader)` — indexes lessons table rows from a completed run into cognee. |
+| `_retrieve.py` | `retrieve_knowledge(query, tags, max_results)` — wraps cognee.search(), returns KnowledgeResult list. Returns empty list if cognee is disabled. |
+| `_config.py` | Cognee backend configuration: db_provider, vector_db_provider, graph model registration, LLM provider for cognify. |
+| `_freshness.py` | Content-hash tracking for consumer files. Memify dispatch after runtime learning ingestion. |
 
 ## What This Module Does NOT Do
 
-- Does not store or query decisions, constraints, assumptions, or workflow status (those stay in trace's flat PG tables)
-- Does not define what knowledge the consumer provides (that's the consumer's `knowledge/` directory)
-- Does not execute agents or make judgment calls
-- Does not bypass cognee's retrieval for direct graph queries -- all access goes through cognee's search API
-- Does not build code intelligence (no AST parsing, no symbol indexing, no import graphs)
-- Does not manage cognee's internal schema migrations or version upgrades (that's cognee's responsibility as a dependency)
+- Does not own the lessons table (that's trace/)
+- Does not write lessons (the Overseer writes via trace.write_lesson())
+- Does not store or query decisions, constraints, assumptions, or workflow status
+- Does not replace flat SQL retrieval — it enriches it
+- Does not function when disabled — flat SQL carries the full load
+- Does not build code intelligence

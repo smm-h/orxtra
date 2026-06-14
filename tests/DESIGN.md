@@ -12,7 +12,7 @@ All tests require a PostgreSQL instance (provided via service container in CI, l
 | `test_overseer_health.py` | Health metric tracking, degraded mode entry/exit per decision type, threshold detection. |
 | `test_overseer_handoff.py` | Session handoff trigger, summary production, transcript persistence, new session creation with UUID. |
 | `test_overseer_inbox.py` | Human inbox item creation, tag auto-injection, status lifecycle (pending/answered/skipped/expired), answer event firing. |
-| `test_overseer_learning.py` | Context assembly integration with knowledge module retrieval, knowledge results in Layer 3 context. |
+| `test_overseer_learning.py` | Lessons table queries, staleness detection via git, expiry after N runs, consumer knowledge file loading (.md and .toml), permanent vs transient entries. Context assembly integration with both flat SQL and knowledge module retrieval. |
 | `test_overseer_autonomy.py` | Autonomy level action-type mapping, action-gating enforcement, mid-run level changes. |
 | `test_scheduler.py` | Workflow validation (schema + sanity-check), event loop, step execution ordering, parallel execution, budget enforcement (USD), mechanical constraint checking, pause/resume. |
 | `test_scheduler_recovery.py` | Three-pass crash recovery: reclaim interrupted, re-evaluate blocked, clean orphaned. Advisory lock reclamation. Idempotency under repeated crashes. |
@@ -40,7 +40,7 @@ All tests require a PostgreSQL instance (provided via service container in CI, l
 | `test_trace_recovery.py` | Three-pass recovery round-trip: create interrupted state, run recovery, verify correct transitions. |
 | `test_graph.py` | Dependency graph edge cases: diamonds, independent branches, cycles, depends_on_previous resolution. |
 | `test_errors.py` | Error taxonomy: classification from exit codes, stderr patterns, error messages. |
-| `test_knowledge.py` | Knowledge module: consumer file ingestion (.md and .toml), content-hash skip on unchanged files, runtime learning ingestion, retrieve_knowledge() query and result types, custom graph model DataPoint subclasses, freshness detection, memify dispatch. |
+| `test_knowledge.py` | Knowledge module (cognee integration): consumer file ingestion into both lessons table and cognee graph, content-hash skip on unchanged files, runtime learning indexing from lessons table, retrieve_knowledge() query and result types, custom graph model DataPoint subclasses, freshness detection, memify dispatch, disabled-mode returns empty results. |
 | `test_services.py` | Service functions: run lifecycle, inbox operations, trace queries, validation, config. Integration tests against PG. |
 | `test_cli.py` | CLI argument parsing, command dispatch, output formatting (table and JSON). |
 | `test_mcp.py` | MCP server tool registry, JSON-RPC dispatch, response format. |
