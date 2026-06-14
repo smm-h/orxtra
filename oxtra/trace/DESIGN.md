@@ -232,18 +232,6 @@ These tables are owned by the trace module but primarily read/written by the Ove
 | `scope` | text NOT NULL | `understanding`, `decomposition`, `task` |
 | `created_at` | timestamptz | |
 
-#### `lessons`
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | uuid PK | |
-| `run_id` | uuid FK -> runs, nullable | NULL for permanent entries |
-| `text` | text NOT NULL | |
-| `relevance_tags` | text[] | |
-| `permanent` | boolean DEFAULT false | True for consumer knowledge; never expires |
-| `source_file` | text | For staleness detection via git |
-| `created_at` | timestamptz | |
-
 #### `workflow_status`
 
 Overseer's view of workflow health. Overwritten, not appended.
@@ -306,7 +294,6 @@ class TraceWriter:
     async def write_decision(self, run_id, protocol_type, choice, rationale=None) -> uuid.UUID: ...
     async def write_constraint(self, run_id, text, source_decision_id, tier): ...
     async def write_assumption(self, run_id, text, scope, inbox_item_id=None): ...
-    async def write_lesson(self, run_id, text, relevance_tags, permanent=False, source_file=None): ...
     async def update_workflow_status(self, workflow_id, current_step, health): ...
 ```
 

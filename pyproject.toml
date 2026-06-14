@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg",
     "uuid6",
     "strictcli",
+    "cognee",
 ]
 
 [project.scripts]

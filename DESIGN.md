@@ -30,6 +30,7 @@ oxtra/
         notepad/               # Cross-agent context sharing (PG-backed)
         session/               # Session lifecycle, token tracking
         trace/                 # PG schema owner: events, results, transcripts, inbox
+        knowledge/             # Knowledge ingestion and retrieval via cognee
         services/              # Shared business logic consumed by all frontends
         cli/                   # strictcli CLI (agents are the primary users)
         mcp/                   # MCP server exposing the public API
@@ -47,13 +48,13 @@ Each module directory contains a `DESIGN.md` (the spec) and Python files (the im
 
 ## Architecture
 
-Three components, twelve modules.
+Three components, thirteen modules.
 
 The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent steps** are the hands.
 
 | Module | Responsibility |
 |---|---|
-| `overseer/` | Persistent LLM with read-only tools and PostgreSQL memory. Makes judgment calls via structured decision protocols. Generates workflows. Manages assumptions, constraints, lessons. Session handoff when context fills. |
+| `overseer/` | Persistent LLM with read-only tools and PostgreSQL memory. Makes judgment calls via structured decision protocols. Generates workflows. Manages assumptions and constraints. Session handoff when context fills. |
 | `scheduler/` | Deterministic event loop. Validates and executes workflows. Enforces budgets and mechanical constraints. Routes events to the Overseer. Manages pause/resume and crash recovery. Has no opinions. |
 | `agent/` | Load agent definitions from TOML + .md prompt files. Validate schema. Resolve categories and permissions. |
 | `tool/` | Tool registry. Each tool is a single Python object: name, description, parameters, execute. Granular constructors for file, git, exec, http operations. No bash tool. |
@@ -62,6 +63,7 @@ The **Overseer** is the brain. The **Scheduler** is the nervous system. **Agent 
 | `notepad/` | Append-only cross-agent context sharing. Workers append learnings, decisions, issues. PG-backed via the trace schema. No overwrites. |
 | `session/` | Session lifecycle management wrapping transport. Track session IDs for resumption. Track token counts. Conversation history in PG enables cross-restart resumption. |
 | `trace/` | Single owner of the PostgreSQL schema. Tables: events, step results (per-attempt), transcripts, inbox items, notepad entries, config snapshots, workflow/step state. REVOKE UPDATE/DELETE on immutable tables. LISTEN/NOTIFY for cross-process observers. UUIDv7 primary keys. |
+| `knowledge/` | Knowledge ingestion and retrieval via cognee. Ingests consumer knowledge files and runtime learnings into a knowledge graph (PG+pgvector). Replaces flat lessons table with graph-structured, semantically queryable knowledge. Cross-run learning with memify refinement. |
 | `services/` | Shared business logic consumed by all three frontends (Python API, CLI, MCP server). One service per domain: runs, inbox, trace queries, config, validation. |
 | `cli/` | strictcli-based CLI. Thin frontend over the services layer. Commands: run inspection, trace queries, TOML validation, inbox list/respond, config dump. Agents are the primary users. |
 | `mcp/` | MCP server exposing the public API as MCP tools. The human's interface via dashboard or conversational AI client. |

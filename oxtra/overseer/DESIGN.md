@@ -68,8 +68,9 @@ Structured, queryable store. Tables owned by the trace module, read/written by t
 | `decisions` | id, run_id, protocol_type, choice, rationale, outcome | outcome updated when known |
 | `constraints` | text, source_decision_id, active, tier | tier is `mechanical` or `advisory` |
 | `assumptions` | text, status, scope, inbox_item_id | status: pending / confirmed / contradicted. scope: understanding / decomposition / task |
-| `lessons` | text, relevance_tags, permanent | permanent entries from consumer knowledge |
 | `workflow_status` | workflow_id, current_step, health | overwritten, not appended |
+
+Knowledge (lessons, consumer domain facts, learned patterns) is stored in the knowledge module's cognee graph, not in these tables. See `knowledge/DESIGN.md`.
 
 Context assembly queries this database per decision type:
 - Retry decision gets: active constraints + failing workflow's status + last 3 retry decisions + relevant lessons + error classification
@@ -174,35 +175,11 @@ The Overseer sees the classification and applies type-appropriate strategies.
 
 ## Cross-Run Learning
 
-Per-project knowledge base persisted in PG:
-- Architecture patterns, failure patterns, flaky tests, conventions, environment requirements
-- Entries have timestamps and source file paths
-- The scheduler checks via git whether source files have changed and flags stale entries
-- Entries expire after N runs unless explicitly confirmed by a human
-- If the Overseer encounters contradicting evidence, it marks the entry as disputed and escalates
-- Permanent entries are human-curated, not system-generated
+Knowledge ingestion, retrieval, and cross-run learning are owned by the `knowledge/` module, which wraps cognee. See `knowledge/DESIGN.md`.
 
-The Overseer reads the knowledge base at the start of every run.
+The Overseer consumes knowledge via its context assembly (Layer 3): the scheduler calls `knowledge.retrieve_knowledge()` with a query derived from the current step, and the Overseer's `context_decision` protocol refines the results.
 
-### Consumer Knowledge Files
-
-Consumers can provide domain-specific knowledge as files in a known directory (`knowledge/`). Two formats:
-
-**Markdown files** (`.md`) -- free-form domain knowledge. Each file is loaded as a permanent entry in the lessons table. Files can contain front matter for metadata (tags).
-
-**TOML files** (`.toml`) -- structured constraints that map to the Overseer's constraint system:
-
-```toml
-[[constraints]]
-text = "All generated code must pass lint and type checks before commit"
-tier = "mechanical"
-
-[[constraints]]
-text = "Prefer composition over inheritance in generated components"
-tier = "advisory"
-```
-
-Consumer knowledge files are loaded at the start of every run. They are permanent -- they do not expire and are not subject to staleness detection.
+Consumer knowledge files (`.md` and `.toml` in the `knowledge/` directory) are ingested by the knowledge module at run start. Runtime learnings (notepad entries, failure patterns) are ingested after run completion.
 
 ## Files
 
@@ -210,14 +187,12 @@ Consumer knowledge files are loaded at the start of every run. They are permanen
 |---|---|
 | `_overseer.py` | `Overseer` class. Manages the persistent session, assembles context per decision type, parses structured outputs, records decisions via trace. |
 | `_protocols.py` | Decision protocol registry. Each protocol: system prompt template, input schema, output schema, context assembly rule. All schemas are pydantic models with `strict=True, extra='forbid'`. |
-| `_memory.py` | Context assembly queries against PG tables (decisions, constraints, assumptions, lessons, workflow_status). |
+| `_memory.py` | Context assembly queries against PG tables (decisions, constraints, assumptions, workflow_status) and knowledge module retrieval. |
 | `_health.py` | Health monitoring. Tracks parse failure rate, contradiction rate, repetition rate. Degraded mode logic per decision type. |
 | `_handoff.py` | Session handoff detection and execution. |
 | `_inbox.py` | Human inbox item creation. Structured async queue for escalations and assumptions. |
 | `_autonomy.py` | Autonomy knob. Level definitions, action-type-to-level mapping, escalation routing, action-gating enforcement. |
 | `_errors.py` | Error taxonomy. Classification logic: exit codes, stderr patterns, error messages to category. |
-| `_learning.py` | Cross-run knowledge base. Persistence, staleness detection, expiry. |
-| `_knowledge.py` | Consumer knowledge file loading. Reads .md and .toml files from the knowledge directory, parses front matter, creates permanent entries. |
 | `_sanity.py` | Sanity-check subagent dispatch. Constraint consistency, repetition, proportionality checks. |
 
 ## What This Module Does NOT Do

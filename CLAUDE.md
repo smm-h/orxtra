@@ -42,6 +42,7 @@ oxtra/
         notepad/           # Append-only cross-agent context (PG-backed)
         session/           # Session lifecycle, token tracking
         trace/             # PG schema owner: events, results, transcripts, inbox
+        knowledge/         # Knowledge ingestion and retrieval via cognee
         services/          # Shared business logic for all frontends
         cli/               # strictcli CLI (agents are the primary users)
         mcp/               # MCP server (human interface via dashboard/AI client)
@@ -60,7 +61,7 @@ oxtra/
 - **Providers** implement a 4-method protocol (`build_request`, `parse_response`, `parse_stream`, `extract_usage`) using raw httpx (no SDKs). The transport runs a provider-agnostic tool-call loop with explicit retry policy for transient API errors.
 - **Decision protocols** are 11 typed protocols for Overseer decisions: intent, workflow, retry, budget, escalation, assumption, concurrency, constraint, scope, context, audit. Each has a system prompt template, input schema, output schema (closed menu), and context assembly rule.
 - **Human inbox** is a structured async queue backed by PG. The system assumes-records-proceeds by default. Three explicit blocking mechanisms (autonomy action-gating, hard errors on missing inputs, declared gate steps) handle cases requiring real waits. Inbox items carry tags and a four-status lifecycle (pending/answered/skipped/expired). Answers fire events for gate steps to await.
-- **Consumer knowledge** is domain-specific .md and .toml files in `knowledge/`. Loaded as permanent entries in the Overseer's PostgreSQL memory. See `overseer/DESIGN.md`.
+- **Consumer knowledge** is domain-specific .md and .toml files in `knowledge/`. Ingested into a cognee knowledge graph (PG+pgvector) by the knowledge module. Retrieved during Overseer context assembly. See `knowledge/DESIGN.md`.
 - **PostgreSQL** is the backbone. All persistent state in PG. Immutable tables (events, transcripts, notepad) via REVOKE UPDATE/DELETE. LISTEN/NOTIFY for cross-process observation. Advisory locks for mutual exclusion. UUIDv7 primary keys.
 - **Services layer** is shared business logic consumed by three frontends: the Python API, the strictcli CLI, and the MCP server.
 
@@ -73,6 +74,7 @@ This project uses:
 - **ruff** with `select = ["ALL"]` and documented per-rule ignores for linting and formatting.
 - **httpx** for all LLM API communication (no official SDKs).
 - **asyncpg** for PostgreSQL.
+- **cognee** for knowledge graph ingestion and retrieval (PG+pgvector backend). Cross-run learning, consumer knowledge file ingestion, semantic retrieval for Overseer context assembly.
 - **rlsbl** for release orchestration, changelog enforcement, and CI scaffolding. Run `rlsbl scaffold` to set up `.rlsbl/`. See the rlsbl protocol in `~/Projects/CLAUDE.md`.
 - **strictcli** for the CLI layer. Schema-driven, no implicit flags.
 - **selfdoc** for generated documentation. Templates live in `docs/` (`_README.md`, `_CLAUDE.md`). Generated root files are read-only. Run `selfdoc gen` to regenerate.

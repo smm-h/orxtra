@@ -105,7 +105,7 @@ A flat map from intent to model. No fallback chains, no fuzzy matching. Missing 
 
 ## Architecture
 
-Three components, twelve modules:
+Three components, thirteen modules:
 
 | Module | Purpose |
 |---|---|
@@ -118,6 +118,7 @@ Three components, twelve modules:
 | `notepad/` | Cross-agent context sharing (PG-backed) |
 | `session/` | Session lifecycle, token tracking |
 | `trace/` | PG schema owner: events, results, transcripts, inbox |
+| `knowledge/` | Knowledge ingestion and retrieval via cognee (PG+pgvector) |
 | `services/` | Shared business logic for all frontends |
 | `cli/` | strictcli CLI (agents are the primary users) |
 | `mcp/` | MCP server (human interface via dashboard/AI client) |
