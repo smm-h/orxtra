@@ -1,6 +1,14 @@
 from __future__ import annotations
 
+import pytest
 from orxt.secrets import SecretRegistry
+
+
+class TestValidation:
+
+    def test_empty_secret_value_raises(self) -> None:
+        with pytest.raises(ValueError, match="A"):
+            SecretRegistry({"A": ""})
 
 
 class TestSubstitute:
@@ -78,6 +86,11 @@ class TestScrub:
         reg = SecretRegistry({"TOKEN": "abc123"})
         assert reg.scrub("") == ""
 
+    def test_duplicate_secret_values(self) -> None:
+        reg = SecretRegistry({"A": "same", "B": "same"})
+        result = reg.scrub("same")
+        assert result in ("{{secret:A}}", "{{secret:B}}")
+
 
 class TestImmutability:
 
@@ -99,3 +112,8 @@ class TestRoundTrip:
         assert substituted == "Use abc123 and xyz789"
         scrubbed = reg.scrub(substituted)
         assert scrubbed == original
+
+    def test_secret_value_looks_like_placeholder(self) -> None:
+        reg = SecretRegistry({"A": "{{secret:B}}"})
+        assert reg.substitute("{{secret:A}}") == "{{secret:B}}"
+        assert reg.scrub("{{secret:B}}") == "{{secret:A}}"
