@@ -54,6 +54,27 @@ class TestComputeCostUsd:
         expected = Decimal("5.00") * 100 + Decimal("25.00") * 100
         assert cost == expected
 
+    def test_reasoning_tokens_priced_correctly(self) -> None:
+        usage = Usage(reasoning_tokens=1_000_000)
+        cost = compute_cost_usd("anthropic/claude-sonnet-4-6", usage)
+        expected = Decimal("20.00")
+        assert cost == expected
+
+    def test_all_token_types_combined(self) -> None:
+        usage = Usage(
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+            reasoning_tokens=1_000_000,
+            cache_read_tokens=1_000_000,
+            cache_write_tokens=1_000_000,
+        )
+        cost = compute_cost_usd("anthropic/claude-sonnet-4-6", usage)
+        expected = (
+            Decimal("3.00") + Decimal("15.00") + Decimal("20.00")
+            + Decimal("0.30") + Decimal("3.75")
+        )
+        assert cost == expected
+
 
 class TestPricingTable:
     def test_all_models_have_rates(self) -> None:
@@ -70,6 +91,9 @@ class TestPricingTable:
             assert rates.cache_write_per_million is not None, (
                 f"{model} missing cache_write rate"
             )
+            assert rates.reasoning_per_million is not None, (
+                f"{model} missing reasoning rate"
+            )
 
 
 class TestTokenRates:
@@ -79,6 +103,7 @@ class TestTokenRates:
             output_per_million=Decimal(2),
             cache_read_per_million=Decimal(3),
             cache_write_per_million=Decimal(4),
+            reasoning_per_million=Decimal(5),
         )
         with pytest.raises(FrozenInstanceError):
             rates.input_per_million = Decimal(999)  # type: ignore[misc]
