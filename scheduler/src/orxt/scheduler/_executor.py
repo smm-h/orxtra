@@ -6,8 +6,11 @@ import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
+from orxt.notepad import NotepadEntry, format_notepad
+from orxt.protocols._checks import CheckContext
 from orxt.protocols._execution import CheckResult
 from orxt.protocols._task import (
+    AttemptSummary,
     EscalationPayload,
     TaskContext,
     TaskResult,
@@ -24,11 +27,13 @@ from orxt.scheduler._graph import (
 from orxt.scheduler._validator import validate_task_tree
 from orxt.session import Session, compute_cost_usd, create_session
 from orxt.transport import Result, Usage
+from orxt.verify import CheckExecutor, run_checks
 
 if TYPE_CHECKING:
     from uuid import UUID
 
     from orxt.agent import Agent
+    from orxt.protocols._task import Execution
     from orxt.protocols._tools import (
         CreateTaskParams,
         CreateWaitForParams,
@@ -93,6 +98,27 @@ class Scheduler:
         self._running_tasks: set[asyncio.Task[Any]] = set()
         self._event_registry = EventRegistry()
         self._session_mutations: dict[str, bool] = {}
+        self._notepad_entries: list[NotepadEntry] = []
+        self._active_constraints: list[tuple[str, str]] = []
+        self._pending_end_task_message: dict[UUID, str] = {}
+
+    async def run_consult(
+        self,
+        agent: str,
+        question: str,
+        variable_values: dict[str, str] | None = None,
+    ) -> str:
+        raise NotImplementedError(
+            "Overseer integration required"
+        )
+
+    async def run_workflow_check(
+        self,
+        execution: Execution,
+    ) -> CheckResult:
+        raise NotImplementedError(
+            "Overseer integration required"
+        )
 
     def _get_scoped_outputs(
         self, parent_id: UUID | None,
@@ -298,16 +324,35 @@ class Scheduler:
                 f"{prompt}"
             )
 
+            # Layer 2: Runtime system context
+            # Constraints
+            if self._active_constraints:
+                prompt += "\n\n## Active Constraints"
+                for text, tier in (
+                    self._active_constraints
+                ):
+                    prompt += f"\n- {text} ({tier})"
+
+            # Notepad content
+            if self._notepad_entries:
+                prompt += (
+                    f"\n\n{format_notepad(self._notepad_entries)}"
+                )
+
+            # Prior failure context
             if (
                 attempt > 1
                 and task.retry_inject_failure
                 and prior_attempts
             ):
-                last = prior_attempts[-1]
                 prompt += (
-                    f"\n\nPrior attempt {last['attempt']}"
-                    f" failed: {last['error']}"
+                    "\n\n## Prior Failure Context"
                 )
+                for pa in prior_attempts:
+                    prompt += (
+                        f"\nPrior attempt {pa['attempt']}"
+                        f" failed: {pa['error']}"
+                    )
 
             try:
                 if task.timeout is not None:
@@ -466,19 +511,41 @@ class Scheduler:
         task_id: UUID,
         parent_task_id: UUID | None,
         attempt: int,
-        prior_attempts: list[dict[str, Any]],  # noqa: ARG002
+        prior_attempts: list[dict[str, Any]],
         variables: dict[str, Any] | None,
     ) -> TaskContext:
+        # Compute nesting depth by walking parent chain
+        depth = 0
+        current = task_id
+        while self._task_parents.get(current) is not None:
+            depth += 1
+            current = self._task_parents[current]  # type: ignore[assignment]
+
+        # Convert prior_attempts dicts to AttemptSummary
+        summaries: list[AttemptSummary] | None = None
+        if prior_attempts:
+            summaries = [
+                AttemptSummary(
+                    attempt=pa["attempt"],
+                    output=pa.get("error"),
+                    check_results=[],
+                    duration_seconds=0.0,
+                )
+                for pa in prior_attempts
+            ]
+
         return TaskContext(
             variables=variables or {},
             run_id=self._run_id,
             task_name=task.name,
             task_id=task_id,
             attempt=attempt,
-            prior_attempts=None,
-            notepad_content="",
+            prior_attempts=summaries,
+            notepad_content=format_notepad(
+                self._notepad_entries,
+            ),
             parent_task_id=parent_task_id,
-            nesting_depth=0,
+            nesting_depth=depth,
         )
 
     def _resolve_model_key(
@@ -760,7 +827,7 @@ class Scheduler:
     async def _run_postchecks(
         self,
         task: TaskSpec,
-        task_id: UUID,  # noqa: ARG002
+        task_id: UUID,
     ) -> list[CheckResult]:
         if not task.postchecks:
             return [
@@ -769,17 +836,29 @@ class Scheduler:
                     message="No postchecks defined",
                 ),
             ]
-        return [
-            CheckResult(
-                passed=True,
-                message="Postchecks passed (stub)",
+        message = self._pending_end_task_message.get(
+            task_id, "",
+        )
+        ctx = CheckContext(
+            variables={},
+            agent_output=message,
+            run_id=self._run_id,
+            session_id=None,
+            task_name=task.name,
+            task_id=task_id,
+            attempt=1,
+            parent_task_id=self._task_parents.get(
+                task_id,
             ),
-        ]
+        )
+        return await run_checks(
+            task.postchecks, ctx, "postcheck", self,
+        )
 
     async def _run_prechecks(
         self,
         task: TaskSpec,
-        task_id: UUID,  # noqa: ARG002
+        task_id: UUID,
     ) -> list[CheckResult]:
         if not task.prechecks:
             return [
@@ -788,12 +867,21 @@ class Scheduler:
                     message="No prechecks defined",
                 ),
             ]
-        return [
-            CheckResult(
-                passed=True,
-                message="Prechecks passed (stub)",
+        ctx = CheckContext(
+            variables={},
+            agent_output=None,
+            run_id=self._run_id,
+            session_id=None,
+            task_name=task.name,
+            task_id=task_id,
+            attempt=1,
+            parent_task_id=self._task_parents.get(
+                task_id,
             ),
-        ]
+        )
+        return await run_checks(
+            task.prechecks, ctx, "precheck", self,
+        )
 
     async def _execute_function_task(
         self,
@@ -822,6 +910,13 @@ class Scheduler:
         module = importlib.import_module(module_path)
         func = getattr(module, func_name)
 
+        # Compute nesting depth
+        depth = 0
+        current = task_id
+        while self._task_parents.get(current) is not None:
+            depth += 1
+            current = self._task_parents[current]  # type: ignore[assignment]
+
         context = TaskContext(
             variables=variables or {},
             run_id=self._run_id,
@@ -829,9 +924,11 @@ class Scheduler:
             task_id=task_id,
             attempt=1,
             prior_attempts=None,
-            notepad_content="",
+            notepad_content=format_notepad(
+                self._notepad_entries,
+            ),
             parent_task_id=parent_task_id,
-            nesting_depth=0,
+            nesting_depth=depth,
         )
 
         result: TaskResult = await func(context)
@@ -1135,6 +1232,7 @@ class Scheduler:
             task_id, TaskState.POSTCHECKING.value,
         )
 
+        self._pending_end_task_message[task_id] = message
         check_results = await self._run_postchecks(
             task, task_id,
         )
