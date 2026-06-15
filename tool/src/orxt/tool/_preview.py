@@ -41,10 +41,17 @@ def check_and_preview(
         )
 
     head = lines[:preview_lines]
-    tail = lines[-preview_lines:] if len(lines) > preview_lines * 2 else lines[preview_lines:]
+    if len(lines) > preview_lines * 2:
+        tail = lines[-preview_lines:]
+    else:
+        tail = lines[preview_lines:]
 
     omitted = total_lines - len(head) - len(tail)
-    separator = f"\n... ({omitted} lines omitted, {total_lines} total lines, {total_bytes} total bytes) ...\n"
+    separator = (
+        f"\n... ({omitted} lines omitted, "
+        f"{total_lines} total lines, "
+        f"{total_bytes} total bytes) ...\n"
+    )
 
     preview_content = "".join(head) + separator + "".join(tail)
 

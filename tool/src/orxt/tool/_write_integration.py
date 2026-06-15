@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from orxt.write_safety import (
     StaleWriteTracker,
@@ -9,8 +9,11 @@ from orxt.write_safety import (
     compute_hash,
 )
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-async def safe_write(
+
+async def safe_write(  # noqa: PLR0913
     path: Path,
     content: str | bytes,
     queue: WriteQueue,
@@ -65,7 +68,7 @@ async def safe_read_for_write(
         The file contents as a string.
     """
     async with queue.lock(path):
-        content = path.read_text(encoding="utf-8")
+        content = path.read_text(encoding="utf-8")  # noqa: ASYNC240
         content_hash = compute_hash(path)
         tracker.record_read(session_id, path, content_hash)
         return content
