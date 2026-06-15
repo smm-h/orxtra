@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from orxt.tool._exec_tool import make_exec_tool
 from orxt.tool._git_tool import make_git_tool
+from orxt.tool._http_tool import make_http_tool
 from orxt.tool._path import PathError, check_write_scope, resolve_and_check
 from orxt.tool._preview import (
     FullRetrievalGuard,
@@ -37,7 +39,9 @@ __all__ = [
     "make_delete_tool",
     "make_diff_tool",
     "make_edit_tool",
+    "make_exec_tool",
     "make_git_tool",
+    "make_http_tool",
     "make_glob_tool",
     "make_grep_tool",
     "make_list_dir_tool",
