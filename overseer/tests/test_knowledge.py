@@ -118,9 +118,9 @@ async def test_md_written_as_permanent(
     )
     await load_knowledge_files(tmp_path, tw, run_id)
     assert tw.calls[0][1]["permanent"] is True
-    assert tw.calls[0][1]["source_file"] == str(
+    assert tw.calls[0][1]["source_files"] == [str(
         tmp_path / "guide.md",
-    )
+    )]
 
 
 @pytest.mark.asyncio

@@ -68,6 +68,8 @@ def make_add_constraint_tool(
             run_id=run_id,
             text=params.text,
             tier=params.tier.value,
+            kind=params.kind,
+            args=params.args,
         )
         return AddConstraintResult(constraint_id=constraint_id).model_dump_json()
 
@@ -170,7 +172,7 @@ def make_write_lesson_tool(
             text=params.text,
             relevance_tags=params.relevance_tags,
             permanent=params.permanent,
-            source_file=params.source_file,
+            source_files=params.source_files or None,
         )
         return WriteLessonResult(lesson_id=lesson_id).model_dump_json()
 

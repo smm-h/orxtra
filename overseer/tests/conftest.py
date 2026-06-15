@@ -41,11 +41,17 @@ class MockTraceWriter:
         return generated
 
     async def write_constraint(
-        self, run_id: UUID, text: str, tier: str,
+        self,
+        run_id: UUID,
+        text: str,
+        tier: str,
+        kind: str,
+        args: dict[str, Any] | None = None,
     ) -> UUID:
         generated = self._gen_id()
         self.calls.append(("write_constraint", {
             "run_id": run_id, "text": text, "tier": tier,
+            "kind": kind, "args": args,
         }))
         return generated
 
@@ -94,13 +100,13 @@ class MockTraceWriter:
         text: str,
         relevance_tags: list[str],
         permanent: bool,
-        source_file: str | None = None,
+        source_files: list[str] | None = None,
     ) -> UUID:
         generated = self._gen_id()
         self.calls.append(("write_lesson", {
             "run_id": run_id, "text": text,
             "relevance_tags": relevance_tags,
-            "permanent": permanent, "source_file": source_file,
+            "permanent": permanent, "source_files": source_files,
         }))
         return generated
 
