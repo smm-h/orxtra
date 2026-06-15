@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import logging
 import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -26,8 +27,10 @@ from orxt.scheduler._graph import (
 )
 from orxt.scheduler._validator import validate_task_tree
 from orxt.session import Session, compute_cost_usd, create_session
+from orxt.tool._pipeline import wrap_tools_for_session
 from orxt.transport import Result, Usage
 from orxt.verify import CheckExecutor, run_checks
+from orxt.write_safety import StaleWriteTracker, WriteQueue
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -43,6 +46,8 @@ if TYPE_CHECKING:
     from orxt.scheduler._types import WorkflowConfig
     from orxt.trace import TraceWriter
     from orxt.transport import Transport
+
+_logger = logging.getLogger("orxt.scheduler")
 
 _ACTIVE_STATES = frozenset({
     TaskState.ACTIVE,
@@ -98,6 +103,8 @@ class Scheduler:
         self._running_tasks: set[asyncio.Task[Any]] = set()
         self._event_registry = EventRegistry()
         self._session_mutations: dict[str, bool] = {}
+        self._write_queue = WriteQueue()
+        self._stale_tracker = StaleWriteTracker()
         self._notepad_entries: list[NotepadEntry] = []
         self._active_constraints: list[tuple[str, str]] = []
         self._pending_end_task_message: dict[UUID, str] = {}
@@ -664,7 +671,7 @@ class Scheduler:
                 session_id, message,
             )
 
-        return [
+        raw_tools = [
             Tool(
                 name="start_task",
                 description=(
@@ -701,6 +708,17 @@ class Scheduler:
                 execute=end_task_execute,
             ),
         ]
+
+        # Wrap with pipeline: active task check,
+        # secret substitution, mutation tracking
+        return wrap_tools_for_session(
+            tools=raw_tools,
+            scheduler_check=self.check_active_task,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=session_id,
+            mutation_tracker=self._session_mutations,
+        )
 
     @staticmethod
     def _resolve_prompt(
@@ -1241,6 +1259,7 @@ class Scheduler:
         )
 
         if all_passed:
+            await self._auto_commit(session_id, message)
             self._complete_task(
                 task_id, task.name, message,
             )
@@ -1278,6 +1297,65 @@ class Scheduler:
         return (
             f"Postchecks failed: {'; '.join(failed)}"
         )
+
+    async def _auto_commit(
+        self,
+        session_id: str,
+        message: str,
+    ) -> None:
+        mutations_detected = self._session_mutations.get(
+            session_id, False,
+        )
+        proc = await asyncio.create_subprocess_exec(
+            "git", "status", "--porcelain",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        dirty_files = stdout.decode().strip()
+
+        if mutations_detected:
+            if dirty_files:
+                changed = []
+                for line in dirty_files.splitlines():
+                    # porcelain format: XY filename
+                    # or XY old -> new
+                    parts = line.strip().split(
+                        maxsplit=1,
+                    )
+                    if len(parts) >= 2:  # noqa: PLR2004
+                        fname = parts[1]
+                        if " -> " in fname:
+                            fname = fname.split(
+                                " -> ",
+                            )[1]
+                        changed.append(fname)
+                if changed:
+                    file_args = ["--"] + changed
+                    proc = (
+                        await asyncio.create_subprocess_exec(
+                            "safegit", "commit",
+                            "-m", message,
+                            *file_args,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                        )
+                    )
+                    await proc.communicate()
+            else:
+                _logger.warning(
+                    "Mutation tracker detected changes"
+                    " for session %s but git working"
+                    " tree is clean",
+                    session_id,
+                )
+        elif dirty_files:
+            _logger.warning(
+                "Git working tree has changes but"
+                " mutation tracker reports none"
+                " for session %s",
+                session_id,
+            )
 
     async def handle_create_task(
         self,
