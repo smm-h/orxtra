@@ -237,7 +237,7 @@ class TestAgentToolCallPath:
             config = _simple_workflow(tasks=[task])
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": transport},  # type: ignore[dict-item]
+                transport_registry={"anthropic": transport},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -362,7 +362,7 @@ class TestAgentToolCallPath:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -779,7 +779,7 @@ class TestRetry:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -880,7 +880,7 @@ class TestRetry:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -975,7 +975,7 @@ class TestRetry:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -1029,7 +1029,7 @@ class TestTaskTimeout:
         )
         sched = Scheduler(
             trace_writer=trace_writer,  # type: ignore[arg-type]
-            transport_registry={"mock-provider": SlowTransport()},  # type: ignore[dict-item]
+            transport_registry={"anthropic": SlowTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
@@ -1056,6 +1056,32 @@ class TestBudgetTracking:
                 scheduler._task_costs[tid],  # noqa: SLF001
                 Decimal,
             )
+
+
+class TestBudgetPersistence:
+    """Verify that cost and duration flow through to trace records."""
+
+    async def test_complete_attempt_receives_nonzero_cost(
+        self,
+        scheduler: Scheduler,
+        trace_writer: MockTraceWriter,
+    ) -> None:
+        config = _simple_workflow()
+        await scheduler.execute_workflow(config)
+
+        complete_calls = trace_writer.get_calls(
+            "complete_task_attempt",
+        )
+        assert len(complete_calls) >= 1
+        # The mock transport yields 10 input + 5 output tokens
+        # using "anthropic/claude-sonnet-4-6" which is in the
+        # PRICING_TABLE, so cost should be non-zero.
+        # duration_seconds should be > 0 since we use
+        # wall-clock timing.
+        for call in complete_calls:
+            assert isinstance(call["cost_usd"], Decimal)
+            assert isinstance(call["duration_seconds"], float)
+            assert call["duration_seconds"] > 0.0
 
 
 class TestFunctionTask:
@@ -1122,7 +1148,7 @@ class TestForEach:
 
         sched = Scheduler(
             trace_writer=trace_writer,  # type: ignore[arg-type]
-            transport_registry={"mock-provider": transport},  # type: ignore[dict-item]
+            transport_registry={"anthropic": transport},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
@@ -1200,7 +1226,7 @@ class TestForEach:
 
         sched = Scheduler(
             trace_writer=trace_writer,  # type: ignore[arg-type]
-            transport_registry={"mock-provider": FailingTransport()},  # type: ignore[dict-item]
+            transport_registry={"anthropic": FailingTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
@@ -1277,7 +1303,7 @@ class TestForEach:
         )
         sched = Scheduler(
             trace_writer=trace_writer,  # type: ignore[arg-type]
-            transport_registry={"mock-provider": FailSecondTransport()},  # type: ignore[dict-item]
+            transport_registry={"anthropic": FailSecondTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
@@ -1357,7 +1383,7 @@ class TestForEach:
 
         sched = Scheduler(
             trace_writer=trace_writer,  # type: ignore[arg-type]
-            transport_registry={"mock-provider": TrackedTransport()},  # type: ignore[dict-item]
+            transport_registry={"anthropic": TrackedTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
@@ -1460,7 +1486,7 @@ class TestTaskOutputPropagation:
         )
         sched = Scheduler(
             trace_writer=trace_writer,  # type: ignore[arg-type]
-            transport_registry={"mock-provider": CapturingTransport()},  # type: ignore[dict-item]
+            transport_registry={"anthropic": CapturingTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
@@ -1597,7 +1623,7 @@ class TestOnSuccessCallback:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": MockTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": MockTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -1721,7 +1747,7 @@ class TestPreRetryCallback:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -1834,7 +1860,7 @@ class TestPreRetryCallback:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -1952,7 +1978,7 @@ class TestRetryResume:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": TrackingTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": TrackingTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -2064,7 +2090,7 @@ class TestRetryInjectFailure:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": CapturingTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": CapturingTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,

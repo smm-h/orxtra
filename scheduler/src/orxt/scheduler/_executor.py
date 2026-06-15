@@ -88,6 +88,7 @@ class Scheduler:
             UUID | None, dict[str, dict[str, Any]]
         ] = {}
         self._task_costs: dict[UUID, Decimal] = {}
+        self._task_start_times: dict[UUID, float] = {}
         self._task_sessions: dict[UUID, Session] = {}
         self._running_tasks: set[asyncio.Task[Any]] = set()
         self._event_registry = EventRegistry()
@@ -246,6 +247,7 @@ class Scheduler:
                 )
             )
             start_time = time.monotonic()
+            self._task_start_times[task_id] = start_time
 
             if (
                 attempt > 1
@@ -327,7 +329,7 @@ class Scheduler:
                     )
             except TimeoutError:
                 await self._fail_attempt_timeout(
-                    attempt_id, session, task, task_id,
+                    attempt_id, session, task_id,
                 )
                 return TaskResult(
                     output=None,
@@ -357,6 +359,7 @@ class Scheduler:
                 await self._complete_attempt(
                     attempt_id, session,
                     result_text or "", True,
+                    task_id=task_id,
                 )
                 return TaskResult(
                     output=result_text,
@@ -372,6 +375,7 @@ class Scheduler:
             if state == TaskState.POSTCHECK_FAILED:
                 await self._complete_attempt(
                     attempt_id, session, "", False,
+                    task_id=task_id,
                 )
                 check_results = [
                     CheckResult(
@@ -392,6 +396,7 @@ class Scheduler:
             elif state == TaskState.PRECHECK_FAILED:
                 await self._complete_attempt(
                     attempt_id, session, "", False,
+                    task_id=task_id,
                 )
                 check_results = [
                     CheckResult(
@@ -412,6 +417,7 @@ class Scheduler:
             else:
                 await self._complete_attempt(
                     attempt_id, session, "", False,
+                    task_id=task_id,
                 )
                 prior_attempts.append({
                     "attempt": attempt,
@@ -662,9 +668,11 @@ class Scheduler:
         self,
         attempt_id: UUID,
         session: Session,
-        task: TaskSpec,
         task_id: UUID,
     ) -> None:
+        duration = time.monotonic() - self._task_start_times.get(
+            task_id, time.monotonic(),
+        )
         await self._trace_writer.fail_task_attempt(
             attempt_id=attempt_id,
             error="Task timed out",
@@ -680,8 +688,10 @@ class Scheduler:
             cache_write_tokens=(
                 session.total_cache_write_tokens
             ),
-            cost_usd=Decimal(0),
-            duration_seconds=float(task.timeout or 0),
+            cost_usd=self._task_costs.get(
+                task_id, Decimal(0),
+            ),
+            duration_seconds=duration,
         )
         self._task_states[task_id] = TaskState.CANCELLED
         await self._trace_writer.transition_task(
@@ -694,7 +704,11 @@ class Scheduler:
         session: Session,
         result_text: str,
         passed: bool,
+        task_id: UUID,
     ) -> None:
+        duration = time.monotonic() - self._task_start_times.get(
+            task_id, time.monotonic(),
+        )
         await self._trace_writer.complete_task_attempt(
             attempt_id=attempt_id,
             agent_output=result_text,
@@ -713,8 +727,10 @@ class Scheduler:
             cache_write_tokens=(
                 session.total_cache_write_tokens
             ),
-            cost_usd=Decimal(0),
-            duration_seconds=0.0,
+            cost_usd=self._task_costs.get(
+                task_id, Decimal(0),
+            ),
+            duration_seconds=duration,
         )
 
     def _complete_task(  # noqa: PLR0913
