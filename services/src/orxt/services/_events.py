@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from uuid import UUID
 
-    import asyncpg
+    import asyncpg  # type: ignore[import-untyped]
 
 
 async def fire_event(

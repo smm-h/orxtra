@@ -8,7 +8,7 @@ from orxt.session._pricing import PRICING_TABLE
 if TYPE_CHECKING:
     from uuid import UUID
 
-    import asyncpg
+    import asyncpg  # type: ignore[import-untyped]
 
 
 async def dump_config(
@@ -21,11 +21,7 @@ async def dump_config(
     if row is None:
         return None
     raw: Any = row["config_snapshot"]
-    result: dict[str, Any]
-    if isinstance(raw, str):
-        result = json.loads(raw)
-    else:
-        result = dict(raw)
+    result: dict[str, Any] = json.loads(raw) if isinstance(raw, str) else dict(raw)
     return result
 
 

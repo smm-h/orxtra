@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
 
-    import asyncpg
+    import asyncpg  # type: ignore[import-untyped]
 
 
 async def list_tasks(
@@ -72,9 +72,9 @@ async def query_events(
 
     params.append(limit)
     query = (
-        "SELECT id, run_id, task_id, event_type, data, created_at"
+        "SELECT id, run_id, task_id, event_type, data, created_at"  # noqa: S608
         " FROM events"
-        f" WHERE {' AND '.join(conditions)}"  # noqa: S608
+        f" WHERE {' AND '.join(conditions)}"
         f" ORDER BY created_at LIMIT ${idx}"
     )
     rows = await pool.fetch(query, *params)

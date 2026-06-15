@@ -5,15 +5,14 @@ from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict
-
 from orxt.trace import RunReport, RunSummary, TraceWriter, read_run_report
 from orxt.trace import list_runs as _list_runs
+from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
     from uuid import UUID
 
-    import asyncpg
+    import asyncpg  # type: ignore[import-untyped]
 
 
 class RunConfig(BaseModel):
