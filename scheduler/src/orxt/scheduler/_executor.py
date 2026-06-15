@@ -10,7 +10,6 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 import jsonschema
-
 from orxt.notepad import NotepadEntry, format_notepad
 from orxt.protocols._checks import CheckContext
 from orxt.protocols._constraints import (
@@ -39,7 +38,7 @@ from orxt.scheduler._validator import validate_task_tree
 from orxt.session import Session, compute_cost_usd, create_session
 from orxt.tool._pipeline import wrap_tools_for_session
 from orxt.transport import Result, Usage
-from orxt.verify import CheckExecutor, run_checks
+from orxt.verify import run_checks
 from orxt.write_safety import StaleWriteTracker, WriteQueue
 
 if TYPE_CHECKING:
@@ -163,17 +162,15 @@ class Scheduler:
         question: str,
         variable_values: dict[str, str] | None = None,
     ) -> str:
-        raise NotImplementedError(
-            "Overseer integration required"
-        )
+        msg = "Overseer integration required"
+        raise NotImplementedError(msg)
 
     async def run_workflow_check(
         self,
         execution: Execution,
     ) -> CheckResult:
-        raise NotImplementedError(
-            "Overseer integration required"
-        )
+        msg = "Overseer integration required"
+        raise NotImplementedError(msg)
 
     def _get_scoped_outputs(
         self, parent_id: UUID | None,
@@ -1091,7 +1088,7 @@ class Scheduler:
             self._task_children.get(task_id),
         )
 
-        for text, kind_str in self._mechanical_constraints:
+        for _text, kind_str in self._mechanical_constraints:
             try:
                 kind = ConstraintKind(kind_str)
             except ValueError:
@@ -1641,7 +1638,7 @@ class Scheduler:
                             )[1]
                         changed.append(fname)
                 if changed:
-                    file_args = ["--"] + changed
+                    file_args = ["--", *changed]
                     proc = (
                         await asyncio.create_subprocess_exec(
                             "safegit", "commit",

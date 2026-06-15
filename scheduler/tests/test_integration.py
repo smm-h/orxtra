@@ -12,7 +12,7 @@ import logging
 import sys
 import types
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
@@ -20,7 +20,6 @@ import pytest
 import uuid6
 from orxt.agent import Agent
 from orxt.notepad import NotepadEntry, format_notepad
-from orxt.protocols._constraints import ConstraintKind
 from orxt.protocols._errors import ErrorCategory
 from orxt.protocols._execution import CheckResult, ScriptExecution
 from orxt.protocols._task import TaskSpec, TaskState
@@ -30,17 +29,17 @@ from orxt.scheduler._executor import Scheduler, classify_error
 from orxt.scheduler._types import WorkflowConfig
 from orxt.transport import Result, StepFinish, ToolUse
 
-if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
-    from orxt.transport import Event
-
 from tests.conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,
     make_categories,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from orxt.transport import Event
 
 
 # -- helpers --
@@ -369,7 +368,7 @@ class TestContextAssembly:
             agent_name="analyst",
             entry_type="learning",
             text="The API uses v2 endpoints",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         sched._notepad_entries.append(entry)  # noqa: SLF001
 
@@ -562,7 +561,7 @@ class TestTaskContext:
             agent_name="agent-x",
             entry_type="decision",
             text="Use approach B",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         scheduler._notepad_entries.append(entry)  # noqa: SLF001
 
