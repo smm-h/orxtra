@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from orxt.protocols._execution import CheckResult
 from orxt.protocols._task import (
+    EscalationPayload,
     TaskContext,
     TaskResult,
     TaskSpec,
     TaskState,
 )
-from orxt.protocols._tool import ToolError
+from orxt.protocols._tool import Tool, ToolError
 from orxt.scheduler._events import EventRegistry
 from orxt.scheduler._graph import (
     build_graph,
@@ -20,8 +22,8 @@ from orxt.scheduler._graph import (
     topological_sort,
 )
 from orxt.scheduler._validator import validate_task_tree
-from orxt.session import create_session
-from orxt.transport import Result
+from orxt.session import Session, compute_cost_usd, create_session
+from orxt.transport import Result, Usage
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -34,7 +36,6 @@ if TYPE_CHECKING:
     )
     from orxt.scheduler._overseer import OverseerInterface
     from orxt.scheduler._types import WorkflowConfig
-    from orxt.session import Session
     from orxt.trace import TraceWriter
     from orxt.transport import Transport
 
@@ -50,6 +51,8 @@ def _task_type_for(task: TaskSpec) -> str:
         return "agent"
     if task.callable:
         return "callable"
+    if task.wait_for:
+        return "wait_for"
     return "workflow"
 
 
@@ -74,18 +77,42 @@ class Scheduler:
         self._task_specs: dict[UUID, TaskSpec] = {}
         self._task_parents: dict[UUID, UUID | None] = {}
         self._task_children: dict[UUID, list[UUID]] = {}
-        self._task_outputs: dict[str, str | None] = {}
+        # Scoped per parent: parent_task_id -> {name -> value}
+        self._task_outputs: dict[
+            UUID | None, dict[str, str | None]
+        ] = {}
         self._task_structured_outputs: dict[
-            str, dict[str, Any] | None
+            UUID | None, dict[str, dict[str, Any] | None]
         ] = {}
         self._task_results_meta: dict[
-            str, dict[str, Any]
+            UUID | None, dict[str, dict[str, Any]]
         ] = {}
         self._task_costs: dict[UUID, Decimal] = {}
         self._task_sessions: dict[UUID, Session] = {}
         self._running_tasks: set[asyncio.Task[Any]] = set()
         self._event_registry = EventRegistry()
         self._session_mutations: dict[str, bool] = {}
+
+    def _get_scoped_outputs(
+        self, parent_id: UUID | None,
+    ) -> dict[str, str | None]:
+        return self._task_outputs.setdefault(
+            parent_id, {},
+        )
+
+    def _get_scoped_structured(
+        self, parent_id: UUID | None,
+    ) -> dict[str, dict[str, Any] | None]:
+        return self._task_structured_outputs.setdefault(
+            parent_id, {},
+        )
+
+    def _get_scoped_results_meta(
+        self, parent_id: UUID | None,
+    ) -> dict[str, dict[str, Any]]:
+        return self._task_results_meta.setdefault(
+            parent_id, {},
+        )
 
     async def execute_workflow(
         self, config: WorkflowConfig,
@@ -115,16 +142,36 @@ class Scheduler:
         order = topological_sort(graph)
         groups = find_parallel_groups(graph, order)
 
+        variables: dict[str, Any] = {}
+
         for group in groups:
             coros = [
                 self.execute_task(
                     self._task_specs[task_id_map[name]],
                     None,
                     task_id=task_id_map[name],
+                    variables=dict(variables),
                 )
                 for name in group
             ]
-            await asyncio.gather(*coros)
+            results = await asyncio.gather(*coros)
+
+            for name, result in zip(
+                group, results, strict=True,
+            ):
+                variables[f"{name}_output"] = (
+                    result.structured_output
+                    or result.output
+                )
+                variables[f"{name}_text"] = result.output
+                all_passed = all(
+                    cr.passed for cr in result.check_results
+                )
+                variables[f"{name}_result"] = {
+                    "passed": all_passed,
+                    "duration_seconds": 0.0,
+                    "retries_used": 0,
+                }
 
     def _init_task_state(
         self,
@@ -159,7 +206,7 @@ class Scheduler:
 
         if task.for_each is not None:
             return await self._execute_for_each(
-                task, task_id, variables,
+                task, task_id, parent_task_id, variables,
             )
         if task.callable is not None:
             return await self._execute_function_task(
@@ -174,13 +221,14 @@ class Scheduler:
                 task, task_id,
             )
         return await self._execute_agent_task(
-            task, task_id, variables,
+            task, task_id, parent_task_id, variables,
         )
 
-    async def _execute_agent_task(
+    async def _execute_agent_task(  # noqa: C901, PLR0912, PLR0915
         self,
         task: TaskSpec,
         task_id: UUID,
+        parent_task_id: UUID | None,
         variables: dict[str, Any] | None = None,
     ) -> TaskResult:
         if task.agent is None or task.task_prompt is None:
@@ -188,8 +236,8 @@ class Scheduler:
             raise ValueError(msg)
 
         max_attempts = task.retry + 1
-        result_text = ""
         check_results: list[CheckResult] = []
+        prior_attempts: list[dict[str, Any]] = []
 
         for attempt in range(1, max_attempts + 1):
             attempt_id = (
@@ -197,6 +245,40 @@ class Scheduler:
                     task_id, attempt,
                 )
             )
+            start_time = time.monotonic()
+
+            if (
+                attempt > 1
+                and task.pre_retry is not None
+            ):
+                try:
+                    await self._call_callback(
+                        task.pre_retry,
+                        self._make_task_context(
+                            task, task_id, parent_task_id,
+                            attempt, prior_attempts,
+                            variables,
+                        ),
+                    )
+                except Exception:  # noqa: BLE001
+                    self._task_states[task_id] = (
+                        TaskState.ESCALATED
+                    )
+                    await self._trace_writer.transition_task(
+                        task_id,
+                        TaskState.ESCALATED.value,
+                    )
+                    return TaskResult(
+                        output=None,
+                        structured_output=None,
+                        check_results=[
+                            CheckResult(
+                                passed=False,
+                                message="pre_retry aborted",
+                            ),
+                        ],
+                    )
+
             session, session_id = (
                 self._create_agent_session(
                     task, task_id, attempt,
@@ -205,12 +287,29 @@ class Scheduler:
             self._task_sessions[task_id] = session
             self._session_mutations[session_id] = False
 
-            try:
-                prompt = self._resolve_prompt(
-                    task.task_prompt, variables,
+            prompt = self._resolve_prompt(
+                task.task_prompt, variables,
+            )
+            prompt = (
+                f"Your task ID is {task_id}."
+                " Call start_task first.\n\n"
+                f"{prompt}"
+            )
+
+            if (
+                attempt > 1
+                and task.retry_inject_failure
+                and prior_attempts
+            ):
+                last = prior_attempts[-1]
+                prompt += (
+                    f"\n\nPrior attempt {last['attempt']}"
+                    f" failed: {last['error']}"
                 )
+
+            try:
                 if task.timeout is not None:
-                    result_text = await asyncio.wait_for(
+                    await asyncio.wait_for(
                         self._run_session(
                             session,
                             prompt,
@@ -220,7 +319,7 @@ class Scheduler:
                         timeout=float(task.timeout),
                     )
                 else:
-                    result_text = await self._run_session(
+                    await self._run_session(
                         session,
                         prompt,
                         session_id,
@@ -241,43 +340,182 @@ class Scheduler:
                     ],
                 )
 
-            check_results = await self._run_postchecks(
-                task, task_id,
-            )
-            all_passed = all(
-                cr.passed for cr in check_results
+            _ = time.monotonic() - start_time
+            self._accumulate_cost(
+                task_id, task, session,
             )
 
-            await self._complete_attempt(
-                attempt_id, session, result_text, all_passed,
-            )
+            state = self._task_states[task_id]
 
-            if all_passed:
-                self._complete_task(
-                    task_id, task.name, result_text,
+            if state == TaskState.COMPLETED:
+                outputs = self._get_scoped_outputs(
+                    self._task_parents.get(task_id),
+                )
+                result_text = outputs.get(
+                    task.name,
+                )
+                await self._complete_attempt(
+                    attempt_id, session,
+                    result_text or "", True,
                 )
                 return TaskResult(
                     output=result_text,
                     structured_output=None,
-                    check_results=check_results,
+                    check_results=[
+                        CheckResult(
+                            passed=True,
+                            message="Task completed",
+                        ),
+                    ],
                 )
 
-            self._task_states[task_id] = (
-                TaskState.POSTCHECK_FAILED
-            )
-            if attempt < max_attempts:
-                self._task_states[task_id] = TaskState.ACTIVE
-                continue
+            if state == TaskState.POSTCHECK_FAILED:
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                )
+                check_results = [
+                    CheckResult(
+                        passed=False,
+                        message="Postchecks failed",
+                    ),
+                ]
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": "Postchecks failed",
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
 
+            elif state == TaskState.PRECHECK_FAILED:
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                )
+                check_results = [
+                    CheckResult(
+                        passed=False,
+                        message="Prechecks failed",
+                    ),
+                ]
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": "Prechecks failed",
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
+
+            else:
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                )
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": (
+                        f"Session ended in state {state}"
+                    ),
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
+
+        escalation = EscalationPayload(
+            task_name=task.name,
+            task_id=task_id,
+            agent_name=task.agent,
+            attempts=max_attempts,
+            failed_checks=check_results,
+            agent_summary="Retries exhausted",
+            context=self._make_task_context(
+                task, task_id, parent_task_id,
+                max_attempts, prior_attempts,
+                variables,
+            ),
+        )
         self._task_states[task_id] = TaskState.ESCALATED
         await self._trace_writer.transition_task(
             task_id, TaskState.ESCALATED.value,
         )
         return TaskResult(
-            output=result_text,
-            structured_output=None,
+            output=None,
+            structured_output={
+                "escalation": {
+                    "task_name": escalation.task_name,
+                    "attempts": escalation.attempts,
+                    "agent_name": escalation.agent_name,
+                },
+            },
             check_results=check_results,
         )
+
+    def _make_task_context(  # noqa: PLR0913
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        parent_task_id: UUID | None,
+        attempt: int,
+        prior_attempts: list[dict[str, Any]],  # noqa: ARG002
+        variables: dict[str, Any] | None,
+    ) -> TaskContext:
+        return TaskContext(
+            variables=variables or {},
+            run_id=self._run_id,
+            task_name=task.name,
+            task_id=task_id,
+            attempt=attempt,
+            prior_attempts=None,
+            notepad_content="",
+            parent_task_id=parent_task_id,
+            nesting_depth=0,
+        )
+
+    def _resolve_model_key(
+        self, task: TaskSpec,
+    ) -> str | None:
+        if task.agent is None:
+            return None
+        agent_def = self._agents.get(task.agent)
+        if agent_def is None:
+            return None
+        category_str = task.category or agent_def.category
+        return self._categories.get(category_str)
+
+    def _accumulate_cost(
+        self,
+        task_id: UUID,
+        task: TaskSpec,
+        session: Session,
+    ) -> None:
+        model_key = self._resolve_model_key(task)
+        if model_key is None:
+            return
+        try:
+            cost = compute_cost_usd(
+                model_key,
+                Usage(
+                    input_tokens=(
+                        session.total_input_tokens
+                    ),
+                    output_tokens=(
+                        session.total_output_tokens
+                    ),
+                    cache_read_tokens=(
+                        session.total_cache_read_tokens
+                    ),
+                    cache_write_tokens=(
+                        session.total_cache_write_tokens
+                    ),
+                ),
+            )
+            self._task_costs[task_id] += cost
+        except ValueError:
+            pass
 
     def _create_agent_session(
         self,
@@ -311,16 +549,88 @@ class Scheduler:
             )
             raise ValueError(msg)
 
+        session_id = f"session-{task_id}-{attempt}"
+        tools = self._build_lifecycle_tools(
+            task_id, session_id,
+        )
+
+        previous_session_id: str | None = None
+        if (
+            attempt > 1
+            and task.retry_resume
+            and task_id in self._task_sessions
+        ):
+            prev = self._task_sessions[task_id]
+            previous_session_id = prev.session_id
+
         session = create_session(
             transport=transport,
             model=model,
             system_prompt=agent_def.prompt,
-            tools=[],
+            tools=tools,
             trace_writer=self._trace_writer,
             run_id=self._run_id,
+            session_id=previous_session_id,
         )
-        session_id = f"session-{task_id}-{attempt}"
         return session, session_id
+
+    def _build_lifecycle_tools(
+        self,
+        task_id: UUID,
+        session_id: str,
+    ) -> list[Tool]:
+        async def start_task_execute(
+            params: dict[str, Any],  # noqa: ARG001
+        ) -> str:
+            return await self.handle_start_task(
+                session_id, task_id,
+            )
+
+        async def end_task_execute(
+            params: dict[str, Any],
+        ) -> str:
+            message = params.get("message", "")
+            return await self.handle_end_task(
+                session_id, message,
+            )
+
+        return [
+            Tool(
+                name="start_task",
+                description=(
+                    "Start the assigned task."
+                    " Must be called before any work."
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+                execute=start_task_execute,
+            ),
+            Tool(
+                name="end_task",
+                description=(
+                    "Signal task completion."
+                    " Triggers postchecks."
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": (
+                                "Commit message for"
+                                " auto-commit"
+                            ),
+                        },
+                    },
+                    "required": ["message"],
+                    "additionalProperties": False,
+                },
+                execute=end_task_execute,
+            ),
+        ]
 
     @staticmethod
     def _resolve_prompt(
@@ -330,17 +640,18 @@ class Scheduler:
         prompt = template
         if variables:
             for k, v in variables.items():
-                prompt = prompt.replace(f"{{{k}}}", str(v))
+                prompt = prompt.replace(
+                    f"{{{k}}}", str(v),
+                )
         return prompt
 
     async def _run_session(
         self,
         session: Session,
         prompt: str,
-        session_id: str,
-        task_id: UUID,
+        session_id: str,  # noqa: ARG002
+        task_id: UUID,  # noqa: ARG002
     ) -> str:
-        self._active_tasks[session_id] = task_id
         result_text = ""
         async for event in session.send(prompt):
             if isinstance(event, Result):
@@ -417,9 +728,17 @@ class Scheduler:
         retries: int = 0,
     ) -> None:
         self._task_states[task_id] = TaskState.COMPLETED
-        self._task_outputs[task_name] = output
-        self._task_structured_outputs[task_name] = structured
-        self._task_results_meta[task_name] = {
+        parent_id = self._task_parents.get(task_id)
+        outputs = self._get_scoped_outputs(parent_id)
+        structured_outputs = self._get_scoped_structured(
+            parent_id,
+        )
+        results_meta = self._get_scoped_results_meta(
+            parent_id,
+        )
+        outputs[task_name] = output
+        structured_outputs[task_name] = structured
+        results_meta[task_name] = {
             "passed": True,
             "duration_seconds": duration,
             "retries_used": retries,
@@ -614,6 +933,7 @@ class Scheduler:
         self,
         task: TaskSpec,
         task_id: UUID,
+        parent_task_id: UUID | None,  # noqa: ARG002
         variables: dict[str, Any] | None = None,
     ) -> TaskResult:
         if (
@@ -690,16 +1010,30 @@ class Scheduler:
         ]
         await asyncio.gather(*iteration_tasks)
 
-        self._task_states[task_id] = TaskState.COMPLETED
-        await self._trace_writer.transition_task(
-            task_id, TaskState.COMPLETED.value,
-        )
+        if abort:
+            self._task_states[task_id] = (
+                TaskState.POSTCHECK_FAILED
+            )
+            await self._trace_writer.transition_task(
+                task_id,
+                TaskState.POSTCHECK_FAILED.value,
+            )
+        else:
+            self._complete_task(
+                task_id, task.name,
+                str([
+                    r.output if r is not None else None
+                    for r in results
+                ]),
+            )
+            await self._trace_writer.transition_task(
+                task_id, TaskState.COMPLETED.value,
+            )
 
         outputs = [
             r.output if r is not None else None
             for r in results
         ]
-        self._task_outputs[task.name] = str(outputs)
         return TaskResult(
             output=str(outputs),
             structured_output={"iterations": outputs},
@@ -763,7 +1097,7 @@ class Scheduler:
     async def handle_end_task(
         self,
         session_id: str,
-        message: str,  # noqa: ARG002
+        message: str,
     ) -> str:
         task_id = self.check_active_task(session_id)
         task = self._task_specs[task_id]
@@ -796,13 +1130,27 @@ class Scheduler:
         )
 
         if all_passed:
-            self._task_states[task_id] = (
-                TaskState.COMPLETED
+            self._complete_task(
+                task_id, task.name, message,
             )
             await self._trace_writer.transition_task(
                 task_id, TaskState.COMPLETED.value,
             )
             del self._active_tasks[session_id]
+            if task.on_success is not None:
+                try:
+                    parent_id = self._task_parents.get(
+                        task_id,
+                    )
+                    await self._call_callback(
+                        task.on_success,
+                        self._make_task_context(
+                            task, task_id, parent_id,
+                            1, [], None,
+                        ),
+                    )
+                except Exception:  # noqa: BLE001, S110
+                    pass
             return f"Task {task_id} completed"
 
         self._task_states[task_id] = (
@@ -872,11 +1220,17 @@ class Scheduler:
             name=params.name,
             task_type="workflow",
         )
+        spec = TaskSpec(
+            name=params.name,
+            subtasks=[],
+        )
         self._task_states[workflow_id] = TaskState.CREATED
+        self._task_specs[workflow_id] = spec
         self._task_parents[workflow_id] = parent_id
         self._task_children.setdefault(
             parent_id, [],
         ).append(workflow_id)
+        self._task_children[workflow_id] = []
         self._task_costs[workflow_id] = Decimal(0)
         return str(workflow_id)
 
@@ -933,3 +1287,15 @@ class Scheduler:
                 await self._trace_writer.transition_task(
                     task_id, TaskState.CANCELLED.value,
                 )
+
+    @staticmethod
+    async def _call_callback(
+        callable_path: str,
+        context: TaskContext,
+    ) -> None:
+        module_path, _, func_name = (
+            callable_path.rpartition(".")
+        )
+        module = importlib.import_module(module_path)
+        func = getattr(module, func_name)
+        await func(context)

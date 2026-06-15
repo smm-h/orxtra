@@ -5,7 +5,7 @@ import sys
 import types
 import uuid
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import uuid6
@@ -24,7 +24,7 @@ from orxt.protocols._tools import (
 )
 from orxt.scheduler._executor import Scheduler
 from orxt.scheduler._types import WorkflowConfig
-from orxt.transport import Result
+from orxt.transport import Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -98,8 +98,9 @@ class TestExecuteSimpleWorkflow:
     ) -> None:
         config = _simple_workflow()
         await scheduler.execute_workflow(config)
-        assert "t1" in scheduler._task_outputs  # noqa: SLF001
-        assert scheduler._task_outputs["t1"] == "Mock response"  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        assert "t1" in outputs
+        assert outputs["t1"] == "Mock response"
 
 
 class TestExecuteWithDeps:
@@ -133,8 +134,9 @@ class TestExecuteWithDeps:
         )
         await scheduler.execute_workflow(config)
 
-        assert "a" in scheduler._task_outputs  # noqa: SLF001
-        assert "b" in scheduler._task_outputs  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        assert "a" in outputs
+        assert "b" in outputs
 
 
 class TestParallelExecution:
@@ -177,6 +179,204 @@ class TestDiamondDependency:
             if state == TaskState.COMPLETED
         ]
         assert len(completed) == 4
+
+
+class TestAgentToolCallPath:
+    """Agent tasks run through the start_task/end_task
+    tool-call path."""
+
+    async def test_start_task_called_by_agent(
+        self,
+        scheduler: Scheduler,
+        trace_writer: MockTraceWriter,
+    ) -> None:
+        config = _simple_workflow()
+        await scheduler.execute_workflow(config)
+
+        transitions = trace_writer.get_calls(
+            "transition_task",
+        )
+        statuses = [
+            t["new_status"] for t in transitions
+        ]
+        assert "prechecking" in statuses
+        assert "active" in statuses
+        assert "completed" in statuses
+
+    async def test_end_task_stores_output(
+        self, scheduler: Scheduler,
+    ) -> None:
+        config = _simple_workflow()
+        await scheduler.execute_workflow(config)
+
+        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        assert outputs.get("t1") == "Mock response"
+
+    async def test_precheck_failure_blocks(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+        transport = MockTransport()
+
+        async def failing_prechecks(
+            self: Scheduler,
+            task: TaskSpec,
+            task_id: uuid.UUID,
+        ) -> list[CheckResult]:
+            return [
+                CheckResult(
+                    passed=False,
+                    message="Precheck failed",
+                ),
+            ]
+
+        original = Scheduler._run_prechecks  # noqa: SLF001
+        Scheduler._run_prechecks = failing_prechecks  # type: ignore[assignment]  # noqa: SLF001
+        try:
+            task = _simple_task()
+            config = _simple_workflow(tasks=[task])
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": transport},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            await sched.execute_workflow(config)
+
+            states = list(sched._task_states.values())  # noqa: SLF001
+            assert TaskState.COMPLETED not in states
+            assert (
+                TaskState.ESCALATED in states
+                or TaskState.PRECHECK_FAILED in states
+            )
+        finally:
+            Scheduler._run_prechecks = original  # type: ignore[assignment]  # noqa: SLF001
+
+    async def test_postcheck_failure_from_end_task(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+        call_count = 0
+
+        async def postchecks_fail_then_pass(
+            self: Scheduler,
+            task: TaskSpec,
+            task_id: uuid.UUID,
+        ) -> list[CheckResult]:
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 1:
+                return [
+                    CheckResult(
+                        passed=False,
+                        message="Check failed",
+                    ),
+                ]
+            return [
+                CheckResult(
+                    passed=True,
+                    message="Check passed",
+                ),
+            ]
+
+        original = Scheduler._run_postchecks  # noqa: SLF001
+
+        class RetryTransport:
+            """Calls start_task and end_task on each
+            send, simulating retry."""
+
+            def __init__(self) -> None:
+                self._sends = 0
+
+            async def send(
+                self,
+                message: str,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                self._sends += 1
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+
+                if "start_task" in tool_map:
+                    start_result = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=start_result,
+                        status="success",
+                    )
+
+                if "end_task" in tool_map:
+                    end_result = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=end_result,
+                        status="success",
+                    )
+
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        Scheduler._run_postchecks = postchecks_fail_then_pass  # type: ignore[assignment]  # noqa: SLF001
+        try:
+            task = TaskSpec(
+                name="retry-task",
+                agent="test-agent",
+                task_prompt="Do work",
+                timeout=60,
+                context_refinement=False,
+                retry=2,
+                retry_resume=False,
+                retry_inject_failure=False,
+            )
+            config = WorkflowConfig(
+                name="retry-wf",
+                description="Test",
+                tasks=[task],
+                dependencies={},
+            )
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            await sched.execute_workflow(config)
+
+            completed = [
+                tid
+                for tid, state in sched._task_states.items()  # noqa: SLF001
+                if state == TaskState.COMPLETED
+            ]
+            assert len(completed) == 1
+        finally:
+            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
 
 
 class TestStartTask:
@@ -251,6 +451,7 @@ class TestEndTask:
         scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
         scheduler._task_specs[task_id] = task  # noqa: SLF001
         scheduler._task_children[task_id] = []  # noqa: SLF001
+        scheduler._task_parents[task_id] = None  # noqa: SLF001
 
         await scheduler.handle_start_task("sess-1", task_id)
         result = await scheduler.handle_end_task(
@@ -258,6 +459,31 @@ class TestEndTask:
         )
         assert "completed" in result.lower()
         assert scheduler._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+
+    async def test_stores_output_on_completion(
+        self,
+        scheduler: Scheduler,
+        trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        task = _simple_task()
+        task_id = await trace_writer.create_task(
+            run_id=run_id,
+            parent_task_id=None,
+            name="t1",
+            task_type="agent",
+        )
+        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
+        scheduler._task_specs[task_id] = task  # noqa: SLF001
+        scheduler._task_children[task_id] = []  # noqa: SLF001
+        scheduler._task_parents[task_id] = None  # noqa: SLF001
+
+        await scheduler.handle_start_task("sess-1", task_id)
+        await scheduler.handle_end_task(
+            "sess-1", "my output",
+        )
+        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        assert outputs["t1"] == "my output"
 
     async def test_blocks_with_incomplete_subtasks(
         self,
@@ -281,6 +507,7 @@ class TestEndTask:
         scheduler._task_states[parent_id] = TaskState.CREATED  # noqa: SLF001
         scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
         scheduler._task_children[parent_id] = [child_id]  # noqa: SLF001
+        scheduler._task_parents[parent_id] = None  # noqa: SLF001
         scheduler._task_states[child_id] = TaskState.ACTIVE  # noqa: SLF001
 
         await scheduler.handle_start_task("sess-1", parent_id)
@@ -389,6 +616,36 @@ class TestHandleCreateWorkflow:
         assert wf_id in scheduler._task_states  # noqa: SLF001
         assert wf_id in scheduler._task_children[parent_id]  # noqa: SLF001
 
+    async def test_stores_task_spec(
+        self,
+        scheduler: Scheduler,
+        trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        parent_task = _simple_task("parent")
+        parent_id = await trace_writer.create_task(
+            run_id=run_id,
+            parent_task_id=None,
+            name="parent",
+            task_type="agent",
+        )
+        scheduler._task_states[parent_id] = TaskState.CREATED  # noqa: SLF001
+        scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
+        scheduler._task_children[parent_id] = []  # noqa: SLF001
+
+        await scheduler.handle_start_task("sess-1", parent_id)
+
+        params = CreateWorkflowParams(
+            name="sub-workflow",
+            description="A sub workflow",
+            goals=["goal1"],
+        )
+        result = await scheduler.handle_create_workflow(
+            "sess-1", params,
+        )
+        wf_id = uuid.UUID(result)
+        assert wf_id in scheduler._task_specs  # noqa: SLF001
+
 
 class TestHandleCreateWaitFor:
     async def test_creates_wait_for_task(
@@ -431,7 +688,6 @@ class TestRetry:
         self, run_id: uuid.UUID,
     ) -> None:
         trace_writer = MockTraceWriter()
-        transport = MockTransport()
 
         call_count = 0
         original_run_postchecks = Scheduler._run_postchecks  # noqa: SLF001
@@ -455,6 +711,54 @@ class TestRetry:
                 ),
             ]
 
+        class RetryTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
         Scheduler._run_postchecks = mock_postchecks  # type: ignore[assignment]  # noqa: SLF001
         try:
             task = TaskSpec(
@@ -475,7 +779,7 @@ class TestRetry:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": transport},  # type: ignore[dict-item]
+                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -495,7 +799,6 @@ class TestRetry:
         self, run_id: uuid.UUID,
     ) -> None:
         trace_writer = MockTraceWriter()
-        transport = MockTransport()
 
         async def always_fail_postchecks(
             self: Scheduler,
@@ -507,6 +810,54 @@ class TestRetry:
                     passed=False, message="Always fails",
                 ),
             ]
+
+        class RetryTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
 
         original = Scheduler._run_postchecks  # noqa: SLF001
         Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]  # noqa: SLF001
@@ -529,7 +880,7 @@ class TestRetry:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"mock-provider": transport},  # type: ignore[dict-item]
+                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
@@ -542,6 +893,101 @@ class TestRetry:
                 if state == TaskState.ESCALATED
             ]
             assert len(escalated) == 1
+        finally:
+            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+
+    async def test_escalation_payload_constructed(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+
+        async def always_fail_postchecks(
+            self: Scheduler,
+            task: TaskSpec,
+            task_id: uuid.UUID,
+        ) -> list[CheckResult]:
+            return [
+                CheckResult(
+                    passed=False, message="Always fails",
+                ),
+            ]
+
+        class RetryTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        original = Scheduler._run_postchecks  # noqa: SLF001
+        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        try:
+            task = TaskSpec(
+                name="esc-task",
+                agent="test-agent",
+                task_prompt="Do work",
+                timeout=60,
+                context_refinement=False,
+                retry=1,
+                retry_resume=False,
+                retry_inject_failure=False,
+            )
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            result = await sched.execute_task(
+                task, None,
+            )
+            assert result.structured_output is not None
+            assert "escalation" in result.structured_output
+            esc = result.structured_output["escalation"]
+            assert esc["task_name"] == "esc-task"
+            assert esc["attempts"] == 2
         finally:
             Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
 
@@ -648,10 +1094,10 @@ class TestFunctionTask:
 
         try:
             await scheduler.execute_workflow(config)
-            assert (
-                scheduler._task_outputs["func-task"]  # noqa: SLF001
-                == "function result"
+            outputs = scheduler._task_outputs.get(  # noqa: SLF001
+                None, {},
             )
+            assert outputs["func-task"] == "function result"
         finally:
             sys.modules.pop("tests.conftest_helpers", None)
 
@@ -700,7 +1146,33 @@ class TestForEach:
             ) -> AsyncIterator[Event]:
                 nonlocal call_count
                 call_count += 1
+                tools = kwargs.get("tools", [])
+                tool_map = {
+                    t.name: t
+                    for t in tools  # type: ignore[union-attr]
+                }
+
                 if call_count == 1:
+                    if "start_task" in tool_map:
+                        r = await tool_map[
+                            "start_task"
+                        ].execute({})
+                        yield ToolUse(
+                            tool_name="start_task",
+                            input={},
+                            output=r,
+                            status="success",
+                        )
+                    if "end_task" in tool_map:
+                        r = await tool_map[
+                            "end_task"
+                        ].execute({"message": "ok"})
+                        yield ToolUse(
+                            tool_name="end_task",
+                            input={"message": "ok"},
+                            output=r,
+                            status="success",
+                        )
                     yield Result(
                         text="ok",
                         session_id=str(uuid6.uuid7()),
@@ -709,7 +1181,7 @@ class TestForEach:
                         total_reasoning_tokens=0,
                         total_cache_read_tokens=0,
                         total_cache_write_tokens=0,
-                        tool_calls=0,
+                        tool_calls=2,
                     )
                 else:
                     msg = "Simulated failure"
@@ -742,6 +1214,85 @@ class TestForEach:
             cr.passed for cr in result.check_results
         )
 
+    async def test_abort_transitions_to_failed_state(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+
+        call_count = 0
+
+        class FailSecondTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                nonlocal call_count
+                call_count += 1
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+
+                if call_count <= 1:
+                    if "start_task" in tool_map:
+                        r = await tool_map[
+                            "start_task"
+                        ].execute({})
+                        yield ToolUse(
+                            tool_name="start_task",
+                            input={},
+                            output=r,
+                            status="success",
+                        )
+                    if "end_task" in tool_map:
+                        r = await tool_map[
+                            "end_task"
+                        ].execute({"message": "ok"})
+                        yield ToolUse(
+                            tool_name="end_task",
+                            input={"message": "ok"},
+                            output=r,
+                            status="success",
+                        )
+                    yield Result(
+                        text="ok",
+                        session_id=str(uuid6.uuid7()),
+                        total_input_tokens=0,
+                        total_output_tokens=0,
+                        total_reasoning_tokens=0,
+                        total_cache_read_tokens=0,
+                        total_cache_write_tokens=0,
+                        tool_calls=2,
+                    )
+                else:
+                    msg = "Simulated failure"
+                    raise RuntimeError(msg)
+
+        task = TaskSpec(
+            name="abort-task",
+            agent="test-agent",
+            task_prompt="Process {item}",
+            timeout=60,
+            context_refinement=False,
+            for_each="items",
+            for_each_abort_on_failure=True,
+            max_concurrency=1,
+        )
+        sched = Scheduler(
+            trace_writer=trace_writer,  # type: ignore[arg-type]
+            transport_registry={"mock-provider": FailSecondTransport()},  # type: ignore[dict-item]
+            agents={"test-agent": make_agent()},
+            categories=make_categories(),
+            run_id=run_id,
+        )
+        await sched.execute_task(
+            task,
+            None,
+            variables={"items": ["a", "b", "c"]},
+        )
+        for_each_states = [
+            s for tid, s in sched._task_states.items()  # noqa: SLF001
+            if sched._task_specs.get(tid, TaskSpec(name="")).name == "abort-task"  # noqa: SLF001
+        ]
+        assert TaskState.POSTCHECK_FAILED in for_each_states
+
     async def test_max_concurrency_respected(
         self, run_id: uuid.UUID,
     ) -> None:
@@ -751,14 +1302,36 @@ class TestForEach:
 
         class TrackedTransport:
             async def send(
-                self, message: str, **kwargs: object,
+                self, message: str, **kwargs: Any,  # noqa: ANN401
             ) -> AsyncIterator[Event]:
                 nonlocal concurrent_count, max_concurrent
                 concurrent_count += 1
                 max_concurrent = max(
                     max_concurrent, concurrent_count,
                 )
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
                 await asyncio.sleep(0.05)
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "ok"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "ok"},
+                        output=r,
+                        status="success",
+                    )
                 concurrent_count -= 1
                 yield Result(
                     text="ok",
@@ -768,7 +1341,7 @@ class TestForEach:
                     total_reasoning_tokens=0,
                     total_cache_read_tokens=0,
                     total_cache_write_tokens=0,
-                    tool_calls=0,
+                    tool_calls=2,
                 )
 
         task = TaskSpec(
@@ -803,8 +1376,99 @@ class TestTaskOutputPropagation:
     ) -> None:
         config = _simple_workflow()
         await scheduler.execute_workflow(config)
-        assert scheduler._task_outputs["t1"] == "Mock response"  # noqa: SLF001
-        assert scheduler._task_results_meta["t1"]["passed"] is True  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        assert outputs["t1"] == "Mock response"
+        meta = scheduler._task_results_meta.get(  # noqa: SLF001
+            None, {},
+        )
+        assert meta["t1"]["passed"] is True
+
+    async def test_dependent_task_receives_output(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+        received_prompts: list[str] = []
+
+        class CapturingTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                received_prompts.append(message)
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "result-a"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "result-a"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="result-a",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        task_a = TaskSpec(
+            name="a",
+            agent="test-agent",
+            task_prompt="Do a",
+            timeout=60,
+            context_refinement=False,
+        )
+        task_b = TaskSpec(
+            name="b",
+            agent="test-agent",
+            task_prompt="Use {a_output} and {a_text}",
+            timeout=60,
+            context_refinement=False,
+        )
+        config = WorkflowConfig(
+            name="dep-wf",
+            description="Dep test",
+            tasks=[task_a, task_b],
+            dependencies={"b": ["a"]},
+        )
+        sched = Scheduler(
+            trace_writer=trace_writer,  # type: ignore[arg-type]
+            transport_registry={"mock-provider": CapturingTransport()},  # type: ignore[dict-item]
+            agents={"test-agent": make_agent()},
+            categories=make_categories(),
+            run_id=run_id,
+        )
+        await sched.execute_workflow(config)
+
+        b_prompt = received_prompts[1]
+        assert "result-a" in b_prompt
 
 
 class TestAbort:
@@ -892,3 +1556,523 @@ class TestWorkflowValidation:
         )
         with pytest.raises(ValueError, match="validation failed"):
             await scheduler.execute_workflow(config)
+
+
+class TestOnSuccessCallback:
+    async def test_on_success_invoked(
+        self,
+        trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        callback_called = False
+
+        helpers = types.ModuleType(
+            "tests.callback_helpers",
+        )
+
+        async def on_success_fn(ctx: TaskContext) -> None:
+            nonlocal callback_called
+            callback_called = True
+
+        helpers.on_success_fn = on_success_fn  # type: ignore[attr-defined]
+        sys.modules["tests.callback_helpers"] = helpers
+        sys.modules["tests"] = types.ModuleType("tests")
+
+        try:
+            task = TaskSpec(
+                name="cb-task",
+                agent="test-agent",
+                task_prompt="Do work",
+                timeout=60,
+                context_refinement=False,
+                on_success=(
+                    "tests.callback_helpers.on_success_fn"
+                ),
+            )
+            config = WorkflowConfig(
+                name="cb-wf",
+                description="Callback test",
+                tasks=[task],
+                dependencies={},
+            )
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": MockTransport()},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            await sched.execute_workflow(config)
+            assert callback_called
+        finally:
+            sys.modules.pop("tests.callback_helpers", None)
+
+
+class TestPreRetryCallback:
+    async def test_pre_retry_invoked(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+        pre_retry_called = False
+
+        helpers = types.ModuleType(
+            "tests.preretry_helpers",
+        )
+
+        async def pre_retry_fn(ctx: TaskContext) -> None:
+            nonlocal pre_retry_called
+            pre_retry_called = True
+
+        helpers.pre_retry_fn = pre_retry_fn  # type: ignore[attr-defined]
+        sys.modules["tests.preretry_helpers"] = helpers
+        sys.modules["tests"] = types.ModuleType("tests")
+
+        call_count = 0
+
+        async def fail_then_pass_postchecks(
+            self: Scheduler,
+            task: TaskSpec,
+            task_id: uuid.UUID,
+        ) -> list[CheckResult]:
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 1:
+                return [
+                    CheckResult(
+                        passed=False,
+                        message="Failed",
+                    ),
+                ]
+            return [
+                CheckResult(
+                    passed=True, message="Passed",
+                ),
+            ]
+
+        class RetryTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        original = Scheduler._run_postchecks  # noqa: SLF001
+        Scheduler._run_postchecks = fail_then_pass_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        try:
+            task = TaskSpec(
+                name="pr-task",
+                agent="test-agent",
+                task_prompt="Do work",
+                timeout=60,
+                context_refinement=False,
+                retry=2,
+                retry_resume=False,
+                retry_inject_failure=False,
+                pre_retry=(
+                    "tests.preretry_helpers.pre_retry_fn"
+                ),
+            )
+            config = WorkflowConfig(
+                name="pr-wf",
+                description="Pre-retry test",
+                tasks=[task],
+                dependencies={},
+            )
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            await sched.execute_workflow(config)
+            assert pre_retry_called
+        finally:
+            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            sys.modules.pop(
+                "tests.preretry_helpers", None,
+            )
+
+    async def test_pre_retry_abort_escalates(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+
+        helpers = types.ModuleType(
+            "tests.preretry_abort_helpers",
+        )
+
+        async def pre_retry_abort(
+            ctx: TaskContext,
+        ) -> None:
+            msg = "abort retry"
+            raise RuntimeError(msg)
+
+        helpers.pre_retry_abort = pre_retry_abort  # type: ignore[attr-defined]
+        sys.modules[
+            "tests.preretry_abort_helpers"
+        ] = helpers
+        sys.modules["tests"] = types.ModuleType("tests")
+
+        async def always_fail_postchecks(
+            self: Scheduler,
+            task: TaskSpec,
+            task_id: uuid.UUID,
+        ) -> list[CheckResult]:
+            return [
+                CheckResult(
+                    passed=False,
+                    message="Always fails",
+                ),
+            ]
+
+        class RetryTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        original = Scheduler._run_postchecks  # noqa: SLF001
+        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        try:
+            task = TaskSpec(
+                name="abort-pr-task",
+                agent="test-agent",
+                task_prompt="Do work",
+                timeout=60,
+                context_refinement=False,
+                retry=3,
+                retry_resume=False,
+                retry_inject_failure=False,
+                pre_retry=(
+                    "tests.preretry_abort_helpers"
+                    ".pre_retry_abort"
+                ),
+            )
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": RetryTransport()},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            await sched.execute_task(
+                task, None,
+            )
+            escalated = [
+                tid
+                for tid, s in sched._task_states.items()  # noqa: SLF001
+                if s == TaskState.ESCALATED
+            ]
+            assert len(escalated) == 1
+        finally:
+            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            sys.modules.pop(
+                "tests.preretry_abort_helpers", None,
+            )
+
+
+class TestRetryResume:
+    async def test_retry_resume_uses_same_session(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+        session_ids_seen: list[str | None] = []
+        call_count = 0
+
+        async def fail_then_pass_postchecks(
+            self: Scheduler,
+            task: TaskSpec,
+            task_id: uuid.UUID,
+        ) -> list[CheckResult]:
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 1:
+                return [
+                    CheckResult(
+                        passed=False,
+                        message="Failed",
+                    ),
+                ]
+            return [
+                CheckResult(
+                    passed=True, message="Passed",
+                ),
+            ]
+
+        class TrackingTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                sid = kwargs.get("session_id")
+                session_ids_seen.append(sid)
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                final_sid = str(uuid6.uuid7())
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=final_sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        original = Scheduler._run_postchecks  # noqa: SLF001
+        Scheduler._run_postchecks = fail_then_pass_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        try:
+            task = TaskSpec(
+                name="resume-task",
+                agent="test-agent",
+                task_prompt="Do work",
+                timeout=60,
+                context_refinement=False,
+                retry=2,
+                retry_resume=True,
+                retry_inject_failure=False,
+            )
+            config = WorkflowConfig(
+                name="resume-wf",
+                description="Resume test",
+                tasks=[task],
+                dependencies={},
+            )
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": TrackingTransport()},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            await sched.execute_workflow(config)
+
+            assert len(session_ids_seen) == 2
+            # First attempt has no prior session
+            assert session_ids_seen[0] is None
+        finally:
+            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+
+
+class TestRetryInjectFailure:
+    async def test_injects_failure_context(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+        received_prompts: list[str] = []
+        call_count = 0
+
+        async def fail_then_pass(
+            self: Scheduler,
+            task: TaskSpec,
+            task_id: uuid.UUID,
+        ) -> list[CheckResult]:
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 1:
+                return [
+                    CheckResult(
+                        passed=False,
+                        message="Failed",
+                    ),
+                ]
+            return [
+                CheckResult(
+                    passed=True, message="Passed",
+                ),
+            ]
+
+        class CapturingTransport:
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                received_prompts.append(message)
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        original = Scheduler._run_postchecks  # noqa: SLF001
+        Scheduler._run_postchecks = fail_then_pass  # type: ignore[assignment]  # noqa: SLF001
+        try:
+            task = TaskSpec(
+                name="inject-task",
+                agent="test-agent",
+                task_prompt="Do work",
+                timeout=60,
+                context_refinement=False,
+                retry=2,
+                retry_resume=False,
+                retry_inject_failure=True,
+            )
+            config = WorkflowConfig(
+                name="inject-wf",
+                description="Inject failure test",
+                tasks=[task],
+                dependencies={},
+            )
+            sched = Scheduler(
+                trace_writer=trace_writer,  # type: ignore[arg-type]
+                transport_registry={"mock-provider": CapturingTransport()},  # type: ignore[dict-item]
+                agents={"test-agent": make_agent()},
+                categories=make_categories(),
+                run_id=run_id,
+            )
+            await sched.execute_workflow(config)
+
+            assert len(received_prompts) >= 2
+            assert "Prior attempt" in received_prompts[1]
+            assert "failed" in received_prompts[1].lower()
+        finally:
+            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
