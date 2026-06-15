@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
 
 from orxt.knowledge_module._config import configure_cognee
 from orxt.knowledge_module._freshness import ContentHashCache
-from orxt.knowledge_module._types import KnowledgeConfig
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from orxt.knowledge_module._types import KnowledgeConfig
 
 _cache = ContentHashCache()
 
@@ -15,7 +18,7 @@ async def ingest_lessons(config: KnowledgeConfig, lessons: list[dict[str, Any]])
         return 0
 
     configure_cognee(config)
-    import cognee
+    import cognee  # noqa: PLC0415  # type: ignore[import-untyped]
 
     changed = [
         lesson
@@ -39,7 +42,7 @@ async def ingest_lessons(config: KnowledgeConfig, lessons: list[dict[str, Any]])
 
 
 async def ingest_from_pool(
-    config: KnowledgeConfig, pool: Any, run_id: UUID | None = None,
+    config: KnowledgeConfig, pool: Any, run_id: UUID | None = None,  # noqa: ANN401
 ) -> int:
     query = "SELECT id, content, tags, permanent FROM lessons"
     params: list[Any] = []
