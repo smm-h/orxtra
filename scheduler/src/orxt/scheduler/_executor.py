@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import asyncio
+import errno
 import importlib
+import json
 import logging
 import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
+import jsonschema
+
 from orxt.notepad import NotepadEntry, format_notepad
 from orxt.protocols._checks import CheckContext
+from orxt.protocols._constraints import (
+    EXPENSIVE_CONSTRAINTS,
+    ConstraintKind,
+)
+from orxt.protocols._errors import ErrorCategory
 from orxt.protocols._execution import CheckResult
 from orxt.protocols._task import (
     AttemptSummary,
@@ -54,6 +63,37 @@ _ACTIVE_STATES = frozenset({
     TaskState.PRECHECKING,
     TaskState.POSTCHECKING,
 })
+
+_NETWORK_ERRNOS = frozenset({
+    errno.ECONNREFUSED,
+    errno.ECONNRESET,
+    errno.ECONNABORTED,
+    errno.ENETUNREACH,
+    errno.EHOSTUNREACH,
+    errno.ETIMEDOUT,
+})
+
+
+def classify_error(error: Exception) -> ErrorCategory:
+    """Classify an exception into an error category."""
+    if isinstance(
+        error, (TimeoutError, asyncio.TimeoutError),
+    ):
+        return ErrorCategory.INFRA
+    if (
+        isinstance(error, OSError)
+        and error.errno in _NETWORK_ERRNOS
+    ):
+        return ErrorCategory.INFRA
+    if isinstance(error, json.JSONDecodeError):
+        return ErrorCategory.PARSE
+    if isinstance(
+        error, (ModuleNotFoundError, ImportError),
+    ):
+        return ErrorCategory.BUILD_ENV
+    if isinstance(error, AssertionError):
+        return ErrorCategory.LOGIC
+    return ErrorCategory.UNCLASSIFIED
 
 
 def _task_type_for(task: TaskSpec) -> str:
@@ -107,6 +147,7 @@ class Scheduler:
         self._stale_tracker = StaleWriteTracker()
         self._notepad_entries: list[NotepadEntry] = []
         self._active_constraints: list[tuple[str, str]] = []
+        self._mechanical_constraints: list[tuple[str, str]] = []
         self._pending_end_task_message: dict[UUID, str] = {}
 
     async def run_consult(
@@ -393,6 +434,44 @@ class Scheduler:
                         ),
                     ],
                 )
+            except Exception as exc:  # noqa: BLE001
+                category = classify_error(exc)
+                await self._trace_writer.write_event(
+                    run_id=self._run_id,
+                    event_type="task_error",
+                    data={
+                        "task_id": str(task_id),
+                        "error": str(exc),
+                        "error_type": (
+                            type(exc).__name__
+                        ),
+                        "category": category.value,
+                    },
+                    task_id=task_id,
+                )
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                    task_id=task_id,
+                )
+                check_results = [CheckResult(
+                    passed=False,
+                    message=(
+                        f"[{category.value}] {exc}"
+                    ),
+                )]
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": (
+                        f"[{category.value}] {exc}"
+                    ),
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
+                # Fall through to escalation
+                break
 
             _ = time.monotonic() - start_time
             self._accumulate_cost(
@@ -408,6 +487,38 @@ class Scheduler:
                 result_text = outputs.get(
                     task.name,
                 )
+
+                # Validate structured output if schema
+                # is defined
+                if task.output_schema is not None:
+                    validation = (
+                        self._validate_output_schema(
+                            result_text,
+                            task.output_schema,
+                        )
+                    )
+                    if not validation.passed:
+                        await self._complete_attempt(
+                            attempt_id, session,
+                            "", False,
+                            task_id=task_id,
+                        )
+                        check_results = [validation]
+                        prior_attempts.append({
+                            "attempt": attempt,
+                            "error": (
+                                "Output validation:"
+                                f" {validation.message}"
+                            ),
+                        })
+                        if attempt < max_attempts:
+                            self._task_states[task_id] = (
+                                TaskState.CREATED
+                            )
+                            continue
+                        # Fall through to escalation
+                        break
+
                 await self._complete_attempt(
                     attempt_id, session,
                     result_text or "", True,
@@ -901,6 +1012,115 @@ class Scheduler:
             task.prechecks, ctx, "precheck", self,
         )
 
+    async def _run_mechanical_constraints(
+        self,
+        task_id: UUID,
+    ) -> list[CheckResult]:
+        """Run active mechanical constraints.
+
+        Cheap constraints run after every task.
+        Expensive constraints (tests_pass, lint_clean)
+        run only when the completing task has subtasks
+        (workflow completion).
+        """
+        results: list[CheckResult] = []
+        has_subtasks = bool(
+            self._task_children.get(task_id),
+        )
+
+        for text, kind_str in self._mechanical_constraints:
+            try:
+                kind = ConstraintKind(kind_str)
+            except ValueError:
+                results.append(CheckResult(
+                    passed=False,
+                    message=(
+                        "Unknown constraint kind:"
+                        f" {kind_str}"
+                    ),
+                ))
+                continue
+
+            # Skip expensive constraints unless this
+            # is workflow completion
+            if (
+                kind in EXPENSIVE_CONSTRAINTS
+                and not has_subtasks
+            ):
+                continue
+
+            result = await self._check_constraint(
+                kind, task_id,
+            )
+            results.append(result)
+
+        return results
+
+    async def _check_constraint(
+        self,
+        kind: ConstraintKind,
+        task_id: UUID,  # noqa: ARG002
+    ) -> CheckResult:
+        """Check a single mechanical constraint.
+
+        Stubs for now -- each ConstraintKind will have
+        its own checker once implemented.
+        """
+        return CheckResult(
+            passed=True,
+            message=(
+                f"Constraint {kind.value} passed (stub)"
+            ),
+        )
+
+    def _validate_output_schema(
+        self,
+        output: str | None,
+        schema_str: str,
+    ) -> CheckResult:
+        """Validate agent output against a JSON schema."""
+        if output is None:
+            return CheckResult(
+                passed=False,
+                message=(
+                    "No output to validate against schema"
+                ),
+            )
+
+        try:
+            parsed = json.loads(output)
+        except json.JSONDecodeError as e:
+            return CheckResult(
+                passed=False,
+                message=f"Output is not valid JSON: {e}",
+            )
+
+        try:
+            schema = json.loads(schema_str)
+        except json.JSONDecodeError as e:
+            return CheckResult(
+                passed=False,
+                message=(
+                    "Output schema is not valid JSON:"
+                    f" {e}"
+                ),
+            )
+
+        try:
+            jsonschema.validate(parsed, schema)
+        except jsonschema.ValidationError as e:
+            return CheckResult(
+                passed=False,
+                message=(
+                    "Output validation failed:"
+                    f" {e.message}"
+                ),
+            )
+
+        return CheckResult(
+            passed=True, message="Output validated",
+        )
+
     async def _execute_function_task(
         self,
         task: TaskSpec,
@@ -1259,6 +1479,33 @@ class Scheduler:
         )
 
         if all_passed:
+            # Run mechanical constraints
+            constraint_results = (
+                await self._run_mechanical_constraints(
+                    task_id,
+                )
+            )
+            constraint_passed = all(
+                cr.passed for cr in constraint_results
+            )
+            if not constraint_passed:
+                self._task_states[task_id] = (
+                    TaskState.POSTCHECK_FAILED
+                )
+                await self._trace_writer.transition_task(
+                    task_id,
+                    TaskState.POSTCHECK_FAILED.value,
+                )
+                failed = [
+                    cr.message
+                    for cr in constraint_results
+                    if not cr.passed
+                ]
+                return (
+                    "Constraint check failed:"
+                    f" {'; '.join(failed)}"
+                )
+
             await self._auto_commit(session_id, message)
             self._complete_task(
                 task_id, task.name, message,
