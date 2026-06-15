@@ -74,8 +74,10 @@ class RecordDecisionResult(BaseModel):
 
 class AddConstraintParams(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    kind: str
     text: str
     tier: ConstraintTier
+    args: dict[str, Any] | None = None
 
 
 class AddConstraintResult(BaseModel):
@@ -119,7 +121,7 @@ class WriteLessonParams(BaseModel):
     text: str
     relevance_tags: list[str]
     permanent: bool
-    source_file: str | None = None
+    source_files: list[str] = []
 
 
 class WriteLessonResult(BaseModel):
