@@ -189,24 +189,3 @@ async def read_notepad(
         run_id,
     )
     return [NotepadEntry.model_validate(_record_to_dict(row)) for row in rows]
-
-
-def format_notepad(entries: list[NotepadEntry]) -> str:
-    if not entries:
-        return ""
-
-    # Group by entry_type, preserving order of first appearance.
-    groups: dict[str, list[NotepadEntry]] = {}
-    for entry in entries:
-        groups.setdefault(entry.entry_type, []).append(entry)
-
-    parts: list[str] = []
-    for entry_type, group in groups.items():
-        parts.append(f"### {entry_type.replace('_', ' ').title()}\n")
-        parts.extend(
-            f"- [{entry.task_name}/{entry.agent_name}] {entry.text}"
-            for entry in group
-        )
-        parts.append("")
-
-    return "\n".join(parts)

@@ -8,7 +8,6 @@ from orxt.trace._lock import (
     update_heartbeat,
 )
 from orxt.trace._reader import (
-    format_notepad,
     list_runs,
     list_tasks,
     read_inbox,
@@ -51,7 +50,6 @@ __all__ = [
     "TraceWriter",
     "acquire_run_lock",
     "clean_orphaned",
-    "format_notepad",
     "is_lock_stale",
     "list_runs",
     "list_tasks",
