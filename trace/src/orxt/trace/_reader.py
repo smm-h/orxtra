@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from orxt.trace._types import (
     InboxItem,
+    IterationResult,
     NotepadEntry,
     RunReport,
     RunSummary,
@@ -69,6 +70,21 @@ async def read_latest_attempt(
     if row is None:
         return None
     return TaskAttempt.model_validate(_record_to_dict(row))
+
+
+async def list_iterations(
+    pool: asyncpg.Pool, task_id: UUID
+) -> list[IterationResult]:
+    rows: list[asyncpg.Record] = await pool.fetch(
+        """
+        SELECT id, task_id, iteration_index, item_value, status,
+            output, structured_output, check_results, started_at, finished_at
+        FROM task_iterations WHERE task_id = $1
+        ORDER BY iteration_index
+        """,
+        task_id,
+    )
+    return [IterationResult.model_validate(_record_to_dict(row)) for row in rows]
 
 
 async def read_transcript(

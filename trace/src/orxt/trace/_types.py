@@ -8,6 +8,21 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 
+class IterationResult(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    id: UUID
+    task_id: UUID
+    iteration_index: int
+    item_value: Any
+    status: str
+    output: str | None
+    structured_output: dict[str, Any] | None
+    check_results: list[dict[str, Any]] | None
+    started_at: datetime
+    finished_at: datetime | None
+
+
 class TaskSummary(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

@@ -8,11 +8,13 @@ from uuid import UUID
 import pytest
 from orxt.trace import (
     InboxItem,
+    IterationResult,
     NotepadEntry,
     RunReport,
     RunSummary,
     TaskAttempt,
     TaskSummary,
+    list_iterations,
     list_runs,
     list_tasks,
     read_inbox,
@@ -392,3 +394,35 @@ class TestReadRunReport:
         result = await read_run_report(mock_pool, RUN_ID)  # type: ignore[arg-type]
 
         assert result is None
+
+
+class TestListIterations:
+    @pytest.mark.asyncio
+    async def test_returns_iterations(self, mock_pool: MockPool) -> None:
+        now = NOW
+        task_id = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+        iter_id = UUID("01234567-89ab-cdef-0123-456789abcdef")
+        mock_pool.conn.queue_fetch([{
+            "id": iter_id,
+            "task_id": task_id,
+            "iteration_index": 0,
+            "item_value": {"key": "value"},
+            "status": "completed",
+            "output": "done",
+            "structured_output": {"result": "ok"},
+            "check_results": [{"passed": True}],
+            "started_at": now,
+            "finished_at": now,
+        }])
+
+        results = await list_iterations(mock_pool, task_id)  # type: ignore[arg-type]
+        assert len(results) == 1
+        assert isinstance(results[0], IterationResult)
+        assert results[0].iteration_index == 0
+        assert results[0].status == "completed"
+
+    @pytest.mark.asyncio
+    async def test_empty_iterations(self, mock_pool: MockPool) -> None:
+        task_id = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+        results = await list_iterations(mock_pool, task_id)  # type: ignore[arg-type]
+        assert results == []

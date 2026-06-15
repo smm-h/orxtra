@@ -683,3 +683,75 @@ class TestOverseerMemory:
         sql, args = mock_pool.conn.executed[0]
         assert "update runs set coherence_summary" in sql.lower()
         assert args == ("all consistent", RUN_ID)
+
+
+class TestIterations:
+    async def test_create_iteration(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        with patch(
+            "orxt.trace._writer.uuid6.uuid7",
+            return_value=TEST_UUID,
+        ):
+            result = await writer.create_iteration(
+                task_id=TASK_ID,
+                index=0,
+                item_value={"key": "value"},
+            )
+
+        assert result == TEST_UUID
+        sql, args = mock_pool.conn.executed[0]
+        assert "insert into task_iterations" in sql.lower()
+        assert args == (
+            TEST_UUID,
+            TASK_ID,
+            0,
+            json.dumps({"key": "value"}),
+        )
+
+    async def test_complete_iteration(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        iteration_id = TEST_UUID
+        await writer.complete_iteration(
+            iteration_id=iteration_id,
+            output="done",
+            structured_output={"result": "ok"},
+            check_results=[{"passed": True}],
+        )
+
+        sql, args = mock_pool.conn.executed[0]
+        assert "update task_iterations set" in sql.lower()
+        assert "status = 'completed'" in sql.lower()
+        assert args == (
+            "done",
+            json.dumps({"result": "ok"}),
+            json.dumps([{"passed": True}]),
+            iteration_id,
+        )
+
+    async def test_complete_iteration_null_fields(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        await writer.complete_iteration(
+            iteration_id=TEST_UUID,
+            output=None,
+            structured_output=None,
+            check_results=None,
+        )
+
+        _sql, args = mock_pool.conn.executed[0]
+        assert args == (None, None, None, TEST_UUID)
+
+    async def test_fail_iteration(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        await writer.fail_iteration(
+            iteration_id=TEST_UUID,
+            error="something went wrong",
+        )
+
+        sql, args = mock_pool.conn.executed[0]
+        assert "update task_iterations set" in sql.lower()
+        assert "status = 'failed'" in sql.lower()
+        assert args == ("something went wrong", TEST_UUID)
