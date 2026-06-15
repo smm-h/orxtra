@@ -18,7 +18,7 @@ async def ingest_lessons(config: KnowledgeConfig, lessons: list[dict[str, Any]])
         return 0
 
     configure_cognee(config)
-    import cognee  # noqa: PLC0415  # type: ignore[import-untyped]
+    import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
 
     changed = [
         lesson

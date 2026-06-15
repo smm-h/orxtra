@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 def configure_cognee(config: KnowledgeConfig) -> None:
-    import cognee  # noqa: PLC0415  # type: ignore[import-untyped]
+    import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
 
     cognee.config.set_llm_config(
         {
