@@ -126,6 +126,8 @@ class MockTraceWriter:
             attempt_id=attempt_id,
             agent_output=agent_output,
             check_verdict=check_verdict,
+            cost_usd=cost_usd,
+            duration_seconds=duration_seconds,
         )
 
     async def fail_task_attempt(  # noqa: PLR0913
@@ -335,7 +337,7 @@ def make_agent(
 
 
 def make_categories() -> dict[str, str]:
-    return {"default": "mock-provider/test-model"}
+    return {"default": "anthropic/claude-sonnet-4-6"}
 
 
 @pytest.fixture
@@ -373,7 +375,7 @@ def scheduler(
 ) -> Scheduler:
     return Scheduler(
         trace_writer=trace_writer,  # type: ignore[arg-type]
-        transport_registry={"mock-provider": transport},  # type: ignore[dict-item]
+        transport_registry={"anthropic": transport},  # type: ignore[dict-item]
         agents=agents,
         categories=categories,
         run_id=run_id,
