@@ -13,7 +13,6 @@ from orxt.trace import (
     RunSummary,
     TaskAttempt,
     TaskSummary,
-    format_notepad,
     list_runs,
     list_tasks,
     read_inbox,
@@ -336,44 +335,6 @@ class TestReadNotepad:
         assert result[0].entry_type == "learning"
         assert result[0].text == "learned something"
         assert result[0].created_at == NOW
-
-
-class TestFormatNotepad:
-    def test_format_notepad_empty(self) -> None:
-        result = format_notepad([])
-
-        assert result == ""
-
-    def test_format_notepad_grouped(self) -> None:
-        entries = [
-            NotepadEntry(
-                run_id=RUN_ID, task_name="task1",
-                agent_name="agent1", entry_type="learning",
-                text="learned A", created_at=NOW,
-            ),
-            NotepadEntry(
-                run_id=RUN_ID, task_name="task2",
-                agent_name="agent2", entry_type="decision",
-                text="decided B", created_at=NOW,
-            ),
-            NotepadEntry(
-                run_id=RUN_ID, task_name="task1",
-                agent_name="agent1", entry_type="learning",
-                text="learned C", created_at=NOW,
-            ),
-        ]
-
-        result = format_notepad(entries)
-
-        assert "### Learning" in result
-        assert "### Decision" in result
-        assert "[task1/agent1] learned A" in result
-        assert "[task1/agent1] learned C" in result
-        assert "[task2/agent2] decided B" in result
-        # Learning entries appear before decision entries (insertion order).
-        learning_pos = result.index("### Learning")
-        decision_pos = result.index("### Decision")
-        assert learning_pos < decision_pos
 
 
 class TestReadRunReport:
