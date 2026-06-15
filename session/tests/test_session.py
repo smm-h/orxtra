@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from orxt.session._session import Session
-from orxt.transport import Result, StepFinish, StepStart, Text, ToolUse
+from orxt.transport import Error, Result, StepFinish, StepStart, Text, ToolUse
 
 from .conftest import MockTraceWriter, MockTransport, make_standard_events
 
@@ -385,3 +385,105 @@ class TestTranscriptPersistence:
         assert len(calls) == 1
         assert calls[0]["tool_name"] == "read_file"
         assert calls[0]["output"] == "file data"
+
+    async def test_multi_turn_transcript_has_per_turn_tokens(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        sid = "e1f2a3b4-c5d6-4e7f-8091-021324354657"
+        mock_transport.set_events(
+            make_standard_events(
+                session_id=sid, input_tokens=100, output_tokens=50,
+                reasoning_tokens=10, cache_read_tokens=20, cache_write_tokens=5,
+            ),
+            make_standard_events(
+                session_id=sid, input_tokens=200, output_tokens=75,
+                reasoning_tokens=15, cache_read_tokens=30, cache_write_tokens=8,
+            ),
+        )
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+        await _collect_events(session, "first")
+        await _collect_events(session, "second")
+
+        assistant_entries = [
+            e for e in mock_trace_writer.transcript_entries if e["role"] == "assistant"
+        ]
+        assert len(assistant_entries) == 2
+
+        # First turn: tokens should be exactly the first turn's values
+        t1 = assistant_entries[0]["tokens"]
+        assert t1["input_tokens"] == 100
+        assert t1["output_tokens"] == 50
+        assert t1["reasoning_tokens"] == 10
+        assert t1["cache_read_tokens"] == 20
+        assert t1["cache_write_tokens"] == 5
+
+        # Second turn: tokens should be only the second turn's values, NOT cumulative
+        t2 = assistant_entries[1]["tokens"]
+        assert t2["input_tokens"] == 200
+        assert t2["output_tokens"] == 75
+        assert t2["reasoning_tokens"] == 15
+        assert t2["cache_read_tokens"] == 30
+        assert t2["cache_write_tokens"] == 8
+
+
+class TestErrorHandling:
+    async def test_error_event_passes_through(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        sid = "f2a3b4c5-d6e7-4f80-9102-132435465768"
+        error_event = Error(name="overloaded_error", message="Server overloaded")
+        events = [
+            StepStart(session_id=sid),
+            error_event,
+            StepFinish(reason="end_turn", input_tokens=5, output_tokens=10),
+            Result(text="Recovered", session_id=sid),
+        ]
+        mock_transport.set_events(events)
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+        received = await _collect_events(session, "test")
+        assert error_event in received
+
+    async def test_no_result_event_leaves_session_id_none(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        events = [
+            StepStart(session_id="ignored-in-step-start"),
+            StepFinish(reason="end_turn", input_tokens=5, output_tokens=10),
+        ]
+        mock_transport.set_events(events)
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+        received = await _collect_events(session, "test")
+        assert len(received) == 2
+        assert session.session_id is None
+        # No transcript entries should be written since no Result was received
+        assert len(mock_trace_writer.transcript_entries) == 0
