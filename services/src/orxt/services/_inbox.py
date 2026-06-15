@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from orxt.trace import InboxItem, TraceWriter
 from orxt.trace import read_inbox as _read_inbox
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     import asyncpg
 
 

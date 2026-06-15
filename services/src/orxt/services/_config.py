@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING, Any
-from uuid import UUID
 
 from orxt.session._pricing import PRICING_TABLE
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     import asyncpg
 
 
@@ -19,10 +20,13 @@ async def dump_config(
         )
     if row is None:
         return None
-    raw = row["config_snapshot"]
+    raw: Any = row["config_snapshot"]
+    result: dict[str, Any]
     if isinstance(raw, str):
-        return json.loads(raw)
-    return dict(raw)
+        result = json.loads(raw)
+    else:
+        result = dict(raw)
+    return result
 
 
 async def show_pricing() -> dict[str, dict[str, str]]:
