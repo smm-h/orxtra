@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from decimal import Decimal
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
-from uuid import UUID
 
 import pytest
-from pydantic import ValidationError
-
 from orxt.services._run import (
     RunConfig,
     abort_run,
@@ -18,6 +16,12 @@ from orxt.services._run import (
     start_run,
     start_run_from_file,
 )
+from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from orxt.trace import RunReport, RunSummary
 
 
 @pytest.mark.asyncio
@@ -79,8 +83,12 @@ async def test_start_run_from_file_missing(mock_pool: AsyncMock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_run_delegates(mock_pool: AsyncMock, sample_run_report) -> None:
-    with patch("orxt.services._run.read_run_report", new_callable=AsyncMock) as mock_read:
+async def test_get_run_delegates(
+    mock_pool: AsyncMock, sample_run_report: RunReport
+) -> None:
+    with patch(
+        "orxt.services._run.read_run_report", new_callable=AsyncMock
+    ) as mock_read:
         mock_read.return_value = sample_run_report
 
         result = await get_run(mock_pool, sample_run_report.id)
@@ -91,7 +99,9 @@ async def test_get_run_delegates(mock_pool: AsyncMock, sample_run_report) -> Non
 
 @pytest.mark.asyncio
 async def test_get_run_not_found(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
-    with patch("orxt.services._run.read_run_report", new_callable=AsyncMock) as mock_read:
+    with patch(
+        "orxt.services._run.read_run_report", new_callable=AsyncMock
+    ) as mock_read:
         mock_read.return_value = None
 
         result = await get_run(mock_pool, sample_run_id)
@@ -100,7 +110,9 @@ async def test_get_run_not_found(mock_pool: AsyncMock, sample_run_id: UUID) -> N
 
 
 @pytest.mark.asyncio
-async def test_list_runs_delegates(mock_pool: AsyncMock, sample_run_summary) -> None:
+async def test_list_runs_delegates(
+    mock_pool: AsyncMock, sample_run_summary: RunSummary
+) -> None:
     with patch("orxt.services._run._list_runs", new_callable=AsyncMock) as mock_list:
         mock_list.return_value = [sample_run_summary]
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
-from uuid import UUID
 
 import pytest
-
+from conftest import FakeRecord
 from orxt.services._inbox import (
     get_inbox_item,
     list_inbox,
@@ -15,7 +15,8 @@ from orxt.services._inbox import (
 )
 from orxt.trace import InboxItem
 
-from conftest import FakeRecord
+if TYPE_CHECKING:
+    from uuid import UUID
 
 
 def _make_inbox_record(
@@ -37,7 +38,7 @@ def _make_inbox_record(
         "answer_event": None,
         "rejection_reason": None,
         "answered_at": None,
-        "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        "created_at": datetime(2024, 1, 1, tzinfo=UTC),
     })
 
 

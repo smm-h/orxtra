@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
 from unittest.mock import AsyncMock, patch
 from uuid import UUID
 
 import pytest
-
+from conftest import FakeRecord
 from orxt.services._trace import (
     get_notepad,
     get_task_attempts,
@@ -17,8 +16,6 @@ from orxt.services._trace import (
     search_transcript,
 )
 from orxt.trace import NotepadEntry, TaskAttempt, TaskSummary
-
-from conftest import FakeRecord
 
 
 @pytest.mark.asyncio
@@ -110,7 +107,7 @@ async def test_query_events_no_filter(
         "task_id": None,
         "event_type": "started",
         "data": {"msg": "run started"},
-        "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        "created_at": datetime(2024, 1, 1, tzinfo=UTC),
     })
     mock_pool.fetch = AsyncMock(return_value=[event_record])
 
