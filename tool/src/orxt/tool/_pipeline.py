@@ -5,10 +5,10 @@ import time
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from orxt.protocols._tool import Tool, ToolError
+from orxt.protocols._tool import Tool
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Callable
 
     from orxt.secrets._registry import SecretRegistry
 

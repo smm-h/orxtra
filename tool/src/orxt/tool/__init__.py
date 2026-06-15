@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+from orxt.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
 from orxt.tool._exec_tool import make_exec_tool
 from orxt.tool._git_tool import make_git_tool
 from orxt.tool._http_tool import make_http_tool
 from orxt.tool._notepad_tool import make_notepad_tool
+from orxt.tool._pipeline import (
+    FILE_MUTATION_TOOLS,
+    wrap_tool_with_pipeline,
+    wrap_tools_for_session,
+)
 from orxt.tool._path import PathError, check_write_scope, resolve_and_check
 from orxt.tool._preview import (
     FullRetrievalGuard,
@@ -39,12 +45,15 @@ from orxt.tool._write_tools import (
 )
 
 __all__ = [
+    "CONSULT_STRIP_TOOLS",
+    "FILE_MUTATION_TOOLS",
     "FullRetrievalGuard",
     "PathError",
     "PreviewResult",
     "TaskSchedulerRef",
     "check_and_preview",
     "check_write_scope",
+    "make_consult_tool",
     "make_copy_tool",
     "make_create_task_tool",
     "make_create_wait_for_tool",
@@ -71,4 +80,6 @@ __all__ = [
     "safe_read_for_write",
     "safe_write",
     "validate_args",
+    "wrap_tool_with_pipeline",
+    "wrap_tools_for_session",
 ]
