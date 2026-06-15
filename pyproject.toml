@@ -24,6 +24,7 @@ ignore = [
     "S101",    # assert in tests is fine
     "PLR2004", # magic values in tests are fine
     "ARG",     # unused args in fixtures are fine
+    "INP001",  # tests are implicit namespace packages
 ]
 "**/_task.py" = ["TC002", "TC003"]   # pydantic models need runtime imports
 "**/_tools.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
