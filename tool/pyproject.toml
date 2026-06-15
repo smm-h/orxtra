@@ -16,6 +16,11 @@ orxt-protocols = { path = "../protocols", editable = true }
 orxt-secrets = { path = "../secrets", editable = true }
 orxt-write-safety = { path = "../write-safety", editable = true }
 
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.4.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
