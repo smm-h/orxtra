@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
-from uuid import UUID
 
 import pytest
-
+from conftest import FakeRecord
 from orxt.services._events import fire_event
 
-from conftest import FakeRecord
+if TYPE_CHECKING:
+    from uuid import UUID
 
 
 @pytest.mark.asyncio

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, patch
-from uuid import UUID
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
 
 import pytest
-
-from orxt.services._config import dump_config, show_pricing
-
 from conftest import FakeRecord
+from orxt.services._config import dump_config, show_pricing
+from orxt.session._pricing import PRICING_TABLE
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 
 @pytest.mark.asyncio
@@ -53,8 +55,6 @@ async def test_show_pricing_returns_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_show_pricing_includes_all_models() -> None:
-    from orxt.session._pricing import PRICING_TABLE
-
     result = await show_pricing()
 
     assert set(result.keys()) == set(PRICING_TABLE.keys())

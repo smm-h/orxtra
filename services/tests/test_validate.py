@@ -4,8 +4,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from orxt.services._validate import validate_agent, validate_categories, validate_workflow
+from orxt.services._validate import (
+    validate_agent,
+    validate_categories,
+    validate_workflow,
+)
 
 
 @pytest.mark.asyncio

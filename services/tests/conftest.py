@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
-
 from orxt.trace import (
     InboxItem,
     NotepadEntry,
@@ -17,6 +16,9 @@ from orxt.trace import (
     TaskSummary,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 
 class FakeRecord:
     """Mimics asyncpg.Record for dict() conversion in tests."""
@@ -24,19 +26,19 @@ class FakeRecord:
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = data
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self._data)
 
-    def keys(self):
+    def keys(self) -> Iterator[str]:
         return self._data.keys()
 
-    def values(self):
+    def values(self) -> Iterator[Any]:
         return self._data.values()
 
-    def items(self):
+    def items(self) -> Iterator[tuple[str, Any]]:
         return self._data.items()
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> Any:  # noqa: ANN401
         return self._data[key]
 
 
@@ -44,8 +46,14 @@ class FakeRecord:
 def mock_pool() -> AsyncMock:
     pool = AsyncMock()
     conn = AsyncMock()
-    pool.acquire.return_value.__aenter__.return_value = conn
-    pool.acquire.return_value.__aexit__.return_value = False
+
+    # pool.acquire() must return an async context manager, not a coroutine.
+    # MagicMock for acquire so calling it returns the ctx_manager synchronously.
+    ctx_manager = MagicMock()
+    ctx_manager.__aenter__ = AsyncMock(return_value=conn)
+    ctx_manager.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire = MagicMock(return_value=ctx_manager)
+
     pool.fetch = AsyncMock(return_value=[])
     pool.fetchrow = AsyncMock(return_value=None)
     pool.execute = AsyncMock()
@@ -83,7 +91,7 @@ def sample_run_summary(sample_run_id: UUID) -> RunSummary:
         id=sample_run_id,
         intent="test intent",
         status="running",
-        created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, tzinfo=UTC),
         finished_at=None,
     )
 
@@ -94,7 +102,7 @@ def sample_run_report(sample_run_id: UUID) -> RunReport:
         id=sample_run_id,
         intent="test intent",
         status="running",
-        created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, tzinfo=UTC),
         finished_at=None,
         autonomy_level="supervised",
         config_snapshot={"key": "value"},
@@ -164,7 +172,7 @@ def sample_inbox_item(sample_item_id: UUID, sample_run_id: UUID) -> InboxItem:
         answer_event=None,
         rejection_reason=None,
         answered_at=None,
-        created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
 
@@ -176,5 +184,5 @@ def sample_notepad_entry(sample_run_id: UUID) -> NotepadEntry:
         agent_name="agent-1",
         entry_type="observation",
         text="Found something interesting",
-        created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
