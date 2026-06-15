@@ -27,7 +27,8 @@ def format_notepad(entries: list[NotepadEntry]) -> str:
     """Format entries as markdown grouped by type for injection into agent prompts."""
     groups: dict[str, list[NotepadEntry]] = {t: [] for t in _ENTRY_TYPES}
     for entry in entries:
-        groups[entry.entry_type].append(entry)
+        if entry.entry_type in groups:
+            groups[entry.entry_type].append(entry)
 
     sections: list[str] = ["## Context from previous steps"]
     for entry_type in _ENTRY_TYPES:

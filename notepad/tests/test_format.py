@@ -129,3 +129,21 @@ class TestFormatNotepad:
         result = format_notepad(entries)
 
         assert result.startswith("## Context from previous steps")
+
+    def test_unknown_entry_type_dropped(self) -> None:
+        entries = [
+            _entry("warning", "something bad"),
+            _entry("learning", "learned A"),
+        ]
+
+        result = format_notepad(entries)
+
+        assert "something bad" not in result
+        assert "- [task1/agent1] learned A" in result
+
+    def test_trailing_newline(self) -> None:
+        entries = [_entry("learning", "learned A")]
+
+        result = format_notepad(entries)
+
+        assert result.endswith("\n")
