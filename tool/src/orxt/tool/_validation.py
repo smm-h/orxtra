@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import jsonschema
-
 from orxt.protocols._tool import ToolError
 
 

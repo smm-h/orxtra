@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import dataclasses
+
 from orxt.tool._preview import FullRetrievalGuard, PreviewResult, check_and_preview
 
 
@@ -73,7 +75,6 @@ class TestCheckAndPreview:
         result = check_and_preview("hello", threshold=1000, preview_lines=3)
         assert isinstance(result, PreviewResult)
         # frozen=True means attribute assignment raises
-        import dataclasses
         assert dataclasses.fields(result)  # confirms it's a dataclass
 
     def test_preview_includes_byte_count_in_separator(self) -> None:

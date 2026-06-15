@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class PathError(Exception):
@@ -63,5 +66,5 @@ def check_write_scope(
         if str(resolved).startswith(str(canonical_scope) + os.sep):
             return
 
-    msg = f"Path {resolved} is outside write scope"
+    msg = f"Path {resolved} is outside write scope (root: {root})"
     raise PathError(msg)

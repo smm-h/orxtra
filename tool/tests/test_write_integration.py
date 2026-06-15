@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-
-from orxt.write_safety import StaleWriteError, StaleWriteTracker, WriteQueue
 from orxt.tool._write_integration import safe_read_for_write, safe_write
+from orxt.write_safety import StaleWriteError, StaleWriteTracker, WriteQueue
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture
@@ -108,7 +110,7 @@ class TestSafeWrite:
     async def test_stale_write_cross_session(
         self, tmp_path: Path, queue: WriteQueue, tracker: StaleWriteTracker,
     ) -> None:
-        """Session A reads, session B writes, session A writes -> StaleWriteError for A."""
+        """Session A reads, B writes, then A writes -> StaleWriteError."""
         target = tmp_path / "file.txt"
         target.write_text("original")
 
