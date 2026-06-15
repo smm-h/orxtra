@@ -16,7 +16,7 @@ async def retrieve_knowledge(
     _ = tags
 
     configure_cognee(config)
-    import cognee  # noqa: PLC0415  # type: ignore[import-untyped]
+    import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
 
     raw_results = await cognee.search(
         query_text=query,
