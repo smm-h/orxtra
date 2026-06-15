@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
-
 from orxt.knowledge_module._types import KnowledgeConfig, KnowledgeResult
+from pydantic import ValidationError
 
 
 def _make_config(**overrides: object) -> KnowledgeConfig:
