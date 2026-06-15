@@ -501,27 +501,24 @@ class Scheduler:
         model_key = self._resolve_model_key(task)
         if model_key is None:
             return
-        try:
-            cost = compute_cost_usd(
-                model_key,
-                Usage(
-                    input_tokens=(
-                        session.total_input_tokens
-                    ),
-                    output_tokens=(
-                        session.total_output_tokens
-                    ),
-                    cache_read_tokens=(
-                        session.total_cache_read_tokens
-                    ),
-                    cache_write_tokens=(
-                        session.total_cache_write_tokens
-                    ),
+        cost = compute_cost_usd(
+            model_key,
+            Usage(
+                input_tokens=(
+                    session.total_input_tokens
                 ),
-            )
-            self._task_costs[task_id] += cost
-        except ValueError:
-            pass
+                output_tokens=(
+                    session.total_output_tokens
+                ),
+                cache_read_tokens=(
+                    session.total_cache_read_tokens
+                ),
+                cache_write_tokens=(
+                    session.total_cache_write_tokens
+                ),
+            ),
+        )
+        self._task_costs[task_id] += cost
 
     def _create_agent_session(
         self,

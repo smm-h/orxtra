@@ -1084,6 +1084,91 @@ class TestBudgetPersistence:
             assert call["duration_seconds"] > 0.0
 
 
+class TestAccumulateCostError:
+    async def test_unknown_model_raises_immediately(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        trace_writer = MockTraceWriter()
+
+        class FailTransport:
+            """Transport that never gets called because
+            the error happens during cost accumulation."""
+
+            async def send(
+                self, message: str, **kwargs: Any,  # noqa: ANN401
+            ) -> AsyncIterator[Event]:
+                tools = kwargs.get("tools", [])
+                tool_map = {t.name: t for t in tools}
+                if "start_task" in tool_map:
+                    r = await tool_map[
+                        "start_task"
+                    ].execute({})
+                    yield ToolUse(
+                        tool_name="start_task",
+                        input={},
+                        output=r,
+                        status="success",
+                    )
+                if "end_task" in tool_map:
+                    r = await tool_map[
+                        "end_task"
+                    ].execute({"message": "done"})
+                    yield ToolUse(
+                        tool_name="end_task",
+                        input={"message": "done"},
+                        output=r,
+                        status="success",
+                    )
+                sid = kwargs.get("session_id") or str(
+                    uuid6.uuid7(),
+                )
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=10,
+                    output_tokens=5,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text="done",
+                    session_id=sid,
+                    total_input_tokens=10,
+                    total_output_tokens=5,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=2,
+                )
+
+        task = TaskSpec(
+            name="bad-model-task",
+            agent="test-agent",
+            task_prompt="Do work",
+            timeout=60,
+            context_refinement=False,
+        )
+        config = WorkflowConfig(
+            name="bad-model-wf",
+            description="Unknown model test",
+            tasks=[task],
+            dependencies={},
+        )
+        # Use a category that maps to a model NOT in
+        # the pricing table.
+        sched = Scheduler(
+            trace_writer=trace_writer,  # type: ignore[arg-type]
+            transport_registry={"mock-provider": FailTransport()},  # type: ignore[dict-item]
+            agents={"test-agent": make_agent()},
+            categories={"default": "mock-provider/nonexistent-model"},
+            run_id=run_id,
+        )
+        with pytest.raises(
+            ValueError, match="Unknown model",
+        ):
+            await sched.execute_workflow(config)
+
+
 class TestFunctionTask:
     async def test_callable_task_executes(
         self,
