@@ -34,6 +34,7 @@ from orxt.scheduler._graph import (
     find_parallel_groups,
     topological_sort,
 )
+from orxt.scheduler._locks import FileLockRegistry
 from orxt.scheduler._validator import validate_task_tree
 from orxt.session import Session, compute_cost_usd, create_session
 from orxt.tool._pipeline import wrap_tools_for_session
@@ -97,6 +98,8 @@ def classify_error(error: Exception) -> ErrorCategory:
 
 
 def _task_type_for(task: TaskSpec) -> str:
+    if task.decision_point:
+        return "decision_point"
     if task.agent:
         return "agent"
     if task.callable:
@@ -149,6 +152,10 @@ class Scheduler:
         self._active_constraints: list[tuple[str, str]] = []
         self._mechanical_constraints: list[tuple[str, str]] = []
         self._pending_end_task_message: dict[UUID, str] = {}
+        self._file_lock_registry = FileLockRegistry()
+        self._pending_advisories: list[
+            dict[str, Any]
+        ] = []
 
     async def run_consult(
         self,
@@ -216,6 +223,14 @@ class Scheduler:
         )
         order = topological_sort(graph)
         groups = find_parallel_groups(graph, order)
+
+        # Analyze structural advisories for workflow
+        task_ids = list(task_id_map.values())
+        advisories = self._analyze_structural_advisories(
+            task_ids,
+        )
+        if advisories:
+            self._pending_advisories.extend(advisories)
 
         variables: dict[str, Any] = {}
 
@@ -295,8 +310,54 @@ class Scheduler:
             return await self._execute_wait_for_task(
                 task, task_id,
             )
+        if task.decision_point:
+            return await self._execute_decision_point_task(
+                task, task_id,
+            )
         return await self._execute_agent_task(
             task, task_id, parent_task_id, variables,
+        )
+
+    async def _execute_decision_point_task(
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+    ) -> TaskResult:
+        """Execute a decision point task.
+
+        Decision points are placeholder tasks that the Overseer
+        handles in Phase 3. For now, just transition and complete.
+        """
+        self._task_states[task_id] = TaskState.ACTIVE
+        await self._trace_writer.transition_task(
+            task_id, TaskState.ACTIVE.value,
+        )
+
+        await self._trace_writer.write_event(
+            run_id=self._run_id,
+            event_type="decision_point",
+            data={
+                "task_id": str(task_id),
+                "task_name": task.name,
+            },
+            task_id=task_id,
+        )
+
+        self._complete_task(task_id, task.name, None)
+        await self._trace_writer.transition_task(
+            task_id, TaskState.COMPLETED.value,
+        )
+        return TaskResult(
+            output=None,
+            structured_output=None,
+            check_results=[
+                CheckResult(
+                    passed=True,
+                    message=(
+                        "Decision point completed (stub)"
+                    ),
+                ),
+            ],
         )
 
     async def _execute_agent_task(  # noqa: C901, PLR0912, PLR0915
@@ -608,6 +669,7 @@ class Scheduler:
             ),
         )
         self._task_states[task_id] = TaskState.ESCALATED
+        self._file_lock_registry.release(task_id)
         await self._trace_writer.transition_task(
             task_id, TaskState.ESCALATED.value,
         )
@@ -937,6 +999,7 @@ class Scheduler:
         retries: int = 0,
     ) -> None:
         self._task_states[task_id] = TaskState.COMPLETED
+        self._file_lock_registry.release(task_id)
         parent_id = self._task_parents.get(task_id)
         outputs = self._get_scoped_outputs(parent_id)
         structured_outputs = self._get_scoped_structured(
@@ -1641,6 +1704,26 @@ class Scheduler:
             parent_id, [],
         ).append(task_id)
         self._task_costs[task_id] = Decimal(0)
+
+        # Claim write paths in file lock registry
+        if params.write_paths:
+            try:
+                self._file_lock_registry.claim(
+                    task_id, params.write_paths,
+                )
+            except ValueError as e:
+                raise ToolError(str(e)) from e
+
+        # Re-analyze parent's subtree for advisories
+        children = self._task_children.get(
+            parent_id, [],
+        )
+        advisories = self._analyze_structural_advisories(
+            children,
+        )
+        if advisories:
+            self._pending_advisories.extend(advisories)
+
         return str(task_id)
 
     async def handle_create_workflow(
@@ -1720,9 +1803,57 @@ class Scheduler:
                 self._task_states[task_id] = (
                     TaskState.CANCELLED
                 )
+                self._file_lock_registry.release(task_id)
                 await self._trace_writer.transition_task(
                     task_id, TaskState.CANCELLED.value,
                 )
+
+    def _analyze_structural_advisories(
+        self,
+        task_ids: list[UUID],
+    ) -> list[dict[str, Any]]:
+        """Analyze a set of tasks for structural improvements.
+
+        Detects read-only tasks that could be front-loaded
+        for earlier execution. Advisories are stored for the
+        Overseer to consume in Phase 3.
+        """
+        advisories: list[dict[str, Any]] = []
+
+        if not task_ids:
+            return advisories
+
+        # Detect read-only agent tasks
+        write_tools = {
+            "write", "edit", "delete", "move",
+            "copy", "mkdir", "set_executable",
+        }
+        read_only_names: list[str] = []
+        for task_id in task_ids:
+            spec = self._task_specs.get(task_id)
+            if spec is None or spec.agent is None:
+                continue
+            agent_def = self._agents.get(spec.agent)
+            if agent_def is None:
+                continue
+            has_write = bool(
+                set(agent_def.allow) & write_tools,
+            )
+            if not has_write:
+                read_only_names.append(spec.name)
+
+        if read_only_names:
+            advisories.append({
+                "type": "front_load_read_only",
+                "message": (
+                    f"Tasks {read_only_names} are read-only"
+                    " and could be front-loaded for earlier"
+                    " execution"
+                ),
+                "task_names": read_only_names,
+            })
+
+        return advisories
 
     @staticmethod
     async def _call_callback(
