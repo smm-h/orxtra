@@ -492,6 +492,67 @@ class TraceWriter:
             )
         return lesson_id
 
+    async def create_iteration(
+        self,
+        task_id: UUID,
+        index: int,
+        item_value: object,
+    ) -> UUID:
+        iteration_id = uuid6.uuid7()
+        async with self._pool.acquire() as conn, conn.transaction():
+            await conn.execute(
+                "INSERT INTO task_iterations"
+                " (id, task_id, iteration_index, item_value)"
+                " VALUES ($1, $2, $3, $4)",
+                iteration_id,
+                task_id,
+                index,
+                json.dumps(item_value),
+            )
+        return iteration_id
+
+    async def complete_iteration(
+        self,
+        iteration_id: UUID,
+        output: str | None,
+        structured_output: dict[str, Any] | None,
+        check_results: list[dict[str, Any]] | None,
+    ) -> None:
+        async with self._pool.acquire() as conn, conn.transaction():
+            await conn.execute(
+                "UPDATE task_iterations SET"
+                " status = 'completed',"
+                " output = $1,"
+                " structured_output = $2,"
+                " check_results = $3,"
+                " finished_at = now()"
+                " WHERE id = $4",
+                output,
+                json.dumps(structured_output)
+                if structured_output is not None
+                else None,
+                json.dumps(check_results)
+                if check_results is not None
+                else None,
+                iteration_id,
+            )
+
+    async def fail_iteration(
+        self,
+        iteration_id: UUID,
+        error: str,
+    ) -> None:
+        async with self._pool.acquire() as conn, conn.transaction():
+            await conn.execute(
+                "UPDATE task_iterations SET"
+                " status = 'failed',"
+                " output = $1,"
+                " finished_at = now()"
+                " WHERE id = $2",
+                error,
+                iteration_id,
+            )
+
     async def update_workflow_status(
         self, workflow_id: UUID, current_step: str, health: str
     ) -> None:

@@ -8,6 +8,7 @@ from orxt.trace._lock import (
     update_heartbeat,
 )
 from orxt.trace._reader import (
+    list_iterations,
     list_runs,
     list_tasks,
     read_inbox,
@@ -30,6 +31,7 @@ from orxt.trace._transitions import (
 )
 from orxt.trace._types import (
     InboxItem,
+    IterationResult,
     NotepadEntry,
     RunReport,
     RunSummary,
@@ -41,6 +43,7 @@ from orxt.trace._writer import TraceWriter
 __all__ = [
     "InboxItem",
     "InvalidTransitionError",
+    "IterationResult",
     "NotepadEntry",
     "RunLockError",
     "RunReport",
@@ -51,6 +54,7 @@ __all__ = [
     "acquire_run_lock",
     "clean_orphaned",
     "is_lock_stale",
+    "list_iterations",
     "list_runs",
     "list_tasks",
     "read_inbox",

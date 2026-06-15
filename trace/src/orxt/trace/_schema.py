@@ -5,6 +5,7 @@ TABLE_NAMES: dict[str, str] = {
     "runs": "runs",
     "tasks": "tasks",
     "task_attempts": "task_attempts",
+    "task_iterations": "task_iterations",
     "events": "events",
     "transcripts": "transcripts",
     "notepad_entries": "notepad_entries",
@@ -73,6 +74,22 @@ CREATE TABLE task_attempts (
     duration_seconds DOUBLE PRECISION,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (task_id, attempt)
+);
+"""
+
+CREATE_TASK_ITERATIONS = """\
+CREATE TABLE task_iterations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    task_id UUID NOT NULL REFERENCES tasks(id),
+    iteration_index INT NOT NULL,
+    item_value JSONB NOT NULL,
+    status TEXT NOT NULL DEFAULT 'running',
+    output TEXT,
+    structured_output JSONB,
+    check_results JSONB,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at TIMESTAMPTZ,
+    UNIQUE (task_id, iteration_index)
 );
 """
 
@@ -262,6 +279,7 @@ ALL_CREATE_STATEMENTS: list[str] = [
     CREATE_RUNS,
     CREATE_TASKS,
     CREATE_TASK_ATTEMPTS,
+    CREATE_TASK_ITERATIONS,
     CREATE_EVENTS,
     CREATE_TRANSCRIPTS,
     CREATE_NOTEPAD_ENTRIES,
