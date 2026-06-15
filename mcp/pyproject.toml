@@ -16,3 +16,8 @@ packages = ["src/orxt"]
 
 [tool.uv.sources]
 services = { path = "../services", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.4.0",
+]
