@@ -27,7 +27,11 @@ from orxt.services._trace import (
     query_events,
     search_transcript,
 )
-from orxt.services._validate import validate_agent, validate_categories, validate_workflow
+from orxt.services._validate import (
+    validate_agent,
+    validate_categories,
+    validate_workflow,
+)
 
 __all__ = [
     "RunConfig",

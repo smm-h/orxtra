@@ -4,15 +4,15 @@ import tomllib
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from orxt.trace import TraceWriter, RunReport, RunSummary
+from orxt.trace import RunReport, RunSummary, TraceWriter, read_run_report
 from orxt.trace import list_runs as _list_runs
-from orxt.trace import read_run_report
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     import asyncpg
 
 
@@ -47,7 +47,7 @@ async def start_run(pool: asyncpg.Pool, intent: str, config: RunConfig) -> UUID:
 async def start_run_from_file(
     pool: asyncpg.Pool, intent: str, config_path: Path
 ) -> UUID:
-    if not config_path.is_file():
+    if not config_path.is_file():  # noqa: ASYNC240
         msg = f"Config file not found: {config_path}"
         raise FileNotFoundError(msg)
     with config_path.open("rb") as f:

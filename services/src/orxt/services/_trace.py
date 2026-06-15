@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
-from uuid import UUID
 
 from orxt.trace import NotepadEntry, TaskAttempt, TaskSummary
 from orxt.trace import list_tasks as _list_tasks
@@ -11,6 +9,9 @@ from orxt.trace import read_transcript as _read_transcript
 from orxt.trace import search_transcript as _search_transcript
 
 if TYPE_CHECKING:
+    from datetime import datetime
+    from uuid import UUID
+
     import asyncpg
 
 
@@ -73,7 +74,7 @@ async def query_events(
     query = (
         "SELECT id, run_id, task_id, event_type, data, created_at"
         " FROM events"
-        f" WHERE {' AND '.join(conditions)}"
+        f" WHERE {' AND '.join(conditions)}"  # noqa: S608
         f" ORDER BY created_at LIMIT ${idx}"
     )
     rows = await pool.fetch(query, *params)
