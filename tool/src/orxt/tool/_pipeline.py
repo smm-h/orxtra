@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+import json
+import time
+from typing import TYPE_CHECKING, Any
+from uuid import UUID
+
+from orxt.protocols._tool import Tool, ToolError
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from orxt.secrets._registry import SecretRegistry
+
+FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
+    "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
+})
+
+
+def wrap_tool_with_pipeline(
+    tool: Tool,
+    scheduler_check: Callable[[str], UUID],
+    secret_registry: SecretRegistry | None,
+    trace_callback: Callable[..., Any] | None,
+    session_id: str,
+    is_start_task: bool = False,
+    is_file_mutation: bool = False,
+    mutation_tracker: dict[str, bool] | None = None,
+) -> Tool:
+    """Return a new Tool with the same schema but a wrapped execute that runs
+    the full pipeline: active-task check, secret substitution, execution,
+    secret scrubbing, mutation tracking, and trace callback."""
+
+    async def wrapped_execute(args: dict[str, Any]) -> str:
+        # 1. Active task check (skip for start_task itself).
+        if not is_start_task:
+            scheduler_check(session_id)
+
+        # 2. Secret substitution.
+        if secret_registry is not None:
+            serialized = json.dumps(args)
+            substituted = secret_registry.substitute(serialized)
+            effective_args: dict[str, Any] = json.loads(substituted)
+        else:
+            effective_args = args
+
+        # 3. Execute (timed).
+        start = time.monotonic()
+        result = await tool.execute(effective_args)
+        end = time.monotonic()
+        duration_ms = int((end - start) * 1000)
+
+        # 4. Secret scrubbing.
+        if secret_registry is not None:
+            result = secret_registry.scrub(result)
+
+        # 5. Mutation tracking.
+        if is_file_mutation and mutation_tracker is not None:
+            mutation_tracker[session_id] = True
+
+        # 6. Trace callback.
+        if trace_callback is not None:
+            await trace_callback(tool.name, args, result, duration_ms)
+
+        # 7. Return result.
+        return result
+
+    return Tool(
+        name=tool.name,
+        description=tool.description,
+        parameters=tool.parameters,
+        execute=wrapped_execute,
+    )
+
+
+def wrap_tools_for_session(
+    tools: list[Tool],
+    scheduler_check: Callable[[str], UUID],
+    secret_registry: SecretRegistry | None,
+    trace_callback: Callable[..., Any] | None,
+    session_id: str,
+    mutation_tracker: dict[str, bool] | None = None,
+) -> list[Tool]:
+    """Wrap all tools in the list with the execution pipeline."""
+    return [
+        wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=scheduler_check,
+            secret_registry=secret_registry,
+            trace_callback=trace_callback,
+            session_id=session_id,
+            is_start_task=(tool.name == "start_task"),
+            is_file_mutation=(tool.name in FILE_MUTATION_TOOLS),
+            mutation_tracker=mutation_tracker,
+        )
+        for tool in tools
+    ]
