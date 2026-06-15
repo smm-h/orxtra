@@ -23,6 +23,22 @@ def _path_error_to_tool_error(exc: PathError) -> ToolError:
     return ToolError(str(exc))
 
 
+def _resolve_path(raw_path: str, root: Path) -> Path:
+    """Resolve a path, converting PathError to ToolError."""
+    try:
+        return resolve_and_check(raw_path, root)
+    except PathError as exc:
+        raise _path_error_to_tool_error(exc) from exc
+
+
+def _check_scope(resolved: Path, scope: list[Path] | None, root: Path) -> None:
+    """Check write scope, converting PathError to ToolError."""
+    try:
+        check_write_scope(resolved, scope, root)
+    except PathError as exc:
+        raise _path_error_to_tool_error(exc) from exc
+
+
 # ---------------------------------------------------------------------------
 # Schema definitions
 # ---------------------------------------------------------------------------
@@ -124,11 +140,8 @@ def make_write_tool(
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _WRITE_SCHEMA)
-        try:
-            resolved = resolve_and_check(args["path"], read_root)
-        except PathError as exc:
-            raise _path_error_to_tool_error(exc) from exc
-        check_write_scope(resolved, write_scope, read_root)
+        resolved = _resolve_path(args["path"], read_root)
+        _check_scope(resolved, write_scope, read_root)
 
         create_dirs = args.get("create_dirs", False)
         if create_dirs:
@@ -172,11 +185,8 @@ def make_edit_tool(
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _EDIT_SCHEMA)
-        try:
-            resolved = resolve_and_check(args["path"], read_root)
-        except PathError as exc:
-            raise _path_error_to_tool_error(exc) from exc
-        check_write_scope(resolved, write_scope, read_root)
+        resolved = _resolve_path(args["path"], read_root)
+        _check_scope(resolved, write_scope, read_root)
 
         old_string = args["old_string"]
         new_string = args["new_string"]
@@ -235,11 +245,8 @@ def make_mkdir_tool(
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _MKDIR_SCHEMA)
-        try:
-            resolved = resolve_and_check(args["path"], read_root)
-        except PathError as exc:
-            raise _path_error_to_tool_error(exc) from exc
-        check_write_scope(resolved, write_scope, read_root)
+        resolved = _resolve_path(args["path"], read_root)
+        _check_scope(resolved, write_scope, read_root)
 
         resolved.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
         return f"Created {resolved}"
@@ -274,13 +281,10 @@ def make_move_tool(
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _MOVE_SCHEMA)
-        try:
-            resolved_src = resolve_and_check(args["source"], read_root)
-            resolved_dst = resolve_and_check(args["destination"], read_root)
-        except PathError as exc:
-            raise _path_error_to_tool_error(exc) from exc
-        check_write_scope(resolved_src, write_scope, read_root)
-        check_write_scope(resolved_dst, write_scope, read_root)
+        resolved_src = _resolve_path(args["source"], read_root)
+        resolved_dst = _resolve_path(args["destination"], read_root)
+        _check_scope(resolved_src, write_scope, read_root)
+        _check_scope(resolved_dst, write_scope, read_root)
 
         if not resolved_src.exists():  # noqa: ASYNC240
             msg = f"Source does not exist: {resolved_src}"
@@ -319,14 +323,11 @@ def make_copy_tool(
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _COPY_SCHEMA)
-        try:
-            resolved_src = resolve_and_check(args["source"], read_root)
-            resolved_dst = resolve_and_check(args["destination"], read_root)
-        except PathError as exc:
-            raise _path_error_to_tool_error(exc) from exc
+        resolved_src = _resolve_path(args["source"], read_root)
+        resolved_dst = _resolve_path(args["destination"], read_root)
         # Source is read-only: no write scope check.
         # Destination is a write: check write scope.
-        check_write_scope(resolved_dst, write_scope, read_root)
+        _check_scope(resolved_dst, write_scope, read_root)
 
         if not resolved_src.exists():  # noqa: ASYNC240
             msg = f"Source does not exist: {resolved_src}"
@@ -359,11 +360,8 @@ def make_delete_tool(
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _DELETE_SCHEMA)
-        try:
-            resolved = resolve_and_check(args["path"], read_root)
-        except PathError as exc:
-            raise _path_error_to_tool_error(exc) from exc
-        check_write_scope(resolved, write_scope, read_root)
+        resolved = _resolve_path(args["path"], read_root)
+        _check_scope(resolved, write_scope, read_root)
 
         recursive = args["recursive"]
         if resolved.is_dir() and not recursive:  # noqa: ASYNC240
@@ -415,11 +413,8 @@ def make_set_executable_tool(
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _SET_EXECUTABLE_SCHEMA)
-        try:
-            resolved = resolve_and_check(args["path"], read_root)
-        except PathError as exc:
-            raise _path_error_to_tool_error(exc) from exc
-        check_write_scope(resolved, write_scope, read_root)
+        resolved = _resolve_path(args["path"], read_root)
+        _check_scope(resolved, write_scope, read_root)
 
         if not resolved.exists():  # noqa: ASYNC240
             msg = f"File not found: {resolved}"
