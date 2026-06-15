@@ -696,8 +696,17 @@ type = "id"
 [tables.constraints.columns.run_id]
 type = "ref"
 
+[tables.constraints.columns.kind]
+type = "str"
+comment = "Constraint kind from vocabulary (mechanical) or free-form identifier (advisory)"
+
+[tables.constraints.columns.args]
+type = "jsonb_nullable"
+comment = "Structured arguments for mechanical constraints (e.g., {glob: 'src/**/*.py'})"
+
 [tables.constraints.columns.text]
 type = "str"
+comment = "Human-readable description of the constraint"
 
 [tables.constraints.columns.source_decision_id]
 type = "ref"
@@ -806,9 +815,10 @@ comment = "Relevance tags for flat SQL queries"
 type = "flag"
 comment = "True for consumer knowledge; never expires"
 
-[tables.lessons.columns.source_file]
-type = "str_nullable"
-comment = "File path for git-based staleness detection"
+[tables.lessons.columns.source_files]
+type = "str"
+array = true
+comment = "File paths for git-based staleness detection (any file changing flags the lesson as potentially stale)"
 
 [tables.lessons.columns.created_at]
 type = "timestamp"
