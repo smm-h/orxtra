@@ -13,8 +13,10 @@ async def retrieve_knowledge(
     if config is None:
         return []
 
+    _ = tags
+
     configure_cognee(config)
-    import cognee
+    import cognee  # noqa: PLC0415  # type: ignore[import-untyped]
 
     raw_results = await cognee.search(
         query_text=query,
@@ -23,10 +25,17 @@ async def retrieve_knowledge(
 
     results: list[KnowledgeResult] = []
     for item in raw_results[:max_results]:
-        text = str(item.get("text", "")) if isinstance(item, dict) else str(item)
-        source = str(item.get("source", "cognee")) if isinstance(item, dict) else "cognee"
-        permanent = bool(item.get("permanent", False)) if isinstance(item, dict) else False
-        score = float(item.get("score", 0.0)) if isinstance(item, dict) else 0.0
+        is_dict = isinstance(item, dict)
+        text = str(item.get("text", "")) if is_dict else str(item)
+        source = (
+            str(item.get("source", "cognee")) if is_dict else "cognee"
+        )
+        permanent = (
+            bool(item.get("permanent", False)) if is_dict else False
+        )
+        score = (
+            float(item.get("score", 0.0)) if is_dict else 0.0
+        )
         results.append(
             KnowledgeResult(
                 text=text,

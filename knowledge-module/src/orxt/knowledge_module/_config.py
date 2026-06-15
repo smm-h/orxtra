@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from orxt.knowledge_module._types import KnowledgeConfig
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from orxt.knowledge_module._types import KnowledgeConfig
 
 
 def configure_cognee(config: KnowledgeConfig) -> None:
-    import cognee
+    import cognee  # noqa: PLC0415  # type: ignore[import-untyped]
 
     cognee.config.set_llm_config(
         {
