@@ -62,6 +62,7 @@ async def test_add_constraint_mechanical(
 ) -> None:
     tool = make_add_constraint_tool(tw, run_id)
     result = await tool.execute({
+        "kind": "no_removed_exports",
         "text": "All tests must pass",
         "tier": "mechanical",
     })
@@ -69,6 +70,7 @@ async def test_add_constraint_mechanical(
     assert "constraint_id" in parsed
     assert tw.calls[0][0] == "write_constraint"
     assert tw.calls[0][1]["tier"] == "mechanical"
+    assert tw.calls[0][1]["kind"] == "no_removed_exports"
 
 
 @pytest.mark.asyncio
@@ -77,12 +79,14 @@ async def test_add_constraint_advisory(
 ) -> None:
     tool = make_add_constraint_tool(tw, run_id)
     result = await tool.execute({
+        "kind": "code_style",
         "text": "Prefer small functions",
         "tier": "advisory",
     })
     parsed = json.loads(result)
     assert "constraint_id" in parsed
     assert tw.calls[0][1]["tier"] == "advisory"
+    assert tw.calls[0][1]["kind"] == "code_style"
 
 
 @pytest.mark.asyncio
@@ -243,6 +247,7 @@ async def test_add_constraint_rejects_invalid_tier(
     tool = make_add_constraint_tool(tw, run_id)
     with pytest.raises(ToolError):
         await tool.execute({
+            "kind": "test",
             "text": "constraint",
             "tier": "invalid_tier",
         })

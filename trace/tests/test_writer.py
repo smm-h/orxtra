@@ -580,6 +580,7 @@ class TestOverseerMemory:
                 run_id=RUN_ID,
                 text="no manual deploys",
                 tier="hard",
+                kind="no_removed_exports",
             )
 
         assert result == TEST_UUID
@@ -587,6 +588,7 @@ class TestOverseerMemory:
         assert "insert into constraints" in sql.lower()
         assert args == (
             TEST_UUID, RUN_ID, "no manual deploys", "hard",
+            "no_removed_exports", None,
         )
 
     async def test_write_assumption(
@@ -644,7 +646,7 @@ class TestOverseerMemory:
                 text="always check CI",
                 relevance_tags=["ci", "deploy"],
                 permanent=True,
-                source_file="deploy.py",
+                source_files=["deploy.py"],
             )
 
         assert result == TEST_UUID
@@ -656,7 +658,7 @@ class TestOverseerMemory:
             "always check CI",
             json.dumps(["ci", "deploy"]),
             True,
-            "deploy.py",
+            json.dumps(["deploy.py"]),
         )
 
     async def test_update_workflow_status(

@@ -161,6 +161,8 @@ CREATE TABLE constraints (
     run_id UUID NOT NULL REFERENCES runs(id),
     text TEXT NOT NULL,
     tier TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    args JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 """
@@ -183,7 +185,7 @@ CREATE TABLE lessons (
     text TEXT NOT NULL,
     relevance_tags JSONB NOT NULL DEFAULT '[]',
     permanent BOOLEAN NOT NULL DEFAULT false,
-    source_file TEXT,
+    source_files JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 """

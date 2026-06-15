@@ -45,7 +45,7 @@ async def _load_markdown(
         text=text,
         relevance_tags=[path.stem],
         permanent=True,
-        source_file=str(path),
+        source_files=[str(path)],
     )
     _loaded_hashes[cache_key] = file_hash
 
@@ -63,9 +63,11 @@ async def _load_toml(
     for constraint in constraints:
         text: str = constraint["text"]
         tier: str = constraint.get("tier", "advisory")
+        kind: str = constraint.get("kind", "knowledge_file")
         await trace_writer.write_constraint(
             run_id=run_id,
             text=text,
             tier=tier,
+            kind=kind,
         )
     _loaded_hashes[cache_key] = file_hash

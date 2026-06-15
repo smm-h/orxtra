@@ -425,16 +425,25 @@ class TraceWriter:
             )
         return decision_id
 
-    async def write_constraint(self, run_id: UUID, text: str, tier: str) -> UUID:
+    async def write_constraint(
+        self,
+        run_id: UUID,
+        text: str,
+        tier: str,
+        kind: str,
+        args: dict[str, Any] | None = None,
+    ) -> UUID:
         constraint_id = uuid6.uuid7()
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
-                "INSERT INTO constraints (id, run_id, text, tier)"
-                " VALUES ($1, $2, $3, $4)",
+                "INSERT INTO constraints (id, run_id, text, tier, kind, args)"
+                " VALUES ($1, $2, $3, $4, $5, $6)",
                 constraint_id,
                 run_id,
                 text,
                 tier,
+                kind,
+                json.dumps(args) if args is not None else None,
             )
         return constraint_id
 
@@ -465,21 +474,21 @@ class TraceWriter:
         text: str,
         relevance_tags: list[str],
         permanent: bool,
-        source_file: str | None = None,
+        source_files: list[str] | None = None,
     ) -> UUID:
         lesson_id = uuid6.uuid7()
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO lessons"
                 " (id, run_id, text, relevance_tags,"
-                " permanent, source_file)"
+                " permanent, source_files)"
                 " VALUES ($1, $2, $3, $4, $5, $6)",
                 lesson_id,
                 run_id,
                 text,
                 json.dumps(relevance_tags),
                 permanent,
-                source_file,
+                json.dumps(source_files) if source_files is not None else None,
             )
         return lesson_id
 
