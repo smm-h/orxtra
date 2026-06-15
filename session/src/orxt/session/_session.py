@@ -62,6 +62,12 @@ class Session:
         tool_calls_list: list[dict[str, Any]] = []
         session_id_captured = False
 
+        snapshot_input = self.total_input_tokens
+        snapshot_output = self.total_output_tokens
+        snapshot_reasoning = self.total_reasoning_tokens
+        snapshot_cache_read = self.total_cache_read_tokens
+        snapshot_cache_write = self.total_cache_write_tokens
+
         stream = self._transport.send(
             message,
             model=self._model,
@@ -107,11 +113,13 @@ class Session:
         # Write assistant transcript entry
         if self._session_id is not None and session_id_captured:
             tokens_dict: dict[str, Any] = {
-                "input_tokens": self.total_input_tokens,
-                "output_tokens": self.total_output_tokens,
-                "reasoning_tokens": self.total_reasoning_tokens,
-                "cache_read_tokens": self.total_cache_read_tokens,
-                "cache_write_tokens": self.total_cache_write_tokens,
+                "input_tokens": self.total_input_tokens - snapshot_input,
+                "output_tokens": self.total_output_tokens - snapshot_output,
+                "reasoning_tokens": self.total_reasoning_tokens - snapshot_reasoning,
+                "cache_read_tokens": self.total_cache_read_tokens - snapshot_cache_read,
+                "cache_write_tokens": (
+                    self.total_cache_write_tokens - snapshot_cache_write
+                ),
             }
             await self._trace_writer.write_transcript_entry(
                 session_id=uuid.UUID(self._session_id),
