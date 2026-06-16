@@ -1,15 +1,14 @@
-# Temporary argparse implementation -- will be replaced by strictcli.
 from __future__ import annotations
 
-import argparse
 import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import Any, NoReturn
 from uuid import UUID
 
 import asyncpg  # type: ignore[import-untyped]
+import strictcli
 from orxt.cli._formatters import format_output
 from orxt.trace import TraceWriter
 from orxt.services import (
@@ -37,9 +36,7 @@ from orxt.services import (
     validate_workflow,
 )
 
-if TYPE_CHECKING:
-    _SubAction = argparse._SubParsersAction[argparse.ArgumentParser]  # noqa: SLF001
-
+# -- Helpers --
 
 def _die(message: str) -> NoReturn:
     print(message, file=sys.stderr)
@@ -53,455 +50,445 @@ def _parse_uuid(raw: str, label: str) -> UUID:
         _die(f"invalid {label}: {raw!r}")
 
 
-def _add_run_subparsers(sub: _SubAction) -> None:
-    run_parser = sub.add_parser("run")
-    run_sub = run_parser.add_subparsers(dest="subcommand")
-    run_sub.required = True
-
-    start = run_sub.add_parser("start")
-    start.add_argument("--config", required=True)
-    start.add_argument("--intent", required=True)
-
-    run_sub.add_parser("list")
-
-    show = run_sub.add_parser("show")
-    show.add_argument("run_id")
-
-    abort = run_sub.add_parser("abort")
-    abort.add_argument("run_id")
-
-    pause = run_sub.add_parser("pause")
-    pause.add_argument("run_id")
-
-    resume = run_sub.add_parser("resume")
-    resume.add_argument("run_id")
-
-
-def _add_inbox_subparsers(sub: _SubAction) -> None:
-    inbox_parser = sub.add_parser("inbox")
-    inbox_sub = inbox_parser.add_subparsers(dest="subcommand")
-    inbox_sub.required = True
-
-    ls = inbox_sub.add_parser("list")
-    ls.add_argument("--run", required=True, dest="run_id")
-    ls.add_argument("--status", default=None)
-
-    show = inbox_sub.add_parser("show")
-    show.add_argument("item_id")
-
-    respond = inbox_sub.add_parser("respond")
-    respond.add_argument("item_id")
-    respond.add_argument("answer")
-
-    skip = inbox_sub.add_parser("skip")
-    skip.add_argument("item_id")
-
-    reject = inbox_sub.add_parser("reject")
-    reject.add_argument("item_id")
-    reject.add_argument("reason")
-
-
-def _add_trace_subparsers(sub: _SubAction) -> None:
-    trace_parser = sub.add_parser("trace")
-    trace_sub = trace_parser.add_subparsers(dest="subcommand")
-    trace_sub.required = True
-
-    events = trace_sub.add_parser("events")
-    events.add_argument("run_id")
-    events.add_argument("--type", default=None, dest="event_type")
-    events.add_argument("--limit", type=int, default=100)
-
-    transcript = trace_sub.add_parser("transcript")
-    transcript.add_argument("session_id")
-
-    search = trace_sub.add_parser("search")
-    search.add_argument("session_id")
-    search.add_argument("query")
-
-    tasks = trace_sub.add_parser("tasks")
-    tasks.add_argument("run_id")
-
-    notepad = trace_sub.add_parser("notepad")
-    notepad.add_argument("run_id")
-
-
-def _add_event_subparsers(sub: _SubAction) -> None:
-    event_parser = sub.add_parser("event")
-    event_sub = event_parser.add_subparsers(dest="subcommand")
-    event_sub.required = True
-
-    fire = event_sub.add_parser("fire")
-    fire.add_argument("run_id")
-    fire.add_argument("event_name")
-    fire.add_argument("--payload", default=None)
-
-
-def _add_validate_subparsers(sub: _SubAction) -> None:
-    validate_parser = sub.add_parser("validate")
-    validate_sub = validate_parser.add_subparsers(dest="subcommand")
-    validate_sub.required = True
-
-    agent = validate_sub.add_parser("agent")
-    agent.add_argument("path")
-
-    workflow = validate_sub.add_parser("workflow")
-    workflow.add_argument("path")
-
-    categories = validate_sub.add_parser("categories")
-    categories.add_argument("path")
-
-
-def _add_config_subparsers(sub: _SubAction) -> None:
-    config_parser = sub.add_parser("config")
-    config_sub = config_parser.add_subparsers(dest="subcommand")
-    config_sub.required = True
-
-    show = config_sub.add_parser("show")
-    show.add_argument("run_id")
-
-    config_sub.add_parser("pricing")
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="orxt")
-    parser.add_argument("--db", default=None)
-    parser.add_argument("--format", choices=("table", "json"), default="table")
-    parser.add_argument("--quiet", action="store_true")
-
-    sub = parser.add_subparsers(dest="command")
-    sub.required = True
-
-    _add_run_subparsers(sub)
-    _add_inbox_subparsers(sub)
-    _add_trace_subparsers(sub)
-    _add_event_subparsers(sub)
-    _add_validate_subparsers(sub)
-    _add_config_subparsers(sub)
-
-    return parser
-
-
-def _require_db(args: argparse.Namespace) -> str:
-    db_url: str | None = args.db
-    if db_url is None:
+def _require_db(db: str) -> str:
+    if not db:
         _die("--db is required for this command")
-    return db_url
+    return db
 
 
-def _print(data: Any, args: argparse.Namespace) -> None:  # noqa: ANN401
-    print(format_output(data, args.format))
+def _print(data: Any, fmt: str) -> None:  # noqa: ANN401
+    print(format_output(data, fmt))
 
 
-# -- Run handlers --
+# -- App --
+
+app = strictcli.App(
+    name="orxt",
+    help="Autonomous multi-agent AI workflows.",
+    flags=[
+        strictcli.Flag(name="db", type=str, help="PostgreSQL connection URL.", default=""),
+        strictcli.Flag(name="format", type=str, help="Output format.", default="table", choices=["table", "json"]),
+        strictcli.Flag(name="quiet", type=bool, help="Suppress non-essential output."),
+    ],
+)
+
+# -- Run group --
+
+run_group = app.group("run", help="Run lifecycle commands.")
 
 
-async def _run_start(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        run_id = await start_run_from_file(pool, args.intent, Path(args.config))
-        print(run_id)
-    finally:
-        await pool.close()
+@run_group.command(name="start", help="Start a run from a config file.")
+@strictcli.flag(name="config", type=str, help="Path to run config file.")
+@strictcli.flag(name="intent", type=str, help="Intent description for the run.")
+def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
 
-
-async def _run_list(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await list_runs(pool)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _run_show(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await get_run(pool, run_id)
-        if result is None:
-            _die(f"run {run_id} not found")
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _run_abort(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        await abort_run(pool, run_id)
-        if not args.quiet:
-            print(f"run {run_id} aborted")
-    finally:
-        await pool.close()
-
-
-async def _run_pause(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        await pause_run(pool, run_id)
-        if not args.quiet:
-            print(f"run {run_id} paused")
-    finally:
-        await pool.close()
-
-
-async def _run_resume(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        await resume_run(pool, run_id)
-        if not args.quiet:
-            print(f"run {run_id} resumed")
-    finally:
-        await pool.close()
-
-
-# -- Inbox handlers --
-
-
-async def _inbox_list(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await list_inbox(pool, run_id, args.status)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _inbox_show(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    item_id = _parse_uuid(args.item_id, "item_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await get_inbox_item(pool, item_id)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _inbox_respond(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    item_id = _parse_uuid(args.item_id, "item_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await respond_to_inbox(pool, item_id, args.answer)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _inbox_skip(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    item_id = _parse_uuid(args.item_id, "item_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await skip_inbox_item(pool, item_id)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _inbox_reject(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    item_id = _parse_uuid(args.item_id, "item_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await reject_inbox_item(pool, item_id, args.reason)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-# -- Trace handlers --
-
-
-async def _trace_events(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await query_events(
-            pool, run_id, event_type=args.event_type, limit=args.limit
-        )
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _trace_transcript(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    session_id = _parse_uuid(args.session_id, "session_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await get_transcript(pool, session_id)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _trace_search(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    session_id = _parse_uuid(args.session_id, "session_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await search_transcript(pool, session_id, args.query)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _trace_tasks(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await list_tasks(pool, run_id)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-async def _trace_notepad(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await get_notepad(pool, run_id)
-        _print(result, args)
-    finally:
-        await pool.close()
-
-
-# -- Event handlers --
-
-
-async def _event_fire(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    payload: dict[str, Any] | None = None
-    if args.payload is not None:
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
-            parsed = json.loads(args.payload)
+            run_id = await start_run_from_file(pool, intent, Path(config))
+            print(run_id)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@run_group.command(name="list", help="List all runs, newest first.")
+def cmd_run_list(*, db: str, format: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await list_runs(pool)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@run_group.command(name="show", help="Show a run's full report.")
+@strictcli.arg(name="run_id", help="Run ID.")
+def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await get_run(pool, rid)
+            if result is None:
+                _die(f"run {rid} not found")
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@run_group.command(name="abort", help="Signal a running run to abort.")
+@strictcli.arg(name="run_id", help="Run ID.")
+def cmd_run_abort(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            await abort_run(pool, rid)
+            if not quiet:
+                print(f"run {rid} aborted")
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@run_group.command(name="pause", help="Pause a running run.")
+@strictcli.arg(name="run_id", help="Run ID.")
+def cmd_run_pause(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            await pause_run(pool, rid)
+            if not quiet:
+                print(f"run {rid} paused")
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@run_group.command(name="resume", help="Resume a paused run.")
+@strictcli.arg(name="run_id", help="Run ID.")
+def cmd_run_resume(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            await resume_run(pool, rid)
+            if not quiet:
+                print(f"run {rid} resumed")
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+# -- Inbox group --
+
+inbox_group = app.group("inbox", help="Human inbox commands.")
+
+
+@inbox_group.command(name="list", help="List inbox items.")
+@strictcli.flag(name="run", type=str, help="Run ID to filter by.")
+@strictcli.flag(name="status", type=str, help="Status filter.", default="")
+def cmd_inbox_list(*, db: str, format: str, run: str, status: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run, "run_id")
+    status_filter = status if status else None
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await list_inbox(pool, rid, status_filter)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@inbox_group.command(name="show", help="Show a single inbox item.")
+@strictcli.arg(name="item_id", help="Inbox item ID.")
+def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    iid = _parse_uuid(item_id, "item_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await get_inbox_item(pool, iid)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@inbox_group.command(name="respond", help="Answer an inbox item.")
+@strictcli.arg(name="item_id", help="Inbox item ID.")
+@strictcli.arg(name="answer", help="The answer text.")
+def cmd_inbox_respond(*, db: str, format: str, item_id: str, answer: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    iid = _parse_uuid(item_id, "item_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await respond_to_inbox(pool, iid, answer)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@inbox_group.command(name="skip", help="Skip an inbox item.")
+@strictcli.arg(name="item_id", help="Inbox item ID.")
+def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    iid = _parse_uuid(item_id, "item_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await skip_inbox_item(pool, iid)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@inbox_group.command(name="reject", help="Reject an inbox item (options insufficient).")
+@strictcli.arg(name="item_id", help="Inbox item ID.")
+@strictcli.arg(name="reason", help="Reason for rejection.")
+def cmd_inbox_reject(*, db: str, format: str, item_id: str, reason: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    iid = _parse_uuid(item_id, "item_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await reject_inbox_item(pool, iid, reason)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+# -- Trace group --
+
+trace_group = app.group("trace", help="Trace and event query commands.")
+
+
+@trace_group.command(name="events", help="Query events for a run.")
+@strictcli.arg(name="run_id", help="Run ID.")
+@strictcli.flag(name="type", type=str, help="Filter by event type.", default="")
+@strictcli.flag(name="limit", type=int, help="Maximum events to return.", default=100)
+def cmd_trace_events(*, db: str, format: str, run_id: str, type: str, limit: int, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+    event_type = type if type else None
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await query_events(pool, rid, event_type=event_type, limit=limit)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@trace_group.command(name="transcript", help="Show a session's full transcript.")
+@strictcli.arg(name="session_id", help="Session ID.")
+def cmd_trace_transcript(*, db: str, format: str, session_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    sid = _parse_uuid(session_id, "session_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await get_transcript(pool, sid)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@trace_group.command(name="search", help="Search a transcript (case-insensitive substring).")
+@strictcli.arg(name="session_id", help="Session ID.")
+@strictcli.arg(name="query", help="Search query.")
+def cmd_trace_search(*, db: str, format: str, session_id: str, query: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    sid = _parse_uuid(session_id, "session_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await search_transcript(pool, sid, query)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@trace_group.command(name="tasks", help="Show task statuses and attempt counts.")
+@strictcli.arg(name="run_id", help="Run ID.")
+def cmd_trace_tasks(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await list_tasks(pool, rid)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+@trace_group.command(name="notepad", help="Show notepad entries.")
+@strictcli.arg(name="run_id", help="Run ID.")
+def cmd_trace_notepad(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await get_notepad(pool, rid)
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+# -- Event group --
+
+event_group = app.group("event", help="Event firing commands.")
+
+
+@event_group.command(name="fire", help="Fire a named event for wait-for tasks.")
+@strictcli.arg(name="run_id", help="Run ID.")
+@strictcli.arg(name="event_name", help="Event name.")
+@strictcli.flag(name="payload", type=str, help="JSON payload.", default="")
+def cmd_event_fire(*, db: str, quiet: bool, run_id: str, event_name: str, payload: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+    parsed_payload: dict[str, Any] | None = None
+    if payload:
+        try:
+            parsed = json.loads(payload)
         except json.JSONDecodeError as exc:
             _die(f"invalid JSON payload: {exc}")
         if not isinstance(parsed, dict):
             _die("payload must be a JSON object")
-        payload = parsed
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        writer = TraceWriter(pool)
-        event_id = await fire_event(writer, run_id, args.event_name, payload)
-        if not args.quiet:
-            print(f"event {args.event_name!r} fired for run {run_id} (id={event_id})")
-    finally:
-        await pool.close()
+        parsed_payload = parsed
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            writer = TraceWriter(pool)
+            event_id = await fire_event(writer, rid, event_name, parsed_payload)
+            if not quiet:
+                print(f"event {event_name!r} fired for run {rid} (id={event_id})")
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
 
 
-# -- Validate handlers --
+# -- Validate group --
+
+validate_group = app.group("validate", help="Validate configuration files.")
 
 
-async def _validate_agent(args: argparse.Namespace) -> None:
-    errors = await validate_agent(Path(args.path))
-    if errors:
-        for err in errors:
-            print(err, file=sys.stderr)
-        sys.exit(1)
-    if not args.quiet:
-        print("valid")
+@validate_group.command(name="agent", help="Validate an agent TOML file.")
+@strictcli.arg(name="path", help="Path to agent TOML file.")
+def cmd_validate_agent(*, quiet: bool, path: str, **_kwargs: object) -> None:
+    async def _run() -> None:
+        errors = await validate_agent(Path(path))
+        if errors:
+            for err in errors:
+                print(err, file=sys.stderr)
+            sys.exit(1)
+        if not quiet:
+            print("valid")
+
+    asyncio.run(_run())
 
 
-async def _validate_workflow(args: argparse.Namespace) -> None:
-    errors = await validate_workflow(Path(args.path))
-    if errors:
-        for err in errors:
-            print(err, file=sys.stderr)
-        sys.exit(1)
-    if not args.quiet:
-        print("valid")
+@validate_group.command(name="workflow", help="Validate a workflow TOML file.")
+@strictcli.arg(name="path", help="Path to workflow TOML file.")
+def cmd_validate_workflow(*, quiet: bool, path: str, **_kwargs: object) -> None:
+    async def _run() -> None:
+        errors = await validate_workflow(Path(path))
+        if errors:
+            for err in errors:
+                print(err, file=sys.stderr)
+            sys.exit(1)
+        if not quiet:
+            print("valid")
+
+    asyncio.run(_run())
 
 
-async def _validate_categories(args: argparse.Namespace) -> None:
-    errors = await validate_categories(Path(args.path))
-    if errors:
-        for err in errors:
-            print(err, file=sys.stderr)
-        sys.exit(1)
-    if not args.quiet:
-        print("valid")
+@validate_group.command(name="categories", help="Validate a categories TOML file.")
+@strictcli.arg(name="path", help="Path to categories TOML file.")
+def cmd_validate_categories(*, quiet: bool, path: str, **_kwargs: object) -> None:
+    async def _run() -> None:
+        errors = await validate_categories(Path(path))
+        if errors:
+            for err in errors:
+                print(err, file=sys.stderr)
+            sys.exit(1)
+        if not quiet:
+            print("valid")
+
+    asyncio.run(_run())
 
 
-# -- Config handlers --
+# -- Config group --
+
+config_group = app.group("config", help="Configuration commands.")
 
 
-async def _config_show(args: argparse.Namespace) -> None:
-    db_url = _require_db(args)
-    run_id = _parse_uuid(args.run_id, "run_id")
-    pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-    try:
-        result = await dump_config(pool, run_id)
-        if result is None:
-            _die(f"run {run_id} not found")
-        _print(result, args)
-    finally:
-        await pool.close()
+@config_group.command(name="show", help="Show the config snapshot for a run.")
+@strictcli.arg(name="run_id", help="Run ID.")
+def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+    db_url = _require_db(db)
+    rid = _parse_uuid(run_id, "run_id")
+
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            result = await dump_config(pool, rid)
+            if result is None:
+                _die(f"run {rid} not found")
+            _print(result, format)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
 
 
-async def _config_pricing(args: argparse.Namespace) -> None:
-    result = await show_pricing()
-    _print(result, args)
+@config_group.command(name="pricing", help="Show the current internal pricing table.")
+def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:
+    async def _run() -> None:
+        result = await show_pricing()
+        _print(result, format)
+
+    asyncio.run(_run())
 
 
-# -- Dispatch --
-
-_DISPATCH: dict[tuple[str, str], Any] = {
-    ("run", "start"): _run_start,
-    ("run", "list"): _run_list,
-    ("run", "show"): _run_show,
-    ("run", "abort"): _run_abort,
-    ("run", "pause"): _run_pause,
-    ("run", "resume"): _run_resume,
-    ("inbox", "list"): _inbox_list,
-    ("inbox", "show"): _inbox_show,
-    ("inbox", "respond"): _inbox_respond,
-    ("inbox", "skip"): _inbox_skip,
-    ("inbox", "reject"): _inbox_reject,
-    ("trace", "events"): _trace_events,
-    ("trace", "transcript"): _trace_transcript,
-    ("trace", "search"): _trace_search,
-    ("trace", "tasks"): _trace_tasks,
-    ("trace", "notepad"): _trace_notepad,
-    ("event", "fire"): _event_fire,
-    ("validate", "agent"): _validate_agent,
-    ("validate", "workflow"): _validate_workflow,
-    ("validate", "categories"): _validate_categories,
-    ("config", "show"): _config_show,
-    ("config", "pricing"): _config_pricing,
-}
-
-
-async def _dispatch(args: argparse.Namespace) -> None:
-    command: str = args.command
-    subcommand: str = args.subcommand
-    handler = _DISPATCH.get((command, subcommand))
-    if handler is None:
-        _die(f"unknown command: {command} {subcommand}")
-    await handler(args)
-
+# -- Entry point --
 
 def main() -> None:
-    parser = _build_parser()
-    args = parser.parse_args()
-    if args.command is None:
-        parser.print_help()
-        sys.exit(1)
-    asyncio.run(_dispatch(args))
+    app.run()
