@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "name": "orxt",
+  "slug": "orxt",
+  "version": "0.0.0",
+  "description": null,
+  "language": "python",
+  "base_url": "https://orxt.smmh.dev",
+  "pages": [
+    {
+      "path": "gen-index.md",
+      "title": "API Reference",
+      "type": "doc"
+    },
+    {
+      "path": "index.md",
+      "title": "orxt",
+      "type": "doc"
+    }
+  ],
+  "posts": [],
+  "last_gen": "2026-06-16T20:44:54.888267+00:00"
+}
