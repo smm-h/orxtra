@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -19,6 +18,7 @@ from orxt.protocols._task import EscalationPayload, TaskContext
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from pathlib import Path
     from uuid import UUID
 
 

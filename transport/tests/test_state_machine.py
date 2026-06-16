@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 import respx
-from orxt.protocols import Tool, ToolError
+from orxt.protocols import Tool
 from orxt.transport._events import (
     ContentBlock,
     Event,

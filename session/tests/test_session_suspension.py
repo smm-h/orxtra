@@ -12,10 +12,10 @@ from orxt.transport import (
     ToolUse,
 )
 
-from .conftest import MockTraceWriter, MockTransport, make_standard_events
-
 if TYPE_CHECKING:
     import uuid
+
+    from .conftest import MockTraceWriter, MockTransport
 
 
 async def _collect_events(session: Session, message: str) -> list[Any]:
