@@ -165,3 +165,20 @@ jobs:
     defaults:
       run:
         working-directory: notepad
+  session-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv build
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
+        packages-dir: session/dist/
+    permissions:
+      contents: read
+      id-token: write
+    if: startsWith(github.event.release.tag_name, 'session@v')
+    defaults:
+      run:
+        working-directory: session
