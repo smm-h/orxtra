@@ -65,6 +65,8 @@ def wrap_tool_with_pipeline(
         # 7. Return result.
         return result
 
+    wrapped_execute._raw_execute = getattr(tool.execute, '_raw_execute', tool.execute)  # type: ignore[attr-defined]
+
     return Tool(
         name=tool.name,
         description=tool.description,
@@ -95,3 +97,16 @@ def wrap_tools_for_session(
         )
         for tool in tools
     ]
+
+
+async def compose(tool: Tool, args: dict[str, Any]) -> str:
+    """Call a tool's raw execute, bypassing the pipeline.
+
+    Use when tool A calls tool B as an implementation detail.
+    B's execution is not traced, not scrubbed, not mutation-tracked.
+    Attribution goes to the outer tool A.
+    """
+    raw = getattr(tool.execute, '_raw_execute', None)
+    if raw is not None:
+        return await raw(args)
+    return await tool.execute(args)

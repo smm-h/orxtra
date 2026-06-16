@@ -7,6 +7,7 @@ from orxt.tool._http_tool import make_http_tool
 from orxt.tool._notepad_tool import make_notepad_tool
 from orxt.tool._pipeline import (
     FILE_MUTATION_TOOLS,
+    compose,
     wrap_tool_with_pipeline,
     wrap_tools_for_session,
 )
@@ -53,6 +54,7 @@ __all__ = [
     "TaskSchedulerRef",
     "check_and_preview",
     "check_write_scope",
+    "compose",
     "make_consult_tool",
     "make_copy_tool",
     "make_create_task_tool",

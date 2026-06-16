@@ -9,7 +9,7 @@ from uuid import UUID
 import pytest
 from orxt.protocols._tool import Tool, ToolError
 from orxt.secrets._registry import SecretRegistry
-from orxt.tool._pipeline import wrap_tool_with_pipeline, wrap_tools_for_session
+from orxt.tool._pipeline import compose, wrap_tool_with_pipeline, wrap_tools_for_session
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -415,3 +415,111 @@ class TestFullPipeline:
         assert call_args[0] == "write"
         assert isinstance(call_args[3], int)
         assert call_args[3] >= 0
+
+
+# ---------------------------------------------------------------------------
+# TestCompose
+# ---------------------------------------------------------------------------
+
+
+class TestCompose:
+    """Tests for the compose function."""
+
+    @pytest.mark.asyncio
+    async def test_compose_on_wrapped_tool_calls_raw_execute(self) -> None:
+        """compose bypasses the pipeline and calls the original execute."""
+        captured: list[str] = []
+
+        async def _raw_execute(args: dict[str, Any]) -> str:
+            captured.append("raw")
+            return "raw_result"
+
+        tool = Tool(
+            name="test",
+            description="t",
+            parameters={"type": "object"},
+            execute=_raw_execute,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await compose(wrapped, {})
+        assert result == "raw_result"
+        assert captured == ["raw"]
+
+    @pytest.mark.asyncio
+    async def test_compose_on_unwrapped_tool_calls_execute_directly(self) -> None:
+        """compose on an unwrapped tool just calls execute."""
+        tool = _dummy_tool(result="direct")
+        result = await compose(tool, {})
+        assert result == "direct"
+
+    @pytest.mark.asyncio
+    async def test_compose_on_double_wrapped_calls_innermost(self) -> None:
+        """Double-wrapped tool's compose still calls the original raw execute."""
+        call_log: list[str] = []
+
+        async def _innermost(args: dict[str, Any]) -> str:
+            call_log.append("innermost")
+            return "inner_result"
+
+        tool = Tool(
+            name="test",
+            description="t",
+            parameters={"type": "object"},
+            execute=_innermost,
+        )
+        wrapped_once = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        wrapped_twice = wrap_tool_with_pipeline(
+            tool=wrapped_once,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await compose(wrapped_twice, {})
+        assert result == "inner_result"
+        assert call_log == ["innermost"]
+
+    @pytest.mark.asyncio
+    async def test_compose_result_not_scrubbed(self) -> None:
+        """compose bypasses secret scrubbing -- secrets pass through."""
+        registry = SecretRegistry({"TOKEN": "secret-val-999"})
+        tool = _dummy_tool(result="contains secret-val-999")
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=registry,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await compose(wrapped, {})
+        # The raw execute returns the unscrubbed result.
+        assert "secret-val-999" in result
+
+    @pytest.mark.asyncio
+    async def test_compose_doesnt_trigger_mutation_tracker(self) -> None:
+        """compose bypasses the pipeline, so mutation tracking is skipped."""
+        tracker: dict[str, bool] = {}
+        tool = _dummy_tool(name="write", result="wrote")
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+            is_file_mutation=True,
+            mutation_tracker=tracker,
+        )
+        await compose(wrapped, {})
+        assert _SESSION_ID not in tracker
