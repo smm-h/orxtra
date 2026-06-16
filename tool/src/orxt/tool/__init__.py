@@ -28,6 +28,7 @@ from orxt.tool._read_tools import (
 from orxt.tool._shell_tool import make_shell_tool
 from orxt.tool._task_tools import (
     TaskSchedulerRef,
+    make_await_task_tool,
     make_create_task_tool,
     make_create_wait_for_tool,
     make_create_workflow_tool,
@@ -56,6 +57,7 @@ __all__ = [
     "check_and_preview",
     "check_write_scope",
     "compose",
+    "make_await_task_tool",
     "make_consult_tool",
     "make_copy_tool",
     "make_create_task_tool",

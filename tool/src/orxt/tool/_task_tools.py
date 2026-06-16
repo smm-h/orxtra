@@ -18,6 +18,7 @@ class TaskSchedulerRef(Protocol):
     async def handle_create_wait_for(
         self, session_id: str, params: dict[str, Any]
     ) -> str: ...
+    async def handle_await_task(self, session_id: str, task_id: str) -> str: ...
 
 
 # -- start_task --
@@ -290,4 +291,40 @@ def make_create_wait_for_tool(
         ),
         parameters=_CREATE_WAIT_FOR_PARAMETERS,
         execute=execute,
+    )
+
+
+# -- await_task --
+
+_AWAIT_TASK_PARAMETERS: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "task_id": {"type": "string", "description": "The task to await"},
+    },
+    "required": ["task_id"],
+    "additionalProperties": False,
+}
+
+
+def make_await_task_tool(
+    scheduler_ref: TaskSchedulerRef,
+    session_id: str,
+) -> Tool:
+    """Create a tool that suspends the session until a child task completes."""
+
+    async def execute(arguments: dict[str, Any]) -> str:
+        validate_args(arguments, _AWAIT_TASK_PARAMETERS)
+        return await scheduler_ref.handle_await_task(
+            session_id, arguments["task_id"]
+        )
+
+    return Tool(
+        name="await_task",
+        description=(
+            "Suspend the current session until the specified child task completes."
+            " The session will resume with the child's result."
+        ),
+        parameters=_AWAIT_TASK_PARAMETERS,
+        execute=execute,
+        suspending=True,
     )

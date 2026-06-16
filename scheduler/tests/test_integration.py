@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 import types
 import uuid
@@ -240,13 +241,22 @@ class TestContextAssembly:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -317,13 +327,22 @@ class TestContextAssembly:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -421,13 +440,22 @@ class TestContextAssembly:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
