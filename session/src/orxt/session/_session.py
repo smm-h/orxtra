@@ -54,6 +54,63 @@ class Session:
     def tools(self) -> list[Tool]:
         return self._tools
 
+    def _accumulate_tokens(self, event: StepFinish) -> None:
+        """Add token counts from a step-finish event to session totals."""
+        self.total_input_tokens += event.input_tokens
+        self.total_output_tokens += event.output_tokens
+        self.total_reasoning_tokens += event.reasoning_tokens
+        self.total_cache_read_tokens += event.cache_read_tokens
+        self.total_cache_write_tokens += event.cache_write_tokens
+
+    def _compute_token_delta(
+        self, snapshot: dict[str, int],
+    ) -> dict[str, Any]:
+        """Compute token deltas between current totals and a snapshot."""
+        return {
+            "input_tokens": self.total_input_tokens - snapshot["input"],
+            "output_tokens": self.total_output_tokens - snapshot["output"],
+            "reasoning_tokens": self.total_reasoning_tokens - snapshot["reasoning"],
+            "cache_read_tokens": self.total_cache_read_tokens - snapshot["cache_read"],
+            "cache_write_tokens": (
+                self.total_cache_write_tokens - snapshot["cache_write"]
+            ),
+        }
+
+    def _token_snapshot(self) -> dict[str, int]:
+        """Capture current token totals for later delta computation."""
+        return {
+            "input": self.total_input_tokens,
+            "output": self.total_output_tokens,
+            "reasoning": self.total_reasoning_tokens,
+            "cache_read": self.total_cache_read_tokens,
+            "cache_write": self.total_cache_write_tokens,
+        }
+
+    async def _try_capture_session(
+        self,
+        session_id: str | None,
+        captured: bool,
+        turn: int,
+        message: str,
+    ) -> bool:
+        """Capture session ID if not yet known.
+
+        Writes user transcript on first capture.
+        Returns the updated captured flag.
+        """
+        if session_id is not None and self._session_id is None:
+            self._session_id = session_id
+        if not captured and self._session_id is not None:
+            await self._trace_writer.write_transcript_entry(
+                session_id=uuid.UUID(self._session_id),
+                run_id=self._run_id,
+                turn=turn,
+                role="user",
+                content=message,
+            )
+            return True
+        return captured
+
     async def send(self, message: str) -> AsyncIterator[Event]:
         self.turn_count += 1
         current_turn = self.turn_count
@@ -61,12 +118,7 @@ class Session:
         result_text: str = ""
         tool_calls_list: list[dict[str, Any]] = []
         session_id_captured = False
-
-        snapshot_input = self.total_input_tokens
-        snapshot_output = self.total_output_tokens
-        snapshot_reasoning = self.total_reasoning_tokens
-        snapshot_cache_read = self.total_cache_read_tokens
-        snapshot_cache_write = self.total_cache_write_tokens
+        snapshot = self._token_snapshot()
 
         stream = self._transport.send(
             message,
@@ -78,27 +130,13 @@ class Session:
 
         async for event in stream:
             if isinstance(event, Result):
-                if self._session_id is None:
-                    self._session_id = event.session_id
                 result_text = event.text
-
-                # Write user transcript entry now that we have session_id
-                if not session_id_captured:
-                    session_id_captured = True
-                    await self._trace_writer.write_transcript_entry(
-                        session_id=uuid.UUID(self._session_id),
-                        run_id=self._run_id,
-                        turn=current_turn,
-                        role="user",
-                        content=message,
-                    )
+                session_id_captured = await self._try_capture_session(
+                    event.session_id, session_id_captured, current_turn, message,
+                )
 
             elif isinstance(event, StepFinish):
-                self.total_input_tokens += event.input_tokens
-                self.total_output_tokens += event.output_tokens
-                self.total_reasoning_tokens += event.reasoning_tokens
-                self.total_cache_read_tokens += event.cache_read_tokens
-                self.total_cache_write_tokens += event.cache_write_tokens
+                self._accumulate_tokens(event)
 
             elif isinstance(event, ToolUse):
                 tool_calls_list.append({
@@ -109,31 +147,14 @@ class Session:
                 })
 
             elif isinstance(event, SessionSuspended):
-                if self._session_id is None and event.session_id is not None:
-                    self._session_id = event.session_id
-                if not session_id_captured and self._session_id is not None:
-                    session_id_captured = True
-                    await self._trace_writer.write_transcript_entry(
-                        session_id=uuid.UUID(self._session_id),
-                        run_id=self._run_id,
-                        turn=current_turn,
-                        role="user",
-                        content=message,
-                    )
+                session_id_captured = await self._try_capture_session(
+                    event.session_id, session_id_captured, current_turn, message,
+                )
 
             yield event
 
         # Write assistant transcript entry
         if self._session_id is not None and session_id_captured:
-            tokens_dict: dict[str, Any] = {
-                "input_tokens": self.total_input_tokens - snapshot_input,
-                "output_tokens": self.total_output_tokens - snapshot_output,
-                "reasoning_tokens": self.total_reasoning_tokens - snapshot_reasoning,
-                "cache_read_tokens": self.total_cache_read_tokens - snapshot_cache_read,
-                "cache_write_tokens": (
-                    self.total_cache_write_tokens - snapshot_cache_write
-                ),
-            }
             await self._trace_writer.write_transcript_entry(
                 session_id=uuid.UUID(self._session_id),
                 run_id=self._run_id,
@@ -141,7 +162,7 @@ class Session:
                 role="assistant",
                 content=result_text,
                 tool_calls={"calls": tool_calls_list} if tool_calls_list else None,
-                tokens=tokens_dict,
+                tokens=self._compute_token_delta(snapshot),
             )
 
     async def resume(
@@ -153,12 +174,7 @@ class Session:
 
         result_text: str = ""
         tool_calls_list: list[dict[str, Any]] = []
-
-        snapshot_input = self.total_input_tokens
-        snapshot_output = self.total_output_tokens
-        snapshot_reasoning = self.total_reasoning_tokens
-        snapshot_cache_read = self.total_cache_read_tokens
-        snapshot_cache_write = self.total_cache_write_tokens
+        snapshot = self._token_snapshot()
 
         stream = self._transport.resume(
             continuation,
@@ -173,11 +189,7 @@ class Session:
                 result_text = event.text
 
             elif isinstance(event, StepFinish):
-                self.total_input_tokens += event.input_tokens
-                self.total_output_tokens += event.output_tokens
-                self.total_reasoning_tokens += event.reasoning_tokens
-                self.total_cache_read_tokens += event.cache_read_tokens
-                self.total_cache_write_tokens += event.cache_write_tokens
+                self._accumulate_tokens(event)
 
             elif isinstance(event, ToolUse):
                 tool_calls_list.append({
@@ -198,17 +210,6 @@ class Session:
                 role="user",
                 content=f"[resume: {result}]",
             )
-            tokens_dict: dict[str, Any] = {
-                "input_tokens": self.total_input_tokens - snapshot_input,
-                "output_tokens": self.total_output_tokens - snapshot_output,
-                "reasoning_tokens": self.total_reasoning_tokens - snapshot_reasoning,
-                "cache_read_tokens": (
-                    self.total_cache_read_tokens - snapshot_cache_read
-                ),
-                "cache_write_tokens": (
-                    self.total_cache_write_tokens - snapshot_cache_write
-                ),
-            }
             await self._trace_writer.write_transcript_entry(
                 session_id=uuid.UUID(self._session_id),
                 run_id=self._run_id,
@@ -216,7 +217,7 @@ class Session:
                 role="assistant",
                 content=result_text,
                 tool_calls={"calls": tool_calls_list} if tool_calls_list else None,
-                tokens=tokens_dict,
+                tokens=self._compute_token_delta(snapshot),
             )
 
     def resume_id(self) -> str:
