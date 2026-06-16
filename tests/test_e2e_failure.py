@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import errno
 import json
+import re
 from typing import TYPE_CHECKING, Any
 
 from orxt.protocols._errors import ErrorCategory
@@ -32,6 +33,12 @@ if TYPE_CHECKING:
 
     from orxt.protocols._tool import Tool
     from orxt.transport import Event
+
+
+def _extract_task_id(message: str) -> str | None:
+    """Extract the task_id from the scheduler's prompt prefix."""
+    match = re.search(r"Your task ID is ([0-9a-f-]+)", message)
+    return match.group(1) if match else None
 
 
 # ---------------------------------------------------------------------------
@@ -243,18 +250,21 @@ class TestTimeoutCancelsTask:
                 session_id: str | None = None,
                 stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
-                _ = message, model, system_prompt, stream_deltas
+                _ = model, system_prompt, stream_deltas
                 import uuid6  # noqa: PLC0415
 
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
 
+                task_id_str = _extract_task_id(message)
+                start_args = {"task_id": task_id_str} if task_id_str else {}
+
                 # Call start_task to transition to ACTIVE
                 if "start_task" in tool_map:
-                    result = await tool_map["start_task"].execute({})
+                    result = await tool_map["start_task"].execute(start_args)
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input=start_args,
                         output=result,
                         status="success",
                     )
@@ -505,13 +515,16 @@ class TestExceptionDuringSession:
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
 
+                task_id_str = _extract_task_id(message)
+                start_args = {"task_id": task_id_str} if task_id_str else {}
+
                 if send_count == 1:
                     # Call start_task, then raise
                     if "start_task" in tool_map:
-                        result = await tool_map["start_task"].execute({})
+                        result = await tool_map["start_task"].execute(start_args)
                         yield ToolUse(
                             tool_name="start_task",
-                            input={},
+                            input=start_args,
                             output=result,
                             status="success",
                         )
@@ -520,10 +533,10 @@ class TestExceptionDuringSession:
 
                 # Second attempt: succeed normally
                 if "start_task" in tool_map:
-                    result = await tool_map["start_task"].execute({})
+                    result = await tool_map["start_task"].execute(start_args)
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input=start_args,
                         output=result,
                         status="success",
                     )
