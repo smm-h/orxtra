@@ -9,7 +9,7 @@ from orxt.tool._validation import validate_args
 
 CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
     "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
-    "exec", "git",
+    "exec", "shell", "git",
     "http",
     "start_task", "end_task", "create_task", "create_workflow", "create_wait_for",
 })
