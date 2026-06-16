@@ -9,8 +9,6 @@ target-version = "py312"
 select = ["ALL"]
 ignore = [
     "D",       # pydocstyle -- no docstrings by convention
-    "ANN101",  # missing type annotation for self
-    "ANN102",  # missing type annotation for cls
     "COM812",  # trailing comma (conflicts with ruff format)
     "ISC001",  # implicit string concat (conflicts with ruff format)
     "T201",    # print() -- needed in CLI
