@@ -15,6 +15,7 @@ from ._events import (
     Error,
     Event,
     Result,
+    SessionSuspended,
     StepFinish,
     StepStart,
     StreamDelta,
@@ -23,7 +24,7 @@ from ._events import (
     ToolUse,
     Usage,
 )
-from ._state_machine import TransportState
+from ._state_machine import Continuation, TransportState
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -69,6 +70,8 @@ class _StepContext:
     pending_tool_blocks: list[ContentBlock] = field(default_factory=list)
     # Last API call's usage, needed for StepFinish
     last_usage: Usage | None = None
+    # Tool results collected before suspension (for resume to combine)
+    suspended_tool_results: list[dict[str, Any]] = field(default_factory=list)
 
 
 class Transport:
@@ -116,6 +119,160 @@ class Transport:
             state, events = await self.step(state, ctx)
             for event in events:
                 yield event
+
+        if state == TransportState.SUSPENDED:
+            yield SessionSuspended(
+                continuation=Continuation(
+                    executed_results=ctx.suspended_tool_results,
+                    remaining_blocks=ctx.pending_tool_blocks,
+                    session_id=ctx.session_id,
+                    messages=list(ctx.history),
+                ),
+                session_id=ctx.session_id,
+            )
+
+    async def resume(  # noqa: PLR0913
+        self,
+        continuation: Continuation,
+        await_result: str,
+        *,
+        model: str,
+        system_prompt: str,
+        tools: list[Tool],
+        stream_deltas: bool = False,
+    ) -> AsyncIterator[Event]:
+        """Resume from suspension. Executes remaining tools, then continues the API loop."""
+        session_id = continuation.session_id
+        if session_id is None:
+            msg = "Continuation has no session_id"
+            raise ValueError(msg)
+
+        # Restore history from continuation
+        history = continuation.messages
+        self._sessions[session_id] = history
+
+        tool_specs = [
+            {"name": t.name, "description": t.description, "parameters": t.parameters}
+            for t in tools
+        ]
+        tool_map = {t.name: t for t in tools}
+
+        ctx = _StepContext(
+            history=history,
+            tool_specs=tool_specs,
+            tool_map=tool_map,
+            model=model,
+            system_prompt=system_prompt,
+            session_id=session_id,
+            stream_deltas=stream_deltas,
+        )
+
+        # Build combined tool results: pre-suspend results + remaining tools' results
+        all_tool_results = list(continuation.executed_results)
+
+        # Execute remaining tool blocks
+        remaining_results: list[dict[str, Any]] = []
+
+        for block in continuation.remaining_blocks:
+            ctx.total_tool_calls += 1
+            tool_name = block.tool_name or ""
+            tool_input = block.tool_input or {}
+            tool_use_id = block.tool_use_id or ""
+
+            tool = ctx.tool_map.get(tool_name)
+            if tool is None:
+                yield ToolUse(
+                    tool_name=tool_name,
+                    input=tool_input,
+                    output="",
+                    status="error",
+                    error=f"Unknown tool: {tool_name}",
+                )
+                remaining_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=f"Error: Unknown tool: {tool_name}",
+                        is_error=True,
+                    )
+                )
+                continue
+
+            validation_error = _validate_tool_args(tool_input, tool.parameters)
+            if validation_error is not None:
+                yield ToolUse(
+                    tool_name=tool_name,
+                    input=tool_input,
+                    output="",
+                    status="error",
+                    error=validation_error,
+                )
+                remaining_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=f"Error: {validation_error}",
+                        is_error=True,
+                    )
+                )
+                continue
+
+            start = time.monotonic_ns()
+            try:
+                result_text = await tool.execute(tool_input)
+                duration_ms = (time.monotonic_ns() - start) // 1_000_000
+                yield ToolUse(
+                    tool_name=tool_name,
+                    input=tool_input,
+                    output=result_text,
+                    status="success",
+                    duration_ms=duration_ms,
+                )
+                remaining_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=result_text,
+                        is_error=False,
+                    )
+                )
+            except ToolError as e:
+                duration_ms = (time.monotonic_ns() - start) // 1_000_000
+                error_msg = str(e)
+                yield ToolUse(
+                    tool_name=tool_name,
+                    input=tool_input,
+                    output="",
+                    status="error",
+                    error=error_msg,
+                    duration_ms=duration_ms,
+                )
+                remaining_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=f"Error: {error_msg}",
+                        is_error=True,
+                    )
+                )
+
+        # Combine all results into one user message
+        combined_results = all_tool_results + remaining_results
+        ctx.history.append({"role": "user", "content": combined_results})
+
+        # Continue the state machine from CALLING_API
+        state = TransportState.CALLING_API
+        while state not in (TransportState.DONE, TransportState.SUSPENDED):
+            state, events = await self.step(state, ctx)
+            for event in events:
+                yield event
+
+        if state == TransportState.SUSPENDED:
+            yield SessionSuspended(
+                continuation=Continuation(
+                    executed_results=ctx.suspended_tool_results,
+                    remaining_blocks=ctx.pending_tool_blocks,
+                    session_id=ctx.session_id,
+                    messages=list(ctx.history),
+                ),
+                session_id=ctx.session_id,
+            )
 
     async def step(
         self,
@@ -230,7 +387,7 @@ class Transport:
         events: list[Event] = []
         tool_results: list[dict[str, Any]] = []
 
-        for block in ctx.pending_tool_blocks:
+        for i, block in enumerate(ctx.pending_tool_blocks):
             ctx.total_tool_calls += 1
             tool_name = block.tool_name or ""
             tool_input = block.tool_input or {}
@@ -276,6 +433,55 @@ class Transport:
                 )
                 continue
 
+            # Check for suspension BEFORE execution
+            if tool.suspending:
+                start = time.monotonic_ns()
+                try:
+                    result_text = await tool.execute(tool_input)
+                    duration_ms = (time.monotonic_ns() - start) // 1_000_000
+                    events.append(
+                        ToolUse(
+                            tool_name=tool_name,
+                            input=tool_input,
+                            output=result_text,
+                            status="success",
+                            duration_ms=duration_ms,
+                        )
+                    )
+                    tool_results.append(
+                        self._provider.format_tool_result(
+                            tool_use_id=tool_use_id,
+                            content=result_text,
+                            is_error=False,
+                        )
+                    )
+                except ToolError as e:
+                    duration_ms = (time.monotonic_ns() - start) // 1_000_000
+                    error_msg = str(e)
+                    events.append(
+                        ToolUse(
+                            tool_name=tool_name,
+                            input=tool_input,
+                            output="",
+                            status="error",
+                            error=error_msg,
+                            duration_ms=duration_ms,
+                        )
+                    )
+                    tool_results.append(
+                        self._provider.format_tool_result(
+                            tool_use_id=tool_use_id,
+                            content=f"Error: {error_msg}",
+                            is_error=True,
+                        )
+                    )
+
+                # Snapshot for suspension
+                ctx.suspended_tool_results = tool_results
+                ctx.pending_tool_blocks = list(ctx.pending_tool_blocks[i + 1 :])
+                return (TransportState.SUSPENDED, events)
+
+            # Normal (non-suspending) tool execution
             start = time.monotonic_ns()
             try:
                 result_text = await tool.execute(tool_input)
