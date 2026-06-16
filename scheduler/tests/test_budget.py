@@ -1,42 +1,47 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
+from orxt.protocols._task import TaskSpec
+from orxt.scheduler._executor import Scheduler
+from orxt.transport import Usage
+
 from tests.conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,
     make_categories,
 )
-from orxt.protocols._task import TaskSpec
-from orxt.scheduler._executor import Scheduler
-from orxt.transport import Usage
+
+if TYPE_CHECKING:
+    from orxt.scheduler._overseer import OverseerEvent
 
 
 @pytest.fixture
-def run_id():
+def run_id() -> uuid6.UUID:
     return uuid6.uuid7()
 
 
 @pytest.fixture
-def trace_writer():
+def trace_writer() -> MockTraceWriter:
     return MockTraceWriter()
 
 
 @pytest.fixture
-def transport():
+def transport() -> MockTransport:
     return MockTransport()
 
 
 def _make_scheduler(
-    trace_writer,
-    transport,
-    run_id,
-    budget_exhaustion_policy="unlimited",
-    overseer_interface=None,
-):
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    budget_exhaustion_policy: str = "unlimited",
+    overseer_interface: MockOverseerInterface | None = None,
+) -> Scheduler:
     return Scheduler(
         trace_writer=trace_writer,
         transport_registry={
@@ -53,32 +58,32 @@ def _make_scheduler(
 
 
 class MockOverseerInterface:
-    def __init__(self):
-        self.events_sent = []
+    def __init__(self) -> None:
+        self.events_sent: list[OverseerEvent] = []
 
-    async def send_event(self, event):
+    async def send_event(self, event: OverseerEvent) -> None:
         self.events_sent.append(event)
 
     async def verify_actions(
-        self, event_type="",
-    ):
+        self, event_type: str = "",
+    ) -> list[str]:
         return []
 
-    async def send_correction(self, message):
+    async def send_correction(self, message: str) -> None:
         pass
 
-    def is_degraded(self, event_type):
+    def is_degraded(self, event_type: str) -> bool:
         return False
 
     async def refine_context(
-        self, task_name, raw_context,
-    ):
+        self, task_name: str, raw_context: str,
+    ) -> str:
         return raw_context
 
 
 def test_cost_tracking_accumulates(
-    trace_writer, transport, run_id,
-):
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+) -> None:
     """Cost tracking accumulates correctly."""
     scheduler = _make_scheduler(
         trace_writer, transport, run_id,
@@ -90,9 +95,9 @@ def test_cost_tracking_accumulates(
         task_prompt="do stuff",
         budget=Decimal("10.0"),
     )
-    scheduler._task_specs[task_id] = task
-    scheduler._task_costs[task_id] = Decimal(0)
-    scheduler._accumulate_cost(
+    scheduler._task_specs[task_id] = task  # noqa: SLF001
+    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
+    scheduler._accumulate_cost(  # noqa: SLF001
         task_id,
         task,
         Usage(
@@ -103,12 +108,12 @@ def test_cost_tracking_accumulates(
             cache_write_tokens=0,
         ),
     )
-    assert scheduler._task_costs[task_id] > Decimal(0)
+    assert scheduler._task_costs[task_id] > Decimal(0)  # noqa: SLF001
 
 
 def test_no_budget_no_enforcement(
-    trace_writer, transport, run_id,
-):
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+) -> None:
     """No budget set: no enforcement events."""
     scheduler = _make_scheduler(
         trace_writer, transport, run_id,
@@ -119,9 +124,9 @@ def test_no_budget_no_enforcement(
         agent="test-agent",
         task_prompt="do stuff",
     )
-    scheduler._task_specs[task_id] = task
-    scheduler._task_costs[task_id] = Decimal(0)
-    scheduler._accumulate_cost(
+    scheduler._task_specs[task_id] = task  # noqa: SLF001
+    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
+    scheduler._accumulate_cost(  # noqa: SLF001
         task_id,
         task,
         Usage(
@@ -133,16 +138,16 @@ def test_no_budget_no_enforcement(
         ),
     )
     assert (
-        len(scheduler._budget_threshold_events) == 0
+        len(scheduler._budget_threshold_events) == 0  # noqa: SLF001
     )
     assert (
-        len(scheduler._budget_exhausted_events) == 0
+        len(scheduler._budget_exhausted_events) == 0  # noqa: SLF001
     )
 
 
 def test_budget_threshold_event_at_80_pct(
-    trace_writer, transport, run_id,
-):
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+) -> None:
     """Budget threshold event emitted at 80%."""
     scheduler = _make_scheduler(
         trace_writer, transport, run_id,
@@ -154,9 +159,9 @@ def test_budget_threshold_event_at_80_pct(
         task_prompt="do stuff",
         budget=Decimal("0.001"),
     )
-    scheduler._task_specs[task_id] = task
-    scheduler._task_costs[task_id] = Decimal(0)
-    scheduler._accumulate_cost(
+    scheduler._task_specs[task_id] = task  # noqa: SLF001
+    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
+    scheduler._accumulate_cost(  # noqa: SLF001
         task_id,
         task,
         Usage(
@@ -168,17 +173,17 @@ def test_budget_threshold_event_at_80_pct(
         ),
     )
     assert (
-        len(scheduler._budget_threshold_events) >= 1
+        len(scheduler._budget_threshold_events) >= 1  # noqa: SLF001
     )
     assert (
-        scheduler._budget_threshold_events[0][0]
+        scheduler._budget_threshold_events[0][0]  # noqa: SLF001
         == task_id
     )
 
 
 def test_budget_exhausted_event(
-    trace_writer, transport, run_id,
-):
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+) -> None:
     """Budget exhausted event when cost >= budget."""
     scheduler = _make_scheduler(
         trace_writer, transport, run_id,
@@ -190,9 +195,9 @@ def test_budget_exhausted_event(
         task_prompt="do stuff",
         budget=Decimal("0.001"),
     )
-    scheduler._task_specs[task_id] = task
-    scheduler._task_costs[task_id] = Decimal(0)
-    scheduler._accumulate_cost(
+    scheduler._task_specs[task_id] = task  # noqa: SLF001
+    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
+    scheduler._accumulate_cost(  # noqa: SLF001
         task_id,
         task,
         Usage(
@@ -204,14 +209,14 @@ def test_budget_exhausted_event(
         ),
     )
     assert (
-        len(scheduler._budget_exhausted_events) >= 1
+        len(scheduler._budget_exhausted_events) >= 1  # noqa: SLF001
     )
 
 
 @pytest.mark.asyncio
 async def test_budget_events_sent_to_overseer(
-    trace_writer, transport, run_id,
-):
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+) -> None:
     """Budget events are sent to overseer."""
     mock_overseer = MockOverseerInterface()
     scheduler = _make_scheduler(
@@ -221,7 +226,7 @@ async def test_budget_events_sent_to_overseer(
         overseer_interface=mock_overseer,
     )
     task_id = uuid6.uuid7()
-    scheduler._budget_threshold_events.append(
+    scheduler._budget_threshold_events.append(  # noqa: SLF001
         (
             task_id,
             "test",
@@ -229,13 +234,13 @@ async def test_budget_events_sent_to_overseer(
             Decimal("0.9"),
         ),
     )
-    await scheduler._send_budget_events(task_id)
+    await scheduler._send_budget_events(task_id)  # noqa: SLF001
     assert len(mock_overseer.events_sent) >= 1
 
 
 def test_unlimited_policy_no_enforcement(
-    trace_writer, transport, run_id,
-):
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+) -> None:
     """Unlimited policy does nothing special."""
     scheduler = _make_scheduler(
         trace_writer,
@@ -244,6 +249,6 @@ def test_unlimited_policy_no_enforcement(
         budget_exhaustion_policy="unlimited",
     )
     assert (
-        scheduler._budget_exhaustion_policy
+        scheduler._budget_exhaustion_policy  # noqa: SLF001
         == "unlimited"
     )
