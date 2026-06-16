@@ -18,6 +18,7 @@ jobs:
       tool: ${{ steps.changes.outputs.tool }}
       verify: ${{ steps.changes.outputs.verify }}
       trace: ${{ steps.changes.outputs.trace }}
+      notepad: ${{ steps.changes.outputs.notepad }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -32,6 +33,7 @@ jobs:
           tool: 'tool/**'
           verify: 'verify/**'
           trace: 'trace/**'
+          notepad: 'notepad/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -64,3 +66,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.trace == 'true'
     uses: ./.github/workflows/trace-ci.yml
+  notepad:
+    needs: detect
+    if: needs.detect.outputs.notepad == 'true'
+    uses: ./.github/workflows/notepad-ci.yml
