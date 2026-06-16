@@ -18,7 +18,11 @@ async def ingest_lessons(config: KnowledgeConfig, lessons: list[dict[str, Any]])
         return 0
 
     configure_cognee(config)
-    import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
+    try:
+        import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
+    except ImportError:
+        msg = "cognee is required for the knowledge module. Install it with: uv add cognee"
+        raise RuntimeError(msg) from None
 
     changed = [
         lesson
