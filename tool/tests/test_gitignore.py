@@ -87,7 +87,10 @@ class TestGitignoreFiltering:
     @pytest.mark.asyncio
     async def test_comments_and_blank_lines(self, tmp_path: Path) -> None:
         """Comments and blank lines in .gitignore are ignored."""
-        _write(tmp_path / ".gitignore", "# This is a comment\n\n*.log\n\n# Another comment\n")
+        _write(
+            tmp_path / ".gitignore",
+            "# This is a comment\n\n*.log\n\n# Another comment\n",
+        )
         _write(tmp_path / "app.log", "log data")
         _write(tmp_path / "main.py", "code")
 

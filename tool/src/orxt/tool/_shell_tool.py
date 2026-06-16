@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 _SIGTERM_GRACE_SECONDS = 5.0
 
 
-def make_shell_tool(
+def make_shell_tool(  # noqa: PLR0913
     allowed_binaries: list[str],
     description: str,
     read_root: Path,

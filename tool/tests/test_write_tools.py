@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import stat
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
@@ -151,7 +150,7 @@ class TestWriteTool:
         queue: WriteQueue,
         tracker: StaleWriteTracker,
     ) -> None:
-        """Concurrent writes to the same new file both complete (serialized by queue)."""
+        """Concurrent writes to same new file both complete (serialized)."""
         tool = make_write_tool(tmp_path, None, queue, tracker, "s1")
         target = tmp_path / "race.txt"
         results: list[str] = []
@@ -641,7 +640,9 @@ class TestDeleteTool:
         mock_proc.returncode = 0
 
         tool = make_delete_tool(tmp_path, None)
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        with patch(
+            "asyncio.create_subprocess_exec", return_value=mock_proc,
+        ) as mock_exec:
             result = await tool.execute({
                 "path": str(target),
                 "description": "test deletion",
@@ -685,7 +686,9 @@ class TestDeleteTool:
         mock_proc.returncode = 0
 
         tool = make_delete_tool(tmp_path, None)
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        with patch(
+            "asyncio.create_subprocess_exec", return_value=mock_proc,
+        ) as mock_exec:
             await tool.execute({
                 "path": str(target),
                 "description": "remove dir",
@@ -706,7 +709,9 @@ class TestDeleteTool:
         mock_proc.returncode = 0
 
         tool = make_delete_tool(tmp_path, None)
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        with patch(
+            "asyncio.create_subprocess_exec", return_value=mock_proc,
+        ) as mock_exec:
             await tool.execute({
                 "path": str(target),
                 "description": "specific reason",
@@ -728,8 +733,10 @@ class TestDeleteTool:
         mock_proc.returncode = 1
 
         tool = make_delete_tool(tmp_path, None)
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
-            with pytest.raises(ToolError, match="saferm failed.*something went wrong"):
+        with (
+            patch("asyncio.create_subprocess_exec", return_value=mock_proc),
+            pytest.raises(ToolError, match=r"saferm failed.*something went wrong"),
+        ):
                 await tool.execute({
                     "path": str(target),
                     "description": "test",
@@ -767,7 +774,7 @@ class TestSetExecutableTool:
         target = tmp_path / "script.sh"
         target.write_text("#!/bin/bash\n")
         # Remove any executable bits first
-        os.chmod(target, 0o644)
+        target.chmod(0o644)
 
         tool = make_set_executable_tool(tmp_path, None)
         result = await tool.execute({"path": str(target)})
@@ -782,7 +789,7 @@ class TestSetExecutableTool:
         """Calling on an already-executable file is a no-op (no error)."""
         target = tmp_path / "script.sh"
         target.write_text("#!/bin/bash\n")
-        os.chmod(target, 0o755)
+        target.chmod(0o755)
 
         tool = make_set_executable_tool(tmp_path, None)
         result = await tool.execute({"path": str(target)})

@@ -28,7 +28,7 @@ _BASE_PROPERTIES: dict[str, Any] = {
 _SIGTERM_GRACE_SECONDS = 5.0
 
 
-def make_exec_tool(
+def make_exec_tool(  # noqa: PLR0913
     executable: str,
     description: str,
     arg_schema: dict[str, Any],

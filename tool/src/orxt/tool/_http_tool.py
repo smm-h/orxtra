@@ -71,7 +71,7 @@ def make_http_tool(
             raise ToolError(msg)
 
         if allowed_hosts != "allow_all":
-            assert isinstance(allowed_hosts, list)
+            assert isinstance(allowed_hosts, list)  # noqa: S101
             if hostname not in allowed_hosts:
                 msg = (
                     f"Host '{hostname}' is not in the allowed list: "
@@ -79,7 +79,11 @@ def make_http_tool(
                 )
                 raise ToolError(msg)
 
-        effective_timeout = min(requested_timeout, timeout_ceiling) if requested_timeout is not None else timeout_ceiling
+        effective_timeout = (
+            min(requested_timeout, timeout_ceiling)
+            if requested_timeout is not None
+            else timeout_ceiling
+        )
 
         start = time.monotonic()
         try:

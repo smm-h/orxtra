@@ -32,7 +32,7 @@ _DESCRIPTION = (
 
 
 def make_notepad_tool(
-    trace_writer: Any,
+    trace_writer: Any,  # noqa: ANN401
     run_id: str,
     task_name: str,
     agent_name: str,
