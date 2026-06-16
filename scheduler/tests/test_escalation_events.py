@@ -1,25 +1,31 @@
 from __future__ import annotations
 
-from typing import Any
-from uuid import UUID
+from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
+from orxt.protocols._task import TaskSpec
+from orxt.scheduler._executor import Scheduler
+
 from tests.conftest import (
     MockTraceWriter,
     MockTransport,
+    MockTransportNoTools,
     make_agent,
     make_categories,
 )
-from orxt.protocols._task import TaskSpec
-from orxt.scheduler._executor import Scheduler
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from orxt.scheduler._overseer import OverseerEvent
 
 
 class MockOverseerInterface:
     def __init__(self) -> None:
-        self.events_sent: list[Any] = []
+        self.events_sent: list[OverseerEvent] = []
 
-    async def send_event(self, event: Any) -> None:
+    async def send_event(self, event: OverseerEvent) -> None:
         self.events_sent.append(event)
 
     async def verify_actions(
@@ -86,7 +92,6 @@ async def test_escalated_task_sends_event(
     mock_overseer = MockOverseerInterface()
     # Use a transport that never calls start_task/end_task
     # so the agent session ends without completing
-    from tests.conftest import MockTransportNoTools
     bad_transport = MockTransportNoTools()
     scheduler = Scheduler(
         trace_writer=trace_writer,
@@ -105,7 +110,7 @@ async def test_escalated_task_sends_event(
         task_prompt="Do something",
         retry=0,
     )
-    result = await scheduler.execute_task(
+    await scheduler.execute_task(
         task, None,
     )
     # The task should have escalated
@@ -125,7 +130,6 @@ async def test_escalation_payload_content(
 ) -> None:
     """Escalation payload includes task name and attempts."""
     mock_overseer = MockOverseerInterface()
-    from tests.conftest import MockTransportNoTools
     bad_transport = MockTransportNoTools()
     scheduler = Scheduler(
         trace_writer=trace_writer,
@@ -162,7 +166,6 @@ async def test_no_overseer_escalation_noop(
     run_id: UUID,
 ) -> None:
     """No Overseer: escalation event is no-op."""
-    from tests.conftest import MockTransportNoTools
     bad_transport = MockTransportNoTools()
     scheduler = Scheduler(
         trace_writer=trace_writer,
