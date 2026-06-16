@@ -2,5 +2,6 @@
 name = "orxt"
 
 [suppress]
-"overseer_workflow_status.W005" = "Uses last_updated instead of created_at; this table is intentionally overwritten, not appended"
-"step_attempts.W005" = "Uses started_at which serves the same purpose; attempt is created and started in the same transaction"
+"overseer_workflow_status.W005" = "Uses updated_at instead of created_at; this table is intentionally overwritten, not appended"
+"run_heartbeats.W005" = "Uses last_heartbeat instead of created_at; heartbeats are overwritten, not appended"
+"task_iterations.W005" = "Uses started_at instead of created_at; iteration is created and started in the same transaction"
