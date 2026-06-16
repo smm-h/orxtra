@@ -106,10 +106,10 @@ class OverseerAdapter:
         # Capture tool calls by iterating the session
         # stream directly instead of handle_event, so we
         # can inspect tool use events.
-        from orxt.overseer._overseer import _format_event
+        from orxt.protocols import format_event
         from orxt.transport import ToolUse
 
-        message = _format_event(event)
+        message = format_event(event)
         tool_calls: list[dict[str, Any]] = []
         async for ev in self._overseer._session.send(  # noqa: SLF001
             message,

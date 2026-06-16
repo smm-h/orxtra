@@ -20,6 +20,7 @@ from orxt.protocols._events import (
     StructuralAdvisory,
     TaskEscalated,
     TaskFailed,
+    format_event,
 )
 from orxt.protocols._execution import (
     SEVERITY_ORDER,
@@ -63,6 +64,7 @@ __all__ = [
     "ErrorCategory",
     "EscalationPayload",
     "Execution",
+    "format_event",
     "HealthDegraded",
     "InboxAnswered",
     "InboxRejected",
