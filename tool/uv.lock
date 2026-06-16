@@ -149,10 +149,20 @@ name = "orxt-secrets"
 version = "0.0.0"
 source = { editable = "../secrets" }
 
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.0" }]
+
 [[package]]
 name = "orxt-write-safety"
 version = "0.0.0"
 source = { editable = "../write-safety" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "packaging"
