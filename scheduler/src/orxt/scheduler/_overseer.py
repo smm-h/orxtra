@@ -286,10 +286,11 @@ class OverseerAdapter:
             f"--- RAW CONTEXT ---\n{raw_context}\n"
             f"--- END RAW CONTEXT ---"
         )
-        parts: list[str] = []
-        async for ev in self._overseer.session.send(
-            message,
-        ):
-            if isinstance(ev, Result):
-                parts.append(ev.text)
+        parts: list[str] = [
+            ev.text
+            async for ev in self._overseer.session.send(
+                message,
+            )
+            if isinstance(ev, Result)
+        ]
         return "".join(parts) or raw_context
