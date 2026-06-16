@@ -166,6 +166,38 @@ class TestSingleTask:
         ]
         assert len(completed) == 1
 
+    async def test_context_refinement_true_stored_on_taskspec(
+        self, run_id: uuid.UUID,
+    ) -> None:
+        """When context_refinement=True, the flag is stored on TaskSpec."""
+        # context_refinement=True is stored but not yet acted upon by the scheduler
+        trace_writer = MockTraceWriter()
+        turn = AgentTurn(
+            tool_calls=[
+                ("start_task", {}),
+                ("end_task", {"message": "done"}),
+            ],
+        )
+        transport = IntegrationMockTransport([turn])
+        task = simple_task(context_refinement=True)
+        assert task.context_refinement is True
+        config = simple_workflow(tasks=[task])
+        scheduler = make_scheduler(trace_writer, transport, run_id)
+
+        with _patch_auto_commit():
+            await scheduler.execute_workflow(config)
+
+        # Workflow completed successfully despite context_refinement=True
+        completed = [
+            tid
+            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            if s == TaskState.COMPLETED
+        ]
+        assert len(completed) == 1
+
+        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        assert outputs.get("t1") == "done"
+
 
 # ---------------------------------------------------------------------------
 # Dependency chain tests
