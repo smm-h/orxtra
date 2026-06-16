@@ -8,6 +8,7 @@ import pytest
 from orxt.protocols import (
     SEVERITY_ORDER,
     BudgetExhausted,
+    BudgetExhaustionPolicy,
     CheckResult,
     ErrorCategory,
     EscalationPayload,
@@ -161,7 +162,7 @@ class TestWorkflowExecutionBudget:
 
 
 class TestTaskStateEnum:
-    def test_all_nine_values(self) -> None:
+    def test_all_ten_values(self) -> None:
         expected = {
             "created",
             "prechecking",
@@ -172,10 +173,24 @@ class TestTaskStateEnum:
             "postcheck_failed",
             "escalated",
             "cancelled",
+            "suspended",
         }
         actual = {s.value for s in TaskState}
         assert actual == expected
-        assert len(TaskState) == 9
+        assert len(TaskState) == 10
+
+
+class TestBudgetExhaustionPolicyEnum:
+    def test_all_four_values(self) -> None:
+        expected = {
+            "block_new",
+            "cancel_all",
+            "timeout_grace",
+            "unlimited",
+        }
+        actual = {p.value for p in BudgetExhaustionPolicy}
+        assert actual == expected
+        assert len(BudgetExhaustionPolicy) == 4
 
 
 class TestErrorCategoryEnum:
