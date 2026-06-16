@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from orxt.session._session import Session
-from orxt.transport import Event, Result, StepFinish, StepStart
+from orxt.transport import Continuation, Event, Result, StepFinish, StepStart
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -53,7 +53,7 @@ class MockTransport:
 
     async def resume(  # noqa: PLR0913
         self,
-        continuation: Any,
+        continuation: Continuation,
         await_result: str,
         *,
         model: str,
