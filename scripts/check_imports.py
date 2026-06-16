@@ -45,7 +45,10 @@ LAYER_ORDER = {
 
 
 def _is_type_checking_block(node: ast.AST) -> bool:
-    """Return True if the node is an `if TYPE_CHECKING:` or `if typing.TYPE_CHECKING:` block."""
+    """Return True if the node is a TYPE_CHECKING block.
+
+    Matches both `if TYPE_CHECKING:` and `if typing.TYPE_CHECKING:`.
+    """
     if not isinstance(node, ast.If):
         return False
     test = node.test
@@ -53,33 +56,37 @@ def _is_type_checking_block(node: ast.AST) -> bool:
     if isinstance(test, ast.Name) and test.id == "TYPE_CHECKING":
         return True
     # `typing.TYPE_CHECKING`
-    if (
+    return (
         isinstance(test, ast.Attribute)
         and test.attr == "TYPE_CHECKING"
         and isinstance(test.value, ast.Name)
         and test.value.id == "typing"
-    ):
-        return True
-    return False
+    )
+
+
+_MIN_MODULE_PARTS = 2
 
 
 def _extract_target_module(node: ast.Import | ast.ImportFrom) -> str | None:
-    """Extract the orxt sub-module name from an import node, or None if not an orxt import."""
+    """Extract the orxt sub-module name from an import node.
+
+    Returns None if not an orxt import.
+    """
     if isinstance(node, ast.ImportFrom):
         if node.module and node.module.startswith("orxt."):
             parts = node.module.split(".")
-            if len(parts) >= 2:
+            if len(parts) >= _MIN_MODULE_PARTS:
                 return parts[1]
     elif isinstance(node, ast.Import):
         for alias in node.names:
             if alias.name.startswith("orxt."):
                 parts = alias.name.split(".")
-                if len(parts) >= 2:
+                if len(parts) >= _MIN_MODULE_PARTS:
                     return parts[1]
     return None
 
 
-def _collect_runtime_imports(
+def _collect_runtime_imports(  # noqa: C901
     tree: ast.Module,
 ) -> list[tuple[int, str]]:
     """Collect all runtime orxt imports as (line_number, target_module) pairs.
@@ -88,7 +95,7 @@ def _collect_runtime_imports(
     """
     results: list[tuple[int, str]] = []
 
-    def _walk_body(body: list[ast.stmt], in_type_checking: bool = False) -> None:
+    def _walk_body(body: list[ast.stmt], in_type_checking: bool = False) -> None:  # noqa: C901
         for node in body:
             if isinstance(node, ast.If) and _is_type_checking_block(node):
                 # Recurse into the if-body marking it as type-checking
@@ -96,11 +103,10 @@ def _collect_runtime_imports(
                 _walk_body(node.orelse, in_type_checking=True)
                 continue
 
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                if not in_type_checking:
-                    target = _extract_target_module(node)
-                    if target is not None:
-                        results.append((node.lineno, target))
+            if isinstance(node, (ast.Import, ast.ImportFrom)) and not in_type_checking:
+                target = _extract_target_module(node)
+                if target is not None:
+                    results.append((node.lineno, target))
 
             # Recurse into nested blocks (classes, functions, other ifs, etc.)
             if isinstance(node, ast.If):
@@ -127,11 +133,9 @@ def _is_import_allowed(source_layer: str, target_layer: str) -> bool:
         return True
     source_order = LAYER_ORDER[source_layer]
     target_order = LAYER_ORDER[target_layer]
-    # Can only import from strictly lower layers
-    if target_order < source_order:
-        return True
-    # Same level but different layer (orchestration <-> intelligence): forbidden
-    return False
+    # Can only import from strictly lower layers.
+    # Same level but different layer (orchestration <-> intelligence): forbidden.
+    return target_order < source_order
 
 
 def _module_name_from_path(py_file: Path) -> str | None:
@@ -144,16 +148,20 @@ def _module_name_from_path(py_file: Path) -> str | None:
     try:
         # Find 'orxt' in the path after 'src'
         for i, part in enumerate(parts):
-            if part == "src" and i + 1 < len(parts) and parts[i + 1] == "orxt":
-                if i + 2 < len(parts):
-                    return parts[i + 2]
+            if (
+                part == "src"
+                and i + 1 < len(parts)
+                and parts[i + 1] == "orxt"
+                and i + 2 < len(parts)
+            ):
+                return parts[i + 2]
     except (IndexError, ValueError):
         pass
     return None
 
 
-def main() -> int:
-    repo_root = Path(".")
+def main() -> int:  # noqa: C901
+    repo_root = Path()
     violations: list[str] = []
 
     # Find all .py files under */src/orxt/*/
@@ -208,9 +216,8 @@ def main() -> int:
     if violations:
         print(f"\n{len(violations)} violation(s) found")
         return 1
-    else:
-        print("No violations found")
-        return 0
+    print("No violations found")
+    return 0
 
 
 if __name__ == "__main__":
