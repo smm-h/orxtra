@@ -18,6 +18,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.0" }]
+
 [[package]]
 name = "aiofiles"
 version = "25.1.0"
@@ -2055,6 +2058,9 @@ requires-dist = [
     { name = "trace", editable = "trace" },
 ]
 
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
 [[package]]
 name = "numpy"
 version = "2.4.6"
@@ -2214,10 +2220,20 @@ name = "orxt-secrets"
 version = "0.0.0"
 source = { editable = "secrets" }
 
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.0" }]
+
 [[package]]
 name = "orxt-write-safety"
 version = "0.0.0"
 source = { editable = "write-safety" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "overseer"
@@ -2240,6 +2256,13 @@ requires-dist = [
     { name = "session", editable = "session" },
     { name = "tool", editable = "tool" },
     { name = "trace", editable = "trace" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1.0" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
+    { name = "uuid6", specifier = ">=2025.0.1" },
 ]
 
 [[package]]
@@ -3527,6 +3550,9 @@ requires-dist = [
     { name = "orxt-protocols", editable = "protocols" },
     { name = "pydantic", specifier = ">=2" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "websockets"
