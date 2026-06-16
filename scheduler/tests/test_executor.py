@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import sys
 import types
 import uuid
@@ -298,13 +299,22 @@ class TestAgentToolCallPath:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
 
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     start_result = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=start_result,
                         status="success",
                     )
@@ -397,7 +407,7 @@ class TestStartTask:
         scheduler._task_specs[task_id] = task  # noqa: SLF001
 
         result = await scheduler.handle_start_task(
-            "sess-1", task_id,
+            "sess-1", str(task_id),
         )
         assert "active" in result.lower()
         assert scheduler._task_states[task_id] == TaskState.ACTIVE  # noqa: SLF001
@@ -421,7 +431,7 @@ class TestStartTask:
 
         with pytest.raises(ToolError):
             await scheduler.handle_start_task(
-                "sess-1", task_id,
+                "sess-1", str(task_id),
             )
 
     async def test_rejects_nonexistent_task(
@@ -430,7 +440,7 @@ class TestStartTask:
         fake_id = uuid6.uuid7()
         with pytest.raises(ToolError):
             await scheduler.handle_start_task(
-                "sess-1", fake_id,
+                "sess-1", str(fake_id),
             )
 
 
@@ -453,7 +463,7 @@ class TestEndTask:
         scheduler._task_children[task_id] = []  # noqa: SLF001
         scheduler._task_parents[task_id] = None  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-1", task_id)
+        await scheduler.handle_start_task("sess-1", str(task_id))
         result = await scheduler.handle_end_task(
             "sess-1", "Done",
         )
@@ -478,7 +488,7 @@ class TestEndTask:
         scheduler._task_children[task_id] = []  # noqa: SLF001
         scheduler._task_parents[task_id] = None  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-1", task_id)
+        await scheduler.handle_start_task("sess-1", str(task_id))
         await scheduler.handle_end_task(
             "sess-1", "my output",
         )
@@ -510,7 +520,7 @@ class TestEndTask:
         scheduler._task_parents[parent_id] = None  # noqa: SLF001
         scheduler._task_states[child_id] = TaskState.ACTIVE  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-1", parent_id)
+        await scheduler.handle_start_task("sess-1", str(parent_id))
 
         with pytest.raises(ToolError, match="subtask"):
             await scheduler.handle_end_task("sess-1", "Done")
@@ -540,7 +550,7 @@ class TestActiveTaskEnforcement:
         scheduler._task_specs[task_id] = task  # noqa: SLF001
 
         result = await scheduler.handle_start_task(
-            "sess-1", task_id,
+            "sess-1", str(task_id),
         )
         assert "active" in result.lower()
 
@@ -563,7 +573,7 @@ class TestHandleCreateTask:
         scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
         scheduler._task_children[parent_id] = []  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-1", parent_id)
+        await scheduler.handle_start_task("sess-1", str(parent_id))
 
         params = CreateTaskParams(
             name="child-task",
@@ -573,7 +583,7 @@ class TestHandleCreateTask:
             context_refinement=False,
         )
         result = await scheduler.handle_create_task(
-            "sess-1", params,
+            "sess-1", params.model_dump(),
         )
         child_id = uuid.UUID(result)
         assert child_id in scheduler._task_states  # noqa: SLF001
@@ -602,7 +612,7 @@ class TestHandleCreateWorkflow:
         scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
         scheduler._task_children[parent_id] = []  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-1", parent_id)
+        await scheduler.handle_start_task("sess-1", str(parent_id))
 
         params = CreateWorkflowParams(
             name="sub-workflow",
@@ -610,7 +620,7 @@ class TestHandleCreateWorkflow:
             goals=["goal1"],
         )
         result = await scheduler.handle_create_workflow(
-            "sess-1", params,
+            "sess-1", params.model_dump(),
         )
         wf_id = uuid.UUID(result)
         assert wf_id in scheduler._task_states  # noqa: SLF001
@@ -633,7 +643,7 @@ class TestHandleCreateWorkflow:
         scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
         scheduler._task_children[parent_id] = []  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-1", parent_id)
+        await scheduler.handle_start_task("sess-1", str(parent_id))
 
         params = CreateWorkflowParams(
             name="sub-workflow",
@@ -641,7 +651,7 @@ class TestHandleCreateWorkflow:
             goals=["goal1"],
         )
         result = await scheduler.handle_create_workflow(
-            "sess-1", params,
+            "sess-1", params.model_dump(),
         )
         wf_id = uuid.UUID(result)
         assert wf_id in scheduler._task_specs  # noqa: SLF001
@@ -665,7 +675,7 @@ class TestHandleCreateWaitFor:
         scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
         scheduler._task_children[parent_id] = []  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-1", parent_id)
+        await scheduler.handle_start_task("sess-1", str(parent_id))
 
         params = CreateWaitForParams(
             name="wait-task",
@@ -673,7 +683,7 @@ class TestHandleCreateWaitFor:
             timeout=60,
         )
         result = await scheduler.handle_create_wait_for(
-            "sess-1", params,
+            "sess-1", params.model_dump(),
         )
         wait_id = uuid.UUID(result)
         assert wait_id in scheduler._task_states  # noqa: SLF001
@@ -717,13 +727,22 @@ class TestRetry:
             ) -> AsyncIterator[Event]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -817,13 +836,22 @@ class TestRetry:
             ) -> AsyncIterator[Event]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -918,13 +946,22 @@ class TestRetry:
             ) -> AsyncIterator[Event]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -1099,13 +1136,22 @@ class TestAccumulateCostError:
             ) -> AsyncIterator[Event]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -1263,14 +1309,23 @@ class TestForEach:
                     for t in tools  # type: ignore[union-attr]
                 }
 
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if call_count == 1:
                     if "start_task" in tool_map:
                         r = await tool_map[
                             "start_task"
-                        ].execute({})
+                        ].execute({"task_id": task_id_str})
                         yield ToolUse(
                             tool_name="start_task",
-                            input={},
+                            input={"task_id": task_id_str},
                             output=r,
                             status="success",
                         )
@@ -1341,14 +1396,23 @@ class TestForEach:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
 
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if call_count <= 1:
                     if "start_task" in tool_map:
                         r = await tool_map[
                             "start_task"
-                        ].execute({})
+                        ].execute({"task_id": task_id_str})
                         yield ToolUse(
                             tool_name="start_task",
-                            input={},
+                            input={"task_id": task_id_str},
                             output=r,
                             status="success",
                         )
@@ -1422,13 +1486,22 @@ class TestForEach:
                 )
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -1507,13 +1580,22 @@ class TestTaskOutputPropagation:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -1620,7 +1702,7 @@ class TestSessionTracking:
         scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
         scheduler._task_specs[task_id] = task  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-a", task_id)
+        await scheduler.handle_start_task("sess-a", str(task_id))
         assert scheduler._active_tasks["sess-a"] == task_id  # noqa: SLF001
 
     async def test_multiple_sessions(
@@ -1648,8 +1730,8 @@ class TestSessionTracking:
         scheduler._task_states[id_b] = TaskState.CREATED  # noqa: SLF001
         scheduler._task_specs[id_b] = task_b  # noqa: SLF001
 
-        await scheduler.handle_start_task("sess-a", id_a)
-        await scheduler.handle_start_task("sess-b", id_b)
+        await scheduler.handle_start_task("sess-a", str(id_a))
+        await scheduler.handle_start_task("sess-b", str(id_b))
         assert scheduler._active_tasks["sess-a"] == id_a  # noqa: SLF001
         assert scheduler._active_tasks["sess-b"] == id_b  # noqa: SLF001
 
@@ -1766,13 +1848,22 @@ class TestPreRetryCallback:
             ) -> AsyncIterator[Event]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -1884,13 +1975,22 @@ class TestPreRetryCallback:
             ) -> AsyncIterator[Event]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -2002,13 +2102,22 @@ class TestRetryResume:
                 session_ids_seen.append(sid)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )
@@ -2112,13 +2221,22 @@ class TestRetryInjectFailure:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
+                task_id_match = re.search(
+                    r"Your task ID is ([0-9a-f-]+)",
+                    message,
+                )
+                task_id_str = (
+                    task_id_match.group(1)
+                    if task_id_match
+                    else "unknown"
+                )
                 if "start_task" in tool_map:
                     r = await tool_map[
                         "start_task"
-                    ].execute({})
+                    ].execute({"task_id": task_id_str})
                     yield ToolUse(
                         tool_name="start_task",
-                        input={},
+                        input={"task_id": task_id_str},
                         output=r,
                         status="success",
                     )

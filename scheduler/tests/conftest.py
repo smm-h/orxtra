@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -269,16 +270,26 @@ class MockTransport:
 
         tool_map = {t.name: t for t in tools}
 
+        # Extract task_id from prompt message
+        task_id_match = re.search(
+            r"Your task ID is ([0-9a-f-]+)", message,
+        )
+        task_id_str = (
+            task_id_match.group(1)
+            if task_id_match
+            else "unknown"
+        )
+
         if "start_task" in tool_map:
             try:
                 start_result = await tool_map[
                     "start_task"
-                ].execute({})
+                ].execute({"task_id": task_id_str})
             except ToolError as e:
                 start_result = f"Error: {e}"
             yield ToolUse(
                 tool_name="start_task",
-                input={},
+                input={"task_id": task_id_str},
                 output=start_result,
                 status="success",
             )
