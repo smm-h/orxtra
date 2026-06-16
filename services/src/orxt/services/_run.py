@@ -46,7 +46,7 @@ async def start_run(
     config: RunConfig,
     *,
     transport_registry: dict[str, Any] | None = None,
-    overseer: Any | None = None,
+    overseer: Any | None = None,  # noqa: ANN401
 ) -> UUID:
     writer = TraceWriter(pool)
     run_id = await writer.create_run(

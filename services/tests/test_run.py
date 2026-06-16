@@ -237,7 +237,7 @@ def test_run_config_missing_field() -> None:
 def _make_mocks(sample_run_id: UUID) -> tuple:
     """Set up the standard 5-mock context for start_run tests.
 
-    Returns (mock_writer, mock_load_agents, mock_load_cats, mock_load_wf, mock_scheduler_cls, mock_sched).
+    Returns (mock_writer, mock_sched).
     The caller must use patch() to wire these in.
     """
     mock_writer = AsyncMock()

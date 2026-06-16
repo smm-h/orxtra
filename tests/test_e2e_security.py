@@ -41,7 +41,9 @@ class TestE2ESecurity:
             "create_workflow", "create_wait_for",
         }
         for name in lifecycle_tools:
-            assert name in CONSULT_STRIP_TOOLS, f"{name!r} missing from CONSULT_STRIP_TOOLS"
+            assert name in CONSULT_STRIP_TOOLS, (
+                f"{name!r} missing from CONSULT_STRIP_TOOLS"
+            )
 
     async def test_consult_filtering_applied_to_tool_registry(self) -> None:
         registry = {

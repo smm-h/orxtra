@@ -215,7 +215,7 @@ class MockTraceWriter:
     async def subscribe_run_control(
         self,
         run_id: uuid.UUID,
-        callback: Any,
+        callback: Any,  # noqa: ANN401
     ) -> None:
         self._record(
             "subscribe_run_control",
@@ -570,7 +570,7 @@ def simple_task(
     name: str = "t1",
     agent: str = "test-agent",
     timeout: int = 60,
-    **kwargs: Any,
+    **kwargs: Any,  # noqa: ANN401
 ) -> TaskSpec:
     """Create a simple agent TaskSpec for testing."""
     return TaskSpec(
