@@ -51,7 +51,11 @@ if TYPE_CHECKING:
         CreateWaitForParams,
         CreateWorkflowParams,
     )
-    from orxt.scheduler._overseer import OverseerInterface
+    from orxt.protocols._events import StructuralAdvisory
+    from orxt.scheduler._overseer import (
+        OverseerEvent,
+        OverseerInterface,
+    )
     from orxt.scheduler._types import WorkflowConfig
     from orxt.trace import TraceWriter
     from orxt.transport import Transport
@@ -228,6 +232,8 @@ class Scheduler:
         )
         if advisories:
             self._pending_advisories.extend(advisories)
+
+        await self._send_pending_advisories()
 
         variables: dict[str, Any] = {}
 
@@ -1851,6 +1857,45 @@ class Scheduler:
             })
 
         return advisories
+
+    async def _send_overseer_event(
+        self, event: OverseerEvent,
+    ) -> None:
+        """Send an event to the Overseer and verify
+        its response."""
+        if self._overseer_interface is None:
+            return
+        await self._overseer_interface.send_event(event)
+        event_type = type(event).__name__
+        errors = (
+            await self._overseer_interface.verify_actions(
+                event_type,
+            )
+        )
+        if errors:
+            _logger.warning(
+                "Overseer verification errors for %s: %s",
+                event_type,
+                errors,
+            )
+
+    async def _send_pending_advisories(self) -> None:
+        """Send stored structural advisories to the
+        Overseer."""
+        if self._overseer_interface is None:
+            return
+        import uuid as _uuid
+
+        for advisory in self._pending_advisories:
+            event = StructuralAdvisory(
+                task_id=_uuid.UUID(int=0),
+                observation=advisory["message"],
+                suggestion=advisory.get(
+                    "suggestion", advisory["message"],
+                ),
+            )
+            await self._send_overseer_event(event)
+        self._pending_advisories.clear()
 
     @staticmethod
     async def _call_callback(
