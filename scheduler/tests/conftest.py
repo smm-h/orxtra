@@ -206,6 +206,19 @@ class MockTraceWriter:
     ) -> None:
         self._record("write_constraint", **kwargs)
 
+    async def write_context_diff(
+        self,
+        attempt_id: uuid.UUID,
+        pre_refinement: str,
+        refinement_diff: str,
+    ) -> None:
+        self._record(
+            "write_context_diff",
+            attempt_id=attempt_id,
+            pre_refinement=pre_refinement,
+            refinement_diff=refinement_diff,
+        )
+
     async def subscribe_run_control(
         self,
         run_id: uuid.UUID,

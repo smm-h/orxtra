@@ -139,6 +139,7 @@ class Scheduler:
         knowledge_loader: Callable[[Path, Any, UUID], Awaitable[None]] | None = None,
         handoff_checker: Callable[[Any, int], Awaitable[bool]] | None = None,
         handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None = None,
+        budget_exhaustion_policy: str = "unlimited",
     ) -> None:
         self._trace_writer = trace_writer
         self._pool = pool
@@ -152,6 +153,7 @@ class Scheduler:
         self._knowledge_loader = knowledge_loader
         self._handoff_checker = handoff_checker
         self._handoff_performer = handoff_performer
+        self._budget_exhaustion_policy = budget_exhaustion_policy
         self._active_tasks: dict[str, UUID] = {}
         self._task_states: dict[UUID, TaskState] = {}
         self._task_specs: dict[UUID, TaskSpec] = {}
@@ -186,6 +188,12 @@ class Scheduler:
         self._pending_await: dict[str, str] = {}
         self._paused = asyncio.Event()
         self._paused.set()  # Not paused initially
+        self._budget_threshold_events: list[
+            tuple[UUID, str, Decimal, Decimal]
+        ] = []
+        self._budget_exhausted_events: list[
+            tuple[UUID, str, Decimal, Decimal]
+        ] = []
 
     async def run_consult(
         self,
@@ -908,6 +916,7 @@ class Scheduler:
                     ),
                 ),
             )
+            await self._send_budget_events(task_id)
 
             state = self._task_states[task_id]
 
@@ -1134,6 +1143,77 @@ class Scheduler:
             return
         cost = compute_cost_usd(model_key, usage)
         self._task_costs[task_id] += cost
+        # Budget enforcement
+        if task.budget is not None:
+            spent = self._task_costs[task_id]
+            budget = task.budget
+            threshold = Decimal("0.8")
+            if (
+                spent >= budget * threshold
+                and spent - cost
+                < budget * threshold
+            ):
+                self._budget_threshold_events.append(
+                    (
+                        task_id,
+                        task.name,
+                        budget,
+                        spent,
+                    ),
+                )
+            if spent >= budget:
+                self._budget_exhausted_events.append(
+                    (
+                        task_id,
+                        task.name,
+                        budget,
+                        spent,
+                    ),
+                )
+
+    async def _send_budget_events(
+        self, task_id: UUID,
+    ) -> None:
+        """Send accumulated budget events
+        to the Overseer."""
+        for tid, name, budget, spent in (
+            self._budget_threshold_events
+        ):
+            if tid == task_id:
+                from orxt.protocols._events import (  # noqa: PLC0415
+                    BudgetThresholdCrossed,
+                )
+
+                await self._send_overseer_event(
+                    BudgetThresholdCrossed(
+                        workflow_id=tid,
+                        budget_usd=budget,
+                        spent_usd=spent,
+                        threshold_pct=0.8,
+                    ),
+                )
+        self._budget_threshold_events = [
+            e
+            for e in self._budget_threshold_events
+            if e[0] != task_id
+        ]
+
+        for tid, name, budget, spent in (
+            self._budget_exhausted_events
+        ):
+            if tid == task_id:
+                from orxt.protocols._events import (  # noqa: PLC0415
+                    BudgetExhausted,
+                )
+
+                await self._send_overseer_event(
+                    BudgetExhausted(workflow_id=tid),
+                )
+        self._budget_exhausted_events = [
+            e
+            for e in self._budget_exhausted_events
+            if e[0] != task_id
+        ]
 
     def _create_agent_session(
         self,
