@@ -8,8 +8,8 @@ import json
 import logging
 import time
 from decimal import Decimal
-from uuid import UUID
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
 import jsonschema
 from orxt.notepad import NotepadEntry, format_notepad
@@ -29,7 +29,7 @@ from orxt.protocols._task import (
     TaskSpec,
     TaskState,
 )
-from orxt.protocols._tool import Tool, ToolError
+from orxt.protocols._tool import ToolError
 from orxt.protocols._tools import (
     CreateTaskParams,
     CreateWaitForParams,
@@ -174,6 +174,7 @@ class Scheduler:
         self._task_start_times: dict[UUID, float] = {}
         self._task_sessions: dict[UUID, Session] = {}
         self._running_tasks: set[asyncio.Task[Any]] = set()
+        self._background_tasks: set[asyncio.Task[Any]] = set()
         self._event_registry = EventRegistry()
         self._session_mutations: dict[str, bool] = {}
         self._write_queue = WriteQueue()
@@ -337,21 +338,7 @@ class Scheduler:
     async def execute_workflow(
         self, config: WorkflowConfig,
     ) -> None:
-        # Crash recovery: three-pass idempotent startup
-        if self._pool is not None:
-            from orxt.trace import (  # noqa: PLC0415
-                acquire_run_lock,
-                clean_orphaned,
-                reclaim_interrupted,
-                reevaluate_blocked,
-            )
-
-            await reclaim_interrupted(self._pool)
-            await reevaluate_blocked(self._pool)
-            await clean_orphaned(self._pool)
-            await acquire_run_lock(
-                self._pool, self._run_id,
-            )
+        await self._crash_recovery()
 
         # Subscribe to run control signals (pause/abort)
         await self._trace_writer.subscribe_run_control(
@@ -360,60 +347,9 @@ class Scheduler:
         # Bridge trace events to EventRegistry
         await self._bridge_trace_to_events()
 
-        # Cross-process signal delivery via PG LISTEN
-        pg_listener_task: asyncio.Task[None] | None = None
-        pg_listener_conn: asyncpg.Connection | None = None
-        _on_notification = None
-        if self._pool is not None:
-            pg_listener_conn = await self._pool.acquire()
-
-            def _on_notification(
-                conn: object,
-                pid: int,
-                channel: str,
-                payload: str,
-            ) -> None:
-                _ = conn, pid, channel
-                try:
-                    msg = json.loads(payload)
-                except json.JSONDecodeError:
-                    _logger.warning(
-                        "Invalid PG notification payload:"
-                        " %s",
-                        payload,
-                    )
-                    return
-                event_type = msg.get("event_type", "")
-                run_id_str = msg.get("run_id", "")
-                if (
-                    event_type == "run_state"
-                    and run_id_str == str(self._run_id)
-                ):
-                    asyncio.create_task(
-                        self._handle_control_signal(
-                            self._run_id,
-                            msg.get("new_status", ""),
-                        ),
-                    )
-                else:
-                    asyncio.create_task(
-                        self._event_registry.fire(
-                            event_type,
-                            msg.get("data"),
-                        ),
-                    )
-
-            await pg_listener_conn.add_listener(
-                'orxt_events', _on_notification,
-            )
-
-            async def _listen_forever() -> None:
-                stop = asyncio.Event()
-                await stop.wait()
-
-            pg_listener_task = asyncio.create_task(
-                _listen_forever(),
-            )
+        pg_listener_task, pg_listener_conn, on_notification = (
+            await self._setup_pg_listener()
+        )
 
         # Load knowledge files at run start
         if (
@@ -426,6 +362,136 @@ class Scheduler:
                 self._run_id,
             )
 
+        task_id_map = await self._register_workflow_tasks(
+            config,
+        )
+        await self._execute_task_groups(
+            config, task_id_map,
+        )
+
+        # Coherence summary at run end
+        await self._write_coherence_summary()
+
+        # Clean up PG listener
+        await self._cleanup_pg_listener(
+            pg_listener_task, pg_listener_conn,
+            on_notification,
+        )
+
+        await self._trace_writer.unsubscribe_run_control(
+            self._run_id,
+        )
+
+    async def _crash_recovery(self) -> None:
+        """Three-pass idempotent crash recovery startup."""
+        if self._pool is None:
+            return
+        from orxt.trace import (  # noqa: PLC0415
+            acquire_run_lock,
+            clean_orphaned,
+            reclaim_interrupted,
+            reevaluate_blocked,
+        )
+
+        await reclaim_interrupted(self._pool)
+        await reevaluate_blocked(self._pool)
+        await clean_orphaned(self._pool)
+        await acquire_run_lock(
+            self._pool, self._run_id,
+        )
+
+    async def _setup_pg_listener(
+        self,
+    ) -> tuple[asyncio.Task[None] | None, asyncpg.Connection | None, object]:
+        """Set up cross-process signal delivery via PG LISTEN.
+
+        Returns (listener_task, listener_conn,
+        notification_callback).
+        """
+        if self._pool is None:
+            return None, None, None
+
+        pg_listener_conn = await self._pool.acquire()
+
+        def _on_notification(
+            conn: object,
+            pid: int,
+            channel: str,
+            payload: str,
+        ) -> None:
+            _ = conn, pid, channel
+            try:
+                msg = json.loads(payload)
+            except json.JSONDecodeError:
+                _logger.warning(
+                    "Invalid PG notification payload:"
+                    " %s",
+                    payload,
+                )
+                return
+            event_type = msg.get("event_type", "")
+            run_id_str = msg.get("run_id", "")
+            if (
+                event_type == "run_state"
+                and run_id_str == str(self._run_id)
+            ):
+                task = asyncio.create_task(
+                    self._handle_control_signal(
+                        self._run_id,
+                        msg.get("new_status", ""),
+                    ),
+                )
+                self._background_tasks.add(task)
+                task.add_done_callback(
+                    self._background_tasks.discard,
+                )
+            else:
+                task = asyncio.create_task(
+                    self._event_registry.fire(
+                        event_type,
+                        msg.get("data"),
+                    ),
+                )
+                self._background_tasks.add(task)
+                task.add_done_callback(
+                    self._background_tasks.discard,
+                )
+
+        await pg_listener_conn.add_listener(
+            "orxt_events", _on_notification,
+        )
+
+        async def _listen_forever() -> None:
+            stop = asyncio.Event()
+            await stop.wait()
+
+        pg_listener_task = asyncio.create_task(
+            _listen_forever(),
+        )
+        return pg_listener_task, pg_listener_conn, _on_notification
+
+    async def _cleanup_pg_listener(
+        self,
+        pg_listener_task: asyncio.Task[None] | None,
+        pg_listener_conn: asyncpg.Connection | None,
+        on_notification: object,
+    ) -> None:
+        """Clean up PG listener resources."""
+        if pg_listener_task is not None:
+            pg_listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await pg_listener_task
+        if pg_listener_conn is not None:
+            await pg_listener_conn.remove_listener(
+                "orxt_events", on_notification,
+            )
+            await self._pool.release(pg_listener_conn)
+
+    async def _register_workflow_tasks(
+        self,
+        config: WorkflowConfig,
+    ) -> dict[str, UUID]:
+        """Validate config and register all workflow tasks."""
         errors = validate_task_tree(config)
         if errors:
             msg = (
@@ -443,8 +509,17 @@ class Scheduler:
                 task_type=_task_type_for(task),
             )
             task_id_map[task.name] = task_id
-            self._init_task_state(task_id, task, parent=None)
+            self._init_task_state(
+                task_id, task, parent=None,
+            )
+        return task_id_map
 
+    async def _execute_task_groups(
+        self,
+        config: WorkflowConfig,
+        task_id_map: dict[str, UUID],
+    ) -> None:
+        """Execute task groups in topological order."""
         graph = build_graph(
             config.tasks, config.dependencies,
         )
@@ -478,7 +553,9 @@ class Scheduler:
             ]
             for t in tasks:
                 self._running_tasks.add(t)
-                t.add_done_callback(self._running_tasks.discard)
+                t.add_done_callback(
+                    self._running_tasks.discard,
+                )
             results = await asyncio.gather(*tasks)
 
             for name, result in zip(
@@ -490,31 +567,14 @@ class Scheduler:
                 )
                 variables[f"{name}_text"] = result.output
                 all_passed = all(
-                    cr.passed for cr in result.check_results
+                    cr.passed
+                    for cr in result.check_results
                 )
                 variables[f"{name}_result"] = {
                     "passed": all_passed,
                     "duration_seconds": 0.0,
                     "retries_used": 0,
                 }
-
-        # Coherence summary at run end
-        await self._write_coherence_summary()
-
-        # Clean up PG listener
-        if pg_listener_task is not None:
-            pg_listener_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await pg_listener_task
-        if pg_listener_conn is not None:
-            await pg_listener_conn.remove_listener(
-                'orxt_events', _on_notification,
-            )
-            await self._pool.release(pg_listener_conn)
-
-        await self._trace_writer.unsubscribe_run_control(
-            self._run_id,
-        )
 
     def _init_task_state(
         self,
@@ -568,11 +628,7 @@ class Scheduler:
             return await self._execute_decision_point_task(
                 task, task_id,
             )
-        if task.orchestrator:
-            return await self._execute_orchestrator_task(
-                task, task_id, parent_task_id, variables,
-            )
-        return await self._execute_agent_task(
+        return await self._execute_orchestrator_or_agent_task(
             task, task_id, parent_task_id, variables,
         )
 
@@ -637,7 +693,7 @@ class Scheduler:
             ],
         )
 
-    async def _execute_orchestrator_task(  # noqa: PLR0912, PLR0915
+    async def _execute_orchestrator_task(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -731,6 +787,22 @@ class Scheduler:
             output=output_text,
             structured_output=None,
             check_results=[],
+        )
+
+    async def _execute_orchestrator_or_agent_task(
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        parent_task_id: UUID | None,
+        variables: dict[str, Any] | None,
+    ) -> TaskResult:
+        """Dispatch to orchestrator or agent task execution."""
+        if task.orchestrator:
+            return await self._execute_orchestrator_task(
+                task, task_id, parent_task_id, variables,
+            )
+        return await self._execute_agent_task(
+            task, task_id, parent_task_id, variables,
         )
 
     async def _execute_agent_task(  # noqa: C901, PLR0912, PLR0915
@@ -1243,7 +1315,7 @@ class Scheduler:
     ) -> None:
         """Send accumulated budget events
         to the Overseer."""
-        for tid, name, budget, spent in (
+        for tid, _name, budget, spent in (
             self._budget_threshold_events
         ):
             if tid == task_id:
@@ -1265,7 +1337,7 @@ class Scheduler:
             if e[0] != task_id
         ]
 
-        for tid, name, budget, spent in (
+        for tid, _name, _budget, _spent in (
             self._budget_exhausted_events
         ):
             if tid == task_id:
