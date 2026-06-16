@@ -3030,6 +3030,7 @@ dependencies = [
     { name = "orxt-protocols" },
     { name = "orxt-secrets" },
     { name = "orxt-write-safety" },
+    { name = "pathspec" },
     { name = "pydantic" },
 ]
 
@@ -3040,6 +3041,7 @@ requires-dist = [
     { name = "orxt-protocols", editable = "../protocols" },
     { name = "orxt-secrets", editable = "../secrets" },
     { name = "orxt-write-safety", editable = "../write-safety" },
+    { name = "pathspec" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
@@ -3103,6 +3105,12 @@ requires-dist = [
     { name = "orxt-protocols", editable = "../protocols" },
     { name = "pydantic", specifier = ">=2" },
     { name = "uuid6" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1.0" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
 ]
 
 [[package]]
