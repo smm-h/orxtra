@@ -12,7 +12,6 @@ from typing import Any
 from uuid import UUID
 
 from orxt.mcp._tools import get_tool_definitions
-from orxt.trace import TraceWriter
 from orxt.services import (
     abort_run,
     dump_config,
@@ -35,6 +34,7 @@ from orxt.services import (
     skip_inbox_item,
     start_run_from_file,
 )
+from orxt.trace import TraceWriter
 from pydantic import BaseModel
 
 _PARSE_ERROR = -32700

@@ -6,10 +6,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxt.protocols._checks import CheckContext, CheckExecutor
+from orxt.protocols._checks import CheckContext
 from orxt.protocols._execution import (
     AgentExecution,
-    CheckResult,
     ScriptExecution,
     Severity,
 )

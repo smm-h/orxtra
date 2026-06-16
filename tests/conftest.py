@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import pytest
 import uuid6
 from orxt.agent import Agent
-from orxt.protocols._execution import CheckResult, ScriptExecution
-from orxt.protocols._task import TaskSpec, TaskState
+from orxt.protocols._task import TaskSpec
 from orxt.protocols._tool import Tool, ToolError
 from orxt.scheduler._executor import Scheduler
 from orxt.scheduler._types import WorkflowConfig
-from orxt.transport import Result, StepFinish, StepStart, ToolUse
+from orxt.transport import Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     import uuid
@@ -413,9 +412,7 @@ class MultiAgentMockTransport:
                 matched against these keys (first match wins).
         """
         self._agent_turns = agent_turns
-        self._agent_indices: dict[str, int] = {
-            key: 0 for key in agent_turns
-        }
+        self._agent_indices: dict[str, int] = dict.fromkeys(agent_turns, 0)
         self.send_calls: list[dict[str, Any]] = []
 
     def _match_agent(self, system_prompt: str) -> str | None:

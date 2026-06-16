@@ -65,7 +65,7 @@ async def test_fire_event_propagates_write_error(
 ) -> None:
     mock_writer.write_event = AsyncMock(
         side_effect=asyncpg.ForeignKeyViolationError(
-            "insert or update on table \"events\" violates"
+            'insert or update on table "events" violates'
             " foreign key constraint"
         )
     )

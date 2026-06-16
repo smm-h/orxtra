@@ -145,9 +145,9 @@ def make_write_tool(
 
         create_dirs = args.get("create_dirs", False)
         if create_dirs:
-            resolved.parent.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
+            resolved.parent.mkdir(parents=True, exist_ok=True)
 
-        is_new_file = not resolved.exists()  # noqa: ASYNC240
+        is_new_file = not resolved.exists()
         await safe_write(
             resolved,
             args["content"],
@@ -248,7 +248,7 @@ def make_mkdir_tool(
         resolved = _resolve_path(args["path"], read_root)
         _check_scope(resolved, write_scope, read_root)
 
-        resolved.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
+        resolved.mkdir(parents=True, exist_ok=True)
         return f"Created {resolved}"
 
     return Tool(
@@ -286,11 +286,11 @@ def make_move_tool(
         _check_scope(resolved_src, write_scope, read_root)
         _check_scope(resolved_dst, write_scope, read_root)
 
-        if not resolved_src.exists():  # noqa: ASYNC240
+        if not resolved_src.exists():
             msg = f"Source does not exist: {resolved_src}"
             raise ToolError(msg)
 
-        resolved_src.rename(resolved_dst)  # noqa: ASYNC240
+        resolved_src.rename(resolved_dst)
         return f"Moved {resolved_src} -> {resolved_dst}"
 
     return Tool(
@@ -329,14 +329,14 @@ def make_copy_tool(
         # Destination is a write: check write scope.
         _check_scope(resolved_dst, write_scope, read_root)
 
-        if not resolved_src.exists():  # noqa: ASYNC240
+        if not resolved_src.exists():
             msg = f"Source does not exist: {resolved_src}"
             raise ToolError(msg)
-        if not resolved_src.is_file():  # noqa: ASYNC240
+        if not resolved_src.is_file():
             msg = f"Source is not a file: {resolved_src}"
             raise ToolError(msg)
 
-        shutil.copy2(resolved_src, resolved_dst)  # noqa: ASYNC240
+        shutil.copy2(resolved_src, resolved_dst)
         return f"Copied {resolved_src} -> {resolved_dst}"
 
     return Tool(
@@ -364,7 +364,7 @@ def make_delete_tool(
         _check_scope(resolved, write_scope, read_root)
 
         recursive = args["recursive"]
-        if resolved.is_dir() and not recursive:  # noqa: ASYNC240
+        if resolved.is_dir() and not recursive:
             msg = f"Path is a directory, set recursive=true to delete: {resolved}"
             raise ToolError(msg)
 
@@ -416,14 +416,14 @@ def make_set_executable_tool(
         resolved = _resolve_path(args["path"], read_root)
         _check_scope(resolved, write_scope, read_root)
 
-        if not resolved.exists():  # noqa: ASYNC240
+        if not resolved.exists():
             msg = f"File not found: {resolved}"
             raise ToolError(msg)
-        if not resolved.is_file():  # noqa: ASYNC240
+        if not resolved.is_file():
             msg = f"Not a file: {resolved}"
             raise ToolError(msg)
 
-        os.chmod(resolved, resolved.stat().st_mode | 0o111)  # noqa: ASYNC240
+        os.chmod(resolved, resolved.stat().st_mode | 0o111)
         return f"Set executable: {resolved}"
 
     return Tool(

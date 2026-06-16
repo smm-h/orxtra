@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING
 
 import pytest
 from orxt.transport._events import StreamDelta, Thinking
 from orxt.transport.providers._anthropic import AnthropicProvider
 from orxt.transport.providers._openai import OpenAIProvider
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 
 async def _bytes_iter(chunks: list[bytes]) -> AsyncIterator[bytes]:

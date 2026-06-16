@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 import time
 from typing import TYPE_CHECKING, Any
-from uuid import UUID
 
 from orxt.protocols._tool import Tool
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from uuid import UUID
 
     from orxt.secrets._registry import SecretRegistry
 
@@ -65,7 +65,7 @@ def wrap_tool_with_pipeline(
         # 7. Return result.
         return result
 
-    wrapped_execute._raw_execute = getattr(tool.execute, '_raw_execute', tool.execute)  # type: ignore[attr-defined]
+    wrapped_execute._raw_execute = getattr(tool.execute, "_raw_execute", tool.execute)  # type: ignore[attr-defined]
 
     return Tool(
         name=tool.name,
@@ -106,7 +106,7 @@ async def compose(tool: Tool, args: dict[str, Any]) -> str:
     B's execution is not traced, not scrubbed, not mutation-tracked.
     Attribution goes to the outer tool A.
     """
-    raw = getattr(tool.execute, '_raw_execute', None)
+    raw = getattr(tool.execute, "_raw_execute", None)
     if raw is not None:
         return await raw(args)
     return await tool.execute(args)

@@ -7,16 +7,17 @@ event bridging, and the execute_workflow lifecycle.
 from __future__ import annotations
 
 import asyncio
-import uuid
 from typing import TYPE_CHECKING, Any
 
 import uuid6
 from orxt.protocols._task import TaskSpec, TaskState
-from orxt.scheduler._events import EventRegistry
-from orxt.scheduler._executor import Scheduler
 from orxt.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:
+    import uuid
+
+    from orxt.scheduler._executor import Scheduler
+
     from tests.conftest import MockTraceWriter
 
 
