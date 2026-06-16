@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from orxt.transport._state_machine import Continuation
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,12 @@ class Result:
     tool_calls: int = 0
 
 
+@dataclass(frozen=True)
+class SessionSuspended:
+    continuation: Continuation
+    session_id: str | None
+
+
 Event = (
     StepStart
     | Text
@@ -100,4 +109,5 @@ Event = (
     | ApiRetry
     | Error
     | Result
+    | SessionSuspended
 )

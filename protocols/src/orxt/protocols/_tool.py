@@ -13,6 +13,7 @@ class Tool:
     description: str
     parameters: dict[str, Any]
     execute: Callable[[dict[str, Any]], Awaitable[str]]
+    suspending: bool = False
 
 
 class ToolError(Exception):
