@@ -4,6 +4,7 @@ version = "0.0.0"
 description = "Write queue, stale-write detection, atomic replace, transient replay."
 requires-python = ">=3.12"
 dependencies = []
+keywords = ["rlsbl"]
 
 [build-system]
 requires = ["hatchling"]

@@ -8,6 +8,7 @@ dependencies = [
     "transport",
     "trace",
 ]
+keywords = ["rlsbl"]
 
 [build-system]
 requires = ["hatchling"]

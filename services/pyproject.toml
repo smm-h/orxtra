@@ -10,6 +10,7 @@ dependencies = [
     "overseer",
     "trace",
 ]
+keywords = ["rlsbl"]
 
 [build-system]
 requires = ["hatchling"]

@@ -10,6 +10,7 @@ dependencies = [
     "session",
     "knowledge-module",
 ]
+keywords = ["rlsbl"]
 
 [build-system]
 requires = ["hatchling"]
