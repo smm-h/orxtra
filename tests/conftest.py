@@ -559,7 +559,9 @@ def simple_task(
     return TaskSpec(
         name=name,
         agent=agent,
+        task_prompt=kwargs.pop("task_prompt", f"Do {name}"),
         timeout=timeout,
+        context_refinement=kwargs.pop("context_refinement", False),
         **kwargs,
     )
 
