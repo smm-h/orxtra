@@ -20,9 +20,14 @@ class MockTransport:
     def __init__(self) -> None:
         self.calls: list[dict[str, Any]] = []
         self._event_sequences: list[list[Event]] = []
+        self.resume_calls: list[dict[str, Any]] = []
+        self._resume_event_sequences: list[list[Event]] = []
 
     def set_events(self, *sequences: list[Event]) -> None:
         self._event_sequences = list(sequences)
+
+    def set_resume_events(self, *sequences: list[Event]) -> None:
+        self._resume_event_sequences = list(sequences)
 
     async def send(  # noqa: PLR0913
         self,
@@ -43,6 +48,32 @@ class MockTransport:
             "stream_deltas": stream_deltas,
         })
         events = self._event_sequences.pop(0) if self._event_sequences else []
+        for event in events:
+            yield event
+
+    async def resume(  # noqa: PLR0913
+        self,
+        continuation: Any,
+        await_result: str,
+        *,
+        model: str,
+        system_prompt: str,
+        tools: list[Tool],
+        stream_deltas: bool = False,
+    ) -> AsyncIterator[Event]:
+        self.resume_calls.append({
+            "continuation": continuation,
+            "await_result": await_result,
+            "model": model,
+            "system_prompt": system_prompt,
+            "tools": tools,
+            "stream_deltas": stream_deltas,
+        })
+        events = (
+            self._resume_event_sequences.pop(0)
+            if self._resume_event_sequences
+            else []
+        )
         for event in events:
             yield event
 

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from orxt.trace import TraceWriter
     from orxt.transport import Event, Transport
 
-from orxt.transport import Result, StepFinish, ToolUse
+from orxt.transport import Continuation, Result, SessionSuspended, StepFinish, ToolUse
 
 
 class Session:
@@ -108,6 +108,19 @@ class Session:
                     "status": event.status,
                 })
 
+            elif isinstance(event, SessionSuspended):
+                if self._session_id is None and event.session_id is not None:
+                    self._session_id = event.session_id
+                if not session_id_captured and self._session_id is not None:
+                    session_id_captured = True
+                    await self._trace_writer.write_transcript_entry(
+                        session_id=uuid.UUID(self._session_id),
+                        run_id=self._run_id,
+                        turn=current_turn,
+                        role="user",
+                        content=message,
+                    )
+
             yield event
 
         # Write assistant transcript entry
@@ -117,6 +130,81 @@ class Session:
                 "output_tokens": self.total_output_tokens - snapshot_output,
                 "reasoning_tokens": self.total_reasoning_tokens - snapshot_reasoning,
                 "cache_read_tokens": self.total_cache_read_tokens - snapshot_cache_read,
+                "cache_write_tokens": (
+                    self.total_cache_write_tokens - snapshot_cache_write
+                ),
+            }
+            await self._trace_writer.write_transcript_entry(
+                session_id=uuid.UUID(self._session_id),
+                run_id=self._run_id,
+                turn=current_turn,
+                role="assistant",
+                content=result_text,
+                tool_calls={"calls": tool_calls_list} if tool_calls_list else None,
+                tokens=tokens_dict,
+            )
+
+    async def resume(
+        self, continuation: Continuation, result: str
+    ) -> AsyncIterator[Event]:
+        """Resume from suspension. Delegates to transport.resume()."""
+        self.turn_count += 1
+        current_turn = self.turn_count
+
+        result_text: str = ""
+        tool_calls_list: list[dict[str, Any]] = []
+
+        snapshot_input = self.total_input_tokens
+        snapshot_output = self.total_output_tokens
+        snapshot_reasoning = self.total_reasoning_tokens
+        snapshot_cache_read = self.total_cache_read_tokens
+        snapshot_cache_write = self.total_cache_write_tokens
+
+        stream = self._transport.resume(
+            continuation,
+            result,
+            model=self._model,
+            system_prompt=self._system_prompt,
+            tools=self._tools,
+        )
+
+        async for event in stream:
+            if isinstance(event, Result):
+                result_text = event.text
+
+            elif isinstance(event, StepFinish):
+                self.total_input_tokens += event.input_tokens
+                self.total_output_tokens += event.output_tokens
+                self.total_reasoning_tokens += event.reasoning_tokens
+                self.total_cache_read_tokens += event.cache_read_tokens
+                self.total_cache_write_tokens += event.cache_write_tokens
+
+            elif isinstance(event, ToolUse):
+                tool_calls_list.append({
+                    "tool_name": event.tool_name,
+                    "input": event.input,
+                    "output": event.output,
+                    "status": event.status,
+                })
+
+            yield event
+
+        # Write transcript entries for the resume turn
+        if self._session_id is not None:
+            await self._trace_writer.write_transcript_entry(
+                session_id=uuid.UUID(self._session_id),
+                run_id=self._run_id,
+                turn=current_turn,
+                role="user",
+                content=f"[resume: {result}]",
+            )
+            tokens_dict: dict[str, Any] = {
+                "input_tokens": self.total_input_tokens - snapshot_input,
+                "output_tokens": self.total_output_tokens - snapshot_output,
+                "reasoning_tokens": self.total_reasoning_tokens - snapshot_reasoning,
+                "cache_read_tokens": (
+                    self.total_cache_read_tokens - snapshot_cache_read
+                ),
                 "cache_write_tokens": (
                     self.total_cache_write_tokens - snapshot_cache_write
                 ),
