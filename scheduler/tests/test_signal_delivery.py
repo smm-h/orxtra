@@ -1,3 +1,4 @@
+# ruff: noqa: SLF001
 """Phase 3 tests: trace-integrated signal delivery.
 
 Tests subscribe/unsubscribe, control signal dispatch,

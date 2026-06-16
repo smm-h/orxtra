@@ -90,7 +90,7 @@ async def test_resume_after_pause_continues(
         await asyncio.sleep(0.05)
         await scheduler.resume()
 
-    asyncio.create_task(delayed_resume())
+    asyncio.create_task(delayed_resume())  # noqa: RUF006
 
     task = TaskSpec(
         name="continued",
@@ -112,7 +112,7 @@ async def test_pause_cancels_running_tasks(
         await asyncio.sleep(100)
 
     fake_task = asyncio.create_task(long_running())
-    scheduler._running_tasks.add(fake_task)
+    scheduler._running_tasks.add(fake_task)  # noqa: SLF001
 
     await scheduler.pause()
     # Let the event loop process the cancellation
@@ -126,9 +126,9 @@ async def test_pause_does_not_change_task_states(
     scheduler: Scheduler,
 ) -> None:
     tid = uuid6.uuid7()
-    scheduler._task_states[tid] = TaskState.ACTIVE
+    scheduler._task_states[tid] = TaskState.ACTIVE  # noqa: SLF001
     await scheduler.pause()
-    assert scheduler._task_states[tid] == TaskState.ACTIVE
+    assert scheduler._task_states[tid] == TaskState.ACTIVE  # noqa: SLF001
 
 
 @pytest.mark.asyncio

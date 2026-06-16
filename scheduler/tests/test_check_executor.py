@@ -156,7 +156,7 @@ class TestRunConsult:
 
     async def test_missing_category_raises(self) -> None:
         """run_consult raises ValueError when the agent's category is missing."""
-        from orxt.agent import Agent
+        from orxt.agent import Agent  # noqa: PLC0415
 
         agent = Agent(
             name="special-agent",
@@ -324,7 +324,7 @@ class TestCheckExecutorIntegration:
         self, scheduler: Scheduler,
     ) -> None:
         """AgentExecution postcheck with invalid JSON returns passed=False."""
-        from orxt.verify._execution import _run_agent
+        from orxt.verify._execution import _run_agent  # noqa: PLC0415
 
         agent_exec = AgentExecution(
             agent="test-agent",
@@ -353,7 +353,7 @@ class TestCheckExecutorIntegration:
 
     async def test_agent_execution_valid_verdict(self) -> None:
         """AgentExecution postcheck with valid verdict JSON returns passed=True."""
-        from orxt.verify._execution import _run_agent
+        from orxt.verify._execution import _run_agent  # noqa: PLC0415
 
         verdict_json = json.dumps({
             "verdict": "pass",

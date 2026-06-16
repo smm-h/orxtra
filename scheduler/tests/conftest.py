@@ -208,7 +208,7 @@ class MockTraceWriter:
     async def subscribe_run_control(
         self,
         run_id: uuid.UUID,
-        callback: Any,
+        callback: Any,  # noqa: ANN401
     ) -> None:
         self._control_callback = callback
         self._record(
