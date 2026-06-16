@@ -1352,6 +1352,30 @@ class Scheduler:
             msg = "Composite task requires subtasks"
             raise ValueError(msg)
 
+        # Run prechecks before activating
+        self._task_states[task_id] = TaskState.PRECHECKING
+        await self._trace_writer.transition_task(
+            task_id, TaskState.PRECHECKING.value,
+        )
+        precheck_results = await self._run_prechecks(
+            task, task_id,
+        )
+        if not all(
+            cr.passed for cr in precheck_results
+        ):
+            self._task_states[task_id] = (
+                TaskState.PRECHECK_FAILED
+            )
+            await self._trace_writer.transition_task(
+                task_id,
+                TaskState.PRECHECK_FAILED.value,
+            )
+            return TaskResult(
+                output=None,
+                structured_output=None,
+                check_results=precheck_results,
+            )
+
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
@@ -1365,6 +1389,32 @@ class Scheduler:
             t.add_done_callback(self._running_tasks.discard)
             await t
 
+        # Run postchecks before completing
+        self._task_states[task_id] = (
+            TaskState.POSTCHECKING
+        )
+        await self._trace_writer.transition_task(
+            task_id, TaskState.POSTCHECKING.value,
+        )
+        postcheck_results = await self._run_postchecks(
+            task, task_id,
+        )
+        if not all(
+            cr.passed for cr in postcheck_results
+        ):
+            self._task_states[task_id] = (
+                TaskState.POSTCHECK_FAILED
+            )
+            await self._trace_writer.transition_task(
+                task_id,
+                TaskState.POSTCHECK_FAILED.value,
+            )
+            return TaskResult(
+                output=None,
+                structured_output=None,
+                check_results=postcheck_results,
+            )
+
         self._task_states[task_id] = TaskState.COMPLETED
         await self._trace_writer.transition_task(
             task_id, TaskState.COMPLETED.value,
@@ -1372,7 +1422,7 @@ class Scheduler:
         return TaskResult(
             output=None,
             structured_output=None,
-            check_results=[],
+            check_results=postcheck_results,
         )
 
     async def _execute_wait_for_task(
