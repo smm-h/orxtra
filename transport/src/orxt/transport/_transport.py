@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import random
 import time
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -20,7 +21,9 @@ from ._events import (
     Text,
     Thinking,
     ToolUse,
+    Usage,
 )
+from ._state_machine import TransportState
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -34,9 +37,9 @@ _TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503})
 
 def _validate_tool_args(args: dict[str, Any], schema: dict[str, Any]) -> str | None:
     required = schema.get("required", [])
-    for field in required:
-        if field not in args:
-            return f"Missing required field: {field}"
+    for f in required:
+        if f not in args:
+            return f"Missing required field: {f}"
     properties = schema.get("properties", {})
     if not schema.get("additionalProperties", True):
         for key in args:
@@ -45,13 +48,36 @@ def _validate_tool_args(args: dict[str, Any], schema: dict[str, Any]) -> str | N
     return None
 
 
+@dataclass
+class _StepContext:
+    """Mutable state carried across step() calls within a single send()."""
+
+    history: list[dict[str, Any]]
+    tool_specs: list[dict[str, Any]]
+    tool_map: dict[str, Tool]
+    model: str
+    system_prompt: str
+    session_id: str
+    stream_deltas: bool
+    total_input: int = 0
+    total_output: int = 0
+    total_reasoning: int = 0
+    total_cache_read: int = 0
+    total_cache_write: int = 0
+    total_tool_calls: int = 0
+    # Set during CALLING_API, consumed during EXECUTING_TOOLS
+    pending_tool_blocks: list[ContentBlock] = field(default_factory=list)
+    # Last API call's usage, needed for StepFinish
+    last_usage: Usage | None = None
+
+
 class Transport:
     def __init__(self, provider: Provider, retry_policy: RetryPolicy) -> None:
         self._provider = provider
         self._retry = retry_policy
         self._sessions: dict[str, list[dict[str, Any]]] = {}
 
-    async def send(  # noqa: C901, PLR0912, PLR0913, PLR0915
+    async def send(  # noqa: PLR0913
         self,
         message: str,
         *,
@@ -75,159 +101,106 @@ class Transport:
 
         yield StepStart(session_id=session_id)
 
-        total_input = 0
-        total_output = 0
-        total_reasoning = 0
-        total_cache_read = 0
-        total_cache_write = 0
-        total_tool_calls = 0
+        ctx = _StepContext(
+            history=history,
+            tool_specs=tool_specs,
+            tool_map=tool_map,
+            model=model,
+            system_prompt=system_prompt,
+            session_id=session_id,
+            stream_deltas=stream_deltas,
+        )
 
-        while True:
-            request = self._provider.build_request(
-                messages=history,
-                tools=tool_specs,
-                system=system_prompt,
-                model=model,
-            )
-
-            json_body = request["json_body"]
-            json_body["stream"] = False
-
-            response, retry_events = await self._send_with_retry(
-                url=request["url"],
-                headers=request["headers"],
-                json_body=json_body,
-            )
-            for event in retry_events:
+        state = TransportState.CALLING_API
+        while state not in (TransportState.DONE, TransportState.SUSPENDED):
+            state, events = await self.step(state, ctx)
+            for event in events:
                 yield event
-            if response is None:
-                break
 
-            response_data = response.json()
-            blocks = self._provider.parse_response(response_data)
-            usage = self._provider.extract_usage(response_data)
+    async def step(
+        self,
+        state: TransportState,
+        ctx: _StepContext,
+    ) -> tuple[TransportState, list[Event]]:
+        """Execute one state transition. Returns (next_state, events)."""
+        if state == TransportState.CALLING_API:
+            return await self._step_calling_api(ctx)
+        if state == TransportState.EXECUTING_TOOLS:
+            return await self._step_executing_tools(ctx)
+        # DONE / SUSPENDED: no-op (should not be called)
+        return (state, [])
 
-            total_input += usage.input_tokens
-            total_output += usage.output_tokens
-            total_reasoning += usage.reasoning_tokens
-            total_cache_read += usage.cache_read_tokens
-            total_cache_write += usage.cache_write_tokens
+    async def _step_calling_api(
+        self,
+        ctx: _StepContext,
+    ) -> tuple[TransportState, list[Event]]:
+        events: list[Event] = []
 
-            text_blocks: list[ContentBlock] = []
-            thinking_blocks: list[ContentBlock] = []
-            tool_use_blocks: list[ContentBlock] = []
+        request = self._provider.build_request(
+            messages=ctx.history,
+            tools=ctx.tool_specs,
+            system=ctx.system_prompt,
+            model=ctx.model,
+        )
 
-            for block in blocks:
-                if block.type == "text":
-                    text_blocks.append(block)
-                elif block.type == "thinking":
-                    thinking_blocks.append(block)
-                elif block.type == "tool_use":
-                    tool_use_blocks.append(block)
+        json_body = request["json_body"]
+        json_body["stream"] = False
 
-            for block in thinking_blocks:
-                if block.text is not None:
-                    yield Thinking(text=block.text)
+        response, retry_events = await self._send_with_retry(
+            url=request["url"],
+            headers=request["headers"],
+            json_body=json_body,
+        )
+        events.extend(retry_events)
+        if response is None:
+            return (TransportState.DONE, events)
 
-            for block in text_blocks:
-                if block.text is not None:
-                    if stream_deltas:
-                        yield StreamDelta(text=block.text)
-                    yield Text(text=block.text)
+        response_data = response.json()
+        blocks = self._provider.parse_response(response_data)
+        usage = self._provider.extract_usage(response_data)
 
-            if tool_use_blocks:
-                history.append(self._provider.format_assistant_message(blocks))
+        ctx.total_input += usage.input_tokens
+        ctx.total_output += usage.output_tokens
+        ctx.total_reasoning += usage.reasoning_tokens
+        ctx.total_cache_read += usage.cache_read_tokens
+        ctx.total_cache_write += usage.cache_write_tokens
+        ctx.last_usage = usage
 
-                tool_results: list[dict[str, Any]] = []
+        text_blocks: list[ContentBlock] = []
+        thinking_blocks: list[ContentBlock] = []
+        tool_use_blocks: list[ContentBlock] = []
 
-                for block in tool_use_blocks:
-                    total_tool_calls += 1
-                    tool_name = block.tool_name or ""
-                    tool_input = block.tool_input or {}
-                    tool_use_id = block.tool_use_id or ""
+        for block in blocks:
+            if block.type == "text":
+                text_blocks.append(block)
+            elif block.type == "thinking":
+                thinking_blocks.append(block)
+            elif block.type == "tool_use":
+                tool_use_blocks.append(block)
 
-                    tool = tool_map.get(tool_name)
-                    if tool is None:
-                        yield ToolUse(
-                            tool_name=tool_name,
-                            input=tool_input,
-                            output="",
-                            status="error",
-                            error=f"Unknown tool: {tool_name}",
-                        )
-                        tool_results.append(
-                            self._provider.format_tool_result(
-                                tool_use_id=tool_use_id,
-                                content=f"Error: Unknown tool: {tool_name}",
-                                is_error=True,
-                            )
-                        )
-                        continue
+        for block in thinking_blocks:
+            if block.text is not None:
+                events.append(Thinking(text=block.text))
 
-                    validation_error = _validate_tool_args(tool_input, tool.parameters)
-                    if validation_error is not None:
-                        yield ToolUse(
-                            tool_name=tool_name,
-                            input=tool_input,
-                            output="",
-                            status="error",
-                            error=validation_error,
-                        )
-                        tool_results.append(
-                            self._provider.format_tool_result(
-                                tool_use_id=tool_use_id,
-                                content=f"Error: {validation_error}",
-                                is_error=True,
-                            )
-                        )
-                        continue
+        for block in text_blocks:
+            if block.text is not None:
+                if ctx.stream_deltas:
+                    events.append(StreamDelta(text=block.text))
+                events.append(Text(text=block.text))
 
-                    start = time.monotonic_ns()
-                    try:
-                        result_text = await tool.execute(tool_input)
-                        duration_ms = (time.monotonic_ns() - start) // 1_000_000
-                        yield ToolUse(
-                            tool_name=tool_name,
-                            input=tool_input,
-                            output=result_text,
-                            status="success",
-                            duration_ms=duration_ms,
-                        )
-                        tool_results.append(
-                            self._provider.format_tool_result(
-                                tool_use_id=tool_use_id,
-                                content=result_text,
-                                is_error=False,
-                            )
-                        )
-                    except ToolError as e:
-                        duration_ms = (time.monotonic_ns() - start) // 1_000_000
-                        error_msg = str(e)
-                        yield ToolUse(
-                            tool_name=tool_name,
-                            input=tool_input,
-                            output="",
-                            status="error",
-                            error=error_msg,
-                            duration_ms=duration_ms,
-                        )
-                        tool_results.append(
-                            self._provider.format_tool_result(
-                                tool_use_id=tool_use_id,
-                                content=f"Error: {error_msg}",
-                                is_error=True,
-                            )
-                        )
+        if tool_use_blocks:
+            ctx.history.append(self._provider.format_assistant_message(blocks))
+            ctx.pending_tool_blocks = tool_use_blocks
+            return (TransportState.EXECUTING_TOOLS, events)
 
-                history.append({"role": "user", "content": tool_results})
-                continue
+        # Text-only response: finish
+        full_text = " ".join(
+            block.text for block in text_blocks if block.text is not None
+        )
+        ctx.history.append(self._provider.format_assistant_message(blocks))
 
-            full_text = " ".join(
-                block.text for block in text_blocks if block.text is not None
-            )
-            history.append(self._provider.format_assistant_message(blocks))
-
-            yield StepFinish(
+        events.append(
+            StepFinish(
                 reason="end_turn",
                 input_tokens=usage.input_tokens,
                 output_tokens=usage.output_tokens,
@@ -235,17 +208,118 @@ class Transport:
                 cache_read_tokens=usage.cache_read_tokens,
                 cache_write_tokens=usage.cache_write_tokens,
             )
-            yield Result(
+        )
+        events.append(
+            Result(
                 text=full_text,
-                session_id=session_id,
-                total_input_tokens=total_input,
-                total_output_tokens=total_output,
-                total_reasoning_tokens=total_reasoning,
-                total_cache_read_tokens=total_cache_read,
-                total_cache_write_tokens=total_cache_write,
-                tool_calls=total_tool_calls,
+                session_id=ctx.session_id,
+                total_input_tokens=ctx.total_input,
+                total_output_tokens=ctx.total_output,
+                total_reasoning_tokens=ctx.total_reasoning,
+                total_cache_read_tokens=ctx.total_cache_read,
+                total_cache_write_tokens=ctx.total_cache_write,
+                tool_calls=ctx.total_tool_calls,
             )
-            break
+        )
+        return (TransportState.DONE, events)
+
+    async def _step_executing_tools(
+        self,
+        ctx: _StepContext,
+    ) -> tuple[TransportState, list[Event]]:
+        events: list[Event] = []
+        tool_results: list[dict[str, Any]] = []
+
+        for block in ctx.pending_tool_blocks:
+            ctx.total_tool_calls += 1
+            tool_name = block.tool_name or ""
+            tool_input = block.tool_input or {}
+            tool_use_id = block.tool_use_id or ""
+
+            tool = ctx.tool_map.get(tool_name)
+            if tool is None:
+                events.append(
+                    ToolUse(
+                        tool_name=tool_name,
+                        input=tool_input,
+                        output="",
+                        status="error",
+                        error=f"Unknown tool: {tool_name}",
+                    )
+                )
+                tool_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=f"Error: Unknown tool: {tool_name}",
+                        is_error=True,
+                    )
+                )
+                continue
+
+            validation_error = _validate_tool_args(tool_input, tool.parameters)
+            if validation_error is not None:
+                events.append(
+                    ToolUse(
+                        tool_name=tool_name,
+                        input=tool_input,
+                        output="",
+                        status="error",
+                        error=validation_error,
+                    )
+                )
+                tool_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=f"Error: {validation_error}",
+                        is_error=True,
+                    )
+                )
+                continue
+
+            start = time.monotonic_ns()
+            try:
+                result_text = await tool.execute(tool_input)
+                duration_ms = (time.monotonic_ns() - start) // 1_000_000
+                events.append(
+                    ToolUse(
+                        tool_name=tool_name,
+                        input=tool_input,
+                        output=result_text,
+                        status="success",
+                        duration_ms=duration_ms,
+                    )
+                )
+                tool_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=result_text,
+                        is_error=False,
+                    )
+                )
+            except ToolError as e:
+                duration_ms = (time.monotonic_ns() - start) // 1_000_000
+                error_msg = str(e)
+                events.append(
+                    ToolUse(
+                        tool_name=tool_name,
+                        input=tool_input,
+                        output="",
+                        status="error",
+                        error=error_msg,
+                        duration_ms=duration_ms,
+                    )
+                )
+                tool_results.append(
+                    self._provider.format_tool_result(
+                        tool_use_id=tool_use_id,
+                        content=f"Error: {error_msg}",
+                        is_error=True,
+                    )
+                )
+
+        ctx.history.append({"role": "user", "content": tool_results})
+        ctx.pending_tool_blocks = []
+        return (TransportState.CALLING_API, events)
 
     async def _send_with_retry(
         self,
