@@ -5,6 +5,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from orxt.agent import load_agents, load_categories
+from orxt.scheduler import Scheduler, load_workflow
 from orxt.trace import RunReport, RunSummary, TraceWriter, read_run_report
 from orxt.trace import list_runs as _list_runs
 from pydantic import BaseModel, ConfigDict
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
 class RunConfig(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+    workflow_path: Path
     agents_dir: Path
     knowledge_dir: Path
     categories_path: Path
@@ -32,15 +35,44 @@ def _serialize_config(config: RunConfig) -> dict[str, Any]:
     data["agents_dir"] = str(config.agents_dir)
     data["knowledge_dir"] = str(config.knowledge_dir)
     data["categories_path"] = str(config.categories_path)
+    data["workflow_path"] = str(config.workflow_path)
     data["budget"] = str(config.budget)
     return data
 
 
-async def start_run(pool: asyncpg.Pool, intent: str, config: RunConfig) -> UUID:
+async def start_run(
+    pool: asyncpg.Pool,
+    intent: str,
+    config: RunConfig,
+    *,
+    transport_registry: dict[str, Any] | None = None,
+    overseer: Any | None = None,
+) -> UUID:
     writer = TraceWriter(pool)
-    return await writer.create_run(
+    run_id = await writer.create_run(
         intent, _serialize_config(config), config.autonomy_level
     )
+    try:
+        await writer.transition_run(run_id, "running")
+        agents = load_agents(config.agents_dir)
+        categories = load_categories(config.categories_path)
+        registry = transport_registry if transport_registry is not None else {}
+        scheduler = Scheduler(
+            trace_writer=writer,
+            transport_registry=registry,
+            agents=agents,
+            categories=categories,
+            run_id=run_id,
+            overseer_interface=overseer,
+            knowledge_dir=config.knowledge_dir,
+        )
+        workflow_config = load_workflow(config.workflow_path)
+        await scheduler.execute_workflow(workflow_config)
+        await writer.transition_run(run_id, "completed")
+    except Exception:
+        await writer.transition_run(run_id, "failed")
+        raise
+    return run_id
 
 
 async def start_run_from_file(
@@ -51,7 +83,7 @@ async def start_run_from_file(
         raise FileNotFoundError(msg)
     with config_path.open("rb") as f:
         raw = tomllib.load(f)
-    for key in ("agents_dir", "knowledge_dir", "categories_path"):
+    for key in ("workflow_path", "agents_dir", "knowledge_dir", "categories_path"):
         if key in raw and isinstance(raw[key], str):
             raw[key] = Path(raw[key])
     if "budget" in raw and not isinstance(raw["budget"], Decimal):
