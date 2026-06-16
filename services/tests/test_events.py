@@ -1,76 +1,74 @@
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
+from uuid import uuid4
 
+import asyncpg  # type: ignore[import-untyped]
 import pytest
-from conftest import FakeRecord
 from orxt.services._events import fire_event
+from orxt.trace import TraceWriter
 
 if TYPE_CHECKING:
     from uuid import UUID
 
 
+@pytest.fixture
+def mock_writer() -> AsyncMock:
+    writer = AsyncMock(spec=TraceWriter)
+    writer.write_event = AsyncMock(return_value=uuid4())
+    return writer
+
+
 @pytest.mark.asyncio
 async def test_fire_event_basic(
-    mock_pool: AsyncMock, mock_conn: AsyncMock, sample_run_id: UUID
+    mock_writer: AsyncMock, sample_run_id: UUID
 ) -> None:
-    mock_conn.fetchrow = AsyncMock(
-        return_value=FakeRecord({"id": sample_run_id})
+    result = await fire_event(mock_writer, sample_run_id, "task_started")
+
+    mock_writer.write_event.assert_awaited_once_with(
+        sample_run_id, "task_started", {}
     )
-
-    await fire_event(mock_pool, sample_run_id, "task_started")
-
-    mock_conn.fetchrow.assert_called_once()
-    mock_conn.execute.assert_called_once()
-    call_args = mock_conn.execute.call_args
-    assert call_args[0][1] == "orxt_events"
-    notification = json.loads(call_args[0][2])
-    assert notification["run_id"] == str(sample_run_id)
-    assert notification["event"] == "task_started"
-    assert notification["payload"] is None
+    assert result == mock_writer.write_event.return_value
 
 
 @pytest.mark.asyncio
 async def test_fire_event_with_payload(
-    mock_pool: AsyncMock, mock_conn: AsyncMock, sample_run_id: UUID
+    mock_writer: AsyncMock, sample_run_id: UUID
 ) -> None:
-    mock_conn.fetchrow = AsyncMock(
-        return_value=FakeRecord({"id": sample_run_id})
-    )
     payload = {"task_id": "abc", "status": "done"}
 
-    await fire_event(mock_pool, sample_run_id, "task_completed", payload=payload)
+    result = await fire_event(
+        mock_writer, sample_run_id, "task_completed", payload=payload
+    )
 
-    call_args = mock_conn.execute.call_args
-    notification = json.loads(call_args[0][2])
-    assert notification["payload"] == payload
-    assert notification["event"] == "task_completed"
+    mock_writer.write_event.assert_awaited_once_with(
+        sample_run_id, "task_completed", payload
+    )
+    assert result == mock_writer.write_event.return_value
 
 
 @pytest.mark.asyncio
 async def test_fire_event_none_payload(
-    mock_pool: AsyncMock, mock_conn: AsyncMock, sample_run_id: UUID
+    mock_writer: AsyncMock, sample_run_id: UUID
 ) -> None:
-    mock_conn.fetchrow = AsyncMock(
-        return_value=FakeRecord({"id": sample_run_id})
+    await fire_event(mock_writer, sample_run_id, "ping", payload=None)
+
+    mock_writer.write_event.assert_awaited_once_with(
+        sample_run_id, "ping", {}
     )
-
-    await fire_event(mock_pool, sample_run_id, "ping", payload=None)
-
-    call_args = mock_conn.execute.call_args
-    notification = json.loads(call_args[0][2])
-    assert notification["payload"] is None
 
 
 @pytest.mark.asyncio
-async def test_fire_event_invalid_run(
-    mock_pool: AsyncMock, mock_conn: AsyncMock, sample_run_id: UUID
+async def test_fire_event_propagates_write_error(
+    mock_writer: AsyncMock, sample_run_id: UUID
 ) -> None:
-    mock_conn.fetchrow = AsyncMock(return_value=None)
+    mock_writer.write_event = AsyncMock(
+        side_effect=asyncpg.ForeignKeyViolationError(
+            "insert or update on table \"events\" violates"
+            " foreign key constraint"
+        )
+    )
 
-    with pytest.raises(ValueError, match="not found"):
-        await fire_event(mock_pool, sample_run_id, "task_started")
-
-    mock_conn.execute.assert_not_called()
+    with pytest.raises(asyncpg.ForeignKeyViolationError):
+        await fire_event(mock_writer, sample_run_id, "task_started")

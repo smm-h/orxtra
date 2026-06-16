@@ -12,6 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from orxt.mcp._tools import get_tool_definitions
+from orxt.trace import TraceWriter
 from orxt.services import (
     abort_run,
     dump_config,
@@ -179,8 +180,9 @@ class MCPServer:
             return await get_notepad(pool, run_id=UUID(p["run_id"]))
 
         async def _fire_event(p: dict[str, Any]) -> Any:
+            writer = TraceWriter(pool)
             return await fire_event(
-                pool,
+                writer,
                 run_id=UUID(p["run_id"]),
                 event_name=str(p["event_name"]),
                 payload=p.get("payload"),
