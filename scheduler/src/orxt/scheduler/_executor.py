@@ -508,8 +508,8 @@ class Scheduler:
     ) -> TaskResult:
         """Execute a decision point task.
 
-        Decision points are placeholder tasks that the Overseer
-        handles in Phase 3. For now, just transition and complete.
+        Sends an event to the Overseer, which may create
+        tasks, modify constraints, etc. in response.
         """
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
@@ -526,6 +526,27 @@ class Scheduler:
             task_id=task_id,
         )
 
+        # Send to Overseer if available
+        if self._overseer_interface is not None:
+            from orxt.protocols._events import (  # noqa: PLC0415
+                StructuralAdvisory,
+            )
+            await self._send_overseer_event(
+                StructuralAdvisory(
+                    task_id=task_id,
+                    observation=(
+                        f"Decision point reached:"
+                        f" {task.name}"
+                    ),
+                    suggestion=(
+                        "Review context and decide how"
+                        " to proceed. You may create"
+                        " tasks, add constraints, or"
+                        " take other actions."
+                    ),
+                ),
+            )
+
         self._complete_task(task_id, task.name, None)
         await self._trace_writer.transition_task(
             task_id, TaskState.COMPLETED.value,
@@ -536,9 +557,7 @@ class Scheduler:
             check_results=[
                 CheckResult(
                     passed=True,
-                    message=(
-                        "Decision point completed (stub)"
-                    ),
+                    message="Decision point completed",
                 ),
             ],
         )
@@ -986,6 +1005,20 @@ class Scheduler:
         await self._trace_writer.transition_task(
             task_id, TaskState.ESCALATED.value,
         )
+
+        # Send escalation event to Overseer
+        from orxt.protocols._events import (  # noqa: PLC0415
+            TaskEscalated,
+        )
+        await self._send_overseer_event(
+            TaskEscalated(
+                task_id=task_id,
+                task_name=task.name,
+                from_child_task_id=task_id,
+                payload=escalation,
+            ),
+        )
+
         return TaskResult(
             output=None,
             structured_output={
