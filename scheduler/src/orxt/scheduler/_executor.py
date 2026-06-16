@@ -1282,9 +1282,14 @@ class Scheduler:
             task_id, TaskState.ACTIVE.value,
         )
 
-        module_path, _, func_name = (
-            task.callable.rpartition(".")
-        )
+        parts = task.callable.split(":")
+        if len(parts) != 2:  # noqa: PLR2004
+            msg = (
+                f"Invalid callable path: {task.callable!r}"
+                " (expected 'module.path:function')"
+            )
+            raise ValueError(msg)
+        module_path, func_name = parts
         module = importlib.import_module(module_path)
         func = getattr(module, func_name)
 
