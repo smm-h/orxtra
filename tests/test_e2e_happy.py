@@ -470,7 +470,7 @@ class TestFunctionTask:
         try:
             task = TaskSpec(
                 name="func_task",
-                callable=f"{module_name}.my_func",
+                callable=f"{module_name}:my_func",
                 timeout=30,
                 context_refinement=False,
             )
@@ -526,7 +526,7 @@ class TestFunctionTask:
         try:
             task = TaskSpec(
                 name="struct_task",
-                callable=f"{module_name}.structured_func",
+                callable=f"{module_name}:structured_func",
                 timeout=30,
                 context_refinement=False,
             )
@@ -613,7 +613,7 @@ class TestForEach:
 
             setup_task = TaskSpec(
                 name="setup",
-                callable=f"{module_name}.produce_items",
+                callable=f"{module_name}:produce_items",
                 timeout=30,
                 context_refinement=False,
             )

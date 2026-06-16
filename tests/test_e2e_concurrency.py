@@ -231,14 +231,14 @@ class TestForEachMaxConcurrency:
         try:
             setup_task = TaskSpec(
                 name="setup",
-                callable=f"{items_module}.produce_items",
+                callable=f"{items_module}:produce_items",
                 timeout=30,
                 context_refinement=False,
             )
 
             iterate_task = TaskSpec(
                 name="iterate",
-                callable=f"{process_module}.process_item",
+                callable=f"{process_module}:process_item",
                 timeout=30,
                 context_refinement=False,
                 for_each="setup_output",
