@@ -7,6 +7,7 @@ import json
 import logging
 import time
 from decimal import Decimal
+from uuid import UUID
 from typing import TYPE_CHECKING, Any
 
 import jsonschema
@@ -28,6 +29,11 @@ from orxt.protocols._task import (
     TaskState,
 )
 from orxt.protocols._tool import Tool, ToolError
+from orxt.protocols._tools import (
+    CreateTaskParams,
+    CreateWaitForParams,
+    CreateWorkflowParams,
+)
 from orxt.scheduler._events import EventRegistry
 from orxt.scheduler._graph import (
     build_graph,
@@ -38,6 +44,14 @@ from orxt.scheduler._locks import FileLockRegistry
 from orxt.scheduler._validator import validate_task_tree
 from orxt.session import Session, compute_cost_usd, create_session
 from orxt.tool._pipeline import wrap_tools_for_session
+from orxt.tool._task_tools import (
+    make_await_task_tool,
+    make_create_task_tool,
+    make_create_wait_for_tool,
+    make_create_workflow_tool,
+    make_end_task_tool,
+    make_start_task_tool,
+)
 from orxt.transport import Result, Usage
 from orxt.verify import run_checks
 from orxt.write_safety import StaleWriteTracker, WriteQueue
@@ -45,16 +59,10 @@ from orxt.write_safety import StaleWriteTracker, WriteQueue
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from pathlib import Path
-    from uuid import UUID
 
     import asyncpg
     from orxt.agent import Agent
     from orxt.protocols._task import Execution
-    from orxt.protocols._tools import (
-        CreateTaskParams,
-        CreateWaitForParams,
-        CreateWorkflowParams,
-    )
     from orxt.scheduler._overseer import (
         OverseerEvent,
         OverseerInterface,
@@ -175,6 +183,7 @@ class Scheduler:
         self._pending_advisories: list[
             dict[str, Any]
         ] = []
+        self._pending_await: dict[str, str] = {}
         self._paused = asyncio.Event()
         self._paused.set()  # Not paused initially
 
@@ -988,8 +997,21 @@ class Scheduler:
             raise ValueError(msg)
 
         session_id = f"session-{task_id}-{attempt}"
-        tools = self._build_lifecycle_tools(
-            task_id, session_id,
+        raw_tools = [
+            make_start_task_tool(self, session_id),
+            make_end_task_tool(self, session_id),
+            make_create_task_tool(self, session_id),
+            make_create_workflow_tool(self, session_id),
+            make_create_wait_for_tool(self, session_id),
+            make_await_task_tool(self, session_id),
+        ]
+        tools = wrap_tools_for_session(
+            tools=raw_tools,
+            scheduler_check=self.check_active_task,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=session_id,
+            mutation_tracker=self._session_mutations,
         )
 
         previous_session_id: str | None = None
@@ -1011,75 +1033,6 @@ class Scheduler:
             session_id=previous_session_id,
         )
         return session, session_id
-
-    def _build_lifecycle_tools(
-        self,
-        task_id: UUID,
-        session_id: str,
-    ) -> list[Tool]:
-        async def start_task_execute(
-            params: dict[str, Any],  # noqa: ARG001
-        ) -> str:
-            return await self.handle_start_task(
-                session_id, task_id,
-            )
-
-        async def end_task_execute(
-            params: dict[str, Any],
-        ) -> str:
-            message = params.get("message", "")
-            return await self.handle_end_task(
-                session_id, message,
-            )
-
-        raw_tools = [
-            Tool(
-                name="start_task",
-                description=(
-                    "Start the assigned task."
-                    " Must be called before any work."
-                ),
-                parameters={
-                    "type": "object",
-                    "properties": {},
-                    "additionalProperties": False,
-                },
-                execute=start_task_execute,
-            ),
-            Tool(
-                name="end_task",
-                description=(
-                    "Signal task completion."
-                    " Triggers postchecks."
-                ),
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "message": {
-                            "type": "string",
-                            "description": (
-                                "Commit message for"
-                                " auto-commit"
-                            ),
-                        },
-                    },
-                    "required": ["message"],
-                    "additionalProperties": False,
-                },
-                execute=end_task_execute,
-            ),
-        ]
-
-        # Wrap with pipeline: active task check,
-        # secret substitution, mutation tracking
-        return wrap_tools_for_session(
-            tools=raw_tools,
-            scheduler_check=self.check_active_task,
-            secret_registry=None,
-            trace_callback=None,
-            session_id=session_id,
-            mutation_tracker=self._session_mutations,
-        )
 
     @staticmethod
     def _resolve_prompt(
@@ -1710,13 +1663,14 @@ class Scheduler:
         )
 
     async def handle_start_task(
-        self, session_id: str, task_id: UUID,
+        self, session_id: str, task_id: str,
     ) -> str:
-        if task_id not in self._task_states:
+        task_uuid = UUID(task_id)
+        if task_uuid not in self._task_states:
             msg = f"Task {task_id} does not exist"
             raise ToolError(msg)
 
-        state = self._task_states[task_id]
+        state = self._task_states[task_uuid]
         if state != TaskState.CREATED:
             msg = (
                 f"Task {task_id} is in state '{state}',"
@@ -1724,23 +1678,23 @@ class Scheduler:
             )
             raise ToolError(msg)
 
-        self._task_states[task_id] = TaskState.PRECHECKING
+        self._task_states[task_uuid] = TaskState.PRECHECKING
         await self._trace_writer.transition_task(
-            task_id, TaskState.PRECHECKING.value,
+            task_uuid, TaskState.PRECHECKING.value,
         )
 
-        task = self._task_specs[task_id]
+        task = self._task_specs[task_uuid]
         precheck_results = await self._run_prechecks(
-            task, task_id,
+            task, task_uuid,
         )
         if not all(
             cr.passed for cr in precheck_results
         ):
-            self._task_states[task_id] = (
+            self._task_states[task_uuid] = (
                 TaskState.PRECHECK_FAILED
             )
             await self._trace_writer.transition_task(
-                task_id, TaskState.PRECHECK_FAILED.value,
+                task_uuid, TaskState.PRECHECK_FAILED.value,
             )
             failed = [
                 cr.message
@@ -1751,11 +1705,11 @@ class Scheduler:
                 f"Prechecks failed: {'; '.join(failed)}"
             )
 
-        self._task_states[task_id] = TaskState.ACTIVE
+        self._task_states[task_uuid] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
-            task_id, TaskState.ACTIVE.value,
+            task_uuid, TaskState.ACTIVE.value,
         )
-        self._active_tasks[session_id] = task_id
+        self._active_tasks[session_id] = task_uuid
         return f"Task {task_id} is now active"
 
     async def handle_end_task(
@@ -1923,32 +1877,37 @@ class Scheduler:
     async def handle_create_task(
         self,
         session_id: str,
-        params: CreateTaskParams,
+        params: dict[str, Any] | CreateTaskParams,
     ) -> str:
         parent_id = self.check_active_task(session_id)
+        parsed = (
+            params
+            if isinstance(params, CreateTaskParams)
+            else CreateTaskParams(**params)
+        )
 
         task_id = await self._trace_writer.create_task(
             run_id=self._run_id,
             parent_task_id=parent_id,
-            name=params.name,
+            name=parsed.name,
             task_type="agent",
         )
         self._task_states[task_id] = TaskState.CREATED
         spec = TaskSpec(
-            name=params.name,
-            agent=params.agent,
-            task_prompt=params.task_prompt,
-            prechecks=list(params.prechecks),
-            postchecks=list(params.postchecks),
-            timeout=params.timeout,
-            context_refinement=params.context_refinement,
-            budget=params.budget,
-            write_paths=params.write_paths,
-            category=params.category,
-            retry=params.retry,
-            retry_resume=params.retry_resume,
+            name=parsed.name,
+            agent=parsed.agent,
+            task_prompt=parsed.task_prompt,
+            prechecks=list(parsed.prechecks),
+            postchecks=list(parsed.postchecks),
+            timeout=parsed.timeout,
+            context_refinement=parsed.context_refinement,
+            budget=parsed.budget,
+            write_paths=parsed.write_paths,
+            category=parsed.category,
+            retry=parsed.retry,
+            retry_resume=parsed.retry_resume,
             retry_inject_failure=(
-                params.retry_inject_failure
+                parsed.retry_inject_failure
             ),
         )
         self._task_specs[task_id] = spec
@@ -1959,10 +1918,10 @@ class Scheduler:
         self._task_costs[task_id] = Decimal(0)
 
         # Claim write paths in file lock registry
-        if params.write_paths:
+        if parsed.write_paths:
             try:
                 self._file_lock_registry.claim(
-                    task_id, params.write_paths,
+                    task_id, parsed.write_paths,
                 )
             except ValueError as e:
                 raise ToolError(str(e)) from e
@@ -1982,18 +1941,19 @@ class Scheduler:
     async def handle_create_workflow(
         self,
         session_id: str,
-        params: CreateWorkflowParams,
+        params: dict[str, Any],
     ) -> str:
         parent_id = self.check_active_task(session_id)
+        parsed = CreateWorkflowParams(**params)
 
         workflow_id = await self._trace_writer.create_task(
             run_id=self._run_id,
             parent_task_id=parent_id,
-            name=params.name,
+            name=parsed.name,
             task_type="workflow",
         )
         spec = TaskSpec(
-            name=params.name,
+            name=parsed.name,
             subtasks=[],
         )
         self._task_states[workflow_id] = TaskState.CREATED
@@ -2009,21 +1969,22 @@ class Scheduler:
     async def handle_create_wait_for(
         self,
         session_id: str,
-        params: CreateWaitForParams,
+        params: dict[str, Any],
     ) -> str:
         parent_id = self.check_active_task(session_id)
+        parsed = CreateWaitForParams(**params)
 
         task_id = await self._trace_writer.create_task(
             run_id=self._run_id,
             parent_task_id=parent_id,
-            name=params.name,
+            name=parsed.name,
             task_type="wait_for",
         )
         self._task_states[task_id] = TaskState.CREATED
         spec = TaskSpec(
-            name=params.name,
-            wait_for=params.event_name,
-            timeout=params.timeout,
+            name=parsed.name,
+            wait_for=parsed.event_name,
+            timeout=parsed.timeout,
         )
         self._task_specs[task_id] = spec
         self._task_parents[task_id] = parent_id
@@ -2032,9 +1993,25 @@ class Scheduler:
         ).append(task_id)
         self._task_costs[task_id] = Decimal(0)
         self._event_registry.register(
-            params.event_name, task_id,
+            parsed.event_name, task_id,
         )
         return str(task_id)
+
+    async def handle_await_task(
+        self,
+        session_id: str,
+        task_id: str,
+    ) -> str:
+        task_uuid = UUID(task_id)
+        if task_uuid not in self._task_states:
+            msg = f"Task {task_id} does not exist"
+            raise ToolError(msg)
+        self._pending_await[session_id] = task_id
+        return (
+            f"Awaiting task {task_id}."
+            " Session will suspend and resume"
+            " with the result."
+        )
 
     def check_active_task(self, session_id: str) -> UUID:
         task_id = self._active_tasks.get(session_id)
