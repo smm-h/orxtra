@@ -131,17 +131,20 @@ class Transport:
                 session_id=ctx.session_id,
             )
 
-    async def resume(  # noqa: PLR0913
+    async def resume(
         self,
         continuation: Continuation,
-        await_result: str,
+        _await_result: str,
         *,
         model: str,
         system_prompt: str,
         tools: list[Tool],
         stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
-        """Resume from suspension. Executes remaining tools, then continues the API loop."""
+        """Resume from suspension.
+
+        Executes remaining tools, then continues the API loop.
+        """
         session_id = continuation.session_id
         if session_id is None:
             msg = "Continuation has no session_id"
@@ -287,6 +290,66 @@ class Transport:
         # DONE / SUSPENDED: no-op (should not be called)
         return (state, [])
 
+    @staticmethod
+    def _accumulate_usage(ctx: _StepContext, usage: Usage) -> None:
+        """Update cumulative token counters on the step context."""
+        ctx.total_input += usage.input_tokens
+        ctx.total_output += usage.output_tokens
+        ctx.total_reasoning += usage.reasoning_tokens
+        ctx.total_cache_read += usage.cache_read_tokens
+        ctx.total_cache_write += usage.cache_write_tokens
+        ctx.last_usage = usage
+
+    @staticmethod
+    def _categorize_blocks(
+        blocks: list[ContentBlock],
+    ) -> tuple[list[ContentBlock], list[ContentBlock], list[ContentBlock]]:
+        """Split content blocks into text, thinking, and tool_use lists."""
+        text_blocks: list[ContentBlock] = []
+        thinking_blocks: list[ContentBlock] = []
+        tool_use_blocks: list[ContentBlock] = []
+
+        for block in blocks:
+            if block.type == "text":
+                text_blocks.append(block)
+            elif block.type == "thinking":
+                thinking_blocks.append(block)
+            elif block.type == "tool_use":
+                tool_use_blocks.append(block)
+
+        return text_blocks, thinking_blocks, tool_use_blocks
+
+    @staticmethod
+    def _build_finish_events(
+        ctx: _StepContext,
+        usage: Usage,
+        text_blocks: list[ContentBlock],
+    ) -> list[Event]:
+        """Build StepFinish and Result events for a text-only response."""
+        full_text = " ".join(
+            block.text for block in text_blocks if block.text is not None
+        )
+        return [
+            StepFinish(
+                reason="end_turn",
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                reasoning_tokens=usage.reasoning_tokens,
+                cache_read_tokens=usage.cache_read_tokens,
+                cache_write_tokens=usage.cache_write_tokens,
+            ),
+            Result(
+                text=full_text,
+                session_id=ctx.session_id,
+                total_input_tokens=ctx.total_input,
+                total_output_tokens=ctx.total_output,
+                total_reasoning_tokens=ctx.total_reasoning,
+                total_cache_read_tokens=ctx.total_cache_read,
+                total_cache_write_tokens=ctx.total_cache_write,
+                tool_calls=ctx.total_tool_calls,
+            ),
+        ]
+
     async def _step_calling_api(
         self,
         ctx: _StepContext,
@@ -316,28 +379,17 @@ class Transport:
         blocks = self._provider.parse_response(response_data)
         usage = self._provider.extract_usage(response_data)
 
-        ctx.total_input += usage.input_tokens
-        ctx.total_output += usage.output_tokens
-        ctx.total_reasoning += usage.reasoning_tokens
-        ctx.total_cache_read += usage.cache_read_tokens
-        ctx.total_cache_write += usage.cache_write_tokens
-        ctx.last_usage = usage
+        self._accumulate_usage(ctx, usage)
 
-        text_blocks: list[ContentBlock] = []
-        thinking_blocks: list[ContentBlock] = []
-        tool_use_blocks: list[ContentBlock] = []
+        text_blocks, thinking_blocks, tool_use_blocks = (
+            self._categorize_blocks(blocks)
+        )
 
-        for block in blocks:
-            if block.type == "text":
-                text_blocks.append(block)
-            elif block.type == "thinking":
-                thinking_blocks.append(block)
-            elif block.type == "tool_use":
-                tool_use_blocks.append(block)
-
-        for block in thinking_blocks:
-            if block.text is not None:
-                events.append(Thinking(text=block.text))
+        events.extend(
+            Thinking(text=block.text)
+            for block in thinking_blocks
+            if block.text is not None
+        )
 
         for block in text_blocks:
             if block.text is not None:
@@ -351,33 +403,8 @@ class Transport:
             return (TransportState.EXECUTING_TOOLS, events)
 
         # Text-only response: finish
-        full_text = " ".join(
-            block.text for block in text_blocks if block.text is not None
-        )
         ctx.history.append(self._provider.format_assistant_message(blocks))
-
-        events.append(
-            StepFinish(
-                reason="end_turn",
-                input_tokens=usage.input_tokens,
-                output_tokens=usage.output_tokens,
-                reasoning_tokens=usage.reasoning_tokens,
-                cache_read_tokens=usage.cache_read_tokens,
-                cache_write_tokens=usage.cache_write_tokens,
-            )
-        )
-        events.append(
-            Result(
-                text=full_text,
-                session_id=ctx.session_id,
-                total_input_tokens=ctx.total_input,
-                total_output_tokens=ctx.total_output,
-                total_reasoning_tokens=ctx.total_reasoning,
-                total_cache_read_tokens=ctx.total_cache_read,
-                total_cache_write_tokens=ctx.total_cache_write,
-                tool_calls=ctx.total_tool_calls,
-            )
-        )
+        events.extend(self._build_finish_events(ctx, usage, text_blocks))
         return (TransportState.DONE, events)
 
     async def _step_executing_tools(
