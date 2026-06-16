@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import subprocess
+import asyncio
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -35,42 +36,60 @@ async def query_relevant_lessons(
 
 
 async def check_staleness(
-    pool: Any,  # noqa: ANN401
-    lesson_id: UUID,
+    lesson_source_files: list[str],
     repo_dir: Path,
+    created_at: str,
 ) -> bool:
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT source_file, created_at FROM lessons WHERE id = $1",
-            lesson_id,
-        )
-    if row is None:
-        return True
-    source_file: str | None = row["source_file"]
-    if source_file is None:
+    """Check if any source file was modified after the lesson was created."""
+    if not lesson_source_files:
         return False
-    source_path = Path(source_file)
-    if not source_path.is_absolute():
-        source_path = repo_dir / source_path
-    if not source_path.exists():
-        return True
-    try:
-        result = subprocess.run(  # noqa: S603, ASYNC221
-            ["git", "log", "-1", "--format=%aI", "--", str(source_path)],  # noqa: S607
-            capture_output=True,
-            text=True,
-            check=True,
-            cwd=repo_dir,
-        )
-    except subprocess.CalledProcessError:
-        return True
-    git_date_str = result.stdout.strip()
-    if not git_date_str:
-        return False
-    from datetime import UTC, datetime  # noqa: PLC0415
-
-    git_date = datetime.fromisoformat(git_date_str)
-    lesson_date: datetime = row["created_at"]
+    lesson_date = datetime.fromisoformat(created_at)
     if lesson_date.tzinfo is None:
         lesson_date = lesson_date.replace(tzinfo=UTC)
-    return bool(git_date > lesson_date)
+    for source_file in lesson_source_files:
+        source_path = Path(source_file)
+        if not source_path.is_absolute():
+            source_path = repo_dir / source_path
+        if not source_path.exists():
+            return True
+        try:
+            proc = await asyncio.create_subprocess_exec(  # noqa: S603, S607
+                "git", "log", "-1", "--format=%aI", "--", str(source_path),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=repo_dir,
+            )
+            stdout, _ = await proc.communicate()
+        except OSError:
+            return False
+        if proc.returncode != 0:
+            return False
+        git_date_str = stdout.decode().strip()
+        if not git_date_str:
+            continue
+        git_date = datetime.fromisoformat(git_date_str)
+        if git_date > lesson_date:
+            return True
+    return False
+
+
+async def filter_stale_lessons(
+    lessons: list[dict[str, Any]],
+    repo_dir: Path,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split lessons into (fresh, stale) based on source file changes."""
+    fresh: list[dict[str, Any]] = []
+    stale: list[dict[str, Any]] = []
+    for lesson in lessons:
+        source_file: str | None = lesson.get("source_file")
+        if source_file is None:
+            fresh.append(lesson)
+            continue
+        is_stale = await check_staleness(
+            [source_file], repo_dir, lesson["created_at"],
+        )
+        if is_stale:
+            stale.append(lesson)
+        else:
+            fresh.append(lesson)
+    return fresh, stale
