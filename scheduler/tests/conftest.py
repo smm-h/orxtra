@@ -435,3 +435,27 @@ def scheduler(
         categories=categories,
         run_id=run_id,
     )
+
+
+@pytest.fixture
+def make_scheduler(
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    agents: dict[str, Agent],
+    categories: dict[str, str],
+    run_id: uuid.UUID,
+) -> Any:
+    """Factory fixture for creating scheduler instances."""
+
+    def _make(**kwargs: Any) -> Scheduler:
+        defaults: dict[str, Any] = {
+            "trace_writer": trace_writer,
+            "transport_registry": {"anthropic": transport},
+            "agents": agents,
+            "categories": categories,
+            "run_id": run_id,
+        }
+        defaults.update(kwargs)
+        return Scheduler(**defaults)  # type: ignore[arg-type]
+
+    return _make

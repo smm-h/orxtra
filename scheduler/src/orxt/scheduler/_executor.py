@@ -493,6 +493,10 @@ class Scheduler:
             return await self._execute_decision_point_task(
                 task, task_id,
             )
+        if task.orchestrator:
+            return await self._execute_orchestrator_task(
+                task, task_id, parent_task_id, variables,
+            )
         return await self._execute_agent_task(
             task, task_id, parent_task_id, variables,
         )
@@ -537,6 +541,102 @@ class Scheduler:
                     ),
                 ),
             ],
+        )
+
+    async def _execute_orchestrator_task(  # noqa: PLR0912, PLR0915
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        parent_task_id: UUID | None,  # noqa: ARG002
+        variables: dict[str, Any] | None = None,
+    ) -> TaskResult:
+        """Execute an orchestrator task with multi-turn suspension support."""
+        from orxt.transport import SessionSuspended  # noqa: PLC0415
+
+        self._task_states[task_id] = TaskState.ACTIVE
+        await self._trace_writer.transition_task(
+            task_id, TaskState.ACTIVE.value,
+        )
+
+        session, session_id_str = self._create_agent_session(
+            task, task_id, 1,
+        )
+        # Register the orchestrator's session so
+        # create_task/await_task can find the active task
+        self._active_tasks[session_id_str] = task_id
+
+        prompt = self._resolve_prompt(
+            task.task_prompt or "",
+            variables or {},
+        )
+
+        output_text = ""
+        continuation = None
+
+        async for event in session.send(prompt):
+            if isinstance(event, SessionSuspended):
+                continuation = event.continuation
+                break
+            if isinstance(event, Result):
+                output_text = event.text or ""
+
+        while continuation is not None:
+            child_task_id_str = self._pending_await.pop(
+                session_id_str, None,
+            )
+            if child_task_id_str is None:
+                break
+
+            child_task_id = UUID(child_task_id_str)
+            child_spec = self._task_specs.get(child_task_id)
+            if child_spec is None:
+                break
+
+            self._task_states[task_id] = TaskState.SUSPENDED
+            await self._trace_writer.transition_task(
+                task_id,
+                TaskState.SUSPENDED.value,
+                "awaiting child task",
+            )
+
+            child_result = await self.execute_task(
+                child_spec, task_id,
+                task_id=child_task_id,
+            )
+
+            self._task_states[task_id] = TaskState.ACTIVE
+            await self._trace_writer.transition_task(
+                task_id,
+                TaskState.ACTIVE.value,
+                "child task completed",
+            )
+
+            resume_msg = (
+                f"Child task {child_task_id_str} completed."
+                f" Result: {child_result.output or 'no output'}"
+            )
+
+            current_cont = continuation
+            continuation = None
+            async for ev in session.resume(
+                current_cont,
+                resume_msg,
+            ):
+                if isinstance(ev, SessionSuspended):
+                    continuation = ev.continuation
+                    break
+                if isinstance(ev, Result):
+                    output_text = ev.text or ""
+
+        self._task_states[task_id] = TaskState.COMPLETED
+        await self._trace_writer.transition_task(
+            task_id, TaskState.COMPLETED.value,
+        )
+
+        return TaskResult(
+            output=output_text,
+            structured_output=None,
+            check_results=[],
         )
 
     async def _execute_agent_task(  # noqa: C901, PLR0912, PLR0915
