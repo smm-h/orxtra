@@ -25,6 +25,7 @@ class TaskState(StrEnum):
     CREATED = "created"
     PRECHECKING = "prechecking"
     ACTIVE = "active"
+    SUSPENDED = "suspended"
     POSTCHECKING = "postchecking"
     COMPLETED = "completed"
     PRECHECK_FAILED = "precheck_failed"
@@ -46,6 +47,7 @@ class TaskSpec(BaseModel):
     subtasks: list[TaskSpec] | None = None
     wait_for: str | None = None
     decision_point: bool | None = None
+    orchestrator: bool | None = None
 
     variables: list[str] = []
     depends_on: list[str] | None = None

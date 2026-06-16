@@ -6,6 +6,7 @@ from orxt.transport._events import (
     Error,
     Event,
     Result,
+    SessionSuspended,
     StepFinish,
     StepStart,
     StreamDelta,
@@ -15,16 +16,19 @@ from orxt.transport._events import (
     Usage,
 )
 from orxt.transport._provider import Provider, RetryPolicy
+from orxt.transport._state_machine import Continuation, TransportState
 from orxt.transport._transport import Transport
 
 __all__ = [
     "ApiRetry",
     "ContentBlock",
+    "Continuation",
     "Error",
     "Event",
     "Provider",
     "Result",
     "RetryPolicy",
+    "SessionSuspended",
     "StepFinish",
     "StepStart",
     "StreamDelta",
@@ -32,5 +36,6 @@ __all__ = [
     "Thinking",
     "ToolUse",
     "Transport",
+    "TransportState",
     "Usage",
 ]
