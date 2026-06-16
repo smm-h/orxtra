@@ -23,6 +23,7 @@ jobs:
       scheduler: ${{ steps.changes.outputs.scheduler }}
       overseer: ${{ steps.changes.outputs.overseer }}
       knowledge-module: ${{ steps.changes.outputs.knowledge-module }}
+      services: ${{ steps.changes.outputs.services }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -42,6 +43,7 @@ jobs:
           scheduler: 'scheduler/**'
           overseer: 'overseer/**'
           knowledge-module: 'knowledge-module/**'
+          services: 'services/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -94,3 +96,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.knowledge-module == 'true'
     uses: ./.github/workflows/knowledge-module-ci.yml
+  services:
+    needs: detect
+    if: needs.detect.outputs.services == 'true'
+    uses: ./.github/workflows/services-ci.yml
