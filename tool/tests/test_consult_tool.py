@@ -13,7 +13,7 @@ from orxt.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
 
 _RUN_ID = UUID("12345678-1234-1234-1234-123456789abc")
 _READ_ROOT = Path("/project")
-_CATEGORIES = {"default": "claude-3-sonnet"}
+_CATEGORIES = {"default": "anthropic/claude-3-sonnet"}
 
 
 def _dummy_tool(name: str) -> Tool:
@@ -70,12 +70,11 @@ def _make_tool(
     if registry is None:
         registry = _full_registry()
     mock_transport = _mock_transport(transport_text)
-    factory = MagicMock(return_value=mock_transport)
     if agents is None:
         agents = {"helper": _mock_agent_def(tools=["read", "notepad"])}
     tool = make_consult_tool(
         tool_registry=registry,
-        transport_factory=factory,
+        transport_registry={"anthropic": mock_transport},
         trace_writer=MagicMock(),
         run_id=_RUN_ID,
         read_root=_READ_ROOT,
@@ -130,8 +129,16 @@ class TestConsultExecution:
         """Transport.send is called with the question."""
         tool, transport = _make_tool()
         await tool.execute({"agent": "helper", "question": "Tell me about X"})
+        call_args = transport.send.call_args[0]
+        assert call_args[0] == "Tell me about X"
+
+    @pytest.mark.asyncio
+    async def test_transport_receives_model(self) -> None:
+        """Transport.send is called with the parsed model name."""
+        tool, transport = _make_tool()
+        await tool.execute({"agent": "helper", "question": "q"})
         call_kwargs = transport.send.call_args[1]
-        assert call_kwargs["question"] == "Tell me about X"
+        assert call_kwargs["model"] == "claude-3-sonnet"
 
 
 class TestConsultToolStripping:

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import UUID
 
 from orxt.protocols._tool import Tool, ToolError
 from orxt.tool._validation import validate_args
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
@@ -43,7 +40,7 @@ _CONSULT_SCHEMA: dict[str, Any] = {
 
 def make_consult_tool(
     tool_registry: dict[str, Tool],
-    transport_factory: Callable[..., Any],
+    transport_registry: dict[str, Any],
     trace_writer: Any,
     run_id: UUID,
     read_root: Path,
@@ -78,12 +75,17 @@ def make_consult_tool(
             )
 
         # Resolve model from agent category
-        model = categories[agent_def.category]
+        resolved = categories[agent_def.category]
+        provider_name, _, model_name = resolved.partition("/")
+        transport = transport_registry.get(provider_name)
+        if transport is None:
+            msg = f"Transport for provider {provider_name!r} not found"
+            raise ToolError(msg)
 
-        # Create transport and send
-        transport = transport_factory(model=model)
         response = await transport.send(
-            question=question, tools=list(filtered_tools.values()),
+            question,
+            model=model_name,
+            tools=list(filtered_tools.values()),
         )
 
         return response.text
