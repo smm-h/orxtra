@@ -43,7 +43,7 @@ class TestAnthropicStreamEdgeCases:
         """input_json_delta (tool input streaming) is not text or thinking."""
         chunk = _anthropic_sse(
             "content_block_delta",
-            json.dumps({"delta": {"type": "input_json_delta", "partial_json": '{"x":'}}),
+            json.dumps({"delta": {"type": "input_json_delta", "partial_json": '{"x":'}}),  # noqa: E501
         )
         stop = _anthropic_sse("message_stop", "{}")
         events = [

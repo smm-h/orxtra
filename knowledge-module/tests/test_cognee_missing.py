@@ -58,7 +58,7 @@ class TestCogneeMissing:
     @pytest.mark.asyncio
     async def test_retrieve_none_config_without_cognee_returns_empty(self) -> None:
         with patch.dict(sys.modules, _COGNEE_MISSING):
-            from orxt.knowledge_module._retrieve import (
+            from orxt.knowledge_module._retrieve import (  # noqa: PLC0415
                 retrieve_knowledge,
             )
 

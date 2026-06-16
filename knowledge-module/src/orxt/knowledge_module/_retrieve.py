@@ -19,7 +19,10 @@ async def retrieve_knowledge(
     try:
         import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
     except ImportError:
-        msg = "cognee is required for the knowledge module. Install it with: uv add cognee"
+        msg = (
+            "cognee is required for the knowledge module."
+            " Install it with: uv add cognee"
+        )
         raise RuntimeError(msg) from None
 
     raw_results = await cognee.search(
