@@ -12,6 +12,12 @@ keywords = ["rlsbl"]
 [tool.uv.sources]
 orxt-protocols = { path = "../protocols", editable = true }
 
+[dependency-groups]
+dev = ["pytest-asyncio>=1.4.0"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
