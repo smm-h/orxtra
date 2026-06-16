@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sys
-import types
 import uuid
 from unittest.mock import AsyncMock, call, patch
 
@@ -314,93 +312,62 @@ async def test_recovery_before_knowledge_loading(
     ) -> None:
         call_order.append("load_knowledge_files")
 
-    # Inject mock overseer._knowledge module so the
-    # inline import in execute_workflow succeeds.
-    knowledge_mod = types.ModuleType(
-        "orxt.overseer._knowledge",
-    )
-    knowledge_mod.load_knowledge_files = track_knowledge  # type: ignore[attr-defined]
-    overseer_mod = types.ModuleType("orxt.overseer")
-    overseer_mod._knowledge = knowledge_mod  # type: ignore[attr-defined]
-
-    saved_overseer = sys.modules.get("orxt.overseer")
-    saved_knowledge = sys.modules.get(
-        "orxt.overseer._knowledge",
-    )
-    sys.modules["orxt.overseer"] = overseer_mod
-    sys.modules["orxt.overseer._knowledge"] = (
-        knowledge_mod
+    sched = Scheduler(
+        trace_writer=trace_writer,  # type: ignore[arg-type]
+        transport_registry={"anthropic": transport},  # type: ignore[dict-item]
+        agents=agents,
+        categories=categories,
+        run_id=run_id,
+        pool=mock_pool,  # type: ignore[arg-type]
+        knowledge_dir=tmp_path,  # type: ignore[arg-type]
+        knowledge_loader=track_knowledge,  # type: ignore[arg-type]
     )
 
-    try:
-        sched = Scheduler(
-            trace_writer=trace_writer,  # type: ignore[arg-type]
-            transport_registry={"anthropic": transport},  # type: ignore[dict-item]
-            agents=agents,
-            categories=categories,
-            run_id=run_id,
-            pool=mock_pool,  # type: ignore[arg-type]
-            knowledge_dir=tmp_path,  # type: ignore[arg-type]
+    async def track_reclaim(pool: object) -> int:
+        call_order.append("reclaim_interrupted")
+        return 0
+
+    async def track_reeval(
+        pool: object,
+    ) -> list[object]:
+        call_order.append("reevaluate_blocked")
+        return []
+
+    async def track_clean(pool: object) -> int:
+        call_order.append("clean_orphaned")
+        return 0
+
+    async def track_lock(
+        pool: object, rid: uuid.UUID,
+    ) -> None:
+        call_order.append("acquire_run_lock")
+
+    with (
+        patch(
+            "orxt.trace.reclaim_interrupted",
+            side_effect=track_reclaim,
+        ),
+        patch(
+            "orxt.trace.reevaluate_blocked",
+            side_effect=track_reeval,
+        ),
+        patch(
+            "orxt.trace.clean_orphaned",
+            side_effect=track_clean,
+        ),
+        patch(
+            "orxt.trace.acquire_run_lock",
+            side_effect=track_lock,
+        ),
+    ):
+        await sched.execute_workflow(
+            _simple_config(),
         )
 
-        async def track_reclaim(pool: object) -> int:
-            call_order.append("reclaim_interrupted")
-            return 0
-
-        async def track_reeval(
-            pool: object,
-        ) -> list[object]:
-            call_order.append("reevaluate_blocked")
-            return []
-
-        async def track_clean(pool: object) -> int:
-            call_order.append("clean_orphaned")
-            return 0
-
-        async def track_lock(
-            pool: object, rid: uuid.UUID,
-        ) -> None:
-            call_order.append("acquire_run_lock")
-
-        with (
-            patch(
-                "orxt.trace.reclaim_interrupted",
-                side_effect=track_reclaim,
-            ),
-            patch(
-                "orxt.trace.reevaluate_blocked",
-                side_effect=track_reeval,
-            ),
-            patch(
-                "orxt.trace.clean_orphaned",
-                side_effect=track_clean,
-            ),
-            patch(
-                "orxt.trace.acquire_run_lock",
-                side_effect=track_lock,
-            ),
-        ):
-            await sched.execute_workflow(
-                _simple_config(),
-            )
-
-        # Recovery must come before knowledge loading
-        assert call_order.index(
-            "reclaim_interrupted",
-        ) < call_order.index("load_knowledge_files")
-        assert call_order.index(
-            "acquire_run_lock",
-        ) < call_order.index("load_knowledge_files")
-    finally:
-        if saved_overseer is not None:
-            sys.modules["orxt.overseer"] = saved_overseer
-        else:
-            sys.modules.pop("orxt.overseer", None)
-        if saved_knowledge is not None:
-            sys.modules[
-                "orxt.overseer._knowledge"
-            ] = saved_knowledge
-        else:
-            sys.modules.pop(
-                "orxt.overseer._knowledge", None,
-            )
+    # Recovery must come before knowledge loading
+    assert call_order.index(
+        "reclaim_interrupted",
+    ) < call_order.index("load_knowledge_files")
+    assert call_order.index(
+        "acquire_run_lock",
+    ) < call_order.index("load_knowledge_files")

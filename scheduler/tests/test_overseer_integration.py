@@ -9,8 +9,6 @@ consistency.
 from __future__ import annotations
 
 import logging
-import sys
-import types
 from decimal import Decimal
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
@@ -196,6 +194,8 @@ def _make_scheduler(
     trace_writer: MockTraceWriter | None = None,
     overseer: MockOverseerAdapter | None = None,
     model_context_limit: int = 200_000,
+    handoff_checker: object | None = None,
+    handoff_performer: object | None = None,
 ) -> Scheduler:
     tw = trace_writer or MockTraceWriter()
     transport = MockTransport()
@@ -212,6 +212,8 @@ def _make_scheduler(
         run_id=run_id,
         overseer_interface=overseer,  # type: ignore[arg-type]
         model_context_limit=model_context_limit,
+        handoff_checker=handoff_checker,  # type: ignore[arg-type]
+        handoff_performer=handoff_performer,  # type: ignore[arg-type]
     )
 
 
@@ -308,33 +310,6 @@ def _simple_workflow() -> WorkflowConfig:
         dependencies={},
     )
 
-
-def _install_fake_overseer_module() -> (
-    types.ModuleType
-):
-    """Inject a fake orxt.overseer._handoff module
-    into sys.modules so that the local import in
-    _check_session_handoff succeeds."""
-    fake_overseer = types.ModuleType(
-        "orxt.overseer",
-    )
-    fake_handoff = types.ModuleType(
-        "orxt.overseer._handoff",
-    )
-    fake_handoff.check_handoff_needed = AsyncMock(  # type: ignore[attr-defined]
-        return_value=False,
-    )
-    fake_handoff.perform_handoff = AsyncMock(  # type: ignore[attr-defined]
-        return_value=None,
-    )
-    fake_overseer._handoff = fake_handoff  # type: ignore[attr-defined]  # noqa: SLF001
-    sys.modules.setdefault(
-        "orxt.overseer", fake_overseer,
-    )
-    sys.modules.setdefault(
-        "orxt.overseer._handoff", fake_handoff,
-    )
-    return fake_handoff
 
 
 def _make_adapter_for_verify() -> (
@@ -688,10 +663,8 @@ class TestCoherenceSummary:
 class TestSessionHandoff:
     """Session handoff based on token usage.
 
-    The scheduler's _check_session_handoff does a
-    local import of orxt.overseer._handoff which is
-    not installed. We inject a fake module into
-    sys.modules before patching its attributes.
+    Handoff checker and performer are injected via
+    constructor parameters.
     """
 
     async def test_handoff_triggered_at_threshold(
@@ -702,31 +675,22 @@ class TestSessionHandoff:
             total_input_tokens=180_001,
             total_output_tokens=0,
         )
-        scheduler = _make_scheduler(
-            overseer=adapter,
-            model_context_limit=200_000,
-        )
 
         new_session = MockOverseerSession(
             response_text="new session",
         )
-        fake_mod = _install_fake_overseer_module()
-        fake_mod.check_handoff_needed = AsyncMock(  # type: ignore[attr-defined]
-            return_value=True,
-        )
-        fake_mod.perform_handoff = AsyncMock(  # type: ignore[attr-defined]
+        mock_checker = AsyncMock(return_value=True)
+        mock_performer = AsyncMock(
             return_value=new_session,
         )
+        scheduler = _make_scheduler(
+            overseer=adapter,
+            model_context_limit=200_000,
+            handoff_checker=mock_checker,
+            handoff_performer=mock_performer,
+        )
 
-        try:
-            await scheduler._check_session_handoff()  # noqa: SLF001
-        finally:
-            sys.modules.pop(
-                "orxt.overseer._handoff", None,
-            )
-            sys.modules.pop(
-                "orxt.overseer", None,
-            )
+        await scheduler._check_session_handoff()  # noqa: SLF001
 
         assert adapter.mock_session is new_session
 
@@ -738,32 +702,20 @@ class TestSessionHandoff:
             total_input_tokens=1000,
             total_output_tokens=0,
         )
+        original = adapter.mock_session
+
+        mock_checker = AsyncMock(return_value=False)
+        mock_performer = AsyncMock(return_value=None)
         scheduler = _make_scheduler(
             overseer=adapter,
             model_context_limit=200_000,
+            handoff_checker=mock_checker,
+            handoff_performer=mock_performer,
         )
-        original = adapter.mock_session
 
-        fake_mod = _install_fake_overseer_module()
-        mock_perform = AsyncMock(
-            return_value=None,
-        )
-        fake_mod.check_handoff_needed = AsyncMock(  # type: ignore[attr-defined]
-            return_value=False,
-        )
-        fake_mod.perform_handoff = mock_perform  # type: ignore[attr-defined]
+        await scheduler._check_session_handoff()  # noqa: SLF001
 
-        try:
-            await scheduler._check_session_handoff()  # noqa: SLF001
-        finally:
-            sys.modules.pop(
-                "orxt.overseer._handoff", None,
-            )
-            sys.modules.pop(
-                "orxt.overseer", None,
-            )
-
-        mock_perform.assert_not_called()
+        mock_performer.assert_not_called()
         assert adapter.mock_session is original
 
     async def test_handoff_new_session_used(
@@ -774,33 +726,24 @@ class TestSessionHandoff:
             total_input_tokens=190_000,
             total_output_tokens=0,
         )
-        scheduler = _make_scheduler(
-            overseer=adapter,
-            model_context_limit=200_000,
-        )
 
         new_session = MockOverseerSession(
             response_text="fresh session",
             total_input_tokens=50,
             total_output_tokens=10,
         )
-        fake_mod = _install_fake_overseer_module()
-        fake_mod.check_handoff_needed = AsyncMock(  # type: ignore[attr-defined]
-            return_value=True,
-        )
-        fake_mod.perform_handoff = AsyncMock(  # type: ignore[attr-defined]
+        mock_checker = AsyncMock(return_value=True)
+        mock_performer = AsyncMock(
             return_value=new_session,
         )
+        scheduler = _make_scheduler(
+            overseer=adapter,
+            model_context_limit=200_000,
+            handoff_checker=mock_checker,
+            handoff_performer=mock_performer,
+        )
 
-        try:
-            await scheduler._check_session_handoff()  # noqa: SLF001
-        finally:
-            sys.modules.pop(
-                "orxt.overseer._handoff", None,
-            )
-            sys.modules.pop(
-                "orxt.overseer", None,
-            )
+        await scheduler._check_session_handoff()  # noqa: SLF001
 
         assert adapter.session is new_session
         assert (

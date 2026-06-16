@@ -1177,7 +1177,7 @@ class TestFunctionTask:
     ) -> None:
         task = TaskSpec(
             name="func-task",
-            callable="tests.conftest_helpers.sample_callable",
+            callable="tests.conftest_helpers:sample_callable",
         )
         config = WorkflowConfig(
             name="func-wf",
@@ -1697,7 +1697,7 @@ class TestOnSuccessCallback:
                 timeout=60,
                 context_refinement=False,
                 on_success=(
-                    "tests.callback_helpers.on_success_fn"
+                    "tests.callback_helpers:on_success_fn"
                 ),
             )
             config = WorkflowConfig(
@@ -1821,7 +1821,7 @@ class TestPreRetryCallback:
                 retry_resume=False,
                 retry_inject_failure=False,
                 pre_retry=(
-                    "tests.preretry_helpers.pre_retry_fn"
+                    "tests.preretry_helpers:pre_retry_fn"
                 ),
             )
             config = WorkflowConfig(
@@ -1940,7 +1940,7 @@ class TestPreRetryCallback:
                 retry_inject_failure=False,
                 pre_retry=(
                     "tests.preretry_abort_helpers"
-                    ".pre_retry_abort"
+                    ":pre_retry_abort"
                 ),
             )
             sched = Scheduler(
