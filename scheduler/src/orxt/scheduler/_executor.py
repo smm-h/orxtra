@@ -46,13 +46,13 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from orxt.agent import Agent
+    from orxt.protocols._events import StructuralAdvisory
     from orxt.protocols._task import Execution
     from orxt.protocols._tools import (
         CreateTaskParams,
         CreateWaitForParams,
         CreateWorkflowParams,
     )
-    from orxt.protocols._events import StructuralAdvisory
     from orxt.scheduler._overseer import (
         OverseerEvent,
         OverseerInterface,
@@ -1892,8 +1892,8 @@ class Scheduler:
             event_type,
         ):
             from orxt.scheduler._overseer import (  # noqa: PLC0415
-                FALLBACK_BEHAVIORS,
                 _DEFAULT_FALLBACK,
+                FALLBACK_BEHAVIORS,
             )
             behavior = FALLBACK_BEHAVIORS.get(
                 event_type, _DEFAULT_FALLBACK,
@@ -1973,7 +1973,7 @@ class Scheduler:
             "produce a coherence summary.",
         ):
             if isinstance(ev, Result):
-                parts.append(ev.text)
+                parts.append(ev.text)  # noqa: PERF401
 
         summary = "".join(parts)
         if summary:
