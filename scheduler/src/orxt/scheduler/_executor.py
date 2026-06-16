@@ -1445,13 +1445,18 @@ class Scheduler:
             task_id, TaskState.ACTIVE.value,
         )
 
-        for sub in task.subtasks:
-            t = asyncio.create_task(
+        tasks = [
+            asyncio.create_task(
                 self.execute_task(sub, task_id),
             )
+            for sub in task.subtasks
+        ]
+        for t in tasks:
             self._running_tasks.add(t)
-            t.add_done_callback(self._running_tasks.discard)
-            await t
+            t.add_done_callback(
+                self._running_tasks.discard,
+            )
+        await asyncio.gather(*tasks)
 
         # Run postchecks before completing
         self._task_states[task_id] = (
