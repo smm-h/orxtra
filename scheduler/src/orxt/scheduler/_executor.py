@@ -1588,7 +1588,7 @@ class Scheduler:
             ],
         )
 
-    async def _execute_for_each(
+    async def _execute_for_each(  # noqa: C901
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -2080,7 +2080,7 @@ class Scheduler:
         return not self._paused.is_set()
 
     async def _handle_control_signal(
-        self, run_id: UUID, new_status: str,
+        self, run_id: UUID, new_status: str,  # noqa: ARG002
     ) -> None:
         """Handle a control signal from the trace layer."""
         if new_status == "aborted":
@@ -2096,7 +2096,7 @@ class Scheduler:
         This makes wait-for tasks work when fire_event inserts
         an event row via the trace layer.
         """
-        original_callback = self._trace_writer._event_callback
+        original_callback = self._trace_writer._event_callback  # noqa: SLF001
 
         async def _bridged_callback(
             event_id: UUID,
@@ -2113,7 +2113,7 @@ class Scheduler:
                 event_type, data,
             )
 
-        self._trace_writer._event_callback = _bridged_callback
+        self._trace_writer._event_callback = _bridged_callback  # noqa: SLF001
 
     def _analyze_structural_advisories(
         self,
@@ -2303,7 +2303,7 @@ class Scheduler:
         Overseer."""
         if self._overseer_interface is None:
             return
-        import uuid as _uuid
+        import uuid as _uuid  # noqa: PLC0415
 
         for advisory in self._pending_advisories:
             event = StructuralAdvisory(
