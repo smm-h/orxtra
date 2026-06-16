@@ -20,6 +20,7 @@ jobs:
       trace: ${{ steps.changes.outputs.trace }}
       notepad: ${{ steps.changes.outputs.notepad }}
       session: ${{ steps.changes.outputs.session }}
+      scheduler: ${{ steps.changes.outputs.scheduler }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -36,6 +37,7 @@ jobs:
           trace: 'trace/**'
           notepad: 'notepad/**'
           session: 'session/**'
+          scheduler: 'scheduler/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -76,3 +78,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.session == 'true'
     uses: ./.github/workflows/session-ci.yml
+  scheduler:
+    needs: detect
+    if: needs.detect.outputs.scheduler == 'true'
+    uses: ./.github/workflows/scheduler-ci.yml
