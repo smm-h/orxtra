@@ -1,3 +1,4 @@
+# ruff: noqa: S603, S607, ASYNC221
 from __future__ import annotations
 
 import os
@@ -129,7 +130,7 @@ async def test_file_deleted_is_stale(git_repo: Path) -> None:
         cwd=git_repo, check=True, capture_output=True,
     )
     git_commit(git_repo, "add gone", TS_INITIAL)
-    os.remove(f)
+    f.unlink()
 
     result = await check_staleness(["gone.txt"], git_repo, TS_LESSON)
     assert result is True
@@ -181,7 +182,7 @@ async def test_filter_stale_lessons_splits_correctly(
     assert len(fresh) == 2
     assert len(stale) == 1
     assert stale[0]["source_file"] == "stale.txt"
-    fresh_sources = [l.get("source_file") for l in fresh]
+    fresh_sources = [lesson.get("source_file") for lesson in fresh]
     assert "fresh.txt" in fresh_sources
     assert None in fresh_sources
 
