@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -255,6 +256,12 @@ class AgentTurn:
     text_response: str = "Done"
 
 
+def _extract_task_id(message: str) -> str | None:
+    """Extract the task_id from the scheduler's prompt prefix."""
+    match = re.search(r"Your task ID is ([0-9a-f-]+)", message)
+    return match.group(1) if match else None
+
+
 # ---------------------------------------------------------------------------
 # IntegrationMockTransport -- single-agent mock with real tool execution
 # ---------------------------------------------------------------------------
@@ -292,6 +299,7 @@ class IntegrationMockTransport:
             "session_id": session_id,
         })
 
+        task_id_str = _extract_task_id(message)
         sid = session_id or str(uuid6.uuid7())
 
         if self._turn_index >= len(self._turns):
@@ -322,6 +330,10 @@ class IntegrationMockTransport:
         executed_count = 0
 
         for tool_name, tool_args in turn.tool_calls:
+            # Auto-inject task_id for start_task when not provided
+            if tool_name == "start_task" and "task_id" not in tool_args and task_id_str:
+                tool_args = {**tool_args, "task_id": task_id_str}
+
             tool = tool_map.get(tool_name)
             if tool is None:
                 yield ToolUse(
@@ -441,6 +453,7 @@ class MultiAgentMockTransport:
             "session_id": session_id,
         })
 
+        task_id_str = _extract_task_id(message)
         sid = session_id or str(uuid6.uuid7())
         agent_key = self._match_agent(system_prompt)
 
@@ -475,6 +488,10 @@ class MultiAgentMockTransport:
         executed_count = 0
 
         for tool_name, tool_args in turn.tool_calls:
+            # Auto-inject task_id for start_task when not provided
+            if tool_name == "start_task" and "task_id" not in tool_args and task_id_str:
+                tool_args = {**tool_args, "task_id": task_id_str}
+
             tool = tool_map.get(tool_name)
             if tool is None:
                 yield ToolUse(
