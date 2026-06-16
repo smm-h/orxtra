@@ -42,6 +42,7 @@ from orxt.verify import run_checks
 from orxt.write_safety import StaleWriteTracker, WriteQueue
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from uuid import UUID
 
     from orxt.agent import Agent
@@ -121,6 +122,8 @@ class Scheduler:
         categories: dict[str, str],
         run_id: UUID,
         overseer_interface: OverseerInterface | None = None,
+        knowledge_dir: Path | None = None,
+        model_context_limit: int = 200_000,
     ) -> None:
         self._trace_writer = trace_writer
         self._transport_registry = transport_registry
@@ -128,6 +131,8 @@ class Scheduler:
         self._categories = categories
         self._run_id = run_id
         self._overseer_interface = overseer_interface
+        self._knowledge_dir = knowledge_dir
+        self._model_context_limit = model_context_limit
         self._active_tasks: dict[str, UUID] = {}
         self._task_states: dict[UUID, TaskState] = {}
         self._task_specs: dict[UUID, TaskSpec] = {}
@@ -200,6 +205,17 @@ class Scheduler:
     async def execute_workflow(
         self, config: WorkflowConfig,
     ) -> None:
+        # Load knowledge files at run start
+        if self._knowledge_dir is not None:
+            from orxt.overseer._knowledge import (  # noqa: PLC0415
+                load_knowledge_files,
+            )
+            await load_knowledge_files(
+                self._knowledge_dir,
+                self._trace_writer,
+                self._run_id,
+            )
+
         errors = validate_task_tree(config)
         if errors:
             msg = (
@@ -265,6 +281,9 @@ class Scheduler:
                     "duration_seconds": 0.0,
                     "retries_used": 0,
                 }
+
+        # Coherence summary at run end
+        await self._write_coherence_summary()
 
     def _init_task_state(
         self,
@@ -1861,23 +1880,138 @@ class Scheduler:
     async def _send_overseer_event(
         self, event: OverseerEvent,
     ) -> None:
-        """Send an event to the Overseer and verify
-        its response."""
+        """Send an event to the Overseer with a
+        verify-then-accept retry loop."""
         if self._overseer_interface is None:
             return
-        await self._overseer_interface.send_event(event)
+
         event_type = type(event).__name__
-        errors = (
-            await self._overseer_interface.verify_actions(
-                event_type,
+
+        # Check degraded mode first
+        if self._overseer_interface.is_degraded(
+            event_type,
+        ):
+            from orxt.scheduler._overseer import (  # noqa: PLC0415
+                FALLBACK_BEHAVIORS,
+                _DEFAULT_FALLBACK,
             )
-        )
-        if errors:
+            behavior = FALLBACK_BEHAVIORS.get(
+                event_type, _DEFAULT_FALLBACK,
+            )
             _logger.warning(
-                "Overseer verification errors for %s: %s",
+                "Overseer degraded for %s, using"
+                " fallback: %s",
+                event_type,
+                behavior,
+            )
+            return
+
+        max_attempts = 3
+        errors: list[str] = []
+
+        for attempt in range(max_attempts):
+            if attempt == 0:
+                await (
+                    self._overseer_interface.send_event(
+                        event,
+                    )
+                )
+            else:
+                correction = (
+                    "Your previous response had"
+                    " issues:\n"
+                    + "\n".join(errors)
+                )
+                await (
+                    self._overseer_interface
+                    .send_correction(
+                        correction,
+                    )
+                )
+
+            errors = (
+                await (
+                    self._overseer_interface
+                    .verify_actions(
+                        event_type,
+                    )
+                )
+            )
+            if not errors:
+                break
+        else:
+            # All attempts failed -- log
+            _logger.warning(
+                "Overseer failed verification"
+                " %d times for %s: %s",
+                max_attempts,
                 event_type,
                 errors,
             )
+
+        # Check session handoff after event
+        await self._check_session_handoff()
+
+    async def _write_coherence_summary(self) -> None:
+        """Ask the Overseer for a coherence summary
+        and persist it."""
+        if self._overseer_interface is None:
+            return
+
+        parts: list[str] = []
+
+        # The OverseerInterface protocol doesn't
+        # expose session directly, but
+        # OverseerAdapter does. Use duck typing.
+        adapter = self._overseer_interface
+        if not hasattr(adapter, "session"):
+            return
+
+        async for ev in adapter.session.send(  # type: ignore[union-attr]
+            "The run is complete. Review the work "
+            "against the original intent and "
+            "produce a coherence summary.",
+        ):
+            if isinstance(ev, Result):
+                parts.append(ev.text)
+
+        summary = "".join(parts)
+        if summary:
+            await self._trace_writer.write_coherence_summary(
+                self._run_id, summary,
+            )
+
+    async def _check_session_handoff(self) -> None:
+        """Check if the Overseer session needs
+        handoff due to token usage."""
+        if self._overseer_interface is None:
+            return
+        if not hasattr(
+            self._overseer_interface, "session",
+        ):
+            return
+
+        from orxt.overseer._handoff import (  # noqa: PLC0415
+            check_handoff_needed,
+            perform_handoff,
+        )
+
+        adapter = self._overseer_interface
+        session = adapter.session  # type: ignore[union-attr]
+        needed = await check_handoff_needed(
+            session, self._model_context_limit,
+        )
+        if needed:
+            _logger.info(
+                "Overseer session handoff"
+                " triggered",
+            )
+            new_session = await perform_handoff(
+                session,
+                self._trace_writer,
+                self._run_id,
+            )
+            adapter.update_session(new_session)  # type: ignore[union-attr]
 
     async def _send_pending_advisories(self) -> None:
         """Send stored structural advisories to the
