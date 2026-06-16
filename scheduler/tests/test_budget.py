@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 import uuid6
-from conftest import (
+from tests.conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,
