@@ -2124,9 +2124,15 @@ class Scheduler:
         callable_path: str,
         context: TaskContext,
     ) -> None:
-        module_path, _, func_name = (
-            callable_path.rpartition(".")
-        )
+        parts = callable_path.split(":")
+        if len(parts) != 2:  # noqa: PLR2004
+            msg = (
+                f"Invalid callable path:"
+                f" {callable_path!r}"
+                " (expected 'module.path:function')"
+            )
+            raise ValueError(msg)
+        module_path, func_name = parts
         module = importlib.import_module(module_path)
         func = getattr(module, func_name)
         await func(context)
