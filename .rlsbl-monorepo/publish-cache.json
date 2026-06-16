@@ -3,7 +3,7 @@
   "secrets": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "write-safety": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "transport": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
-  "agent": null,
+  "agent": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "tool": null,
   "verify": null,
   "trace": null,
