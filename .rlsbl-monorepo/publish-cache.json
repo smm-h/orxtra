@@ -11,7 +11,7 @@
   "session": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "scheduler": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "overseer": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
-  "knowledge-module": null,
+  "knowledge-module": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "services": null,
   "cli": null,
   "mcp": null
