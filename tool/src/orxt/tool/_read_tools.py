@@ -291,6 +291,7 @@ def make_read_tool(
     read_root: Path,
     preview_threshold: int,
     preview_lines: int,
+    session_id: str = "default",
     previewer: Callable[..., Any] | None = None,
 ) -> Tool:
     """Construct the read file tool.
@@ -299,11 +300,11 @@ def make_read_tool(
         read_root: Root directory for path containment.
         preview_threshold: Byte threshold above which content is previewed.
         preview_lines: Number of head/tail lines in a preview.
+        session_id: Identifier for the session using this tool.
         previewer: Unused, reserved for future custom preview logic.
     """
     _ = previewer  # Reserved for future use
     guard = FullRetrievalGuard()
-    session_id = "default"
 
     async def execute(args: dict[str, Any]) -> str:
         validate_args(args, _READ_SCHEMA)
