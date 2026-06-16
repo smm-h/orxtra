@@ -1,7 +1,9 @@
 [project]
 name = "orxt"
+schemas = ["orxt.toml"]
 
 [suppress]
 "overseer_workflow_status.W005" = "Uses updated_at instead of created_at; this table is intentionally overwritten, not appended"
 "run_heartbeats.W005" = "Uses last_heartbeat instead of created_at; heartbeats are overwritten, not appended"
 "task_iterations.W005" = "Uses started_at instead of created_at; iteration is created and started in the same transaction"
+"overseer_workflow_status.W002" = "Orphan table by design: tracks Overseer health assessment, workflow_id references tasks conceptually but not via FK"

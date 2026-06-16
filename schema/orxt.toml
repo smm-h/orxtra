@@ -43,7 +43,7 @@ comment = "Nullable JSONB column"
 
 [types.duration]
 kind = "scalar"
-base_type = "double precision"
+base_type = "float8"
 not_null = false
 comment = "Duration in seconds (nullable)"
 
@@ -196,7 +196,7 @@ type = "task_state"
 
 [tables.tasks.columns.config]
 type = "json"
-default = "'{}'"
+default = "{}"
 comment = "Task configuration"
 
 [tables.tasks.columns.created_at]
@@ -367,7 +367,7 @@ comment = "e.g. run.started, task.status_changed, inbox.item_answered"
 
 [tables.events.columns.data]
 type = "json"
-default = "'{}'"
+default = "{}"
 comment = "Event-specific payload"
 
 [tables.events.columns.created_at]
@@ -506,7 +506,7 @@ type = "str"
 
 [tables.inbox_items.columns.options]
 type = "json"
-default = "'[]'"
+default = "[]"
 comment = "Options considered by the Overseer"
 
 [tables.inbox_items.columns.assumed_option]
@@ -523,7 +523,7 @@ comment = "What happens if the human picks differently"
 
 [tables.inbox_items.columns.tags]
 type = "json"
-default = "'[]'"
+default = "[]"
 comment = "Framework auto-injects decision_type; Overseer may add free-form tags"
 
 [tables.inbox_items.columns.deadline]
@@ -698,6 +698,7 @@ on_delete = "CASCADE"
 columns = ["inbox_item_id"]
 ref_table = "inbox_items"
 ref_columns = ["id"]
+on_delete = "SET NULL"
 
 [tables.assumptions.indexes.idx_assumptions_run]
 columns = ["run_id"]
@@ -721,7 +722,7 @@ type = "str"
 
 [tables.lessons.columns.relevance_tags]
 type = "json"
-default = "'[]'"
+default = "[]"
 comment = "Relevance tags for flat SQL queries"
 
 [tables.lessons.columns.permanent]
@@ -780,3 +781,4 @@ type = "timestamp"
 columns = ["run_id"]
 ref_table = "runs"
 ref_columns = ["id"]
+on_delete = "CASCADE"
