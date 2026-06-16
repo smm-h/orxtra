@@ -1,6 +1,58 @@
 # orxt monorepo root
 # Not a publishable package. Each sub-project has its own pyproject.toml.
-# This file holds shared tool configuration only.
+# This file makes the root installable so e2e tests can import all sub-projects.
+
+[project]
+name = "orxt"
+version = "0.0.0"
+description = "Autonomous multi-agent AI workflows"
+requires-python = ">=3.12"
+dependencies = [
+    "orxt-protocols",
+    "orxt-secrets",
+    "orxt-write-safety",
+    "transport",
+    "agent",
+    "tool",
+    "verify",
+    "trace",
+    "notepad",
+    "session",
+    "scheduler",
+    "overseer",
+    "knowledge-module",
+    "services",
+    "cli",
+    "mcp",
+]
+
+[tool.uv.sources]
+orxt-protocols = { path = "protocols", editable = true }
+orxt-secrets = { path = "secrets", editable = true }
+orxt-write-safety = { path = "write-safety", editable = true }
+transport = { path = "transport", editable = true }
+agent = { path = "agent", editable = true }
+tool = { path = "tool", editable = true }
+verify = { path = "verify", editable = true }
+trace = { path = "trace", editable = true }
+notepad = { path = "notepad", editable = true }
+session = { path = "session", editable = true }
+scheduler = { path = "scheduler", editable = true }
+overseer = { path = "overseer", editable = true }
+knowledge-module = { path = "knowledge-module", editable = true }
+services = { path = "services", editable = true }
+cli = { path = "cli", editable = true }
+mcp = { path = "mcp", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "respx",
+    "asyncpg-stubs",
+    "mypy",
+    "ruff",
+]
 
 [tool.ruff]
 target-version = "py312"

@@ -2761,6 +2761,7 @@ version = "0.0.0"
 source = { editable = "../scheduler" }
 dependencies = [
     { name = "agent" },
+    { name = "jsonschema" },
     { name = "notepad" },
     { name = "orxt-protocols" },
     { name = "orxt-write-safety" },
@@ -2774,6 +2775,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "agent", editable = "../agent" },
+    { name = "jsonschema" },
     { name = "notepad", editable = "../notepad" },
     { name = "orxt-protocols", editable = "../protocols" },
     { name = "orxt-write-safety", editable = "../write-safety" },
@@ -3023,6 +3025,8 @@ name = "tool"
 version = "0.0.0"
 source = { editable = "../tool" }
 dependencies = [
+    { name = "httpx" },
+    { name = "jsonschema" },
     { name = "orxt-protocols" },
     { name = "orxt-secrets" },
     { name = "orxt-write-safety" },
@@ -3031,11 +3035,16 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx" },
+    { name = "jsonschema" },
     { name = "orxt-protocols", editable = "../protocols" },
     { name = "orxt-secrets", editable = "../secrets" },
     { name = "orxt-write-safety", editable = "../write-safety" },
     { name = "pydantic", specifier = ">=2" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "tqdm"
