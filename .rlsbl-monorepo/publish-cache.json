@@ -1,6 +1,6 @@
 {
   "protocols": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
-  "secrets": null,
+  "secrets": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "write-safety": null,
   "transport": null,
   "agent": null,

@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       protocols: ${{ steps.changes.outputs.protocols }}
+      secrets: ${{ steps.changes.outputs.secrets }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -18,7 +19,12 @@ jobs:
       with:
         filters: |
           protocols: 'protocols/**'
+          secrets: 'secrets/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
     uses: ./.github/workflows/protocols-ci.yml
+  secrets:
+    needs: detect
+    if: needs.detect.outputs.secrets == 'true'
+    uses: ./.github/workflows/secrets-ci.yml
