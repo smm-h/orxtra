@@ -45,6 +45,8 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
+    import asyncpg
+
     from orxt.agent import Agent
     from orxt.protocols._events import StructuralAdvisory
     from orxt.protocols._task import Execution
@@ -121,11 +123,14 @@ class Scheduler:
         agents: dict[str, Agent],
         categories: dict[str, str],
         run_id: UUID,
+        *,
+        pool: asyncpg.Pool | None = None,
         overseer_interface: OverseerInterface | None = None,
         knowledge_dir: Path | None = None,
         model_context_limit: int = 200_000,
     ) -> None:
         self._trace_writer = trace_writer
+        self._pool = pool
         self._transport_registry = transport_registry
         self._agents = agents
         self._categories = categories
@@ -207,6 +212,22 @@ class Scheduler:
     async def execute_workflow(
         self, config: WorkflowConfig,
     ) -> None:
+        # Crash recovery: three-pass idempotent startup
+        if self._pool is not None:
+            from orxt.trace import (  # noqa: PLC0415
+                acquire_run_lock,
+                clean_orphaned,
+                reclaim_interrupted,
+                reevaluate_blocked,
+            )
+
+            await reclaim_interrupted(self._pool)
+            await reevaluate_blocked(self._pool)
+            await clean_orphaned(self._pool)
+            await acquire_run_lock(
+                self._pool, self._run_id,
+            )
+
         # Load knowledge files at run start
         if self._knowledge_dir is not None:
             from orxt.overseer._knowledge import (  # noqa: PLC0415
