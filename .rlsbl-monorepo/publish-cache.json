@@ -2,7 +2,7 @@
   "protocols": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "secrets": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "write-safety": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
-  "transport": null,
+  "transport": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "agent": null,
   "tool": null,
   "verify": null,
