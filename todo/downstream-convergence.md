@@ -1,6 +1,6 @@
 # Three Features: shell tool, tool.compose, orchestrator await_task
 
-Filed by the e-commerce pipeline project. These three features address gaps discovered while integrating with the target project's connector generation and crawl orchestration workflows.
+Filed by a downstream consumer project. These three features address gaps discovered while integrating with the target project's multi-agent workflows.
 
 ---
 
