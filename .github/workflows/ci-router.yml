@@ -22,6 +22,7 @@ jobs:
       session: ${{ steps.changes.outputs.session }}
       scheduler: ${{ steps.changes.outputs.scheduler }}
       overseer: ${{ steps.changes.outputs.overseer }}
+      knowledge-module: ${{ steps.changes.outputs.knowledge-module }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -40,6 +41,7 @@ jobs:
           session: 'session/**'
           scheduler: 'scheduler/**'
           overseer: 'overseer/**'
+          knowledge-module: 'knowledge-module/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -88,3 +90,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.overseer == 'true'
     uses: ./.github/workflows/overseer-ci.yml
+  knowledge-module:
+    needs: detect
+    if: needs.detect.outputs.knowledge-module == 'true'
+    uses: ./.github/workflows/knowledge-module-ci.yml
