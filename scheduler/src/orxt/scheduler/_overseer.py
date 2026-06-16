@@ -35,6 +35,19 @@ type OverseerEvent = (
     | HealthDegraded
 )
 
+# Fallback behaviors when Overseer is degraded for an
+# event type. Keys are event type names; values are short
+# descriptions of what the scheduler does instead of
+# consulting the Overseer.
+FALLBACK_BEHAVIORS: dict[str, str] = {
+    "TaskFailed": "fixed_escalation_ladder",
+    "TaskEscalated": "fixed_escalation_ladder",
+    "BudgetThresholdCrossed": (
+        "maintain_current_allocations"
+    ),
+}
+_DEFAULT_FALLBACK = "escalate_to_human_inbox"
+
 
 class OverseerInterface(Protocol):
     """Interface the scheduler uses to communicate
@@ -46,6 +59,12 @@ class OverseerInterface(Protocol):
     async def verify_actions(
         self, event_type: str = "",
     ) -> list[str]: ...
+    async def send_correction(
+        self, message: str,
+    ) -> None: ...
+    def is_degraded(
+        self, event_type: str,
+    ) -> bool: ...
 
 
 class OverseerAdapter:
@@ -105,6 +124,34 @@ class OverseerAdapter:
         event_type = type(event).__name__
         self._current_tool_calls = tool_calls
         self._last_tool_calls[event_type] = tool_calls
+
+    async def send_correction(
+        self, message: str,
+    ) -> None:
+        """Send a correction message to the Overseer
+        session."""
+        from orxt.transport import ToolUse
+
+        tool_calls: list[dict[str, Any]] = []
+        async for ev in self._overseer._session.send(  # noqa: SLF001
+            message,
+        ):
+            if isinstance(ev, ToolUse):
+                tool_calls.append({
+                    "tool_name": ev.tool_name,
+                    "input": ev.input,
+                    "status": ev.status,
+                })
+        self._current_tool_calls = tool_calls
+
+    def is_degraded(
+        self, event_type: str,
+    ) -> bool:
+        """Check if the Overseer is degraded for a
+        given event type."""
+        return self._health_monitor.is_degraded(
+            event_type,
+        )
 
     async def verify_actions(
         self, event_type: str = "",
