@@ -91,13 +91,13 @@ class OverseerAdapter:
     @property
     def session(self) -> Session:
         """Expose the overseer's session for handoff."""
-        return self._overseer._session  # noqa: SLF001
+        return self._overseer.session
 
     def update_session(
         self, new_session: Session,
     ) -> None:
         """Update the overseer's session after handoff."""
-        self._overseer._session = new_session  # noqa: SLF001
+        self._overseer.session = new_session
 
     async def send_event(
         self, event: OverseerEvent,
@@ -111,7 +111,7 @@ class OverseerAdapter:
 
         message = format_event(event)
         tool_calls: list[dict[str, Any]] = []
-        async for ev in self._overseer._session.send(  # noqa: SLF001
+        async for ev in self._overseer.session.send(
             message,
         ):
             if isinstance(ev, ToolUse):
@@ -133,7 +133,7 @@ class OverseerAdapter:
         from orxt.transport import ToolUse  # noqa: PLC0415
 
         tool_calls: list[dict[str, Any]] = []
-        async for ev in self._overseer._session.send(  # noqa: SLF001
+        async for ev in self._overseer.session.send(
             message,
         ):
             if isinstance(ev, ToolUse):
