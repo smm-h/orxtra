@@ -331,7 +331,12 @@ class IntegrationMockTransport:
 
         for tool_name, raw_tool_args in turn.tool_calls:
             # Auto-inject task_id for start_task when not provided
-            if tool_name == "start_task" and "task_id" not in raw_tool_args and task_id_str:
+            needs_task_id = (
+                tool_name == "start_task"
+                and "task_id" not in raw_tool_args
+                and task_id_str
+            )
+            if needs_task_id:
                 tool_args = {**raw_tool_args, "task_id": task_id_str}
             else:
                 tool_args = raw_tool_args
@@ -491,7 +496,12 @@ class MultiAgentMockTransport:
 
         for tool_name, raw_tool_args in turn.tool_calls:
             # Auto-inject task_id for start_task when not provided
-            if tool_name == "start_task" and "task_id" not in raw_tool_args and task_id_str:
+            needs_task_id = (
+                tool_name == "start_task"
+                and "task_id" not in raw_tool_args
+                and task_id_str
+            )
+            if needs_task_id:
                 tool_args = {**raw_tool_args, "task_id": task_id_str}
             else:
                 tool_args = raw_tool_args
