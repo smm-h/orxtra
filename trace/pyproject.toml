@@ -9,6 +9,7 @@ dependencies = [
     "uuid6",
     "orxt-secrets",
 ]
+keywords = ["rlsbl"]
 
 [tool.uv.sources]
 orxt-secrets = { path = "../secrets", editable = true }

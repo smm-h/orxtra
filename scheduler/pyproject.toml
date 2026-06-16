@@ -15,6 +15,7 @@ dependencies = [
     "verify",
     "notepad",
 ]
+keywords = ["rlsbl"]
 
 [build-system]
 requires = ["hatchling"]

@@ -12,6 +12,7 @@ dependencies = [
     "orxt-secrets",
     "orxt-write-safety",
 ]
+keywords = ["rlsbl"]
 
 [tool.uv.sources]
 orxt-protocols = { path = "../protocols", editable = true }

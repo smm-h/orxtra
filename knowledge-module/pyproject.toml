@@ -8,6 +8,7 @@ dependencies = [
     "trace",
     "cognee",
 ]
+keywords = ["rlsbl"]
 
 [build-system]
 requires = ["hatchling"]
