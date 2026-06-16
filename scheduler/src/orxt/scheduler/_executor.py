@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import errno
 import importlib
 import json
@@ -359,6 +360,61 @@ class Scheduler:
         # Bridge trace events to EventRegistry
         await self._bridge_trace_to_events()
 
+        # Cross-process signal delivery via PG LISTEN
+        pg_listener_task: asyncio.Task[None] | None = None
+        pg_listener_conn: asyncpg.Connection | None = None
+        _on_notification = None
+        if self._pool is not None:
+            pg_listener_conn = await self._pool.acquire()
+
+            def _on_notification(
+                conn: object,
+                pid: int,
+                channel: str,
+                payload: str,
+            ) -> None:
+                _ = conn, pid, channel
+                try:
+                    msg = json.loads(payload)
+                except json.JSONDecodeError:
+                    _logger.warning(
+                        "Invalid PG notification payload:"
+                        " %s",
+                        payload,
+                    )
+                    return
+                event_type = msg.get("event_type", "")
+                run_id_str = msg.get("run_id", "")
+                if (
+                    event_type == "run_state"
+                    and run_id_str == str(self._run_id)
+                ):
+                    asyncio.create_task(
+                        self._handle_control_signal(
+                            self._run_id,
+                            msg.get("new_status", ""),
+                        ),
+                    )
+                else:
+                    asyncio.create_task(
+                        self._event_registry.fire(
+                            event_type,
+                            msg.get("data"),
+                        ),
+                    )
+
+            await pg_listener_conn.add_listener(
+                'orxt_events', _on_notification,
+            )
+
+            async def _listen_forever() -> None:
+                stop = asyncio.Event()
+                await stop.wait()
+
+            pg_listener_task = asyncio.create_task(
+                _listen_forever(),
+            )
+
         # Load knowledge files at run start
         if (
             self._knowledge_dir is not None
@@ -444,6 +500,17 @@ class Scheduler:
 
         # Coherence summary at run end
         await self._write_coherence_summary()
+
+        # Clean up PG listener
+        if pg_listener_task is not None:
+            pg_listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await pg_listener_task
+        if pg_listener_conn is not None:
+            await pg_listener_conn.remove_listener(
+                'orxt_events', _on_notification,
+            )
+            await self._pool.release(pg_listener_conn)
 
         await self._trace_writer.unsubscribe_run_control(
             self._run_id,
