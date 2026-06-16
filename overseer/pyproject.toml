@@ -26,3 +26,10 @@ trace = { path = "../trace", editable = true }
 session = { path = "../session", editable = true }
 knowledge-module = { path = "../knowledge-module", editable = true }
 tool = { path = "../tool", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.0",
+    "pytest-asyncio>=1.4.0",
+    "uuid6>=2025.0.1",
+]
