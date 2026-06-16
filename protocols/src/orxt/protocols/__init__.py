@@ -34,6 +34,7 @@ from orxt.protocols._execution import (
 )
 from orxt.protocols._task import (
     AttemptSummary,
+    BudgetExhaustionPolicy,
     EscalationPayload,
     Execution,
     TaskContext,
@@ -50,6 +51,7 @@ __all__ = [
     "SEVERITY_ORDER",
     "AgentExecution",
     "AttemptSummary",
+    "BudgetExhaustionPolicy",
     "BudgetExhausted",
     "BudgetThresholdCrossed",
     "CheckAgentContext",

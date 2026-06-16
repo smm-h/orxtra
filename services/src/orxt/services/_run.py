@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from orxt.agent import load_agents, load_categories
+from orxt.protocols._task import BudgetExhaustionPolicy
 from orxt.scheduler import Scheduler, load_workflow
 from orxt.trace import RunReport, RunSummary, TraceWriter, read_run_report
 from orxt.trace import list_runs as _list_runs
@@ -28,6 +29,7 @@ class RunConfig(BaseModel):
     provider_configs: dict[str, dict[str, str]]
     budget: Decimal
     autonomy_level: str
+    budget_exhaustion_policy: BudgetExhaustionPolicy = BudgetExhaustionPolicy.UNLIMITED
 
 
 def _serialize_config(config: RunConfig) -> dict[str, Any]:
