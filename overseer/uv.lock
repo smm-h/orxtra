@@ -1930,6 +1930,11 @@ version = "0.0.0"
 source = { editable = "../secrets" }
 
 [[package]]
+name = "orxt-write-safety"
+version = "0.0.0"
+source = { editable = "../write-safety" }
+
+[[package]]
 name = "overseer"
 version = "0.0.0"
 source = { editable = "." }
@@ -1938,6 +1943,7 @@ dependencies = [
     { name = "orxt-protocols" },
     { name = "pydantic" },
     { name = "session" },
+    { name = "tool" },
     { name = "trace" },
 ]
 
@@ -1947,6 +1953,7 @@ requires-dist = [
     { name = "orxt-protocols", editable = "../protocols" },
     { name = "pydantic", specifier = ">=2" },
     { name = "session", editable = "../session" },
+    { name = "tool", editable = "../tool" },
     { name = "trace", editable = "../trace" },
 ]
 
@@ -2912,6 +2919,34 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/97/c9/2553f72aaf65a2797d4229e37fa7fbe38ffbf3e32912d31bdd78b3323e59/tokenizers-0.23.1-cp310-abi3-win_amd64.whl", hash = "sha256:e7bfaf995c1bdbbd21d13539decb6650967013759318627d85daeb7881af16b7", size = 2798223, upload-time = "2026-04-27T14:43:28.51Z" },
     { url = "https://files.pythonhosted.org/packages/cd/2b/2be299bab55fc595e3d38567edb1a87f86e594842968fa9515a07bdcf422/tokenizers-0.23.1-cp310-abi3-win_arm64.whl", hash = "sha256:a26197957d8e4425dfba746315f3c425ea00cfa8367c5fbc4ec73447893dcea9", size = 2664127, upload-time = "2026-04-27T14:43:26.949Z" },
 ]
+
+[[package]]
+name = "tool"
+version = "0.0.0"
+source = { editable = "../tool" }
+dependencies = [
+    { name = "httpx" },
+    { name = "jsonschema" },
+    { name = "orxt-protocols" },
+    { name = "orxt-secrets" },
+    { name = "orxt-write-safety" },
+    { name = "pathspec" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx" },
+    { name = "jsonschema" },
+    { name = "orxt-protocols", editable = "../protocols" },
+    { name = "orxt-secrets", editable = "../secrets" },
+    { name = "orxt-write-safety", editable = "../write-safety" },
+    { name = "pathspec" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "tqdm"
