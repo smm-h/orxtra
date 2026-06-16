@@ -1,17 +1,17 @@
 """Tests for orchestrator task execution with await_task suspension."""
-# ruff: noqa: SLF001, S101, ANN001, ANN201, ASYNC221, PLR2004
+# ruff: noqa: SLF001, ANN001, ANN201
 
 from __future__ import annotations
 
+import re
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 import pytest
 import uuid6
-
-from orxt.protocols import TaskResult, TaskSpec, TaskState
-from orxt.protocols._tool import Tool
+from orxt.protocols import TaskSpec, TaskState
+from orxt.tool import make_await_task_tool
 from orxt.transport import (
     Continuation,
     Result,
@@ -19,6 +19,11 @@ from orxt.transport import (
     StepFinish,
     ToolUse,
 )
+
+from tests.conftest import MockTransportNoTools
+
+if TYPE_CHECKING:
+    from orxt.protocols._tool import Tool
 
 
 @pytest.fixture
@@ -37,7 +42,8 @@ class TestOrchestratorDispatch:
     async def test_orchestrator_flag_dispatches_correctly(
         self, orchestrator_task,
     ):
-        """TaskSpec with orchestrator=True should dispatch to _execute_orchestrator_task."""
+        """TaskSpec with orchestrator=True should dispatch
+        to _execute_orchestrator_task."""
         assert orchestrator_task.orchestrator is True
 
     async def test_taskspec_orchestrator_default_none(self):
@@ -56,8 +62,6 @@ class TestOrchestratorDispatch:
         """execute_task with orchestrator=True actually routes
         to _execute_orchestrator_task (not _execute_agent_task)."""
         # Use a transport that just returns a result (no tools)
-        from tests.conftest import MockTransportNoTools
-
         sched = make_scheduler(
             transport_registry={
                 "anthropic": MockTransportNoTools("done"),
@@ -91,8 +95,6 @@ class TestOrchestratorDispatch:
         self, make_scheduler, trace_writer,
     ):
         """Orchestrator task transitions through ACTIVE -> COMPLETED."""
-        from tests.conftest import MockTransportNoTools
-
         sched = make_scheduler(
             transport_registry={
                 "anthropic": MockTransportNoTools("output"),
@@ -128,16 +130,12 @@ class TestOrchestratorDispatch:
 
 class TestAwaitTaskTool:
     async def test_make_await_task_tool_is_suspending(self):
-        from orxt.tool import make_await_task_tool
-
         mock_scheduler = AsyncMock()
         tool = make_await_task_tool(mock_scheduler, "session-1")
         assert tool.suspending is True
         assert tool.name == "await_task"
 
     async def test_await_task_calls_handler(self):
-        from orxt.tool import make_await_task_tool
-
         mock_scheduler = AsyncMock()
         mock_scheduler.handle_await_task = AsyncMock(
             return_value="Awaiting task abc.",
@@ -197,7 +195,7 @@ class TestOrchestratorSuspension:
     2. Resume: receives child result, returns final output
     """
 
-    async def test_orchestrator_suspends_and_resumes(
+    async def test_orchestrator_suspends_and_resumes(  # noqa: C901
         self, make_scheduler, trace_writer,
     ):
         """Full orchestrator flow: create child, await, suspend,
@@ -210,7 +208,7 @@ class TestOrchestratorSuspension:
             def __init__(self) -> None:
                 self._resumed = False
 
-            async def send(
+            async def send(  # noqa: PLR0913
                 self,
                 message: str,
                 *,
@@ -219,7 +217,7 @@ class TestOrchestratorSuspension:
                 tools: list[Tool],
                 session_id: str | None = None,
                 stream_deltas: bool = False,
-            ) -> Any:
+            ) -> Any:  # noqa: ANN401
                 _ = model, system_prompt, stream_deltas
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
@@ -275,7 +273,7 @@ class TestOrchestratorSuspension:
                     session_id=sid,
                 )
 
-            async def resume(
+            async def resume(  # noqa: PLR0913
                 self,
                 continuation: Continuation,
                 result: str,
@@ -285,7 +283,7 @@ class TestOrchestratorSuspension:
                 tools: list[Tool],
                 session_id: str | None = None,
                 stream_deltas: bool = False,
-            ) -> Any:
+            ) -> Any:  # noqa: ANN401
                 _ = continuation, model, system_prompt
                 _ = stream_deltas, tools
                 self._resumed = True
@@ -332,7 +330,7 @@ class TestOrchestratorSuspension:
                 self._suspending = SuspendingTransport()
                 self._resumed = False
 
-            async def send(
+            async def send(  # noqa: PLR0913
                 self,
                 message: str,
                 *,
@@ -341,7 +339,7 @@ class TestOrchestratorSuspension:
                 tools: list[Tool],
                 session_id: str | None = None,
                 stream_deltas: bool = False,
-            ) -> Any:
+            ) -> Any:  # noqa: ANN401
                 self._send_count += 1
                 if self._send_count == 1:
                     # Orchestrator's initial send
@@ -359,7 +357,6 @@ class TestOrchestratorSuspension:
                     sid = session_id or str(uuid6.uuid7())
                     tool_map = {t.name: t for t in tools}
 
-                    import re
                     match = re.search(
                         r"Your task ID is ([0-9a-f-]+)",
                         message,
@@ -408,7 +405,7 @@ class TestOrchestratorSuspension:
                         tool_calls=2,
                     )
 
-            async def resume(
+            async def resume(  # noqa: PLR0913
                 self,
                 continuation: Continuation,
                 result: str,
@@ -418,7 +415,7 @@ class TestOrchestratorSuspension:
                 tools: list[Tool],
                 session_id: str | None = None,
                 stream_deltas: bool = False,
-            ) -> Any:
+            ) -> Any:  # noqa: ANN401
                 self._resumed = True
                 async for ev in self._suspending.resume(
                     continuation,
@@ -459,7 +456,11 @@ class TestOrchestratorSuspension:
         # Verify the orchestrator completed
         assert sched._task_states[task_id] == TaskState.COMPLETED
         assert result.output is not None
-        assert "child done" in result.output.lower() or "child said" in result.output.lower()
+        output_lower = result.output.lower()
+        assert (
+            "child done" in output_lower
+            or "child said" in output_lower
+        )
 
         # Verify transport was actually resumed
         assert transport._resumed is True
