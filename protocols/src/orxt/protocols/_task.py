@@ -34,6 +34,13 @@ class TaskState(StrEnum):
     CANCELLED = "cancelled"
 
 
+class BudgetExhaustionPolicy(StrEnum):
+    BLOCK_NEW = "block_new"
+    CANCEL_ALL = "cancel_all"
+    TIMEOUT_GRACE = "timeout_grace"
+    UNLIMITED = "unlimited"
+
+
 class TaskSpec(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
