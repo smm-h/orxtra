@@ -42,6 +42,7 @@ from orxt.verify import run_checks
 from orxt.write_safety import StaleWriteTracker, WriteQueue
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
     from pathlib import Path
     from uuid import UUID
 
@@ -128,6 +129,9 @@ class Scheduler:
         overseer_interface: OverseerInterface | None = None,
         knowledge_dir: Path | None = None,
         model_context_limit: int = 200_000,
+        knowledge_loader: Callable[[Path, Any, UUID], Awaitable[None]] | None = None,
+        handoff_checker: Callable[[Any, int], Awaitable[bool]] | None = None,
+        handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None = None,
     ) -> None:
         self._trace_writer = trace_writer
         self._pool = pool
@@ -138,6 +142,9 @@ class Scheduler:
         self._overseer_interface = overseer_interface
         self._knowledge_dir = knowledge_dir
         self._model_context_limit = model_context_limit
+        self._knowledge_loader = knowledge_loader
+        self._handoff_checker = handoff_checker
+        self._handoff_performer = handoff_performer
         self._active_tasks: dict[str, UUID] = {}
         self._task_states: dict[UUID, TaskState] = {}
         self._task_specs: dict[UUID, TaskSpec] = {}
@@ -229,11 +236,11 @@ class Scheduler:
             )
 
         # Load knowledge files at run start
-        if self._knowledge_dir is not None:
-            from orxt.overseer._knowledge import (  # noqa: PLC0415
-                load_knowledge_files,
-            )
-            await load_knowledge_files(
+        if (
+            self._knowledge_dir is not None
+            and self._knowledge_loader is not None
+        ):
+            await self._knowledge_loader(
                 self._knowledge_dir,
                 self._trace_writer,
                 self._run_id,
@@ -2033,15 +2040,15 @@ class Scheduler:
             self._overseer_interface, "session",
         ):
             return
-
-        from orxt.overseer._handoff import (  # noqa: PLC0415
-            check_handoff_needed,
-            perform_handoff,
-        )
+        if (
+            self._handoff_checker is None
+            or self._handoff_performer is None
+        ):
+            return
 
         adapter = self._overseer_interface
         session = adapter.session  # type: ignore[union-attr]
-        needed = await check_handoff_needed(
+        needed = await self._handoff_checker(
             session, self._model_context_limit,
         )
         if needed:
@@ -2049,7 +2056,7 @@ class Scheduler:
                 "Overseer session handoff"
                 " triggered",
             )
-            new_session = await perform_handoff(
+            new_session = await self._handoff_performer(
                 session,
                 self._trace_writer,
                 self._run_id,
