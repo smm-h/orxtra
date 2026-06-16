@@ -36,7 +36,7 @@ _DEFAULTS: dict[str, Any] = {
 }
 
 
-def _make(**overrides: Any) -> Any:
+def _make(**overrides: Any) -> Any:  # noqa: ANN401
     """Create a tool with defaults, overriding specific params."""
     kw = {**_DEFAULTS, **overrides}
     return make_shell_tool(**kw)
@@ -122,7 +122,7 @@ class TestTimeout:
         real_wait_for = asyncio.wait_for
 
         async def tracking_wait_for(
-            coro: object, *, timeout: float | None = None,
+            coro: object, *, timeout: float | None = None,  # noqa: ASYNC109
         ) -> object:
             nonlocal captured_timeout
             captured_timeout = timeout
@@ -260,7 +260,7 @@ class TestPipeline:
 
     def test_shell_in_file_mutation_tools(self) -> None:
         """'shell' is in FILE_MUTATION_TOOLS."""
-        from orxt.tool._pipeline import FILE_MUTATION_TOOLS
+        from orxt.tool._pipeline import FILE_MUTATION_TOOLS  # noqa: PLC0415
 
         assert "shell" in FILE_MUTATION_TOOLS
 

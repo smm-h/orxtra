@@ -39,12 +39,12 @@ _CONSULT_SCHEMA: dict[str, Any] = {
 }
 
 
-def make_consult_tool(
+def make_consult_tool(  # noqa: PLR0913
     tool_registry: dict[str, Tool],
     transport_registry: dict[str, Any],
-    trace_writer: Any,
-    run_id: UUID,
-    read_root: Path,
+    trace_writer: Any,  # noqa: ARG001, ANN401
+    run_id: UUID,  # noqa: ARG001
+    read_root: Path,  # noqa: ARG001
     categories: dict[str, str],
     agents: dict[str, Any],
 ) -> Tool:
@@ -70,7 +70,7 @@ def make_consult_tool(
         # Reconstruct http tool in consult_mode if the agent is allowed http
         agent_tools: list[str] = agent_def.tools
         if "http" in agent_tools and "http" in tool_registry:
-            from orxt.tool._http_tool import make_http_tool
+            from orxt.tool._http_tool import make_http_tool  # noqa: PLC0415
 
             filtered_tools["http"] = make_http_tool(
                 allowed_hosts="allow_all", consult_mode=True,

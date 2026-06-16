@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import shutil
 from typing import TYPE_CHECKING, Any
 
@@ -423,7 +422,7 @@ def make_set_executable_tool(
             msg = f"Not a file: {resolved}"
             raise ToolError(msg)
 
-        os.chmod(resolved, resolved.stat().st_mode | 0o111)
+        resolved.chmod(resolved.stat().st_mode | 0o111)
         return f"Set executable: {resolved}"
 
     return Tool(

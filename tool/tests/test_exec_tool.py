@@ -36,7 +36,7 @@ _DEFAULTS: dict[str, Any] = {
 }
 
 
-def _make(**overrides: Any) -> Any:
+def _make(**overrides: Any) -> Any:  # noqa: ANN401
     """Create a tool with defaults, overriding specific params."""
     kw = {**_DEFAULTS, **overrides}
     return make_exec_tool(**kw)
@@ -240,7 +240,7 @@ class TestTimeout:
         real_wait_for = asyncio.wait_for
 
         async def tracking_wait_for(
-            coro: object, *, timeout: float | None = None,
+            coro: object, *, timeout: float | None = None,  # noqa: ASYNC109
         ) -> object:
             nonlocal captured_timeout
             captured_timeout = timeout

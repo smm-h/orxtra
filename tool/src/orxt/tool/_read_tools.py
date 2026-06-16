@@ -363,7 +363,7 @@ def _load_gitignore(read_root: Path) -> pathspec.PathSpec | None:
     return pathspec.PathSpec.from_lines("gitignore", lines)
 
 
-def _list_recursive(
+def _list_recursive(  # noqa: C901
     resolved: Path,
     pattern: str | None,
     gitignore: pathspec.PathSpec | None = None,

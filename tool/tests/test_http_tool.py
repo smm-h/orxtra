@@ -132,9 +132,11 @@ class TestTimeout:
         mock.request = AsyncMock(side_effect=httpx.ReadTimeout("timed out"))
         mock.__aenter__ = AsyncMock(return_value=mock)
         mock.__aexit__ = AsyncMock(return_value=None)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            with pytest.raises(ToolError, match="timed out"):
-                await tool.execute({"method": "GET", "url": "http://example.com/"})
+        with (
+            patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock),
+            pytest.raises(ToolError, match="timed out"),
+        ):
+            await tool.execute({"method": "GET", "url": "http://example.com/"})
 
     @pytest.mark.asyncio
     async def test_timeout_ceiling_enforced(self) -> None:
@@ -172,9 +174,11 @@ class TestErrorHandling:
         )
         mock.__aenter__ = AsyncMock(return_value=mock)
         mock.__aexit__ = AsyncMock(return_value=None)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            with pytest.raises(ToolError, match="Request failed"):
-                await tool.execute({"method": "GET", "url": "http://example.com/"})
+        with (
+            patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock),
+            pytest.raises(ToolError, match="Request failed"),
+        ):
+            await tool.execute({"method": "GET", "url": "http://example.com/"})
 
 
 class TestPreview:

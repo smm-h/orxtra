@@ -17,7 +17,7 @@ FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
 })
 
 
-def wrap_tool_with_pipeline(
+def wrap_tool_with_pipeline(  # noqa: PLR0913
     tool: Tool,
     scheduler_check: Callable[[str], UUID],
     secret_registry: SecretRegistry | None,
@@ -65,7 +65,7 @@ def wrap_tool_with_pipeline(
         # 7. Return result.
         return result
 
-    wrapped_execute._raw_execute = getattr(tool.execute, "_raw_execute", tool.execute)  # type: ignore[attr-defined]
+    wrapped_execute._raw_execute = getattr(tool.execute, "_raw_execute", tool.execute)  # type: ignore[attr-defined]  # noqa: SLF001  # accessing orxt internal API
 
     return Tool(
         name=tool.name,
@@ -75,7 +75,7 @@ def wrap_tool_with_pipeline(
     )
 
 
-def wrap_tools_for_session(
+def wrap_tools_for_session(  # noqa: PLR0913
     tools: list[Tool],
     scheduler_check: Callable[[str], UUID],
     secret_registry: SecretRegistry | None,
