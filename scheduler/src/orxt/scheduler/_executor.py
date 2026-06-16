@@ -522,6 +522,18 @@ class Scheduler:
                         f" failed: {pa['error']}"
                     )
 
+            snap_in = session.total_input_tokens
+            snap_out = session.total_output_tokens
+            snap_reason = (
+                session.total_reasoning_tokens
+            )
+            snap_cache_r = (
+                session.total_cache_read_tokens
+            )
+            snap_cache_w = (
+                session.total_cache_write_tokens
+            )
+
             try:
                 if task.timeout is not None:
                     await asyncio.wait_for(
@@ -595,7 +607,29 @@ class Scheduler:
 
             _ = time.monotonic() - start_time
             self._accumulate_cost(
-                task_id, task, session,
+                task_id, task,
+                Usage(
+                    input_tokens=(
+                        session.total_input_tokens
+                        - snap_in
+                    ),
+                    output_tokens=(
+                        session.total_output_tokens
+                        - snap_out
+                    ),
+                    reasoning_tokens=(
+                        session.total_reasoning_tokens
+                        - snap_reason
+                    ),
+                    cache_read_tokens=(
+                        session.total_cache_read_tokens
+                        - snap_cache_r
+                    ),
+                    cache_write_tokens=(
+                        session.total_cache_write_tokens
+                        - snap_cache_w
+                    ),
+                ),
             )
 
             state = self._task_states[task_id]
@@ -802,28 +836,12 @@ class Scheduler:
         self,
         task_id: UUID,
         task: TaskSpec,
-        session: Session,
+        usage: Usage,
     ) -> None:
         model_key = self._resolve_model_key(task)
         if model_key is None:
             return
-        cost = compute_cost_usd(
-            model_key,
-            Usage(
-                input_tokens=(
-                    session.total_input_tokens
-                ),
-                output_tokens=(
-                    session.total_output_tokens
-                ),
-                cache_read_tokens=(
-                    session.total_cache_read_tokens
-                ),
-                cache_write_tokens=(
-                    session.total_cache_write_tokens
-                ),
-            ),
-        )
+        cost = compute_cost_usd(model_key, usage)
         self._task_costs[task_id] += cost
 
     def _create_agent_session(
