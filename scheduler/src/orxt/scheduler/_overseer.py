@@ -65,6 +65,9 @@ class OverseerInterface(Protocol):
     def is_degraded(
         self, event_type: str,
     ) -> bool: ...
+    async def refine_context(
+        self, task_name: str, raw_context: str,
+    ) -> str: ...
 
 
 class OverseerAdapter:
@@ -263,3 +266,30 @@ class OverseerAdapter:
         self._previous_tool_calls[event_type] = current
 
         return errors
+
+    async def refine_context(
+        self, task_name: str, raw_context: str,
+    ) -> str:
+        """Send context to Overseer for refinement.
+
+        This is a request/response, not an event.
+        The Overseer can read files, consult, etc.
+        Returns the refined context text.
+        """
+        from orxt.transport import Result  # noqa: PLC0415
+
+        message = (
+            f"Refine this agent context for task"
+            f" '{task_name}'. You may add relevant"
+            f" lessons, request additional code context,"
+            f" reorder, or accept as-is.\n\n"
+            f"--- RAW CONTEXT ---\n{raw_context}\n"
+            f"--- END RAW CONTEXT ---"
+        )
+        parts: list[str] = []
+        async for ev in self._overseer.session.send(
+            message,
+        ):
+            if isinstance(ev, Result):
+                parts.append(ev.text)
+        return "".join(parts) or raw_context

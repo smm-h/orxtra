@@ -761,6 +761,44 @@ class Scheduler:
                         f" failed: {pa['error']}"
                     )
 
+            # Layer 3: Overseer context refinement
+            if (
+                task.context_refinement
+                and self._overseer_interface is not None
+                and hasattr(
+                    self._overseer_interface,
+                    "refine_context",
+                )
+            ):
+                pre_refinement = prompt
+                refined = await (
+                    self._overseer_interface
+                    .refine_context(
+                        task.name, prompt,
+                    )
+                )
+                if refined != prompt:
+                    import difflib  # noqa: PLC0415
+
+                    diff = "\n".join(
+                        difflib.unified_diff(
+                            prompt.splitlines(),
+                            refined.splitlines(),
+                            fromfile="pre-refinement",
+                            tofile="post-refinement",
+                            lineterm="",
+                        )
+                    )
+                    await (
+                        self._trace_writer
+                        .write_context_diff(
+                            attempt_id,
+                            pre_refinement,
+                            diff,
+                        )
+                    )
+                    prompt = refined
+
             snap_in = session.total_input_tokens
             snap_out = session.total_output_tokens
             snap_reason = (
