@@ -60,6 +60,14 @@ class Overseer:
         self._autonomy_level = autonomy_level
         self._health_monitor = health_monitor
 
+    @property
+    def session(self) -> Session:
+        return self._session
+
+    @session.setter
+    def session(self, value: Session) -> None:
+        self._session = value
+
     async def handle_event(self, event: OverseerEvent) -> None:
         message = format_event(event)
         async for _ev in self._session.send(message):
