@@ -285,16 +285,21 @@ class Scheduler:
 
         for group in groups:
             await self._paused.wait()
-            coros = [
-                self.execute_task(
-                    self._task_specs[task_id_map[name]],
-                    None,
-                    task_id=task_id_map[name],
-                    variables=dict(variables),
+            tasks = [
+                asyncio.create_task(
+                    self.execute_task(
+                        self._task_specs[task_id_map[name]],
+                        None,
+                        task_id=task_id_map[name],
+                        variables=dict(variables),
+                    ),
                 )
                 for name in group
             ]
-            results = await asyncio.gather(*coros)
+            for t in tasks:
+                self._running_tasks.add(t)
+                t.add_done_callback(self._running_tasks.discard)
+            results = await asyncio.gather(*tasks)
 
             for name, result in zip(
                 group, results, strict=True,
@@ -1330,7 +1335,12 @@ class Scheduler:
         )
 
         for sub in task.subtasks:
-            await self.execute_task(sub, task_id)
+            t = asyncio.create_task(
+                self.execute_task(sub, task_id),
+            )
+            self._running_tasks.add(t)
+            t.add_done_callback(self._running_tasks.discard)
+            await t
 
         self._task_states[task_id] = TaskState.COMPLETED
         await self._trace_writer.transition_task(
@@ -1469,11 +1479,16 @@ class Scheduler:
                     if task.for_each_abort_on_failure:
                         abort = True
 
-        iteration_tasks = [
-            run_iteration(i, item)
+        async_tasks = [
+            asyncio.create_task(
+                run_iteration(i, item),
+            )
             for i, item in enumerate(items)
         ]
-        await asyncio.gather(*iteration_tasks)
+        for t in async_tasks:
+            self._running_tasks.add(t)
+            t.add_done_callback(self._running_tasks.discard)
+        await asyncio.gather(*async_tasks)
 
         if abort:
             self._task_states[task_id] = (
