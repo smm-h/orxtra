@@ -63,6 +63,7 @@ async def start_run(
             agents=agents,
             categories=categories,
             run_id=run_id,
+            pool=pool,
             overseer_interface=overseer,
             knowledge_dir=config.knowledge_dir,
         )

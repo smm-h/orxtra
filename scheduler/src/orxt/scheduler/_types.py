@@ -22,6 +22,7 @@ class WorkflowConfig(BaseModel):
     description: str
     tasks: list[TaskSpec]
     dependencies: dict[str, list[str]]
+    escalation_policy: str = "continue_independent"
 
 
 class ServiceConfig(BaseModel):
