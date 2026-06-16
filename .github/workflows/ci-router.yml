@@ -16,6 +16,7 @@ jobs:
       transport: ${{ steps.changes.outputs.transport }}
       agent: ${{ steps.changes.outputs.agent }}
       tool: ${{ steps.changes.outputs.tool }}
+      verify: ${{ steps.changes.outputs.verify }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -28,6 +29,7 @@ jobs:
           transport: 'transport/**'
           agent: 'agent/**'
           tool: 'tool/**'
+          verify: 'verify/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -52,3 +54,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.tool == 'true'
     uses: ./.github/workflows/tool-ci.yml
+  verify:
+    needs: detect
+    if: needs.detect.outputs.verify == 'true'
+    uses: ./.github/workflows/verify-ci.yml
