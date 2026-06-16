@@ -64,7 +64,6 @@ __all__ = [
     "ErrorCategory",
     "EscalationPayload",
     "Execution",
-    "format_event",
     "HealthDegraded",
     "InboxAnswered",
     "InboxRejected",
@@ -81,4 +80,5 @@ __all__ = [
     "Tool",
     "ToolError",
     "WorkflowExecution",
+    "format_event",
 ]

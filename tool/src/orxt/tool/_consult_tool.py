@@ -7,7 +7,6 @@ from uuid import UUID
 from orxt.protocols._tool import Tool, ToolError
 from orxt.tool._validation import validate_args
 
-
 CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
     "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
     "exec", "git",

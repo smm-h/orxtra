@@ -47,7 +47,6 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-
     from orxt.agent import Agent
     from orxt.protocols._events import StructuralAdvisory
     from orxt.protocols._task import Execution

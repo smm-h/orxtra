@@ -75,7 +75,7 @@ class HealthDegraded:
     threshold: float
 
 
-def _to_json_safe(value: object) -> object:
+def _to_json_safe(value: object) -> object:  # noqa: PLR0911
     """Recursively convert a value to JSON-serializable form."""
     if isinstance(value, str | int | float | bool) or value is None:
         return value
