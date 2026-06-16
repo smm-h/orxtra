@@ -97,6 +97,13 @@ path = "mcp"
 description = "MCP server (human interface via dashboard/AI client)"
 depends_on = ["services"]
 
+# --- Infrastructure ---
+
+[[projects]]
+path = "schema"
+description = "pgdesign database schema definitions"
+dev_node = true
+
 # --- Architecture layers ---
 
 [layers]
