@@ -25,6 +25,7 @@ jobs:
       knowledge-module: ${{ steps.changes.outputs.knowledge-module }}
       services: ${{ steps.changes.outputs.services }}
       cli: ${{ steps.changes.outputs.cli }}
+      mcp: ${{ steps.changes.outputs.mcp }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -46,6 +47,7 @@ jobs:
           knowledge-module: 'knowledge-module/**'
           services: 'services/**'
           cli: 'cli/**'
+          mcp: 'mcp/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -106,3 +108,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.cli == 'true'
     uses: ./.github/workflows/cli-ci.yml
+  mcp:
+    needs: detect
+    if: needs.detect.outputs.mcp == 'true'
+    uses: ./.github/workflows/mcp-ci.yml
