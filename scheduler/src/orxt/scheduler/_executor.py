@@ -234,6 +234,13 @@ class Scheduler:
                 self._pool, self._run_id,
             )
 
+        # Subscribe to run control signals (pause/abort)
+        await self._trace_writer.subscribe_run_control(
+            self._run_id, self._handle_control_signal,
+        )
+        # Bridge trace events to EventRegistry
+        await self._bridge_trace_to_events()
+
         # Load knowledge files at run start
         if (
             self._knowledge_dir is not None
@@ -319,6 +326,10 @@ class Scheduler:
 
         # Coherence summary at run end
         await self._write_coherence_summary()
+
+        await self._trace_writer.unsubscribe_run_control(
+            self._run_id,
+        )
 
     def _init_task_state(
         self,
@@ -1966,6 +1977,42 @@ class Scheduler:
     @property
     def is_paused(self) -> bool:
         return not self._paused.is_set()
+
+    async def _handle_control_signal(
+        self, run_id: UUID, new_status: str,
+    ) -> None:
+        """Handle a control signal from the trace layer."""
+        if new_status == "aborted":
+            await self.abort()
+        elif new_status == "paused":
+            await self.pause()
+
+    async def _bridge_trace_to_events(self) -> None:
+        """Bridge trace event callbacks to the EventRegistry.
+
+        When the TraceWriter has an event_callback, this wraps it
+        so that events also fire on the in-process EventRegistry.
+        This makes wait-for tasks work when fire_event inserts
+        an event row via the trace layer.
+        """
+        original_callback = self._trace_writer._event_callback
+
+        async def _bridged_callback(
+            event_id: UUID,
+            run_id: UUID,
+            event_type: str,
+            data: dict[str, Any],
+        ) -> None:
+            if original_callback is not None:
+                await original_callback(
+                    event_id, run_id, event_type, data,
+                )
+            # Forward to EventRegistry for wait-for tasks
+            await self._event_registry.fire(
+                event_type, data,
+            )
+
+        self._trace_writer._event_callback = _bridged_callback
 
     def _analyze_structural_advisories(
         self,

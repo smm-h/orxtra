@@ -24,6 +24,8 @@ class MockTraceWriter:
         self.calls: list[tuple[str, dict[str, Any]]] = []
         self._run_statuses: dict[uuid.UUID, str] = {}
         self._task_statuses: dict[uuid.UUID, str] = {}
+        self._event_callback: Any = None
+        self._control_callback: Any = None
 
     def _record(
         self, method: str, **kwargs: object,
@@ -202,6 +204,27 @@ class MockTraceWriter:
         self, **kwargs: object,
     ) -> None:
         self._record("write_constraint", **kwargs)
+
+    async def subscribe_run_control(
+        self,
+        run_id: uuid.UUID,
+        callback: Any,
+    ) -> None:
+        self._control_callback = callback
+        self._record(
+            "subscribe_run_control",
+            run_id=run_id,
+        )
+
+    async def unsubscribe_run_control(
+        self,
+        run_id: uuid.UUID,
+    ) -> None:
+        self._control_callback = None
+        self._record(
+            "unsubscribe_run_control",
+            run_id=run_id,
+        )
 
     def get_calls(self, method: str) -> list[dict[str, Any]]:
         return [
