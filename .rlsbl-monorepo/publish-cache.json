@@ -12,7 +12,7 @@
   "scheduler": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "overseer": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "knowledge-module": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
-  "services": null,
+  "services": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "cli": null,
   "mcp": null
 }
