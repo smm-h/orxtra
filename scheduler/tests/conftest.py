@@ -182,6 +182,27 @@ class MockTraceWriter:
             content=content,
         )
 
+    async def write_coherence_summary(
+        self,
+        run_id: uuid.UUID,
+        summary: str,
+    ) -> None:
+        self._record(
+            "write_coherence_summary",
+            run_id=run_id,
+            summary=summary,
+        )
+
+    async def write_lesson(
+        self, **kwargs: object,
+    ) -> None:
+        self._record("write_lesson", **kwargs)
+
+    async def write_constraint(
+        self, **kwargs: object,
+    ) -> None:
+        self._record("write_constraint", **kwargs)
+
     def get_calls(self, method: str) -> list[dict[str, Any]]:
         return [
             kwargs for m, kwargs in self.calls if m == method
