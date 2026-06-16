@@ -11,6 +11,7 @@ from uuid import UUID
 
 import asyncpg  # type: ignore[import-untyped]
 from orxt.cli._formatters import format_output
+from orxt.trace import TraceWriter
 from orxt.services import (
     abort_run,
     dump_config,
@@ -398,9 +399,10 @@ async def _event_fire(args: argparse.Namespace) -> None:
         payload = parsed
     pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
     try:
-        await fire_event(pool, run_id, args.event_name, payload)
+        writer = TraceWriter(pool)
+        event_id = await fire_event(writer, run_id, args.event_name, payload)
         if not args.quiet:
-            print(f"event {args.event_name!r} fired for run {run_id}")
+            print(f"event {args.event_name!r} fired for run {run_id} (id={event_id})")
     finally:
         await pool.close()
 
