@@ -3,6 +3,7 @@ from __future__ import annotations
 from orxt.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
 from orxt.tool._exec_tool import make_exec_tool
 from orxt.tool._git_tool import make_git_tool
+from orxt.tool._shell_tool import make_shell_tool
 from orxt.tool._http_tool import make_http_tool
 from orxt.tool._notepad_tool import make_notepad_tool
 from orxt.tool._pipeline import (
@@ -74,6 +75,7 @@ __all__ = [
     "make_move_tool",
     "make_notepad_tool",
     "make_read_tool",
+    "make_shell_tool",
     "make_set_executable_tool",
     "make_start_task_tool",
     "make_stat_tool",
