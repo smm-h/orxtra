@@ -184,15 +184,116 @@ class Scheduler:
         question: str,
         variable_values: dict[str, str] | None = None,
     ) -> str:
-        msg = "Overseer integration required"
-        raise NotImplementedError(msg)
+        agent_def = self._agents.get(agent)
+        if agent_def is None:
+            msg = f"Agent '{agent}' not found"
+            raise ValueError(msg)
+
+        # Resolve model from agent category
+        category_str = agent_def.category
+        resolved = self._categories.get(category_str)
+        if resolved is None:
+            msg = f"Category '{category_str}' not found"
+            raise ValueError(msg)
+
+        provider_name, model = resolved.split("/", 1)
+        transport = self._transport_registry.get(
+            provider_name,
+        )
+        if transport is None:
+            msg = (
+                "Transport for provider"
+                f" '{provider_name}' not found"
+            )
+            raise ValueError(msg)
+
+        # Substitute variables into question
+        resolved_question = question
+        if variable_values:
+            for k, v in variable_values.items():
+                resolved_question = (
+                    resolved_question.replace(
+                        f"{{{k}}}", v,
+                    )
+                )
+
+        # Call transport directly (no session needed
+        # for read-only consult)
+        result_text = ""
+        async for event in transport.send(
+            resolved_question,
+            model=model,
+            system_prompt=agent_def.prompt,
+            tools=[],
+        ):
+            if isinstance(event, Result):
+                result_text = event.text
+        return result_text
 
     async def run_workflow_check(
         self,
         execution: Execution,
     ) -> CheckResult:
-        msg = "Overseer integration required"
-        raise NotImplementedError(msg)
+        from orxt.protocols._task import (  # noqa: PLC0415
+            WorkflowExecution,
+        )
+
+        if not isinstance(execution, WorkflowExecution):
+            return CheckResult(
+                passed=False,
+                message=(
+                    "Expected WorkflowExecution, got"
+                    f" {type(execution).__name__}"
+                ),
+            )
+
+        if not execution.tasks:
+            return CheckResult(
+                passed=True,
+                message="Workflow check passed (no tasks)",
+            )
+
+        # Build a composite task spec from the workflow
+        composite = TaskSpec(
+            name=f"check_{execution.name}",
+            subtasks=list(execution.tasks),
+            postchecks=list(execution.postchecks),
+        )
+
+        result = await self._execute_composite_task(
+            composite,
+            await self._trace_writer.create_task(
+                run_id=self._run_id,
+                parent_task_id=None,
+                name=composite.name,
+                task_type="workflow",
+            ),
+        )
+
+        all_passed = all(
+            cr.passed for cr in result.check_results
+        )
+        if all_passed:
+            return CheckResult(
+                passed=True,
+                message=(
+                    "Workflow check"
+                    f" '{execution.name}' passed"
+                ),
+            )
+        failed = [
+            cr.message
+            for cr in result.check_results
+            if not cr.passed
+        ]
+        return CheckResult(
+            passed=False,
+            message=(
+                "Workflow check"
+                f" '{execution.name}' failed:"
+                f" {'; '.join(failed)}"
+            ),
+        )
 
     def _get_scoped_outputs(
         self, parent_id: UUID | None,
