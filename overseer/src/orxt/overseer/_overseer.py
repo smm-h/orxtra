@@ -11,15 +11,6 @@ from orxt.overseer._tools import (
     make_write_lesson_tool,
 )
 from orxt.protocols import format_event
-from orxt.tool._notepad_tool import make_notepad_tool
-from orxt.tool._read_tools import (
-    make_diff_tool,
-    make_glob_tool,
-    make_grep_tool,
-    make_list_dir_tool,
-    make_read_tool,
-    make_stat_tool,
-)
 from orxt.protocols._events import (
     BudgetExhausted,
     BudgetThresholdCrossed,
@@ -30,6 +21,15 @@ from orxt.protocols._events import (
     StructuralAdvisory,
     TaskEscalated,
     TaskFailed,
+)
+from orxt.tool._notepad_tool import make_notepad_tool
+from orxt.tool._read_tools import (
+    make_diff_tool,
+    make_glob_tool,
+    make_grep_tool,
+    make_list_dir_tool,
+    make_read_tool,
+    make_stat_tool,
 )
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ type OverseerEvent = (
 
 
 class Overseer:
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         session: Session,
         trace_writer: TraceWriter,
