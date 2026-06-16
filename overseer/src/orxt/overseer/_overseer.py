@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from orxt.overseer._tools import (
     make_add_constraint_tool,
@@ -11,6 +10,7 @@ from orxt.overseer._tools import (
     make_update_workflow_status_tool,
     make_write_lesson_tool,
 )
+from orxt.protocols import format_event
 from orxt.protocols._events import (
     BudgetExhausted,
     BudgetThresholdCrossed,
@@ -45,18 +45,6 @@ type OverseerEvent = (
 )
 
 
-def _format_event(event: OverseerEvent) -> str:
-    event_type = type(event).__name__
-    fields: dict[str, Any] = {}
-    for key in event.__dataclass_fields__:
-        value = getattr(event, key)
-        if isinstance(value, str | int | float | bool):
-            fields[key] = value
-        else:
-            fields[key] = str(value)
-    return json.dumps({"event_type": event_type, **fields})
-
-
 class Overseer:
     def __init__(
         self,
@@ -73,7 +61,7 @@ class Overseer:
         self._health_monitor = health_monitor
 
     async def handle_event(self, event: OverseerEvent) -> None:
-        message = _format_event(event)
+        message = format_event(event)
         async for _ev in self._session.send(message):
             pass
 
