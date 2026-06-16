@@ -28,6 +28,25 @@ class TraceWriter:
     ) -> None:
         self._pool = pool
         self._event_callback = event_callback
+        self._control_callbacks: dict[UUID, Callable[[UUID, str], Awaitable[None]]] = {}
+
+    async def subscribe_run_control(
+        self, run_id: UUID, callback: Callable[[UUID, str], Awaitable[None]],
+    ) -> None:
+        """Register a callback for run control signals (pause/abort).
+
+        Handles the startup race: if the run is already paused or aborted
+        when subscribing, the callback fires immediately.
+        """
+        self._control_callbacks[run_id] = callback
+        current = await self._pool.fetchval(
+            "SELECT status FROM runs WHERE id = $1", run_id,
+        )
+        if current in ("paused", "aborted"):
+            await callback(run_id, current)
+
+    async def unsubscribe_run_control(self, run_id: UUID) -> None:
+        self._control_callbacks.pop(run_id, None)
 
     async def create_run(
         self, intent: str, config: dict[str, Any], autonomy_level: str
@@ -81,6 +100,8 @@ class TraceWriter:
             )
         if self._event_callback is not None:
             await self._event_callback(event_id, run_id, "run_transition", event_data)
+        if run_id in self._control_callbacks:
+            await self._control_callbacks[run_id](run_id, new_status)
 
     async def create_task(
         self,
