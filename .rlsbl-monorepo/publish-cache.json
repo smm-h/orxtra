@@ -5,7 +5,7 @@
   "transport": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "agent": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "tool": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
-  "verify": null,
+  "verify": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
   "trace": null,
   "notepad": null,
   "session": null,

@@ -114,3 +114,20 @@ jobs:
     defaults:
       run:
         working-directory: tool
+  verify-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv build
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
+        packages-dir: verify/dist/
+    permissions:
+      contents: read
+      id-token: write
+    if: startsWith(github.event.release.tag_name, 'verify@v')
+    defaults:
+      run:
+        working-directory: verify
