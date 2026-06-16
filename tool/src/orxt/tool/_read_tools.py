@@ -10,6 +10,8 @@ import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+import pathspec
+
 from orxt.protocols._tool import Tool, ToolError
 from orxt.tool._path import PathError, resolve_and_check
 from orxt.tool._preview import FullRetrievalGuard, check_and_preview
@@ -353,14 +355,32 @@ def make_read_tool(
     )
 
 
+def _load_gitignore(read_root: Path) -> pathspec.PathSpec | None:
+    """Load .gitignore patterns from the read root directory."""
+    gitignore_path = read_root / ".gitignore"
+    if not gitignore_path.is_file():
+        return None
+    lines = gitignore_path.read_text(encoding="utf-8").splitlines()
+    return pathspec.PathSpec.from_lines("gitignore", lines)
+
+
 def _list_recursive(
     resolved: Path,
     pattern: str | None,
+    gitignore: pathspec.PathSpec | None = None,
 ) -> list[tuple[str, str, str]]:
     """Walk directory recursively, collecting entries."""
     entries: list[tuple[str, str, str]] = []
     for dirpath_str, dirnames, filenames in os.walk(resolved):
         dirpath = resolved.__class__(dirpath_str)
+        # Prune ignored directories from traversal
+        if gitignore:
+            surviving = []
+            for d in dirnames:
+                rel = str((dirpath / d).relative_to(resolved))
+                if not gitignore.match_file(rel + "/"):
+                    surviving.append(d)
+            dirnames[:] = surviving
         for dirname in dirnames:
             if pattern and not fnmatch.fnmatch(dirname, pattern):
                 continue
@@ -372,6 +392,8 @@ def _list_recursive(
                 continue
             full = dirpath / filename
             rel = str(full.relative_to(resolved))
+            if gitignore and gitignore.match_file(rel):
+                continue
             try:
                 size = str(full.stat().st_size)
             except OSError:
@@ -383,6 +405,7 @@ def _list_recursive(
 def _list_immediate(
     resolved: Path,
     pattern: str | None,
+    gitignore: pathspec.PathSpec | None = None,
 ) -> list[tuple[str, str, str]]:
     """List immediate children of a directory."""
     entries: list[tuple[str, str, str]] = []
@@ -396,8 +419,12 @@ def _list_immediate(
         if pattern and not fnmatch.fnmatch(name, pattern):
             continue
         if child.is_dir():
+            if gitignore and gitignore.match_file(name + "/"):
+                continue
             entries.append(("dir", "-", name))
         else:
+            if gitignore and gitignore.match_file(name):
+                continue
             try:
                 size = str(child.stat().st_size)
             except OSError:
@@ -422,11 +449,11 @@ def make_list_dir_tool(read_root: Path) -> Tool:
         pattern = args.get("pattern")
         max_results = args.get("max_results", 500)
 
-        # NOTE: .gitignore filtering is not implemented yet.
+        gitignore = _load_gitignore(read_root)
         if recursive:
-            entries = _list_recursive(resolved, pattern)
+            entries = _list_recursive(resolved, pattern, gitignore)
         else:
-            entries = _list_immediate(resolved, pattern)
+            entries = _list_immediate(resolved, pattern, gitignore)
 
         entries.sort(key=lambda e: e[2])
 
