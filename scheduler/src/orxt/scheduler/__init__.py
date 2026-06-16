@@ -10,7 +10,10 @@ from orxt.scheduler._graph import (
 )
 from orxt.scheduler._loader import load_workflow
 from orxt.scheduler._locks import FileLockRegistry
-from orxt.scheduler._overseer import OverseerInterface
+from orxt.scheduler._overseer import (
+    OverseerAdapter,
+    OverseerInterface,
+)
 from orxt.scheduler._services import (
     ServiceInstance,
     check_health,
@@ -40,6 +43,7 @@ __all__ = [
     "EventRegistry",
     "Execution",
     "FileLockRegistry",
+    "OverseerAdapter",
     "OverseerInterface",
     "Scheduler",
     "ScriptExecution",
