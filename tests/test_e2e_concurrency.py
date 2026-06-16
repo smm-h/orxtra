@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import sys
 import types
-import uuid
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
@@ -30,14 +29,12 @@ from tests.conftest import (
     MockTraceWriter,
     MultiAgentMockTransport,
     make_agent,
-    make_categories,
     make_scheduler,
     simple_task,
-    simple_workflow,
 )
 
 if TYPE_CHECKING:
-    pass
+    import uuid
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +183,7 @@ class TestForEachMaxConcurrency:
         lock = asyncio.Lock()
 
         async def produce_items(
-            ctx: Any,  # noqa: ANN401, ARG001
+            ctx: Any,  # noqa: ANN401
         ) -> TaskResult:
             return TaskResult(
                 output="items",
@@ -199,7 +196,7 @@ class TestForEachMaxConcurrency:
             )
 
         async def process_item(
-            ctx: Any,  # noqa: ANN401, ARG001
+            ctx: Any,  # noqa: ANN401
         ) -> TaskResult:
             nonlocal max_concurrent, current_concurrent
             async with lock:

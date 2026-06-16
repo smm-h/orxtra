@@ -40,7 +40,8 @@ def _passing_scheduler_check(session_id: str) -> UUID:
 
 def _failing_scheduler_check(session_id: str) -> UUID:
     """Scheduler check that always fails."""
-    raise ToolError("No active task for session")
+    msg = "No active task for session"
+    raise ToolError(msg)
 
 
 # ---------------------------------------------------------------------------

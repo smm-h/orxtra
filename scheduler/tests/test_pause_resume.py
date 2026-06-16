@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import asyncio
-import uuid
+import contextlib
 from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
 from orxt.protocols._task import TaskSpec, TaskState
-from orxt.scheduler._executor import Scheduler
 
 if TYPE_CHECKING:
+    import uuid
+
+    from orxt.scheduler._executor import Scheduler
+
     from tests.conftest import MockTraceWriter
 
 
@@ -113,10 +116,8 @@ async def test_pause_cancels_running_tasks(
 
     await scheduler.pause()
     # Let the event loop process the cancellation
-    try:
+    with contextlib.suppress(asyncio.CancelledError):
         await fake_task
-    except asyncio.CancelledError:
-        pass
     assert fake_task.cancelled()
 
 

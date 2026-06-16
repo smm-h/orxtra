@@ -23,7 +23,6 @@ from tests.conftest import (
     MockTraceWriter,
     MultiAgentMockTransport,
     make_agent,
-    make_categories,
     make_scheduler,
     simple_task,
     simple_workflow,
@@ -487,7 +486,7 @@ class TestFunctionTask:
         trace_writer = MockTraceWriter()
         transport = IntegrationMockTransport([])
 
-        async def my_func(ctx: Any) -> TaskResult:  # noqa: ANN401, ARG001
+        async def my_func(ctx: Any) -> TaskResult:  # noqa: ANN401
             return TaskResult(
                 output="function_result",
                 structured_output=None,
@@ -541,7 +540,7 @@ class TestFunctionTask:
         trace_writer = MockTraceWriter()
         transport = IntegrationMockTransport([])
 
-        async def structured_func(ctx: Any) -> TaskResult:  # noqa: ANN401, ARG001
+        async def structured_func(ctx: Any) -> TaskResult:  # noqa: ANN401
             return TaskResult(
                 output="text_result",
                 structured_output={"key": "value", "count": 42},
@@ -597,7 +596,7 @@ class TestForEach:
         """
         trace_writer = MockTraceWriter()
 
-        async def produce_items(ctx: Any) -> TaskResult:  # noqa: ANN401, ARG001
+        async def produce_items(ctx: Any) -> TaskResult:  # noqa: ANN401
             return TaskResult(
                 output="items",
                 structured_output=["alpha", "beta", "gamma"],
@@ -705,7 +704,7 @@ class TestPostchecks:
         """A task with script postchecks that pass completes normally."""
         trace_writer = MockTraceWriter()
 
-        async def passing_check(ctx: Any) -> CheckResult:  # noqa: ANN401, ARG001
+        async def passing_check(ctx: Any) -> CheckResult:  # noqa: ANN401
             return CheckResult(passed=True, message="All good")
 
         module_name = "_e2e_test_funcs.checks_mod"

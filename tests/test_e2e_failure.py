@@ -9,14 +9,11 @@ from __future__ import annotations
 import asyncio
 import errno
 import json
-import uuid
 from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock
 
 from orxt.protocols._errors import ErrorCategory
 from orxt.protocols._execution import CheckResult
 from orxt.protocols._task import TaskState
-from orxt.protocols._tool import Tool
 from orxt.scheduler._executor import Scheduler, classify_error
 from orxt.transport import Result, StepFinish, ToolUse
 
@@ -24,16 +21,16 @@ from tests.conftest import (
     AgentTurn,
     IntegrationMockTransport,
     MockTraceWriter,
-    make_agent,
-    make_categories,
     make_scheduler,
     simple_task,
     simple_workflow,
 )
 
 if TYPE_CHECKING:
+    import uuid
     from collections.abc import AsyncIterator
 
+    from orxt.protocols._tool import Tool
     from orxt.transport import Event
 
 
@@ -433,7 +430,7 @@ class TestErrorClassification:
         assert classify_error(TimeoutError()) == ErrorCategory.INFRA
 
     async def test_asyncio_timeout_error_is_infra(self) -> None:
-        assert classify_error(asyncio.TimeoutError()) == ErrorCategory.INFRA
+        assert classify_error(TimeoutError()) == ErrorCategory.INFRA
 
     async def test_json_decode_error_is_parse(self) -> None:
         err = json.JSONDecodeError("bad json", "", 0)

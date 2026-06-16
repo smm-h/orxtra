@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-import uuid
-from unittest.mock import AsyncMock, call, patch
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, patch
 
 import pytest
-import uuid6
-from orxt.agent import Agent
 from orxt.protocols._task import TaskSpec
 from orxt.scheduler._executor import Scheduler
 from orxt.scheduler._types import WorkflowConfig
 from orxt.trace import RunLockError
 
-from tests.conftest import (
-    MockTraceWriter,
-    MockTransport,
-    make_agent,
-    make_categories,
-)
+if TYPE_CHECKING:
+    import uuid
+
+    from orxt.agent import Agent
+
+    from tests.conftest import (
+        MockTraceWriter,
+        MockTransport,
+    )
 
 
 def _simple_config() -> WorkflowConfig:
@@ -221,12 +222,11 @@ async def test_lock_error_propagates(
             side_effect=RunLockError(
                 f"run {run_id} is already locked",
             ),
-        ),
+        ),pytest.raises(RunLockError)
     ):
-        with pytest.raises(RunLockError):
-            await sched.execute_workflow(
-                _simple_config(),
-            )
+        await sched.execute_workflow(
+            _simple_config(),
+        )
 
 
 @pytest.mark.asyncio

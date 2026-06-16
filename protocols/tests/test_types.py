@@ -5,17 +5,13 @@ import uuid
 from decimal import Decimal
 
 import pytest
-from pydantic import ValidationError
-
 from orxt.protocols import (
     SEVERITY_ORDER,
-    AgentExecution,
-    AttemptSummary,
-    CheckResult,
-    EscalationPayload,
-    ErrorCategory,
-    RunStarted,
     BudgetExhausted,
+    CheckResult,
+    ErrorCategory,
+    EscalationPayload,
+    RunStarted,
     ScriptExecution,
     Severity,
     TaskContext,
@@ -25,7 +21,7 @@ from orxt.protocols import (
     WorkflowExecution,
     format_event,
 )
-
+from pydantic import ValidationError
 
 # -- TaskSpec tests --
 

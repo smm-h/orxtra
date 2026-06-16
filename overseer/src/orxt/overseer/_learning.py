@@ -53,7 +53,7 @@ async def check_staleness(
         if not source_path.exists():
             return True
         try:
-            proc = await asyncio.create_subprocess_exec(  # noqa: S603, S607
+            proc = await asyncio.create_subprocess_exec(
                 "git", "log", "-1", "--format=%aI", "--", str(source_path),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

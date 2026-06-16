@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
 
 from orxt.protocols._tool import Tool, ToolError
 from orxt.tool._validation import validate_args
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from uuid import UUID
 
 CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
     "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
@@ -53,7 +55,8 @@ def make_consult_tool(
         question = args["question"]
 
         if agent_name not in agents:
-            raise ToolError(f"Unknown agent: {agent_name!r}")
+            msg = f"Unknown agent: {agent_name!r}"
+            raise ToolError(msg)
 
         agent_def = agents[agent_name]
 

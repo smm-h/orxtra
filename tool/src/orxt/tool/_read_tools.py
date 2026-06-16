@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import pathspec
-
 from orxt.protocols._tool import Tool, ToolError
 from orxt.tool._path import PathError, resolve_and_check
 from orxt.tool._preview import FullRetrievalGuard, check_and_preview

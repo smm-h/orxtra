@@ -17,6 +17,7 @@ from orxt.protocols._constraints import (
     ConstraintKind,
 )
 from orxt.protocols._errors import ErrorCategory
+from orxt.protocols._events import StructuralAdvisory
 from orxt.protocols._execution import CheckResult
 from orxt.protocols._task import (
     AttemptSummary,
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxt.agent import Agent
-    from orxt.protocols._events import StructuralAdvisory
     from orxt.protocols._task import Execution
     from orxt.protocols._tools import (
         CreateTaskParams,

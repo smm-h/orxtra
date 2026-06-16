@@ -10,7 +10,6 @@ from uuid import UUID
 import asyncpg  # type: ignore[import-untyped]
 import strictcli
 from orxt.cli._formatters import format_output
-from orxt.trace import TraceWriter
 from orxt.services import (
     abort_run,
     dump_config,
@@ -35,6 +34,7 @@ from orxt.services import (
     validate_categories,
     validate_workflow,
 )
+from orxt.trace import TraceWriter
 
 # -- Helpers --
 
@@ -193,7 +193,7 @@ inbox_group = app.group("inbox", help="Human inbox commands.")
 def cmd_inbox_list(*, db: str, format: str, run: str, status: str, **_kwargs: object) -> None:
     db_url = _require_db(db)
     rid = _parse_uuid(run, "run_id")
-    status_filter = status if status else None
+    status_filter = status or None
 
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
@@ -288,7 +288,7 @@ trace_group = app.group("trace", help="Trace and event query commands.")
 def cmd_trace_events(*, db: str, format: str, run_id: str, type: str, limit: int, **_kwargs: object) -> None:
     db_url = _require_db(db)
     rid = _parse_uuid(run_id, "run_id")
-    event_type = type if type else None
+    event_type = type or None
 
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
