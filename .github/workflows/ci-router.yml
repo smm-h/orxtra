@@ -12,6 +12,7 @@ jobs:
     outputs:
       protocols: ${{ steps.changes.outputs.protocols }}
       secrets: ${{ steps.changes.outputs.secrets }}
+      write-safety: ${{ steps.changes.outputs.write-safety }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -20,6 +21,7 @@ jobs:
         filters: |
           protocols: 'protocols/**'
           secrets: 'secrets/**'
+          write-safety: 'write-safety/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -28,3 +30,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.secrets == 'true'
     uses: ./.github/workflows/secrets-ci.yml
+  write-safety:
+    needs: detect
+    if: needs.detect.outputs.write-safety == 'true'
+    uses: ./.github/workflows/write-safety-ci.yml
