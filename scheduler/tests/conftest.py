@@ -12,7 +12,7 @@ from orxt.transport import Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     import uuid
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Callable
     from decimal import Decimal
 
     from orxt.transport import Event
@@ -457,10 +457,10 @@ def make_scheduler(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
-) -> Any:
+) -> Callable[..., Scheduler]:
     """Factory fixture for creating scheduler instances."""
 
-    def _make(**kwargs: Any) -> Scheduler:
+    def _make(**kwargs: Any) -> Scheduler:  # noqa: ANN401
         defaults: dict[str, Any] = {
             "trace_writer": trace_writer,
             "transport_registry": {"anthropic": transport},
