@@ -66,9 +66,24 @@ app = strictcli.App(
     name="orxt",
     help="Autonomous multi-agent AI workflows.",
     flags=[
-        strictcli.Flag(name="db", type=str, help="PostgreSQL connection URL.", default=""),
-        strictcli.Flag(name="format", type=str, help="Output format.", default="table", choices=["table", "json"]),
-        strictcli.Flag(name="quiet", type=bool, help="Suppress non-essential output."),
+        strictcli.Flag(
+            name="db",
+            type=str,
+            help="PostgreSQL connection URL.",
+            default="",
+        ),
+        strictcli.Flag(
+            name="format",
+            type=str,
+            help="Output format.",
+            default="table",
+            choices=["table", "json"],
+        ),
+        strictcli.Flag(
+            name="quiet",
+            type=bool,
+            help="Suppress non-essential output.",
+        ),
     ],
 )
 
@@ -95,7 +110,7 @@ def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> No
 
 
 @run_group.command(name="list", help="List all runs, newest first.")
-def cmd_run_list(*, db: str, format: str, **_kwargs: object) -> None:
+def cmd_run_list(*, db: str, format: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
 
     async def _run() -> None:
@@ -111,7 +126,7 @@ def cmd_run_list(*, db: str, format: str, **_kwargs: object) -> None:
 
 @run_group.command(name="show", help="Show a run's full report.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
     rid = _parse_uuid(run_id, "run_id")
 
@@ -190,7 +205,9 @@ inbox_group = app.group("inbox", help="Human inbox commands.")
 @inbox_group.command(name="list", help="List inbox items.")
 @strictcli.flag(name="run", type=str, help="Run ID to filter by.")
 @strictcli.flag(name="status", type=str, help="Status filter.", default="")
-def cmd_inbox_list(*, db: str, format: str, run: str, status: str, **_kwargs: object) -> None:
+def cmd_inbox_list(
+    *, db: str, format: str, run: str, status: str, **_kwargs: object,  # noqa: A002
+) -> None:
     db_url = _require_db(db)
     rid = _parse_uuid(run, "run_id")
     status_filter = status or None
@@ -208,7 +225,7 @@ def cmd_inbox_list(*, db: str, format: str, run: str, status: str, **_kwargs: ob
 
 @inbox_group.command(name="show", help="Show a single inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
-def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:
+def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
     iid = _parse_uuid(item_id, "item_id")
 
@@ -226,7 +243,9 @@ def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> 
 @inbox_group.command(name="respond", help="Answer an inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
 @strictcli.arg(name="answer", help="The answer text.")
-def cmd_inbox_respond(*, db: str, format: str, item_id: str, answer: str, **_kwargs: object) -> None:
+def cmd_inbox_respond(
+    *, db: str, format: str, item_id: str, answer: str, **_kwargs: object,  # noqa: A002
+) -> None:
     db_url = _require_db(db)
     iid = _parse_uuid(item_id, "item_id")
 
@@ -243,7 +262,7 @@ def cmd_inbox_respond(*, db: str, format: str, item_id: str, answer: str, **_kwa
 
 @inbox_group.command(name="skip", help="Skip an inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
-def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:
+def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
     iid = _parse_uuid(item_id, "item_id")
 
@@ -261,7 +280,9 @@ def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> 
 @inbox_group.command(name="reject", help="Reject an inbox item (options insufficient).")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
 @strictcli.arg(name="reason", help="Reason for rejection.")
-def cmd_inbox_reject(*, db: str, format: str, item_id: str, reason: str, **_kwargs: object) -> None:
+def cmd_inbox_reject(
+    *, db: str, format: str, item_id: str, reason: str, **_kwargs: object,  # noqa: A002
+) -> None:
     db_url = _require_db(db)
     iid = _parse_uuid(item_id, "item_id")
 
@@ -285,7 +306,9 @@ trace_group = app.group("trace", help="Trace and event query commands.")
 @strictcli.arg(name="run_id", help="Run ID.")
 @strictcli.flag(name="type", type=str, help="Filter by event type.", default="")
 @strictcli.flag(name="limit", type=int, help="Maximum events to return.", default=100)
-def cmd_trace_events(*, db: str, format: str, run_id: str, type: str, limit: int, **_kwargs: object) -> None:
+def cmd_trace_events(
+    *, db: str, format: str, run_id: str, type: str, limit: int, **_kwargs: object,  # noqa: A002
+) -> None:
     db_url = _require_db(db)
     rid = _parse_uuid(run_id, "run_id")
     event_type = type or None
@@ -303,7 +326,9 @@ def cmd_trace_events(*, db: str, format: str, run_id: str, type: str, limit: int
 
 @trace_group.command(name="transcript", help="Show a session's full transcript.")
 @strictcli.arg(name="session_id", help="Session ID.")
-def cmd_trace_transcript(*, db: str, format: str, session_id: str, **_kwargs: object) -> None:
+def cmd_trace_transcript(
+    *, db: str, format: str, session_id: str, **_kwargs: object,  # noqa: A002
+) -> None:
     db_url = _require_db(db)
     sid = _parse_uuid(session_id, "session_id")
 
@@ -318,10 +343,15 @@ def cmd_trace_transcript(*, db: str, format: str, session_id: str, **_kwargs: ob
     asyncio.run(_run())
 
 
-@trace_group.command(name="search", help="Search a transcript (case-insensitive substring).")
+@trace_group.command(
+    name="search",
+    help="Search a transcript (case-insensitive substring).",
+)
 @strictcli.arg(name="session_id", help="Session ID.")
 @strictcli.arg(name="query", help="Search query.")
-def cmd_trace_search(*, db: str, format: str, session_id: str, query: str, **_kwargs: object) -> None:
+def cmd_trace_search(
+    *, db: str, format: str, session_id: str, query: str, **_kwargs: object,  # noqa: A002
+) -> None:
     db_url = _require_db(db)
     sid = _parse_uuid(session_id, "session_id")
 
@@ -338,7 +368,7 @@ def cmd_trace_search(*, db: str, format: str, session_id: str, query: str, **_kw
 
 @trace_group.command(name="tasks", help="Show task statuses and attempt counts.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_trace_tasks(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+def cmd_trace_tasks(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
     rid = _parse_uuid(run_id, "run_id")
 
@@ -355,7 +385,7 @@ def cmd_trace_tasks(*, db: str, format: str, run_id: str, **_kwargs: object) -> 
 
 @trace_group.command(name="notepad", help="Show notepad entries.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_trace_notepad(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+def cmd_trace_notepad(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
     rid = _parse_uuid(run_id, "run_id")
 
@@ -379,7 +409,10 @@ event_group = app.group("event", help="Event firing commands.")
 @strictcli.arg(name="run_id", help="Run ID.")
 @strictcli.arg(name="event_name", help="Event name.")
 @strictcli.flag(name="payload", type=str, help="JSON payload.", default="")
-def cmd_event_fire(*, db: str, quiet: bool, run_id: str, event_name: str, payload: str, **_kwargs: object) -> None:
+def cmd_event_fire(
+    *, db: str, quiet: bool, run_id: str,
+    event_name: str, payload: str, **_kwargs: object,
+) -> None:
     db_url = _require_db(db)
     rid = _parse_uuid(run_id, "run_id")
     parsed_payload: dict[str, Any] | None = None
@@ -462,7 +495,7 @@ config_group = app.group("config", help="Configuration commands.")
 
 @config_group.command(name="show", help="Show the config snapshot for a run.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:
+def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
     rid = _parse_uuid(run_id, "run_id")
 
@@ -480,7 +513,7 @@ def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> 
 
 
 @config_group.command(name="pricing", help="Show the current internal pricing table.")
-def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:
+def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:  # noqa: A002
     async def _run() -> None:
         result = await show_pricing()
         _print(result, format)
