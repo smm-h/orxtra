@@ -37,7 +37,7 @@ def _simple_config() -> WorkflowConfig:
     )
 
 
-def _make_scheduler(
+def _make_scheduler(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -293,7 +293,7 @@ async def test_recovery_order(
 
 
 @pytest.mark.asyncio
-async def test_recovery_before_knowledge_loading(
+async def test_recovery_before_knowledge_loading(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
