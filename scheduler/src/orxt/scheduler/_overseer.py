@@ -106,8 +106,8 @@ class OverseerAdapter:
         # Capture tool calls by iterating the session
         # stream directly instead of handle_event, so we
         # can inspect tool use events.
-        from orxt.protocols import format_event
-        from orxt.transport import ToolUse
+        from orxt.protocols import format_event  # noqa: PLC0415
+        from orxt.transport import ToolUse  # noqa: PLC0415
 
         message = format_event(event)
         tool_calls: list[dict[str, Any]] = []
@@ -115,7 +115,7 @@ class OverseerAdapter:
             message,
         ):
             if isinstance(ev, ToolUse):
-                tool_calls.append({
+                tool_calls.append({  # noqa: PERF401
                     "tool_name": ev.tool_name,
                     "input": ev.input,
                     "status": ev.status,
@@ -130,14 +130,14 @@ class OverseerAdapter:
     ) -> None:
         """Send a correction message to the Overseer
         session."""
-        from orxt.transport import ToolUse
+        from orxt.transport import ToolUse  # noqa: PLC0415
 
         tool_calls: list[dict[str, Any]] = []
         async for ev in self._overseer._session.send(  # noqa: SLF001
             message,
         ):
             if isinstance(ev, ToolUse):
-                tool_calls.append({
+                tool_calls.append({  # noqa: PERF401
                     "tool_name": ev.tool_name,
                     "input": ev.input,
                     "status": ev.status,
