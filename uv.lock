@@ -2228,6 +2228,7 @@ dependencies = [
     { name = "orxt-protocols" },
     { name = "pydantic" },
     { name = "session" },
+    { name = "tool" },
     { name = "trace" },
 ]
 
@@ -2237,6 +2238,7 @@ requires-dist = [
     { name = "orxt-protocols", editable = "protocols" },
     { name = "pydantic", specifier = ">=2" },
     { name = "session", editable = "session" },
+    { name = "tool", editable = "tool" },
     { name = "trace", editable = "trace" },
 ]
 

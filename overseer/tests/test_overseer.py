@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -78,6 +79,7 @@ def overseer(
     session: MockSession,
     tw: MockTraceWriter,
     run_id: UUID,
+    tmp_path: Path,
 ) -> Overseer:
     return Overseer(
         session=session,  # type: ignore[arg-type]
@@ -85,6 +87,7 @@ def overseer(
         run_id=run_id,
         autonomy_level=AutonomyLevel.MEDIUM,
         health_monitor=HealthMonitor(),
+        read_root=tmp_path,
     )
 
 
@@ -103,7 +106,7 @@ async def test_handle_event_sends_message(
 
 def test_get_tools_returns_all(overseer: Overseer) -> None:
     tools = overseer.get_tools()
-    assert len(tools) == 6
+    assert len(tools) == 13
     names = {t.name for t in tools}
     assert "record_decision" in names
     assert "add_constraint" in names
@@ -117,6 +120,7 @@ def test_overseer_construction(
     session: MockSession,
     tw: MockTraceWriter,
     run_id: UUID,
+    tmp_path: Path,
 ) -> None:
     overseer = Overseer(
         session=session,  # type: ignore[arg-type]
@@ -124,6 +128,7 @@ def test_overseer_construction(
         run_id=run_id,
         autonomy_level=AutonomyLevel.HIGH,
         health_monitor=HealthMonitor(threshold=0.5),
+        read_root=tmp_path,
     )
     assert overseer._autonomy_level == AutonomyLevel.HIGH  # noqa: SLF001
 

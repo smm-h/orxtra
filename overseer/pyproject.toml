@@ -9,6 +9,7 @@ dependencies = [
     "trace",
     "session",
     "knowledge-module",
+    "tool",
 ]
 keywords = ["rlsbl"]
 
@@ -24,3 +25,4 @@ orxt-protocols = { path = "../protocols", editable = true }
 trace = { path = "../trace", editable = true }
 session = { path = "../session", editable = true }
 knowledge-module = { path = "../knowledge-module", editable = true }
+tool = { path = "../tool", editable = true }

@@ -11,6 +11,15 @@ from orxt.overseer._tools import (
     make_write_lesson_tool,
 )
 from orxt.protocols import format_event
+from orxt.tool._notepad_tool import make_notepad_tool
+from orxt.tool._read_tools import (
+    make_diff_tool,
+    make_glob_tool,
+    make_grep_tool,
+    make_list_dir_tool,
+    make_read_tool,
+    make_stat_tool,
+)
 from orxt.protocols._events import (
     BudgetExhausted,
     BudgetThresholdCrossed,
@@ -24,6 +33,7 @@ from orxt.protocols._events import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from uuid import UUID
 
     from orxt.overseer._autonomy import AutonomyLevel
@@ -53,12 +63,16 @@ class Overseer:
         run_id: UUID,
         autonomy_level: AutonomyLevel,
         health_monitor: HealthMonitor,
+        read_root: Path,
+        extra_tools: list[Tool] | None = None,
     ) -> None:
         self._session = session
         self._trace_writer = trace_writer
         self._run_id = run_id
         self._autonomy_level = autonomy_level
         self._health_monitor = health_monitor
+        self._read_root = read_root
+        self._extra_tools = extra_tools
 
     @property
     def session(self) -> Session:
@@ -74,7 +88,7 @@ class Overseer:
             pass
 
     def get_tools(self) -> list[Tool]:
-        return [
+        memory_tools = [
             make_record_decision_tool(self._trace_writer, self._run_id),
             make_add_constraint_tool(self._trace_writer, self._run_id),
             make_record_assumption_tool(self._trace_writer, self._run_id),
@@ -84,3 +98,33 @@ class Overseer:
             make_write_lesson_tool(self._trace_writer, self._run_id),
             make_update_workflow_status_tool(self._trace_writer),
         ]
+        file_tools = [
+            make_read_tool(
+                self._read_root,
+                preview_threshold=10000,
+                preview_lines=50,
+            ),
+            make_list_dir_tool(self._read_root),
+            make_glob_tool(self._read_root),
+            make_grep_tool(
+                self._read_root,
+                preview_threshold=10000,
+                preview_lines=50,
+            ),
+            make_stat_tool(self._read_root),
+            make_diff_tool(self._read_root),
+        ]
+        notepad_tools = [
+            make_notepad_tool(
+                self._trace_writer,
+                str(self._run_id),
+                "overseer",
+                "overseer",
+            ),
+        ]
+        return (
+            memory_tools
+            + file_tools
+            + notepad_tools
+            + list(self._extra_tools or [])
+        )
