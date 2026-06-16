@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from orxt.secrets._registry import SecretRegistry
 
 FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
-    "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
+    "write", "edit", "delete", "move", "copy", "mkdir", "set_executable", "shell",
 })
 
 
