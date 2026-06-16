@@ -164,6 +164,8 @@ class Scheduler:
         self._pending_advisories: list[
             dict[str, Any]
         ] = []
+        self._paused = asyncio.Event()
+        self._paused.set()  # Not paused initially
 
     async def run_consult(
         self,
@@ -254,6 +256,7 @@ class Scheduler:
         variables: dict[str, Any] = {}
 
         for group in groups:
+            await self._paused.wait()
             coros = [
                 self.execute_task(
                     self._task_specs[task_id_map[name]],
@@ -305,6 +308,7 @@ class Scheduler:
         task_id: UUID | None = None,
         variables: dict[str, Any] | None = None,
     ) -> TaskResult:
+        await self._paused.wait()
         if task_id is None:
             task_id = await self._trace_writer.create_task(
                 run_id=self._run_id,
@@ -1829,6 +1833,24 @@ class Scheduler:
                 await self._trace_writer.transition_task(
                     task_id, TaskState.CANCELLED.value,
                 )
+
+    async def pause(self) -> None:
+        self._paused.clear()
+        for atask in list(self._running_tasks):
+            atask.cancel()
+        await self._trace_writer.transition_run(
+            self._run_id, "paused",
+        )
+
+    async def resume(self) -> None:
+        self._paused.set()
+        await self._trace_writer.transition_run(
+            self._run_id, "running",
+        )
+
+    @property
+    def is_paused(self) -> bool:
+        return not self._paused.is_set()
 
     def _analyze_structural_advisories(
         self,
