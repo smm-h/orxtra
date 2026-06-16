@@ -6,21 +6,23 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, patch
 
 import uuid6
-from orxt.protocols._task import TaskSpec, TaskState
+from orxt.protocols._task import TaskSpec
 from orxt.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-
     import uuid
+    from collections.abc import Callable, Iterator
 
     from orxt.scheduler._executor import Scheduler
 
     from tests.conftest import MockTraceWriter
+
+type _SchedulerFactory = Callable[..., Scheduler]
+type _ListenerCallback = Callable[[object, int, str, str], None]
 
 
 @contextmanager
@@ -73,7 +75,7 @@ class TestPgListener:
 
     async def test_pg_listener_dispatches_control_signal(
         self,
-        make_scheduler: Any,
+        make_scheduler: _SchedulerFactory,
         trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
@@ -91,7 +93,7 @@ class TestPgListener:
         captured_callback = None
 
         async def capture_add_listener(
-            channel: str, callback: Any,
+            channel: str, callback: _ListenerCallback,
         ) -> None:
             nonlocal captured_callback
             captured_callback = callback
@@ -122,7 +124,7 @@ class TestPgListener:
 
     async def test_pg_listener_dispatches_to_event_registry(
         self,
-        make_scheduler: Any,
+        make_scheduler: _SchedulerFactory,
         trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
@@ -138,7 +140,7 @@ class TestPgListener:
         captured_callback = None
 
         async def capture_add_listener(
-            channel: str, callback: Any,
+            channel: str, callback: _ListenerCallback,
         ) -> None:
             nonlocal captured_callback
             captured_callback = callback
@@ -196,7 +198,7 @@ class TestPgListener:
 
     async def test_listener_cleaned_up_on_workflow_exit(
         self,
-        make_scheduler: Any,
+        make_scheduler: _SchedulerFactory,
         trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
@@ -212,7 +214,7 @@ class TestPgListener:
         captured_callback = None
 
         async def capture_add_listener(
-            channel: str, callback: Any,
+            channel: str, callback: _ListenerCallback,
         ) -> None:
             nonlocal captured_callback
             captured_callback = callback
@@ -232,7 +234,7 @@ class TestPgListener:
 
     async def test_invalid_json_payload_ignored(
         self,
-        make_scheduler: Any,
+        make_scheduler: _SchedulerFactory,
         trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
@@ -247,7 +249,7 @@ class TestPgListener:
         captured_callback = None
 
         async def capture_add_listener(
-            channel: str, callback: Any,
+            channel: str, callback: _ListenerCallback,
         ) -> None:
             nonlocal captured_callback
             captured_callback = callback
