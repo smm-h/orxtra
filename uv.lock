@@ -7,12 +7,38 @@ resolution-markers = [
     "python_full_version < '3.14'",
 ]
 
+[manifest]
+members = [
+    "agent",
+    "cli",
+    "knowledge-module",
+    "mcp",
+    "notepad",
+    "orxt",
+    "orxt-protocols",
+    "orxt-secrets",
+    "orxt-write-safety",
+    "overseer",
+    "scheduler",
+    "services",
+    "session",
+    "tool",
+    "trace",
+    "transport",
+    "verify",
+]
+
 [[package]]
 name = "agent"
 version = "0.0.0"
 source = { editable = "agent" }
 dependencies = [
     { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
 ]
 
 [package.metadata]
@@ -1857,6 +1883,11 @@ dependencies = [
     { name = "services" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [{ name = "services", editable = "services" }]
 
@@ -2066,6 +2097,11 @@ dependencies = [
     { name = "trace" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2" },
@@ -2236,6 +2272,11 @@ name = "orxt-secrets"
 version = "0.0.0"
 source = { editable = "secrets" }
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 
 [package.metadata.requires-dev]
@@ -2245,6 +2286,11 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 name = "orxt-write-safety"
 version = "0.0.0"
 source = { editable = "write-safety" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
 
 [package.metadata]
 
@@ -2262,6 +2308,13 @@ dependencies = [
     { name = "session" },
     { name = "tool" },
     { name = "trace" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "uuid6" },
 ]
 
 [package.metadata]
@@ -3410,6 +3463,11 @@ dependencies = [
     { name = "pydantic" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "httpx" },
@@ -3473,6 +3531,12 @@ dependencies = [
     { name = "orxt-protocols" },
     { name = "pydantic" },
     { name = "uuid6" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
@@ -3575,6 +3639,11 @@ source = { editable = "verify" }
 dependencies = [
     { name = "orxt-protocols" },
     { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
