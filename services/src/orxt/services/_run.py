@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict
 if TYPE_CHECKING:
     from uuid import UUID
 
-    import asyncpg  # type: ignore[import-untyped]
+    import asyncpg
 
 
 class RunConfig(BaseModel):
@@ -25,6 +25,7 @@ class RunConfig(BaseModel):
     agents_dir: Path
     knowledge_dir: Path
     categories_path: Path
+    read_root: Path
     db_url: str
     provider_configs: dict[str, dict[str, str]]
     budget: Decimal
@@ -37,6 +38,7 @@ def _serialize_config(config: RunConfig) -> dict[str, Any]:
     data["agents_dir"] = str(config.agents_dir)
     data["knowledge_dir"] = str(config.knowledge_dir)
     data["categories_path"] = str(config.categories_path)
+    data["read_root"] = str(config.read_root)
     data["workflow_path"] = str(config.workflow_path)
     data["budget"] = str(config.budget)
     return data
@@ -65,6 +67,7 @@ async def start_run(
             agents=agents,
             categories=categories,
             run_id=run_id,
+            read_root=config.read_root,
             pool=pool,
             overseer_interface=overseer,
             knowledge_dir=config.knowledge_dir,
@@ -89,7 +92,7 @@ async def start_run_from_file(
         raise FileNotFoundError(msg)
     with config_path.open("rb") as f:
         raw = tomllib.load(f)
-    for key in ("workflow_path", "agents_dir", "knowledge_dir", "categories_path"):
+    for key in ("workflow_path", "agents_dir", "knowledge_dir", "categories_path", "read_root"):
         if key in raw and isinstance(raw[key], str):
             raw[key] = Path(raw[key])
     if "budget" in raw and not isinstance(raw["budget"], Decimal):

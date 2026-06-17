@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, NoReturn
 from uuid import UUID
 
-import asyncpg  # type: ignore[import-untyped]
+import asyncpg
 import strictcli
 from orxt.cli._formatters import format_output
 from orxt.services import (

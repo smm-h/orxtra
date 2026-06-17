@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
 
-    import asyncpg  # type: ignore[import-untyped]
+    import asyncpg
 
 
 async def list_tasks(

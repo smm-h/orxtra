@@ -8,7 +8,7 @@ from orxt.session._pricing import PRICING_TABLE
 if TYPE_CHECKING:
     from uuid import UUID
 
-    import asyncpg  # type: ignore[import-untyped]
+    import asyncpg
 
 
 async def dump_config(

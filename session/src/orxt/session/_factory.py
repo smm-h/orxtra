@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from orxt.protocols import Tool
@@ -19,7 +19,7 @@ async def create_session(  # noqa: PLR0913
     trace_writer: TraceWriter,
     run_id: uuid.UUID,
     session_id: str | None = None,
-    pool: object = None,
+    pool: Any = None,
 ) -> Session:
     session = Session(
         transport=transport,

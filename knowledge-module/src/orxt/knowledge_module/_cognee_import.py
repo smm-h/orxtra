@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from types import ModuleType
+from types import ModuleType
+from typing import cast
 
 
 def require_cognee() -> ModuleType:
     """Import and return the cognee module, raising RuntimeError if not installed."""
     try:
-        import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
+        import cognee  # noqa: PLC0415
     except ImportError:
         msg = (
             "cognee is required for the knowledge module."
@@ -17,4 +15,4 @@ def require_cognee() -> ModuleType:
         )
         raise RuntimeError(msg) from None
     else:
-        return cognee
+        return cast(ModuleType, cognee)
