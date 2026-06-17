@@ -194,6 +194,7 @@ class Scheduler(
             dict[str, Any]
         ] = []
         self._pending_await: dict[str, str] = {}
+        self._pre_task_snapshots: dict[UUID, dict[str, Any]] = {}
         self._paused = asyncio.Event()
         self._paused.set()  # Not paused initially
         self._budget_threshold_events: list[

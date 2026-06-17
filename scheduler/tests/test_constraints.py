@@ -209,3 +209,146 @@ async def test_no_new_files_outside_outside_allowed(
         )
     assert result.passed is False
     assert "docs/notes.txt" in result.message
+
+
+@pytest.mark.asyncio
+async def test_no_removed_exports_detects_removal(
+    tmp_path: Path,
+) -> None:
+    """no_removed_exports detects when a function is removed."""
+    trace = MockTraceWriter()
+    transport = MockTransport()
+    run_id = uuid6.uuid7()
+    sched = Scheduler(
+        trace_writer=trace,
+        transport_registry={"anthropic": transport},
+        agents={"test-agent": make_agent()},
+        categories=make_categories(),
+        run_id=run_id,
+        read_root=tmp_path,
+    )
+
+    # Create a Python file with exports
+    src = tmp_path / "module.py"
+    src.write_text("def foo(): pass\ndef bar(): pass\nVAL = 42\n")
+
+    task_id = uuid6.uuid7()
+
+    # Set up constraint
+    sched._mechanical_constraints = [  # noqa: SLF001
+        ("no_removed_exports(*.py)", "no_removed_exports"),
+    ]
+
+    # Capture snapshot
+    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+
+    # Remove an export
+    src.write_text("def foo(): pass\nVAL = 42\n")
+
+    # Check
+    result = sched._check_no_removed_exports(  # noqa: SLF001
+        task_id, "no_removed_exports(*.py)",
+    )
+    assert result.passed is False
+    assert "bar" in result.message
+
+
+@pytest.mark.asyncio
+async def test_no_removed_exports_passes_when_unchanged(
+    tmp_path: Path,
+) -> None:
+    """no_removed_exports passes when nothing is removed."""
+    trace = MockTraceWriter()
+    transport = MockTransport()
+    run_id = uuid6.uuid7()
+    sched = Scheduler(
+        trace_writer=trace,
+        transport_registry={"anthropic": transport},
+        agents={"test-agent": make_agent()},
+        categories=make_categories(),
+        run_id=run_id,
+        read_root=tmp_path,
+    )
+
+    src = tmp_path / "module.py"
+    src.write_text("def foo(): pass\ndef bar(): pass\n")
+
+    task_id = uuid6.uuid7()
+    sched._mechanical_constraints = [  # noqa: SLF001
+        ("no_removed_exports(*.py)", "no_removed_exports"),
+    ]
+    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+
+    # Don't change anything
+    result = sched._check_no_removed_exports(  # noqa: SLF001
+        task_id, "no_removed_exports(*.py)",
+    )
+    assert result.passed is True
+
+
+@pytest.mark.asyncio
+async def test_no_changed_signatures_detects_change(
+    tmp_path: Path,
+) -> None:
+    """no_changed_signatures detects parameter changes."""
+    trace = MockTraceWriter()
+    transport = MockTransport()
+    run_id = uuid6.uuid7()
+    sched = Scheduler(
+        trace_writer=trace,
+        transport_registry={"anthropic": transport},
+        agents={"test-agent": make_agent()},
+        categories=make_categories(),
+        run_id=run_id,
+        read_root=tmp_path,
+    )
+
+    src = tmp_path / "module.py"
+    src.write_text("def foo(a, b): pass\ndef bar(x): pass\n")
+
+    task_id = uuid6.uuid7()
+    sched._mechanical_constraints = [  # noqa: SLF001
+        ("no_changed_signatures(*.py)", "no_changed_signatures"),
+    ]
+    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+
+    # Change foo's signature
+    src.write_text("def foo(a, b, c): pass\ndef bar(x): pass\n")
+
+    result = sched._check_no_changed_signatures(  # noqa: SLF001
+        task_id, "no_changed_signatures(*.py)",
+    )
+    assert result.passed is False
+    assert "foo" in result.message
+
+
+@pytest.mark.asyncio
+async def test_no_changed_signatures_passes_when_unchanged(
+    tmp_path: Path,
+) -> None:
+    """no_changed_signatures passes when signatures are unchanged."""
+    trace = MockTraceWriter()
+    transport = MockTransport()
+    run_id = uuid6.uuid7()
+    sched = Scheduler(
+        trace_writer=trace,
+        transport_registry={"anthropic": transport},
+        agents={"test-agent": make_agent()},
+        categories=make_categories(),
+        run_id=run_id,
+        read_root=tmp_path,
+    )
+
+    src = tmp_path / "module.py"
+    src.write_text("def foo(a, b): pass\n")
+
+    task_id = uuid6.uuid7()
+    sched._mechanical_constraints = [  # noqa: SLF001
+        ("no_changed_signatures(*.py)", "no_changed_signatures"),
+    ]
+    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+
+    result = sched._check_no_changed_signatures(  # noqa: SLF001
+        task_id, "no_changed_signatures(*.py)",
+    )
+    assert result.passed is True
