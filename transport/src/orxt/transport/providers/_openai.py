@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-from orxt.transport._events import ContentBlock, StreamDelta, Usage
+from orxt.transport._events import ContentBlock, StreamDelta, StreamToolUse, Usage
 
 if TYPE_CHECKING:
     from orxt.transport._events import Event
@@ -69,6 +69,9 @@ class OpenAIProvider:
         byte_stream: AsyncIterator[bytes],
     ) -> AsyncIterator[Event]:
         buffer = ""
+        # Tool call accumulation state
+        tool_calls: dict[int, dict[str, str]] = {}
+
         async for chunk in byte_stream:
             buffer += chunk.decode("utf-8")
             while "\n" in buffer:
@@ -80,6 +83,19 @@ class OpenAIProvider:
                     continue
                 data = line[len("data: "):]
                 if data == "[DONE]":
+                    # Yield any pending tool calls
+                    for _idx, tc in sorted(tool_calls.items()):
+                        try:
+                            tool_input = json.loads(
+                                tc.get("arguments", "{}"),
+                            )
+                        except json.JSONDecodeError:
+                            tool_input = {}
+                        yield StreamToolUse(
+                            tool_use_id=tc.get("id", ""),
+                            tool_name=tc.get("name", ""),
+                            tool_input=tool_input,
+                        )
                     return
                 parsed = json.loads(data)
                 choices = parsed.get("choices", [])
@@ -89,6 +105,20 @@ class OpenAIProvider:
                 text = delta.get("content")
                 if text:
                     yield StreamDelta(text=text)
+                # Handle tool calls
+                for tc_delta in delta.get("tool_calls", []):
+                    idx = tc_delta.get("index", 0)
+                    if idx not in tool_calls:
+                        tool_calls[idx] = {
+                            "id": "", "name": "", "arguments": "",
+                        }
+                    if "id" in tc_delta:
+                        tool_calls[idx]["id"] = tc_delta["id"]
+                    func = tc_delta.get("function", {})
+                    if "name" in func:
+                        tool_calls[idx]["name"] = func["name"]
+                    if "arguments" in func:
+                        tool_calls[idx]["arguments"] += func["arguments"]
 
     def extract_usage(self, response: dict[str, Any]) -> Usage:
         usage = response.get("usage", {})
