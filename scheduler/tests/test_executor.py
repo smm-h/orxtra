@@ -7,6 +7,7 @@ import types
 import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
+from unittest.mock import patch
 
 import pytest
 import uuid6
@@ -527,6 +528,50 @@ class TestEndTask:
 
         with pytest.raises(ToolError, match="subtask"):
             await scheduler.handle_end_task("sess-1", "Done")
+
+    async def test_auto_commit_runs_before_postchecks(
+        self,
+        scheduler: Scheduler,
+        trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        """Auto-commit must run before postchecks so checks verify committed state."""
+        call_order: list[str] = []
+
+        original_auto_commit = scheduler._auto_commit  # noqa: SLF001
+        original_run_postchecks = scheduler._run_postchecks  # noqa: SLF001
+
+        async def tracking_auto_commit(*a: Any, **kw: Any) -> None:
+            call_order.append("auto_commit")
+            return await original_auto_commit(*a, **kw)
+
+        async def tracking_run_postchecks(*a: Any, **kw: Any) -> list[Any]:
+            call_order.append("postchecks")
+            return await original_run_postchecks(*a, **kw)
+
+        task = _simple_task()
+        task_id = await trace_writer.create_task(
+            run_id=run_id,
+            parent_task_id=None,
+            name="t1",
+            task_type="agent",
+        )
+        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
+        scheduler._task_specs[task_id] = task  # noqa: SLF001
+        scheduler._task_children[task_id] = []  # noqa: SLF001
+        scheduler._task_parents[task_id] = None  # noqa: SLF001
+
+        await scheduler.handle_start_task("sess-1", str(task_id))
+
+        with (
+            patch.object(scheduler, "_auto_commit", side_effect=tracking_auto_commit),
+            patch.object(scheduler, "_run_postchecks", side_effect=tracking_run_postchecks),
+        ):
+            await scheduler.handle_end_task("sess-1", "Done")
+
+        assert call_order.index("auto_commit") < call_order.index("postchecks"), (
+            f"auto_commit must run before postchecks, got: {call_order}"
+        )
 
 
 class TestActiveTaskEnforcement:

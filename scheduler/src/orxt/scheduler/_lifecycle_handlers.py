@@ -98,6 +98,7 @@ class LifecycleHandlersMixin:
         )
 
         self._pending_end_task_message[task_id] = message
+        await self._auto_commit(session_id, message)
         check_results = await self._run_postchecks(
             task, task_id,
         )
@@ -133,7 +134,6 @@ class LifecycleHandlersMixin:
                     f" {'; '.join(failed)}"
                 )
 
-            await self._auto_commit(session_id, message)
             self._complete_task(
                 task_id, task.name, message,
             )
