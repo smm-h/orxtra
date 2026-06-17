@@ -31,9 +31,21 @@ class TestTagFiltering:
     async def test_tags_filter_results(self, mock_cognee: MagicMock) -> None:
         mock_cognee.search = AsyncMock(
             return_value=[
-                {"text": "match", "source": "db", "permanent": False, "score": 0.9, "tags": ["tag1", "tag2"]},
-                {"text": "no match", "source": "db", "permanent": False, "score": 0.8, "tags": ["tag3"]},
-                {"text": "also match", "source": "db", "permanent": False, "score": 0.7, "tags": ["tag1"]},
+                {
+                    "text": "match", "source": "db",
+                    "permanent": False, "score": 0.9,
+                    "tags": ["tag1", "tag2"],
+                },
+                {
+                    "text": "no match", "source": "db",
+                    "permanent": False, "score": 0.8,
+                    "tags": ["tag3"],
+                },
+                {
+                    "text": "also match", "source": "db",
+                    "permanent": False, "score": 0.7,
+                    "tags": ["tag1"],
+                },
             ]
         )
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
@@ -63,7 +75,9 @@ class TestTagFiltering:
         assert len(result) == 2
 
     @pytest.mark.asyncio
-    async def test_max_results_param_overrides_config(self, mock_cognee: MagicMock) -> None:
+    async def test_max_results_param_overrides_config(
+        self, mock_cognee: MagicMock,
+    ) -> None:
         mock_cognee.search = AsyncMock(
             return_value=[
                 {"text": f"item {i}", "source": "db", "permanent": False, "score": 0.5}
