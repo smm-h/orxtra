@@ -16,6 +16,7 @@ TABLE_NAMES: dict[str, str] = {
     "assumptions": "assumptions",
     "lessons": "lessons",
     "overseer_workflow_status": "overseer_workflow_status",
+    "knowledge_hashes": "knowledge_hashes",
 }
 
 # ---------------------------------------------------------------------------
@@ -223,6 +224,14 @@ CREATE TABLE run_heartbeats (
 );
 """
 
+CREATE_KNOWLEDGE_HASHES = """\
+CREATE TABLE IF NOT EXISTS knowledge_hashes (
+    key TEXT PRIMARY KEY,
+    hash TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+"""
+
 # ---------------------------------------------------------------------------
 # Indexes
 # ---------------------------------------------------------------------------
@@ -291,6 +300,7 @@ ALL_CREATE_STATEMENTS: list[str] = [
     CREATE_LESSONS,
     CREATE_OVERSEER_WORKFLOW_STATUS,
     CREATE_RUN_HEARTBEATS,
+    CREATE_KNOWLEDGE_HASHES,
     CREATE_EVENTS_INDEXES,
     REVOKE_EVENTS,
     REVOKE_TRANSCRIPTS,
