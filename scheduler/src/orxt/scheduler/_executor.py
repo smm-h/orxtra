@@ -615,7 +615,7 @@ class Scheduler(
                 if policy == EscalationPolicy.HALT:
                     self._paused.clear()
                     break
-                elif policy == EscalationPolicy.ABORT_ALL:
+                if policy == EscalationPolicy.ABORT_ALL:
                     await self.abort()
                     break
                 # CONTINUE_INDEPENDENT: do nothing, continue loop

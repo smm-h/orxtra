@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from orxt.notepad import format_notepad
@@ -16,7 +16,19 @@ from orxt.protocols._task import (
     TaskState,
 )
 from orxt.session import Session, create_session
+from orxt.tool._consult_tool import make_consult_tool
+from orxt.tool._git_tool import make_git_tool
+from orxt.tool._http_tool import make_http_tool
+from orxt.tool._notepad_tool import make_notepad_tool
 from orxt.tool._pipeline import wrap_tools_for_session
+from orxt.tool._read_tools import (
+    make_diff_tool,
+    make_glob_tool,
+    make_grep_tool,
+    make_list_dir_tool,
+    make_read_tool,
+    make_stat_tool,
+)
 from orxt.tool._task_tools import (
     make_await_task_tool,
     make_create_task_tool,
@@ -25,30 +37,19 @@ from orxt.tool._task_tools import (
     make_end_task_tool,
     make_start_task_tool,
 )
-from orxt.transport import Result, Usage
-
-from orxt.protocols._tool import Tool
-from orxt.tool._read_tools import (
-    make_read_tool,
-    make_list_dir_tool,
-    make_glob_tool,
-    make_grep_tool,
-    make_stat_tool,
-    make_diff_tool,
-)
 from orxt.tool._write_tools import (
-    make_write_tool,
+    make_copy_tool,
+    make_delete_tool,
     make_edit_tool,
     make_mkdir_tool,
     make_move_tool,
-    make_copy_tool,
-    make_delete_tool,
     make_set_executable_tool,
+    make_write_tool,
 )
-from orxt.tool._git_tool import make_git_tool
-from orxt.tool._notepad_tool import make_notepad_tool
-from orxt.tool._consult_tool import make_consult_tool
-from orxt.tool._http_tool import make_http_tool
+from orxt.transport import Result, Usage
+
+if TYPE_CHECKING:
+    from orxt.protocols._tool import Tool
 
 _logger = logging.getLogger("orxt.scheduler")
 

@@ -459,7 +459,7 @@ class Transport:
             blocks.append(ContentBlock(type="text", text=full_text))
             events.append(Text(text=full_text))
 
-        text_blocks, thinking_blocks, tool_use_blocks = (
+        text_blocks, _thinking_blocks, tool_use_blocks = (
             self._categorize_blocks(blocks)
         )
 
@@ -730,58 +730,57 @@ class Transport:
 
         for attempt in range(self._retry.max_retries + 1):
             try:
-                async with httpx.AsyncClient() as client:
-                    async with client.stream(
-                        "POST",
-                        url,
-                        headers=headers,
-                        json=json_body,
-                        timeout=120.0,
-                    ) as response:
-                        if response.status_code == 200:  # noqa: PLR2004
-                            collected: list[Event] = []
-                            async for event in self._provider.parse_stream(
-                                response.aiter_bytes(),
-                            ):
-                                collected.append(event)
-                            return collected, retry_events
+                async with httpx.AsyncClient() as client, client.stream(
+                    "POST",
+                    url,
+                    headers=headers,
+                    json=json_body,
+                    timeout=120.0,
+                ) as response:
+                    if response.status_code == 200:  # noqa: PLR2004
+                        collected: list[Event] = []
+                        async for event in self._provider.parse_stream(
+                            response.aiter_bytes(),
+                        ):
+                            collected.append(event)
+                        return collected, retry_events
 
-                        last_status = response.status_code
-                        # Read the error body from the stream
-                        error_body = (await response.aread()).decode("utf-8")
-                        last_error = error_body
+                    last_status = response.status_code
+                    # Read the error body from the stream
+                    error_body = (await response.aread()).decode("utf-8")
+                    last_error = error_body
 
-                        if response.status_code not in _TRANSIENT_STATUS_CODES:
-                            retry_events.append(
-                                Error(
-                                    name="api_error",
-                                    message=(
-                                        f"HTTP {response.status_code}: {error_body}"
-                                    ),
-                                    metadata={
-                                        "status_code": response.status_code,
-                                    },
-                                )
+                    if response.status_code not in _TRANSIENT_STATUS_CODES:
+                        retry_events.append(
+                            Error(
+                                name="api_error",
+                                message=(
+                                    f"HTTP {response.status_code}: {error_body}"
+                                ),
+                                metadata={
+                                    "status_code": response.status_code,
+                                },
                             )
-                            return None, retry_events
+                        )
+                        return None, retry_events
 
-                        if attempt < self._retry.max_retries:
-                            delay = min(
-                                self._retry.backoff_base_seconds * (2**attempt),
-                                self._retry.backoff_max_seconds,
+                    if attempt < self._retry.max_retries:
+                        delay = min(
+                            self._retry.backoff_base_seconds * (2**attempt),
+                            self._retry.backoff_max_seconds,
+                        )
+                        if self._retry.jitter:
+                            delay *= random.random()  # noqa: S311
+                        retry_events.append(
+                            ApiRetry(
+                                attempt=attempt + 1,
+                                max_retries=self._retry.max_retries,
+                                delay_ms=int(delay * 1000),
+                                status_code=response.status_code,
+                                error=error_body,
                             )
-                            if self._retry.jitter:
-                                delay *= random.random()  # noqa: S311
-                            retry_events.append(
-                                ApiRetry(
-                                    attempt=attempt + 1,
-                                    max_retries=self._retry.max_retries,
-                                    delay_ms=int(delay * 1000),
-                                    status_code=response.status_code,
-                                    error=error_body,
-                                )
-                            )
-                            await asyncio.sleep(delay)
+                        )
+                        await asyncio.sleep(delay)
 
             except httpx.HTTPError as e:
                 last_error = str(e)

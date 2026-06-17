@@ -385,9 +385,7 @@ class EnforcementMixin:
         # New files have status "??" or "A "
         new_files = []
         for line in lines:
-            if line.startswith("??") or line.startswith(
-                "A ",
-            ):
+            if line.startswith(("??", "A ")):
                 filepath = line[3:].strip()
                 if not filepath.startswith(directory):
                     new_files.append(filepath)

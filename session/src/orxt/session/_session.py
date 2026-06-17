@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -233,7 +233,7 @@ class Session:
             return
         # Could write a final transcript marker here
 
-    async def __aenter__(self) -> Session:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *args: object) -> None:

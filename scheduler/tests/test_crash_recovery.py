@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
@@ -12,6 +11,7 @@ from orxt.trace import RunLockError
 
 if TYPE_CHECKING:
     import uuid
+    from pathlib import Path
 
     from orxt.agent import Agent
 

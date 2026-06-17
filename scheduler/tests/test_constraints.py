@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -14,6 +14,9 @@ from tests.conftest import (
     make_agent,
     make_categories,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_scheduler(

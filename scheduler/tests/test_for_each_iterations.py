@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import pytest
 from orxt.protocols._task import TaskSpec
 
 if TYPE_CHECKING:
-    from tests.conftest import MockTraceWriter, Scheduler
+    from tests.conftest import MockTraceWriter
 
 
 class TestForEachIterations:

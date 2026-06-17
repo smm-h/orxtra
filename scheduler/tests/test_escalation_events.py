@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -17,6 +16,7 @@ from tests.conftest import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from uuid import UUID
 
     from orxt.scheduler._overseer import OverseerEvent

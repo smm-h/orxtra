@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 
 from tests.shared_mocks import MockTraceWriter
 
-
 # ---------------------------------------------------------------------------
 # AgentTurn -- defines what tool calls an agent makes in a single turn
 # ---------------------------------------------------------------------------
