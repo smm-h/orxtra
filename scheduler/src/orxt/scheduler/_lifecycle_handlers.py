@@ -239,20 +239,29 @@ class LifecycleHandlersMixin:
     async def handle_create_workflow(
         self,
         session_id: str,
-        params: dict[str, Any],
+        params: CreateWorkflowParams | dict[str, Any],
     ) -> str:
         parent_id = self.check_active_task(session_id)
-        parsed = CreateWorkflowParams(**params)
+        parsed = CreateWorkflowParams.model_validate(
+            params if isinstance(params, dict) else params.model_dump()
+        )
 
+        config_data = {
+            "description": parsed.description,
+            "goals": parsed.goals,
+        }
         workflow_id = await self._trace_writer.create_task(
             run_id=self._run_id,
             parent_task_id=parent_id,
             name=parsed.name,
             task_type="workflow",
+            config=config_data,
         )
         spec = TaskSpec(
             name=parsed.name,
             subtasks=[],
+            postchecks=list(parsed.postchecks),
+            budget=parsed.budget,
         )
         self._task_states[workflow_id] = TaskState.CREATED
         self._task_specs[workflow_id] = spec
