@@ -8,5 +8,18 @@
       "type": "pypi",
       "local": false
     }
+  },
+  "batch_limits": {
+    "exclusions": [
+      {
+        "reason": "**Initial implementation.** PostgreSQL event store and schema owner. State machines, LISTEN/NOTIFY pub-sub, append-only tables, crash recovery, knowledge hash caching.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 1
+          }
+        ]
+      }
+    ]
   }
 }
