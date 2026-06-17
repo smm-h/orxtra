@@ -1857,7 +1857,9 @@ class TestOnSuccessCallback:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"anthropic": MockTransport(auto_execute_tools=True)},  # type: ignore[dict-item]
+                transport_registry={
+                    "anthropic": MockTransport(auto_execute_tools=True),
+                },  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
