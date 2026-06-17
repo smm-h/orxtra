@@ -5,6 +5,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from orxt.protocols._tool import Tool
+from orxt.write_safety import with_transient_retry
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -44,9 +45,9 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
         else:
             effective_args = args
 
-        # 3. Execute (timed).
+        # 3. Execute (timed, with transient retry).
         start = time.monotonic()
-        result = await tool.execute(effective_args)
+        result = await with_transient_retry(tool.execute, effective_args)
         end = time.monotonic()
         duration_ms = int((end - start) * 1000)
 
