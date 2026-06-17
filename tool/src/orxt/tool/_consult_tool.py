@@ -44,7 +44,7 @@ def make_consult_tool(  # noqa: PLR0913
     transport_registry: dict[str, Any],
     trace_writer: Any,  # noqa: ARG001, ANN401
     run_id: UUID,  # noqa: ARG001
-    read_root: Path,  # noqa: ARG001
+    read_root: Path,
     categories: dict[str, str],
     agents: dict[str, Any],
 ) -> Tool:
@@ -68,12 +68,24 @@ def make_consult_tool(  # noqa: PLR0913
         }
 
         # Reconstruct http tool in consult_mode if the agent is allowed http
-        agent_tools: list[str] = agent_def.tools
+        agent_tools: list[str] = agent_def.allow
         if "http" in agent_tools and "http" in tool_registry:
             from orxt.tool._http_tool import make_http_tool  # noqa: PLC0415
 
             filtered_tools["http"] = make_http_tool(
                 allowed_hosts="allow_all", consult_mode=True,
+            )
+
+        # Reconstruct git tool in consult mode with read-only subcommands
+        if "git" in agent_tools and "git" in tool_registry:
+            from orxt.tool._git_tool import make_git_tool  # noqa: PLC0415
+
+            filtered_tools["git"] = make_git_tool(
+                read_root=read_root,
+                allowed_subcommands=[
+                    "status", "diff", "log", "show",
+                    "blame", "branches", "changed_files",
+                ],
             )
 
         # Resolve model from agent category
@@ -84,13 +96,17 @@ def make_consult_tool(  # noqa: PLR0913
             msg = f"Transport for provider {provider_name!r} not found"
             raise ToolError(msg)
 
-        response = await transport.send(
+        result_text = ""
+        async for event in transport.send(
             question,
             model=model_name,
+            system_prompt=agent_def.prompt,
             tools=list(filtered_tools.values()),
-        )
+        ):
+            if type(event).__name__ == "Result":
+                result_text = event.text  # type: ignore[union-attr]
 
-        return response.text
+        return result_text
 
     return Tool(
         name="consult",
