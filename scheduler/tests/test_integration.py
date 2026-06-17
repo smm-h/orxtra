@@ -631,17 +631,17 @@ class TestMutationTracking:
         scheduler: Scheduler,
     ) -> None:
         """_session_mutations dict tracks mutation state."""
-        scheduler._session_mutations["sess-1"] = False  # noqa: SLF001
-        assert scheduler._session_mutations["sess-1"] is False  # noqa: SLF001
-        scheduler._session_mutations["sess-1"] = True  # noqa: SLF001
-        assert scheduler._session_mutations["sess-1"] is True  # noqa: SLF001
+        scheduler._session_mutations["sess-1"] = set()  # noqa: SLF001
+        assert scheduler._session_mutations["sess-1"] == set()  # noqa: SLF001
+        scheduler._session_mutations["sess-1"] = {"file.py"}  # noqa: SLF001
+        assert scheduler._session_mutations["sess-1"] == {"file.py"}  # noqa: SLF001
 
     async def test_auto_commit_runs_on_mutations(
         self,
         scheduler: Scheduler,
     ) -> None:
         """_auto_commit runs git status and safegit when mutations detected."""
-        scheduler._session_mutations["sess-a"] = True  # noqa: SLF001
+        scheduler._session_mutations["sess-a"] = {"__generic__"}  # noqa: SLF001
 
         # Mock subprocess to simulate dirty working tree
         mock_git_status = AsyncMock()
@@ -682,7 +682,7 @@ class TestMutationTracking:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Warning when mutation tracker says yes but git is clean."""
-        scheduler._session_mutations["sess-b"] = True  # noqa: SLF001
+        scheduler._session_mutations["sess-b"] = {"__generic__"}  # noqa: SLF001
 
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(
@@ -711,7 +711,7 @@ class TestMutationTracking:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Warning when git has changes but tracker reports none."""
-        scheduler._session_mutations["sess-c"] = False  # noqa: SLF001
+        scheduler._session_mutations["sess-c"] = set()  # noqa: SLF001
 
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(
