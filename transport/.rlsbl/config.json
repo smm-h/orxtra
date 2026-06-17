@@ -8,5 +8,18 @@
       "type": "pypi",
       "local": false
     }
+  },
+  "batch_limits": {
+    "exclusions": [
+      {
+        "reason": "**Initial implementation.** Typed LLM client with provider protocol, raw httpx communication, streaming events (text, tool use, thinking), tool-call loop with auto-retry, configurable max tokens, and state machine types.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 1
+          }
+        ]
+      }
+    ]
   }
 }
