@@ -71,7 +71,7 @@ class AgentExecutionMixin:
             task_id, TaskState.ACTIVE.value,
         )
 
-        session, session_id_str = self._create_agent_session(
+        session, session_id_str = await self._create_agent_session(
             task, task_id, 1,
         )
         # Register the orchestrator's session so
@@ -225,7 +225,7 @@ class AgentExecutionMixin:
                     )
 
             session, session_id = (
-                self._create_agent_session(
+                await self._create_agent_session(
                     task, task_id, attempt,
                 )
             )
@@ -641,7 +641,7 @@ class AgentExecutionMixin:
                 result_text = event.text
         return result_text
 
-    def _create_agent_session(
+    async def _create_agent_session(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -857,7 +857,7 @@ class AgentExecutionMixin:
             prev = self._task_sessions[task_id]
             previous_session_id = prev.session_id
 
-        session = create_session(
+        session = await create_session(
             transport=transport,
             model=model,
             system_prompt=agent_def.prompt,
@@ -865,6 +865,7 @@ class AgentExecutionMixin:
             trace_writer=self._trace_writer,
             run_id=self._run_id,
             session_id=previous_session_id,
+            pool=self._pool,
         )
         return session, session_id
 
