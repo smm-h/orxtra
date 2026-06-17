@@ -337,6 +337,9 @@ class AgentExecutionMixin:
                             prompt,
                             session_id,
                             task_id,
+                            stream_deltas=bool(
+                                task.stream_deltas,
+                            ),
                         ),
                         timeout=float(task.timeout),
                     )
@@ -346,6 +349,9 @@ class AgentExecutionMixin:
                         prompt,
                         session_id,
                         task_id,
+                        stream_deltas=bool(
+                            task.stream_deltas,
+                        ),
                     )
             except TimeoutError:
                 await self._fail_attempt_timeout(
@@ -614,9 +620,11 @@ class AgentExecutionMixin:
         prompt: str,
         session_id: str,  # noqa: ARG002
         task_id: UUID,  # noqa: ARG002
+        *,
+        stream_deltas: bool = False,
     ) -> str:
         result_text = ""
-        async for event in session.send(prompt):
+        async for event in session.send(prompt, stream_deltas=stream_deltas):
             if isinstance(event, Result):
                 result_text = event.text
         return result_text

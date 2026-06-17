@@ -72,6 +72,7 @@ class TaskSpec(BaseModel):
     write_paths: list[str] | None = None
     on_success: str | None = None
     pre_retry: str | None = None
+    stream_deltas: bool = False
 
 
 @dataclass(frozen=True)
