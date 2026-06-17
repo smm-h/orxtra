@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -440,6 +441,7 @@ def scheduler(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    tmp_path: Path,
 ) -> Scheduler:
     return Scheduler(
         trace_writer=trace_writer,  # type: ignore[arg-type]
@@ -447,6 +449,7 @@ def scheduler(
         agents=agents,
         categories=categories,
         run_id=run_id,
+        read_root=tmp_path,
     )
 
 
@@ -457,6 +460,7 @@ def make_scheduler(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    tmp_path: Path,
 ) -> Callable[..., Scheduler]:
     """Factory fixture for creating scheduler instances."""
 
@@ -467,6 +471,7 @@ def make_scheduler(
             "agents": agents,
             "categories": categories,
             "run_id": run_id,
+            "read_root": tmp_path,
         }
         defaults.update(kwargs)
         return Scheduler(**defaults)  # type: ignore[arg-type]
