@@ -71,22 +71,22 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 
 ## Key concepts
 
-- **Write-safety** owns the write queue, stale-write detection, atomic replace, and transient replay. Used by tool (enforcement) and scheduler (lifecycle). See `write-safety/DESIGN.md`.
-- **Secrets** owns the secret registry, substitution (`{{secret:NAME}}` -> real values in tool args), and scrubbing (real values -> placeholders in results and trace). See `secrets/DESIGN.md`.
-- **Protocols** defines shared types: Execution (script/agent/workflow), task lifecycle, event descriptors, action tool schemas, check results. See `protocols/DESIGN.md`.
-- **Transport** is a standalone typed LLM client. Provider protocol, raw httpx, streaming events, tool-call loop, auto-retry. See `transport/DESIGN.md`.
-- **Agent** is a standalone TOML+md agent definition loader. Strict validation, prompt composition, category resolution. See `agent/DESIGN.md`.
-- **Tool** is a standalone tool registry. Granular constructors (read, write, edit, git, exec, http, etc.), path enforcement, write safety, task lifecycle tools (start_task, end_task, create_task, create_workflow). No bash tool. Git mutations wrap safegit; file deletion wraps saferm. See `tool/DESIGN.md`.
-- **Verify** is the check runner. Runs pre-checks and post-checks for tasks. Checks are Executions: scripts (Python callables), agents (read-only, structured verdicts), or workflows (recursive task trees). See `verify/DESIGN.md`.
-- **Trace** is a standalone PG event store. Schema owner for all persistent state. State machines, LISTEN/NOTIFY, append-only tables, crash recovery. See `trace/DESIGN.md`.
-- **Notepad** is PG-backed append-only cross-agent IPC. See `notepad/DESIGN.md`.
-- **Session** wraps transport with token tracking, transcript persistence, cross-restart resumption. See `session/DESIGN.md`.
-- **Scheduler** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints. See `scheduler/DESIGN.md`.
-- **Overseer** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent. See `overseer/DESIGN.md`.
-- **Knowledge-module** is an experimental cognee enrichment layer over the flat lessons table. Disabled by default. May be removed. See `knowledge-module/DESIGN.md`.
-- **Services** is shared business logic consumed by CLI, MCP, and the Python API. See `services/DESIGN.md`.
-- **CLI** is a strictcli frontend. Agents are the primary users. See `cli/DESIGN.md`.
-- **MCP** is an MCP server for human interface via dashboard/AI client. See `mcp/DESIGN.md`.
+- **Write-safety** owns the write queue, stale-write detection, atomic replace, and transient replay. Used by tool (enforcement) and scheduler (lifecycle).
+- **Secrets** owns the secret registry, substitution (`{{secret:NAME}}` -> real values in tool args), and scrubbing (real values -> placeholders in results and trace).
+- **Protocols** defines shared types: Execution (script/agent/workflow), task lifecycle, event descriptors, action tool schemas, check results.
+- **Transport** is a standalone typed LLM client. Provider protocol, raw httpx, streaming events, tool-call loop, auto-retry.
+- **Agent** is a standalone TOML+md agent definition loader. Strict validation, prompt composition, category resolution.
+- **Tool** is a standalone tool registry. Granular constructors (read, write, edit, git, exec, http, etc.), path enforcement, write safety, task lifecycle tools (start_task, end_task, create_task, create_workflow). No bash tool. Git mutations wrap safegit; file deletion wraps saferm.
+- **Verify** is the check runner. Runs pre-checks and post-checks for tasks. Checks are Executions: scripts (Python callables), agents (read-only, structured verdicts), or workflows (recursive task trees).
+- **Trace** is a standalone PG event store. Schema owner for all persistent state. State machines, LISTEN/NOTIFY, append-only tables, crash recovery.
+- **Notepad** is PG-backed append-only cross-agent IPC.
+- **Session** wraps transport with token tracking, transcript persistence, cross-restart resumption.
+- **Scheduler** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints.
+- **Overseer** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent.
+- **Knowledge-module** is an experimental cognee enrichment layer over the flat lessons table. Disabled by default. May be removed.
+- **Services** is shared business logic consumed by CLI, MCP, and the Python API.
+- **CLI** is a strictcli frontend. Agents are the primary users.
+- **MCP** is an MCP server for human interface via dashboard/AI client.
 
 ## Tooling
 
