@@ -267,7 +267,7 @@ class TestTransientRetry:
     @pytest.mark.asyncio
     async def test_transient_error_retried_and_succeeds(self) -> None:
         """Tool that raises OSError(EIO) once then succeeds is retried."""
-        import errno
+        import errno  # noqa: PLC0415
 
         call_count = 0
 
@@ -298,7 +298,7 @@ class TestTransientRetry:
     @pytest.mark.asyncio
     async def test_non_transient_error_not_retried(self) -> None:
         """Non-transient OSError (e.g., ENOENT) propagates immediately."""
-        import errno
+        import errno  # noqa: PLC0415
 
         call_count = 0
 

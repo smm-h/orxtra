@@ -987,7 +987,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal("0")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
         adapter._current_tool_calls = [  # noqa: SLF001
             {
                 "tool_name": "create_workflow",
@@ -1027,7 +1027,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal("0")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
         # Remaining = 10.00, threshold = 5.00
         adapter._current_tool_calls = [  # noqa: SLF001
             {
@@ -1048,7 +1048,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        # _spent_fn is None (default)
+        # spent_fn left as None (default)
         # Remaining = 10.00, threshold = 5.00
         adapter._current_tool_calls = [  # noqa: SLF001
             {
@@ -1069,7 +1069,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal("0")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
         adapter._current_tool_calls = [  # noqa: SLF001
             {
                 "tool_name": "create_task",

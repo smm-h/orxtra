@@ -6,12 +6,15 @@ import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 import pytest
 from orxt.mcp._server import MCPServer, _serialize
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # pytest-asyncio auto mode (asyncio_mode = "auto" in root pyproject.toml)
 # detects async test functions automatically -- no @pytest.mark.asyncio needed.
@@ -566,13 +569,16 @@ async def test_pg_listener_forwards_notifications() -> None:
     callbacks: list[Any] = []
 
     class MockConn:
-        async def add_listener(self, channel: str, callback: Any) -> None:
+        async def add_listener(
+            self, channel: str,
+            callback: Callable[..., object],
+        ) -> None:
             callbacks.append((channel, callback))
 
     class MockPool:
         async def acquire(self) -> MockConn:
             return MockConn()
-        async def release(self, conn: Any) -> None:
+        async def release(self, conn: MockConn) -> None:
             pass
 
     server = MCPServer(pool=MockPool())

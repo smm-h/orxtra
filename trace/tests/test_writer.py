@@ -536,7 +536,7 @@ class TestInbox:
         mock_pool.conn.queue_fetchval("answered")
         with pytest.raises(
             InvalidTransitionError,
-            match="cannot transition inbox item.*from 'answered' to 'answered'",
+            match=r"cannot transition inbox item.*from 'answered' to 'answered'",
         ):
             await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
 
@@ -547,7 +547,7 @@ class TestInbox:
         mock_pool.conn.queue_fetchval("expired")
         with pytest.raises(
             InvalidTransitionError,
-            match="cannot transition inbox item.*from 'expired' to 'skipped'",
+            match=r"cannot transition inbox item.*from 'expired' to 'skipped'",
         ):
             await writer.skip_inbox_item(INBOX_ITEM_ID)
 
@@ -556,7 +556,7 @@ class TestInbox:
     ) -> None:
         mock_pool.conn.queue_execute("UPDATE 1")
         await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
-        sql, args = mock_pool.conn.executed[0]
+        sql, _args = mock_pool.conn.executed[0]
         assert "status = 'pending'" in sql.lower()
 
 

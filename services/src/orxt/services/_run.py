@@ -92,7 +92,14 @@ async def start_run_from_file(
         raise FileNotFoundError(msg)
     with config_path.open("rb") as f:
         raw = tomllib.load(f)
-    for key in ("workflow_path", "agents_dir", "knowledge_dir", "categories_path", "read_root"):
+    path_keys = (
+        "workflow_path",
+        "agents_dir",
+        "knowledge_dir",
+        "categories_path",
+        "read_root",
+    )
+    for key in path_keys:
         if key in raw and isinstance(raw[key], str):
             raw[key] = Path(raw[key])
     if "budget" in raw and not isinstance(raw["budget"], Decimal):

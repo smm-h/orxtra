@@ -408,9 +408,9 @@ class TestOpenAIStreamToolUse:
     ) -> None:
         """Tool calls are accumulated and yielded on [DONE]."""
         chunks = [
-            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1", "function": {"name": "read_file", "arguments": ""}}]}}]}\n',
-            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{\\"path\\": "}}]}}]}\n',
-            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "\\"/tmp/test\\"}"}}]}}]}\n',
+            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1", "function": {"name": "read_file", "arguments": ""}}]}}]}\n',  # noqa: E501
+            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{\\"path\\": "}}]}}]}\n',  # noqa: E501
+            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "\\"/tmp/test\\"}"}}]}}]}\n',  # noqa: E501
             b"data: [DONE]\n\n",
         ]
         events = [
@@ -423,4 +423,4 @@ class TestOpenAIStreamToolUse:
         assert isinstance(events[0], StreamToolUse)
         assert events[0].tool_use_id == "call_1"
         assert events[0].tool_name == "read_file"
-        assert events[0].tool_input == {"path": "/tmp/test"}
+        assert events[0].tool_input == {"path": "/tmp/test"}  # noqa: S108

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import uuid6
-from orxt.agent import Agent
+from orxt.agent import Agent, ExecToolConfig, ShellConfig
 from orxt.protocols._task import TaskSpec
 from orxt.scheduler._executor import Scheduler
 
@@ -397,7 +397,6 @@ class TestExecToolPresent:
     async def test_exec_tools_constructed(
         self, tmp_path: Path,
     ) -> None:
-        from orxt.agent import ExecToolConfig
         agent = Agent(
             name="test-agent",
             description="Test agent",
@@ -425,7 +424,6 @@ class TestShellToolPresent:
     async def test_shell_tool_constructed(
         self, tmp_path: Path,
     ) -> None:
-        from orxt.agent import ShellConfig
         agent = Agent(
             name="test-agent",
             description="Test agent",
