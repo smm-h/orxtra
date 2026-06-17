@@ -8,5 +8,18 @@
       "type": "pypi",
       "local": false
     }
+  },
+  "batch_limits": {
+    "exclusions": [
+      {
+        "reason": "**Initial implementation.** Persistent LLM brain with action tools, PostgreSQL memory, health monitoring, session handoff, autonomy level enforcement, and lifecycle tool injection.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 1
+          }
+        ]
+      }
+    ]
   }
 }
