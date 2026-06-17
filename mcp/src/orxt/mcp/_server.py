@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # ruff: noqa: ANN401, C901, PLR0911
 import asyncio
+import contextlib
 import json
 import sys
 from collections.abc import Callable, Coroutine
@@ -279,6 +280,57 @@ class MCPServer:
             "content": [{"type": "text", "text": text}],
         }
 
+    async def _start_pg_listener(
+        self, writer: asyncio.StreamWriter,
+    ) -> asyncio.Task[Any]:
+        """Start a background task that listens for PG notifications
+        and forwards them as JSON-RPC notifications."""
+
+        async def _listen() -> None:
+            while True:
+                conn = None
+                try:
+                    conn = await self._pool.acquire()
+
+                    def _on_notification(
+                        _conn: Any,
+                        _pid: int,
+                        _channel: str,
+                        payload: Any,
+                    ) -> None:
+                        try:
+                            data = json.loads(str(payload))
+                        except (json.JSONDecodeError, TypeError):
+                            data = {"raw": str(payload)}
+                        notification = {
+                            "jsonrpc": "2.0",
+                            "method": "notifications/event",
+                            "params": data,
+                        }
+                        writer.write(
+                            (json.dumps(notification) + "\n").encode(),
+                        )
+                        # drain is async; schedule it
+                        asyncio.ensure_future(writer.drain())
+
+                    await conn.add_listener(
+                        "orxt_events", _on_notification,
+                    )
+
+                    # Block forever until connection drops
+                    stop = asyncio.Event()
+                    await stop.wait()
+                except Exception:  # noqa: BLE001
+                    # Connection dropped - wait and retry
+                    if conn is not None:
+                        try:
+                            await self._pool.release(conn)
+                        except Exception:  # noqa: BLE001, S110
+                            pass
+                    await asyncio.sleep(1)
+
+        return asyncio.create_task(_listen())
+
     async def run_stdio(self) -> None:
         loop = asyncio.get_running_loop()
         reader = asyncio.StreamReader()
@@ -291,6 +343,11 @@ class MCPServer:
         writer = asyncio.StreamWriter(
             transport_out, protocol, reader, loop
         )
+
+        # Start PG event listener if pool is available
+        pg_listener_task: asyncio.Task[Any] | None = None
+        if self._pool is not None:
+            pg_listener_task = await self._start_pg_listener(writer)
 
         while True:
             line = await reader.readline()
@@ -318,3 +375,8 @@ class MCPServer:
             if request.get("id") is not None:
                 writer.write((json.dumps(response) + "\n").encode())
                 await writer.drain()
+
+        if pg_listener_task is not None:
+            pg_listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await pg_listener_task
