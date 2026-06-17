@@ -2,3 +2,4 @@
 {"commits":["034c8e2e93f21614f7ee695495d4c722dfbab780"],"user_facing":false}
 {"commits":["7ec7aa495b6d413da21b9c0f6735f23c3cdf408a","34c8bc4bbb1003f24b9b818444ed64976ec5817a"],"user_facing":false}
 {"commits":["e355be25ec1967091e346fef99e59bd8277d0ff4"],"user_facing":true,"description":"**New feature.** Snapshot constraints enforce export and signature stability between task attempts.","type":"feature"}
+{"commits":["2d3a8ad0853f9fd83e05f6ab15c32da0d05e23f8"],"user_facing":true,"description":"**New feature.** Stream deltas support wired through scheduler to session and transport layers.","type":"feature"}
