@@ -573,13 +573,13 @@ class AgentExecutionMixin(SchedulerBase):
         )
 
         # Try parent agent first, fall back to Overseer
-        parent_session = (
-            self._task_sessions.get(parent_task_id)
-            if parent_task_id is not None
-            else None
-        )
+        if parent_task_id is not None:
+            parent_session = self._task_sessions.get(parent_task_id)
+        else:
+            parent_session = None
         if (
             parent_session is not None
+            and parent_task_id is not None
             and self._task_states.get(parent_task_id) == TaskState.ACTIVE
         ):
             escalation_msg = (
@@ -921,6 +921,7 @@ class AgentExecutionMixin(SchedulerBase):
         prior_attempts: list[dict[str, Any]],
     ) -> str:
         """Assemble full prompt with runtime context layers."""
+        assert task.task_prompt is not None
         prompt = self._resolve_prompt(
             task.task_prompt, variables,
         )
