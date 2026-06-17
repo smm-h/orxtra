@@ -56,7 +56,7 @@ orxt/
     mcp/                        # Interface: MCP server
 ```
 
-Each sub-project has: `pyproject.toml`, `DESIGN.md`, `src/orxt/<name>/`, `tests/`.
+Each sub-project has: `pyproject.toml`, `src/orxt/<name>/`, `tests/`.
 
 ## Architecture layers
 
