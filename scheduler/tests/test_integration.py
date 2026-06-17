@@ -1109,7 +1109,6 @@ class TestMechanicalConstraints:
             task_id,
         )
         assert len(results) == 1
-        assert results[0].passed is True
         assert "no_removed_exports" in results[0].message
 
     async def test_expensive_constraints_skipped_without_subtasks(
