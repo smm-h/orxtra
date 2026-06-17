@@ -19,6 +19,7 @@ class AnthropicProvider:
     api_key: str = field(default_factory=lambda: os.environ["ANTHROPIC_API_KEY"])
     base_url: str = "https://api.anthropic.com"
     api_version: str = "2023-06-01"
+    max_tokens: int = 128_000
 
     def build_request(
         self,
@@ -29,7 +30,7 @@ class AnthropicProvider:
     ) -> dict[str, Any]:
         body: dict[str, Any] = {
             "model": model,
-            "max_tokens": 16384,
+            "max_tokens": self.max_tokens,
             "system": system,
             "messages": messages,
             "stream": True,
