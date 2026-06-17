@@ -1,0 +1,803 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+import time
+from decimal import Decimal
+from typing import Any
+from uuid import UUID
+
+from orxt.notepad import format_notepad
+from orxt.protocols._execution import CheckResult
+from orxt.protocols._task import (
+    EscalationPayload,
+    TaskResult,
+    TaskSpec,
+    TaskState,
+)
+from orxt.session import Session, create_session
+from orxt.tool._pipeline import wrap_tools_for_session
+from orxt.tool._task_tools import (
+    make_await_task_tool,
+    make_create_task_tool,
+    make_create_wait_for_tool,
+    make_create_workflow_tool,
+    make_end_task_tool,
+    make_start_task_tool,
+)
+from orxt.transport import Result, Usage
+
+_logger = logging.getLogger("orxt.scheduler")
+
+
+class AgentExecutionMixin:
+    """Mixin for agent and orchestrator task execution."""
+
+    async def _execute_orchestrator_task(
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        parent_task_id: UUID | None,  # noqa: ARG002
+        variables: dict[str, Any] | None = None,
+    ) -> TaskResult:
+        """Execute an orchestrator task with multi-turn suspension support."""
+        from orxt.transport import SessionSuspended  # noqa: PLC0415
+
+        self._task_states[task_id] = TaskState.ACTIVE
+        await self._trace_writer.transition_task(
+            task_id, TaskState.ACTIVE.value,
+        )
+
+        session, session_id_str = self._create_agent_session(
+            task, task_id, 1,
+        )
+        # Register the orchestrator's session so
+        # create_task/await_task can find the active task
+        self._active_tasks[session_id_str] = task_id
+
+        prompt = self._resolve_prompt(
+            task.task_prompt or "",
+            variables or {},
+        )
+
+        output_text = ""
+        continuation = None
+
+        async for event in session.send(prompt):
+            if isinstance(event, SessionSuspended):
+                continuation = event.continuation
+                break
+            if isinstance(event, Result):
+                output_text = event.text or ""
+
+        while continuation is not None:
+            child_task_id_str = self._pending_await.pop(
+                session_id_str, None,
+            )
+            if child_task_id_str is None:
+                break
+
+            child_task_id = UUID(child_task_id_str)
+            child_spec = self._task_specs.get(child_task_id)
+            if child_spec is None:
+                break
+
+            self._task_states[task_id] = TaskState.SUSPENDED
+            await self._trace_writer.transition_task(
+                task_id,
+                TaskState.SUSPENDED.value,
+                "awaiting child task",
+            )
+
+            child_result = await self.execute_task(
+                child_spec, task_id,
+                task_id=child_task_id,
+            )
+
+            self._task_states[task_id] = TaskState.ACTIVE
+            await self._trace_writer.transition_task(
+                task_id,
+                TaskState.ACTIVE.value,
+                "child task completed",
+            )
+
+            resume_msg = (
+                f"Child task {child_task_id_str} completed."
+                f" Result: {child_result.output or 'no output'}"
+            )
+
+            current_cont = continuation
+            continuation = None
+            async for ev in session.resume(
+                current_cont,
+                resume_msg,
+            ):
+                if isinstance(ev, SessionSuspended):
+                    continuation = ev.continuation
+                    break
+                if isinstance(ev, Result):
+                    output_text = ev.text or ""
+
+        self._task_states[task_id] = TaskState.COMPLETED
+        await self._trace_writer.transition_task(
+            task_id, TaskState.COMPLETED.value,
+        )
+
+        return TaskResult(
+            output=output_text,
+            structured_output=None,
+            check_results=[],
+        )
+
+    async def _execute_orchestrator_or_agent_task(
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        parent_task_id: UUID | None,
+        variables: dict[str, Any] | None,
+    ) -> TaskResult:
+        """Dispatch to orchestrator or agent task execution."""
+        if task.orchestrator:
+            return await self._execute_orchestrator_task(
+                task, task_id, parent_task_id, variables,
+            )
+        return await self._execute_agent_task(
+            task, task_id, parent_task_id, variables,
+        )
+
+    async def _execute_agent_task(  # noqa: C901, PLR0912, PLR0915
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        parent_task_id: UUID | None,
+        variables: dict[str, Any] | None = None,
+    ) -> TaskResult:
+        if task.agent is None or task.task_prompt is None:
+            msg = "Agent task requires agent and task_prompt"
+            raise ValueError(msg)
+
+        max_attempts = task.retry + 1
+        check_results: list[CheckResult] = []
+        prior_attempts: list[dict[str, Any]] = []
+
+        for attempt in range(1, max_attempts + 1):
+            attempt_id = (
+                await self._trace_writer.create_task_attempt(
+                    task_id, attempt,
+                )
+            )
+            start_time = time.monotonic()
+            self._task_start_times[task_id] = start_time
+
+            if (
+                attempt > 1
+                and task.pre_retry is not None
+            ):
+                try:
+                    await self._call_callback(
+                        task.pre_retry,
+                        self._make_task_context(
+                            task, task_id, parent_task_id,
+                            attempt, prior_attempts,
+                            variables,
+                        ),
+                    )
+                except Exception:  # noqa: BLE001
+                    self._task_states[task_id] = (
+                        TaskState.ESCALATED
+                    )
+                    await self._trace_writer.transition_task(
+                        task_id,
+                        TaskState.ESCALATED.value,
+                    )
+                    return TaskResult(
+                        output=None,
+                        structured_output=None,
+                        check_results=[
+                            CheckResult(
+                                passed=False,
+                                message="pre_retry aborted",
+                            ),
+                        ],
+                    )
+
+            session, session_id = (
+                self._create_agent_session(
+                    task, task_id, attempt,
+                )
+            )
+            self._task_sessions[task_id] = session
+            self._session_mutations[session_id] = False
+
+            prompt = self._resolve_prompt(
+                task.task_prompt, variables,
+            )
+            prompt = (
+                f"Your task ID is {task_id}."
+                " Call start_task first.\n\n"
+                f"{prompt}"
+            )
+
+            # Layer 2: Runtime system context
+            # Constraints
+            if self._active_constraints:
+                prompt += "\n\n## Active Constraints"
+                for text, tier in (
+                    self._active_constraints
+                ):
+                    prompt += f"\n- {text} ({tier})"
+
+            # Notepad content
+            if self._notepad_entries:
+                prompt += (
+                    f"\n\n{format_notepad(self._notepad_entries)}"
+                )
+
+            # Prior failure context
+            if (
+                attempt > 1
+                and task.retry_inject_failure
+                and prior_attempts
+            ):
+                prompt += (
+                    "\n\n## Prior Failure Context"
+                )
+                for pa in prior_attempts:
+                    prompt += (
+                        f"\nPrior attempt {pa['attempt']}"
+                        f" failed: {pa['error']}"
+                    )
+
+            # Layer 3: Overseer context refinement
+            if (
+                task.context_refinement
+                and self._overseer_interface is not None
+                and hasattr(
+                    self._overseer_interface,
+                    "refine_context",
+                )
+            ):
+                pre_refinement = prompt
+                refined = await (
+                    self._overseer_interface
+                    .refine_context(
+                        task.name, prompt,
+                    )
+                )
+                if refined != prompt:
+                    import difflib  # noqa: PLC0415
+
+                    diff = "\n".join(
+                        difflib.unified_diff(
+                            prompt.splitlines(),
+                            refined.splitlines(),
+                            fromfile="pre-refinement",
+                            tofile="post-refinement",
+                            lineterm="",
+                        )
+                    )
+                    await (
+                        self._trace_writer
+                        .write_context_diff(
+                            attempt_id,
+                            pre_refinement,
+                            diff,
+                        )
+                    )
+                    prompt = refined
+
+            snap_in = session.total_input_tokens
+            snap_out = session.total_output_tokens
+            snap_reason = (
+                session.total_reasoning_tokens
+            )
+            snap_cache_r = (
+                session.total_cache_read_tokens
+            )
+            snap_cache_w = (
+                session.total_cache_write_tokens
+            )
+
+            try:
+                if task.timeout is not None:
+                    await asyncio.wait_for(
+                        self._run_session(
+                            session,
+                            prompt,
+                            session_id,
+                            task_id,
+                        ),
+                        timeout=float(task.timeout),
+                    )
+                else:
+                    await self._run_session(
+                        session,
+                        prompt,
+                        session_id,
+                        task_id,
+                    )
+            except TimeoutError:
+                await self._fail_attempt_timeout(
+                    attempt_id, session, task_id,
+                )
+                return TaskResult(
+                    output=None,
+                    structured_output=None,
+                    check_results=[
+                        CheckResult(
+                            passed=False,
+                            message="Task timed out",
+                        ),
+                    ],
+                )
+            except Exception as exc:  # noqa: BLE001
+                from orxt.scheduler._executor import classify_error  # noqa: PLC0415
+                category = classify_error(exc)
+                await self._trace_writer.write_event(
+                    run_id=self._run_id,
+                    event_type="task_error",
+                    data={
+                        "task_id": str(task_id),
+                        "error": str(exc),
+                        "error_type": (
+                            type(exc).__name__
+                        ),
+                        "category": category.value,
+                    },
+                    task_id=task_id,
+                )
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                    task_id=task_id,
+                )
+                check_results = [CheckResult(
+                    passed=False,
+                    message=(
+                        f"[{category.value}] {exc}"
+                    ),
+                )]
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": (
+                        f"[{category.value}] {exc}"
+                    ),
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
+                # Fall through to escalation
+                break
+
+            _ = time.monotonic() - start_time
+            self._accumulate_cost(
+                task_id, task,
+                Usage(
+                    input_tokens=(
+                        session.total_input_tokens
+                        - snap_in
+                    ),
+                    output_tokens=(
+                        session.total_output_tokens
+                        - snap_out
+                    ),
+                    reasoning_tokens=(
+                        session.total_reasoning_tokens
+                        - snap_reason
+                    ),
+                    cache_read_tokens=(
+                        session.total_cache_read_tokens
+                        - snap_cache_r
+                    ),
+                    cache_write_tokens=(
+                        session.total_cache_write_tokens
+                        - snap_cache_w
+                    ),
+                ),
+            )
+            await self._send_budget_events(task_id)
+
+            state = self._task_states[task_id]
+
+            if state == TaskState.COMPLETED:
+                outputs = self._get_scoped_outputs(
+                    self._task_parents.get(task_id),
+                )
+                result_text = outputs.get(
+                    task.name,
+                )
+
+                # Validate structured output if schema
+                # is defined
+                if task.output_schema is not None:
+                    validation = (
+                        self._validate_output_schema(
+                            result_text,
+                            task.output_schema,
+                        )
+                    )
+                    if not validation.passed:
+                        await self._complete_attempt(
+                            attempt_id, session,
+                            "", False,
+                            task_id=task_id,
+                        )
+                        check_results = [validation]
+                        prior_attempts.append({
+                            "attempt": attempt,
+                            "error": (
+                                "Output validation:"
+                                f" {validation.message}"
+                            ),
+                        })
+                        if attempt < max_attempts:
+                            self._task_states[task_id] = (
+                                TaskState.CREATED
+                            )
+                            continue
+                        # Fall through to escalation
+                        break
+
+                await self._complete_attempt(
+                    attempt_id, session,
+                    result_text or "", True,
+                    task_id=task_id,
+                )
+                return TaskResult(
+                    output=result_text,
+                    structured_output=None,
+                    check_results=[
+                        CheckResult(
+                            passed=True,
+                            message="Task completed",
+                        ),
+                    ],
+                )
+
+            if state == TaskState.POSTCHECK_FAILED:
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                    task_id=task_id,
+                )
+                check_results = [
+                    CheckResult(
+                        passed=False,
+                        message="Postchecks failed",
+                    ),
+                ]
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": "Postchecks failed",
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
+
+            elif state == TaskState.PRECHECK_FAILED:
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                    task_id=task_id,
+                )
+                check_results = [
+                    CheckResult(
+                        passed=False,
+                        message="Prechecks failed",
+                    ),
+                ]
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": "Prechecks failed",
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
+
+            else:
+                await self._complete_attempt(
+                    attempt_id, session, "", False,
+                    task_id=task_id,
+                )
+                prior_attempts.append({
+                    "attempt": attempt,
+                    "error": (
+                        f"Session ended in state {state}"
+                    ),
+                })
+                if attempt < max_attempts:
+                    self._task_states[task_id] = (
+                        TaskState.CREATED
+                    )
+                    continue
+
+        escalation = EscalationPayload(
+            task_name=task.name,
+            task_id=task_id,
+            agent_name=task.agent,
+            attempts=max_attempts,
+            failed_checks=check_results,
+            agent_summary="Retries exhausted",
+            context=self._make_task_context(
+                task, task_id, parent_task_id,
+                max_attempts, prior_attempts,
+                variables,
+            ),
+        )
+        self._task_states[task_id] = TaskState.ESCALATED
+        self._file_lock_registry.release(task_id)
+        await self._trace_writer.transition_task(
+            task_id, TaskState.ESCALATED.value,
+        )
+
+        # Send escalation event to Overseer
+        from orxt.protocols._events import (  # noqa: PLC0415
+            TaskEscalated,
+        )
+        await self._send_overseer_event(
+            TaskEscalated(
+                task_id=task_id,
+                task_name=task.name,
+                from_child_task_id=task_id,
+                payload=escalation,
+            ),
+        )
+
+        return TaskResult(
+            output=None,
+            structured_output={
+                "escalation": {
+                    "task_name": escalation.task_name,
+                    "attempts": escalation.attempts,
+                    "agent_name": escalation.agent_name,
+                },
+            },
+            check_results=check_results,
+        )
+
+    async def _run_session(
+        self,
+        session: Session,
+        prompt: str,
+        session_id: str,  # noqa: ARG002
+        task_id: UUID,  # noqa: ARG002
+    ) -> str:
+        result_text = ""
+        async for event in session.send(prompt):
+            if isinstance(event, Result):
+                result_text = event.text
+        return result_text
+
+    def _create_agent_session(
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        attempt: int,
+    ) -> tuple[Session, str]:
+        if task.agent is None:
+            msg = "Cannot create session without agent"
+            raise ValueError(msg)
+
+        agent_def = self._agents.get(task.agent)
+        if agent_def is None:
+            msg = f"Agent '{task.agent}' not found"
+            raise ValueError(msg)
+
+        category_str = task.category or agent_def.category
+        resolved = self._categories.get(category_str)
+        if resolved is None:
+            msg = f"Category '{category_str}' not found"
+            raise ValueError(msg)
+
+        provider_name, model = resolved.split("/", 1)
+        transport = self._transport_registry.get(
+            provider_name,
+        )
+        if transport is None:
+            msg = (
+                "Transport for provider"
+                f" '{provider_name}' not found"
+            )
+            raise ValueError(msg)
+
+        session_id = f"session-{task_id}-{attempt}"
+        raw_tools = [
+            make_start_task_tool(self, session_id),
+            make_end_task_tool(self, session_id),
+            make_create_task_tool(self, session_id),
+            make_create_workflow_tool(self, session_id),
+            make_create_wait_for_tool(self, session_id),
+            make_await_task_tool(self, session_id),
+        ]
+        async def _trace_callback(
+            tool_name: str,
+            args: dict[str, Any],
+            result: str,
+            duration_ms: int,
+        ) -> None:
+            await self._trace_writer.write_event(
+                run_id=self._run_id,
+                event_type="tool_call",
+                data={
+                    "session_id": session_id,
+                    "task_id": str(task_id),
+                    "tool_name": tool_name,
+                    "args": args,
+                    "result": result,
+                    "duration_ms": duration_ms,
+                },
+                task_id=task_id,
+            )
+
+        tools = wrap_tools_for_session(
+            tools=raw_tools,
+            scheduler_check=self.check_active_task,
+            secret_registry=self._secret_registry,
+            trace_callback=_trace_callback,
+            session_id=session_id,
+            mutation_tracker=self._session_mutations,
+        )
+
+        previous_session_id: str | None = None
+        if (
+            attempt > 1
+            and task.retry_resume
+            and task_id in self._task_sessions
+        ):
+            prev = self._task_sessions[task_id]
+            previous_session_id = prev.session_id
+
+        session = create_session(
+            transport=transport,
+            model=model,
+            system_prompt=agent_def.prompt,
+            tools=tools,
+            trace_writer=self._trace_writer,
+            run_id=self._run_id,
+            session_id=previous_session_id,
+        )
+        return session, session_id
+
+    @staticmethod
+    def _resolve_prompt(
+        template: str,
+        variables: dict[str, Any] | None,
+    ) -> str:
+        prompt = template
+        if variables:
+            for k, v in variables.items():
+                prompt = prompt.replace(
+                    f"{{{k}}}", str(v),
+                )
+        return prompt
+
+    async def _fail_attempt_timeout(
+        self,
+        attempt_id: UUID,
+        session: Session,
+        task_id: UUID,
+    ) -> None:
+        duration = time.monotonic() - self._task_start_times.get(
+            task_id, time.monotonic(),
+        )
+        await self._trace_writer.fail_task_attempt(
+            attempt_id=attempt_id,
+            error="Task timed out",
+            session_id=None,
+            input_tokens=session.total_input_tokens,
+            output_tokens=session.total_output_tokens,
+            reasoning_tokens=(
+                session.total_reasoning_tokens
+            ),
+            cache_read_tokens=(
+                session.total_cache_read_tokens
+            ),
+            cache_write_tokens=(
+                session.total_cache_write_tokens
+            ),
+            cost_usd=self._task_costs.get(
+                task_id, Decimal(0),
+            ),
+            duration_seconds=duration,
+        )
+        self._task_states[task_id] = TaskState.CANCELLED
+        await self._trace_writer.transition_task(
+            task_id, TaskState.CANCELLED.value,
+        )
+
+    async def _complete_attempt(
+        self,
+        attempt_id: UUID,
+        session: Session,
+        result_text: str,
+        passed: bool,
+        task_id: UUID,
+    ) -> None:
+        duration = time.monotonic() - self._task_start_times.get(
+            task_id, time.monotonic(),
+        )
+        await self._trace_writer.complete_task_attempt(
+            attempt_id=attempt_id,
+            agent_output=result_text,
+            structured_output=None,
+            check_result=None,
+            check_verdict="pass" if passed else "fail",
+            session_id=None,
+            input_tokens=session.total_input_tokens,
+            output_tokens=session.total_output_tokens,
+            reasoning_tokens=(
+                session.total_reasoning_tokens
+            ),
+            cache_read_tokens=(
+                session.total_cache_read_tokens
+            ),
+            cache_write_tokens=(
+                session.total_cache_write_tokens
+            ),
+            cost_usd=self._task_costs.get(
+                task_id, Decimal(0),
+            ),
+            duration_seconds=duration,
+        )
+
+    async def _auto_commit(
+        self,
+        session_id: str,
+        message: str,
+    ) -> None:
+        mutations_detected = self._session_mutations.get(
+            session_id, False,
+        )
+        proc = await asyncio.create_subprocess_exec(
+            "git", "status", "--porcelain",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        dirty_files = stdout.decode().strip()
+
+        if mutations_detected:
+            if dirty_files:
+                changed = []
+                for line in dirty_files.splitlines():
+                    # porcelain format: XY filename
+                    # or XY old -> new
+                    parts = line.strip().split(
+                        maxsplit=1,
+                    )
+                    if len(parts) >= 2:  # noqa: PLR2004
+                        fname = parts[1]
+                        if " -> " in fname:
+                            fname = fname.split(
+                                " -> ",
+                            )[1]
+                        changed.append(fname)
+                if changed:
+                    file_args = ["--", *changed]
+                    proc = (
+                        await asyncio.create_subprocess_exec(
+                            "safegit", "commit",
+                            "-m", message,
+                            *file_args,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                        )
+                    )
+                    await proc.communicate()
+            else:
+                _logger.warning(
+                    "Mutation tracker detected changes"
+                    " for session %s but git working"
+                    " tree is clean",
+                    session_id,
+                )
+        elif dirty_files:
+            _logger.warning(
+                "Git working tree has changes but"
+                " mutation tracker reports none"
+                " for session %s",
+                session_id,
+            )
