@@ -28,7 +28,7 @@ class Provider(Protocol):
 
     def parse_response(self, response: dict[str, Any]) -> list[ContentBlock]: ...
 
-    async def parse_stream(
+    def parse_stream(
         self,
         byte_stream: AsyncIterator[bytes],
     ) -> AsyncIterator[Event]: ...
