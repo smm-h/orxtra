@@ -21,6 +21,8 @@ from orxt.protocols._events import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from orxt.overseer._health import HealthMonitor
     from orxt.overseer._overseer import Overseer
     from orxt.protocols._tool import Tool
@@ -52,6 +54,90 @@ FALLBACK_BEHAVIORS: dict[str, str] = {
     ),
 }
 _DEFAULT_FALLBACK = "escalate_to_human_inbox"
+
+
+async def _fixed_escalation_ladder(
+    event: OverseerEvent,
+    logger: logging.Logger,
+    *,
+    trace_writer: Any = None,
+    run_id: Any = None,
+) -> None:
+    """For TaskFailed/TaskEscalated: log and let the
+    scheduler's own retry mechanism handle it."""
+    _ = trace_writer, run_id
+    event_type = type(event).__name__
+    logger.info(
+        "Degraded mode: fixed escalation for %s",
+        event_type,
+    )
+
+
+async def _maintain_current_allocations(
+    event: OverseerEvent,
+    logger: logging.Logger,
+    *,
+    trace_writer: Any = None,
+    run_id: Any = None,
+) -> None:
+    """For budget events: do nothing, just log."""
+    _ = trace_writer, run_id
+    event_type = type(event).__name__
+    logger.info(
+        "Degraded mode: maintaining current"
+        " allocations for %s",
+        event_type,
+    )
+
+
+async def _escalate_to_human_inbox(
+    event: OverseerEvent,
+    logger: logging.Logger,
+    *,
+    trace_writer: Any = None,
+    run_id: Any = None,
+) -> None:
+    """Default fallback: create an inbox item for
+    human intervention."""
+    event_type = type(event).__name__
+    logger.info(
+        "Degraded mode: escalating %s to human"
+        " inbox",
+        event_type,
+    )
+    if trace_writer is not None and run_id is not None:
+        await trace_writer.create_inbox_item(
+            run_id=run_id,
+            decision_type="degraded_escalation",
+            question=(
+                f"Overseer is degraded. Event"
+                f" {event_type} needs human review."
+            ),
+            options=[
+                {
+                    "label": "acknowledge",
+                    "description": (
+                        "Acknowledge and continue"
+                    ),
+                },
+            ],
+        )
+
+
+FALLBACK_HANDLERS: dict[
+    str,
+    Callable[..., Awaitable[None]],
+] = {
+    "fixed_escalation_ladder": (
+        _fixed_escalation_ladder
+    ),
+    "maintain_current_allocations": (
+        _maintain_current_allocations
+    ),
+    "escalate_to_human_inbox": (
+        _escalate_to_human_inbox
+    ),
+}
 
 # Maps Overseer tool names to autonomy action types.
 # Action types from _autonomy.py: read_only, retry,

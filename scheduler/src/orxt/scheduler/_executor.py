@@ -799,6 +799,7 @@ class Scheduler(
             from orxt.scheduler._overseer import (  # noqa: PLC0415
                 _DEFAULT_FALLBACK,
                 FALLBACK_BEHAVIORS,
+                FALLBACK_HANDLERS,
             )
             behavior = FALLBACK_BEHAVIORS.get(
                 event_type, _DEFAULT_FALLBACK,
@@ -809,6 +810,14 @@ class Scheduler(
                 event_type,
                 behavior,
             )
+            handler = FALLBACK_HANDLERS.get(behavior)
+            if handler is not None:
+                await handler(
+                    event,
+                    _logger,
+                    trace_writer=self._trace_writer,
+                    run_id=self._run_id,
+                )
             return
 
         max_attempts = 3
