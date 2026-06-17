@@ -388,3 +388,84 @@ class TestGitSubcommandsDependOnWriteAccess:
 
         assert len(captured_subcommands) == 1
         assert "commit" not in captured_subcommands[0]
+
+
+class TestExecToolPresent:
+    """Agent with allow=["exec"] and exec_tools gets
+    exec tools."""
+
+    async def test_exec_tools_constructed(
+        self, tmp_path: Path,
+    ) -> None:
+        from orxt.agent import ExecToolConfig
+        agent = Agent(
+            name="test-agent",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["exec"],
+            exec_tools=[
+                ExecToolConfig(
+                    name="pytest",
+                    executable="pytest",
+                    description="Run tests",
+                ),
+            ],
+        )
+        sched = _make_scheduler(agent, tmp_path)
+        names = await _extract_tool_names(sched)
+        assert "pytest" in names
+        assert names >= LIFECYCLE_TOOLS
+
+
+class TestShellToolPresent:
+    """Agent with allow=["shell"] and shell_config gets
+    shell tool."""
+
+    async def test_shell_tool_constructed(
+        self, tmp_path: Path,
+    ) -> None:
+        from orxt.agent import ShellConfig
+        agent = Agent(
+            name="test-agent",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["shell"],
+            shell_config=ShellConfig(
+                allowed_binaries=["ls", "cat"],
+            ),
+        )
+        sched = _make_scheduler(agent, tmp_path)
+        names = await _extract_tool_names(sched)
+        assert "shell" in names
+        assert names >= LIFECYCLE_TOOLS
+
+
+class TestExecWithoutConfig:
+    """Agent with allow=["exec"] but no exec_tools gets
+    no exec tools."""
+
+    async def test_no_exec_tools_without_config(
+        self, tmp_path: Path,
+    ) -> None:
+        agent = _agent(["exec"])
+        sched = _make_scheduler(agent, tmp_path)
+        names = await _extract_tool_names(sched)
+        # Only lifecycle tools (no exec tools without
+        # config)
+        assert names == LIFECYCLE_TOOLS
+
+
+class TestShellWithoutConfig:
+    """Agent with allow=["shell"] but no shell_config gets
+    no shell tool."""
+
+    async def test_no_shell_without_config(
+        self, tmp_path: Path,
+    ) -> None:
+        agent = _agent(["shell"])
+        sched = _make_scheduler(agent, tmp_path)
+        names = await _extract_tool_names(sched)
+        assert "shell" not in names
+        assert names == LIFECYCLE_TOOLS
