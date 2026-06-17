@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
@@ -26,22 +27,40 @@ def _dummy_tool(name: str) -> Tool:
 
 
 def _mock_agent_def(
-    category: str = "default", tools: list[str] | None = None,
+    category: str = "default", allow: list[str] | None = None,
 ) -> MagicMock:
     """Create a mock agent definition."""
     agent = MagicMock()
     agent.category = category
-    agent.tools = tools or []
+    agent.allow = allow or []
+    agent.prompt = "You are a test agent."
     return agent
 
 
-def _mock_transport(text: str = "answer") -> MagicMock:
-    """Create a mock transport that returns a canned response."""
-    response = MagicMock()
-    response.text = text
-    transport = MagicMock()
-    transport.send = AsyncMock(return_value=response)
-    return transport
+@dataclass(frozen=True)
+class Result:
+    """Mirrors orxt.transport.Result for testing without the transport dependency."""
+
+    text: str
+    session_id: str = "mock"
+
+
+class _MockTransport:
+    """Mock transport that yields Result events from an async generator."""
+
+    def __init__(self, text: str = "answer") -> None:
+        self._text = text
+        self.send_calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    async def send(self, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        """Async generator yielding a single Result event."""
+        self.send_calls.append((args, kwargs))
+        yield Result(text=self._text)
+
+
+def _mock_transport(text: str = "answer") -> _MockTransport:
+    """Create a mock transport that yields Result events."""
+    return _MockTransport(text)
 
 
 # All tool names that appear in the codebase.
@@ -62,7 +81,7 @@ def _make_tool(
     registry: dict[str, Tool] | None = None,
     agents: dict[str, Any] | None = None,
     transport_text: str = "answer",
-) -> tuple[Tool, MagicMock]:
+) -> tuple[Tool, _MockTransport]:
     """Build a consult tool with sensible defaults.
 
     Returns the consult tool and the mock transport for assertions.
@@ -71,7 +90,7 @@ def _make_tool(
         registry = _full_registry()
     mock_transport = _mock_transport(transport_text)
     if agents is None:
-        agents = {"helper": _mock_agent_def(tools=["read", "notepad"])}
+        agents = {"helper": _mock_agent_def(allow=["read", "notepad"])}
     tool = make_consult_tool(
         tool_registry=registry,
         transport_registry={"anthropic": mock_transport},
@@ -84,9 +103,9 @@ def _make_tool(
     return tool, mock_transport
 
 
-def _sent_tool_names(transport: MagicMock) -> set[str]:
+def _sent_tool_names(transport: _MockTransport) -> set[str]:
     """Extract tool names passed to transport.send()."""
-    call_kwargs = transport.send.call_args[1]
+    _, call_kwargs = transport.send_calls[-1]
     return {t.name for t in call_kwargs["tools"]}
 
 
@@ -129,7 +148,7 @@ class TestConsultExecution:
         """Transport.send is called with the question."""
         tool, transport = _make_tool()
         await tool.execute({"agent": "helper", "question": "Tell me about X"})
-        call_args = transport.send.call_args[0]
+        call_args, _ = transport.send_calls[-1]
         assert call_args[0] == "Tell me about X"
 
     @pytest.mark.asyncio
@@ -137,8 +156,16 @@ class TestConsultExecution:
         """Transport.send is called with the parsed model name."""
         tool, transport = _make_tool()
         await tool.execute({"agent": "helper", "question": "q"})
-        call_kwargs = transport.send.call_args[1]
+        _, call_kwargs = transport.send_calls[-1]
         assert call_kwargs["model"] == "claude-3-sonnet"
+
+    @pytest.mark.asyncio
+    async def test_transport_receives_system_prompt(self) -> None:
+        """Transport.send is called with the agent's prompt as system_prompt."""
+        tool, transport = _make_tool()
+        await tool.execute({"agent": "helper", "question": "q"})
+        _, call_kwargs = transport.send_calls[-1]
+        assert call_kwargs["system_prompt"] == "You are a test agent."
 
 
 class TestConsultToolStripping:
@@ -173,8 +200,8 @@ class TestConsultToolStripping:
         assert "exec" not in _sent_tool_names(transport)
 
     @pytest.mark.asyncio
-    async def test_git_tool_stripped(self) -> None:
-        """Git tool is not passed to the consulted agent."""
+    async def test_git_tool_stripped_when_not_in_allow(self) -> None:
+        """Git tool is not passed when the agent does not have git in allow."""
         tool, transport = _make_tool()
         await tool.execute({"agent": "helper", "question": "q"})
         assert "git" not in _sent_tool_names(transport)
@@ -216,13 +243,13 @@ class TestConsultHttpReconstruction:
     @pytest.mark.asyncio
     async def test_http_reconstructed_in_consult_mode(self) -> None:
         """HTTP tool is reconstructed with consult_mode=True when agent has http."""
-        agents = {"web_reader": _mock_agent_def(tools=["read", "http"])}
+        agents = {"web_reader": _mock_agent_def(allow=["read", "http"])}
         tool, transport = _make_tool(agents=agents)
         await tool.execute({"agent": "web_reader", "question": "fetch data"})
         names = _sent_tool_names(transport)
         assert "http" in names
         # Verify the reconstructed http tool has consult_mode schema
-        call_kwargs = transport.send.call_args[1]
+        _, call_kwargs = transport.send_calls[-1]
         http_tools = [t for t in call_kwargs["tools"] if t.name == "http"]
         assert len(http_tools) == 1
         method_enum = http_tools[0].parameters["properties"]["method"]["enum"]
@@ -230,8 +257,36 @@ class TestConsultHttpReconstruction:
 
     @pytest.mark.asyncio
     async def test_http_not_reconstructed_when_agent_lacks_http(self) -> None:
-        """HTTP tool stays stripped when agent doesn't have http in its tools."""
-        # Default helper agent has tools=["read", "notepad"] -- no "http"
+        """HTTP tool stays stripped when agent doesn't have http in its allow list."""
+        # Default helper agent has allow=["read", "notepad"] -- no "http"
         tool, transport = _make_tool()
         await tool.execute({"agent": "helper", "question": "q"})
         assert "http" not in _sent_tool_names(transport)
+
+
+class TestConsultGitReconstruction:
+    """Tests for git tool reconstruction in consult mode."""
+
+    @pytest.mark.asyncio
+    async def test_git_reconstructed_with_read_only_subcommands(self) -> None:
+        """Git tool is reconstructed with read-only subcommands when agent has git."""
+        agents = {"code_reader": _mock_agent_def(allow=["read", "git"])}
+        tool, transport = _make_tool(agents=agents)
+        await tool.execute({"agent": "code_reader", "question": "show diff"})
+        names = _sent_tool_names(transport)
+        assert "git" in names
+        # Verify the reconstructed git tool rejects commit (mutation subcommand)
+        _, call_kwargs = transport.send_calls[-1]
+        git_tools = [t for t in call_kwargs["tools"] if t.name == "git"]
+        assert len(git_tools) == 1
+        git_tool = git_tools[0]
+        with pytest.raises(ToolError, match="not allowed"):
+            await git_tool.execute({"subcommand": "commit", "args": ["msg", "f.txt"]})
+
+    @pytest.mark.asyncio
+    async def test_git_not_reconstructed_when_agent_lacks_git(self) -> None:
+        """Git tool is not passed when agent doesn't have git in its allow list."""
+        # Default helper agent has allow=["read", "notepad"] -- no "git"
+        tool, transport = _make_tool()
+        await tool.execute({"agent": "helper", "question": "q"})
+        assert "git" not in _sent_tool_names(transport)
