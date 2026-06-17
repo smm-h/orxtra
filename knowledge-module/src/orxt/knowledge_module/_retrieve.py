@@ -14,7 +14,10 @@ async def retrieve_knowledge(
     if config is None:
         return []
 
-    effective_max = max_results if max_results is not None else config.max_retrieval_results
+    effective_max = (
+        max_results if max_results is not None
+        else config.max_retrieval_results
+    )
 
     configure_cognee(config)
     cognee = require_cognee()
