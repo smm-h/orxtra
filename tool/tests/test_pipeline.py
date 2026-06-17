@@ -257,6 +257,75 @@ class TestMutationTracking:
 
 
 # ---------------------------------------------------------------------------
+# TestTransientRetry
+# ---------------------------------------------------------------------------
+
+
+class TestTransientRetry:
+    """Tests for transient OS error retry in the pipeline."""
+
+    @pytest.mark.asyncio
+    async def test_transient_error_retried_and_succeeds(self) -> None:
+        """Tool that raises OSError(EIO) once then succeeds is retried."""
+        import errno
+
+        call_count = 0
+
+        async def _flaky_execute(args: dict[str, Any]) -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise OSError(errno.EIO, "I/O error")
+            return "success"
+
+        tool = Tool(
+            name="flaky",
+            description="Flaky tool",
+            parameters={"type": "object"},
+            execute=_flaky_execute,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await wrapped.execute({})
+        assert result == "success"
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_non_transient_error_not_retried(self) -> None:
+        """Non-transient OSError (e.g., ENOENT) propagates immediately."""
+        import errno
+
+        call_count = 0
+
+        async def _failing_execute(args: dict[str, Any]) -> str:
+            nonlocal call_count
+            call_count += 1
+            raise OSError(errno.ENOENT, "No such file")
+
+        tool = Tool(
+            name="broken",
+            description="Broken tool",
+            parameters={"type": "object"},
+            execute=_failing_execute,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        with pytest.raises(OSError, match="No such file"):
+            await wrapped.execute({})
+        assert call_count == 1
+
+
+# ---------------------------------------------------------------------------
 # TestWrapToolPreservation
 # ---------------------------------------------------------------------------
 
