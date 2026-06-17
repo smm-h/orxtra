@@ -89,12 +89,12 @@ class EnforcementMixin(SchedulerBase):
                 if policy == BudgetExhaustionPolicy.BLOCK_NEW:
                     self._budget_blocked = True
                 elif policy == BudgetExhaustionPolicy.CANCEL_ALL:
-                    asyncio.get_event_loop().call_soon(
+                    asyncio.get_running_loop().call_soon(
                         lambda: asyncio.ensure_future(self.abort()),
                     )
                 elif policy == BudgetExhaustionPolicy.TIMEOUT_GRACE:
                     self._budget_blocked = True
-                    asyncio.get_event_loop().call_later(
+                    asyncio.get_running_loop().call_later(
                         60,
                         lambda: asyncio.ensure_future(self.abort()),
                     )
