@@ -51,6 +51,7 @@ async def test_start_run_creates_run(mock_pool: AsyncMock, sample_run_id: UUID) 
             agents_dir=Path("/agents"),
             knowledge_dir=Path("/knowledge"),
             categories_path=Path("/cats.toml"),
+            read_root=Path("/project"),
             db_url="postgres://localhost/test",
             provider_configs={"anthropic": {"api_key": "test"}},
             budget=Decimal("10.00"),
@@ -75,6 +76,7 @@ async def test_start_run_from_file(
         'agents_dir = "/agents"\n'
         'knowledge_dir = "/knowledge"\n'
         'categories_path = "/cats.toml"\n'
+        'read_root = "/project"\n'
         'db_url = "postgres://localhost/test"\n'
         'budget = "10.00"\n'
         'autonomy_level = "supervised"\n'
@@ -193,6 +195,7 @@ def test_run_config_valid() -> None:
         agents_dir=Path("/agents"),
         knowledge_dir=Path("/knowledge"),
         categories_path=Path("/cats.toml"),
+        read_root=Path("/project"),
         db_url="postgres://localhost/test",
         provider_configs={"anthropic": {"api_key": "key"}},
         budget=Decimal("5.00"),
@@ -209,6 +212,7 @@ def test_run_config_extra_field_rejected() -> None:
             agents_dir=Path("/agents"),
             knowledge_dir=Path("/knowledge"),
             categories_path=Path("/cats.toml"),
+            read_root=Path("/project"),
             db_url="postgres://localhost/test",
             provider_configs={},
             budget=Decimal("10.00"),
@@ -224,6 +228,7 @@ def test_run_config_missing_field() -> None:
             agents_dir=Path("/agents"),
             knowledge_dir=Path("/knowledge"),
             # categories_path missing
+            read_root=Path("/project"),
             db_url="postgres://localhost/test",
             provider_configs={},
             budget=Decimal("10.00"),
@@ -256,6 +261,7 @@ def _default_config() -> RunConfig:
         agents_dir=Path("/agents"),
         knowledge_dir=Path("/knowledge"),
         categories_path=Path("/cats.toml"),
+        read_root=Path("/project"),
         db_url="postgres://localhost/test",
         provider_configs={"anthropic": {"api_key": "test"}},
         budget=Decimal("10.00"),
@@ -486,6 +492,7 @@ async def test_start_run_from_file_with_workflow_path(
         'agents_dir = "/agents"\n'
         'knowledge_dir = "/knowledge"\n'
         'categories_path = "/cats.toml"\n'
+        'read_root = "/project"\n'
         'db_url = "postgres://localhost/test"\n'
         'budget = "10.00"\n'
         'autonomy_level = "supervised"\n'
@@ -519,6 +526,7 @@ def test_run_config_with_workflow_path() -> None:
         agents_dir=Path("/agents"),
         knowledge_dir=Path("/knowledge"),
         categories_path=Path("/cats.toml"),
+        read_root=Path("/project"),
         db_url="postgres://localhost/test",
         provider_configs={"anthropic": {"api_key": "key"}},
         budget=Decimal("5.00"),
