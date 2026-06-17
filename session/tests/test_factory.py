@@ -17,13 +17,13 @@ async def _collect(session: Session, msg: str) -> None:
 
 
 class TestCreateSession:
-    def test_returns_session(
+    async def test_returns_session(
         self,
         mock_transport: MockTransport,
         mock_trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
-        session = create_session(
+        session = await create_session(
             transport=mock_transport,  # type: ignore[arg-type]
             model="anthropic/claude-sonnet-4-6",
             system_prompt="test",
@@ -33,13 +33,13 @@ class TestCreateSession:
         )
         assert isinstance(session, Session)
 
-    def test_with_session_id(
+    async def test_with_session_id(
         self,
         mock_transport: MockTransport,
         mock_trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
-        session = create_session(
+        session = await create_session(
             transport=mock_transport,  # type: ignore[arg-type]
             model="anthropic/claude-sonnet-4-6",
             system_prompt="test",
@@ -50,13 +50,13 @@ class TestCreateSession:
         )
         assert session.session_id == "resume-id"
 
-    def test_without_session_id(
+    async def test_without_session_id(
         self,
         mock_transport: MockTransport,
         mock_trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
-        session = create_session(
+        session = await create_session(
             transport=mock_transport,  # type: ignore[arg-type]
             model="anthropic/claude-sonnet-4-6",
             system_prompt="test",
@@ -66,13 +66,13 @@ class TestCreateSession:
         )
         assert session.session_id is None
 
-    def test_parameters_stored_correctly(
+    async def test_parameters_stored_correctly(
         self,
         mock_transport: MockTransport,
         mock_trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
-        session = create_session(
+        session = await create_session(
             transport=mock_transport,  # type: ignore[arg-type]
             model="openai/gpt-4o",
             system_prompt="Be helpful",
