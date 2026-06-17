@@ -18,6 +18,7 @@ from orxt.protocols._events import (
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+    from uuid import UUID
 
     from orxt.overseer._autonomy import AutonomyLevel
     from orxt.overseer._health import HealthMonitor
@@ -57,8 +58,8 @@ async def _fixed_escalation_ladder(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,
-    run_id: Any = None,
+    trace_writer: object = None,
+    run_id: UUID | None = None,
 ) -> None:
     """For TaskFailed/TaskEscalated: log and let the
     scheduler's own retry mechanism handle it."""
@@ -74,8 +75,8 @@ async def _maintain_current_allocations(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,
-    run_id: Any = None,
+    trace_writer: object = None,
+    run_id: UUID | None = None,
 ) -> None:
     """For budget events: do nothing, just log."""
     _ = trace_writer, run_id
@@ -91,8 +92,8 @@ async def _escalate_to_human_inbox(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,
-    run_id: Any = None,
+    trace_writer: object = None,
+    run_id: UUID | None = None,
 ) -> None:
     """Default fallback: create an inbox item for
     human intervention."""
@@ -203,8 +204,8 @@ class OverseerAdapter:
         autonomy_level: AutonomyLevel | None = None,
     ) -> None:
         if autonomy_level is None:
-            from orxt.overseer._autonomy import AutonomyLevel as _AL  # noqa: PLC0415
-            autonomy_level = _AL.MAX
+            from orxt.overseer._autonomy import AutonomyLevel  # noqa: PLC0415
+            autonomy_level = AutonomyLevel.MAX
         self._overseer = overseer
         self._health_monitor = health_monitor
         self._autonomy_level = autonomy_level
@@ -408,12 +409,12 @@ class OverseerAdapter:
             "timeout",
             "context_refinement",
         ]
-        for field in required:
-            if field not in args:
-                errors.append(
-                    f"Schema: create_task missing"
-                    f" required field '{field}'"
-                )
+        errors.extend(
+            f"Schema: create_task missing"
+            f" required field '{field}'"
+            for field in required
+            if field not in args
+        )
 
         if errors:
             return errors
@@ -432,8 +433,10 @@ class OverseerAdapter:
                 dependencies={},
             )
             tree_errors = validate_task_tree(config)
-            for te in tree_errors:
-                errors.append(f"Schema: {te}")
+            errors.extend(
+                f"Schema: {te}"
+                for te in tree_errors
+            )
         except Exception as e:  # noqa: BLE001
             errors.append(
                 f"Schema: create_task args invalid:"
@@ -450,12 +453,12 @@ class OverseerAdapter:
         errors: list[str] = []
 
         required = ["name", "description", "goals"]
-        for field in required:
-            if field not in args:
-                errors.append(
-                    f"Schema: create_workflow missing"
-                    f" required field '{field}'"
-                )
+        errors.extend(
+            f"Schema: create_workflow missing"
+            f" required field '{field}'"
+            for field in required
+            if field not in args
+        )
 
         if errors:
             return errors
