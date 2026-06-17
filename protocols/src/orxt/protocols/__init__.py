@@ -1,3 +1,8 @@
+from orxt.protocols._autonomy import (
+    AutonomyLevel,
+    is_autonomous,
+    requires_approval,
+)
 from orxt.protocols._checks import (
     CheckAgentContext,
     CheckContext,
@@ -47,6 +52,7 @@ from orxt.protocols._tool import Tool, ToolError
 
 __all__ = [
     "ALWAYS_ACTIVE_CONSTRAINTS",
+    "AutonomyLevel",
     "EXPENSIVE_CONSTRAINTS",
     "SEVERITY_ORDER",
     "AgentExecution",
@@ -83,4 +89,6 @@ __all__ = [
     "ToolError",
     "WorkflowExecution",
     "format_event",
+    "is_autonomous",
+    "requires_approval",
 ]

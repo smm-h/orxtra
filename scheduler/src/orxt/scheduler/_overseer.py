@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from uuid import UUID
 
-    from orxt.overseer._autonomy import AutonomyLevel
+    from orxt.protocols._autonomy import AutonomyLevel
     from orxt.overseer._health import HealthMonitor
     from orxt.overseer._overseer import Overseer
     from orxt.protocols._tool import Tool
@@ -207,7 +207,7 @@ class OverseerAdapter:
         spent_fn: Callable[[], Decimal] | None = None,
     ) -> None:
         if autonomy_level is None:
-            from orxt.overseer._autonomy import AutonomyLevel  # noqa: PLC0415
+            from orxt.protocols._autonomy import AutonomyLevel  # noqa: PLC0415
             autonomy_level = AutonomyLevel.MAX
         self._overseer = overseer
         self._health_monitor = health_monitor
@@ -249,7 +249,7 @@ class OverseerAdapter:
 
     def _gate_tool(self, tool: Tool) -> Tool:
         """Wrap a single tool with autonomy gating."""
-        from orxt.overseer._autonomy import is_autonomous  # noqa: PLC0415
+        from orxt.protocols._autonomy import is_autonomous  # noqa: PLC0415
         from orxt.protocols._tool import Tool as ToolCls  # noqa: PLC0415
 
         action_type = TOOL_ACTION_TYPES.get(
