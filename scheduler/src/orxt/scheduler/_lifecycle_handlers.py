@@ -13,10 +13,12 @@ from orxt.protocols._tools import (
     CreateWorkflowParams,
 )
 
+from orxt.scheduler._base import SchedulerBase
+
 _logger = logging.getLogger("orxt.scheduler")
 
 
-class LifecycleHandlersMixin:
+class LifecycleHandlersMixin(SchedulerBase):
     """Mixin for task lifecycle handlers (start, end, create, await)."""
 
     async def handle_start_task(
