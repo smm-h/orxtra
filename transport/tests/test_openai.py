@@ -267,3 +267,17 @@ class TestParseStream:
             )
         ]
         assert len(events) == 0
+
+
+class TestWrapToolResults:
+    def test_returns_results_as_separate_messages(self) -> None:
+        provider = OpenAIProvider(api_key="test-key")
+        results = [
+            {"role": "tool", "tool_call_id": "tc_1", "content": "result 1"},
+            {"role": "tool", "tool_call_id": "tc_2", "content": "result 2"},
+        ]
+        wrapped = provider.wrap_tool_results(results)
+        assert wrapped == results
+        assert len(wrapped) == 2
+        assert wrapped[0]["role"] == "tool"
+        assert wrapped[1]["role"] == "tool"

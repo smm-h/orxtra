@@ -253,3 +253,16 @@ class TestParseStream:
             )
         ]
         assert len(events) == 1
+
+
+class TestWrapToolResults:
+    def test_wraps_in_single_user_message(self) -> None:
+        provider = AnthropicProvider(api_key="test-key")
+        results = [
+            {"type": "tool_result", "tool_use_id": "tu_1", "content": "result 1"},
+            {"type": "tool_result", "tool_use_id": "tu_2", "content": "result 2"},
+        ]
+        wrapped = provider.wrap_tool_results(results)
+        assert len(wrapped) == 1
+        assert wrapped[0]["role"] == "user"
+        assert wrapped[0]["content"] == results

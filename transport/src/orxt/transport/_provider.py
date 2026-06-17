@@ -39,6 +39,10 @@ class Provider(Protocol):
         self, tool_use_id: str, content: str, is_error: bool,
     ) -> dict[str, Any]: ...
 
+    def wrap_tool_results(
+        self, results: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]: ...
+
     def format_assistant_message(
         self, blocks: list[ContentBlock],
     ) -> dict[str, Any]: ...
