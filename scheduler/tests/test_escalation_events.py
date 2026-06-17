@@ -10,7 +10,6 @@ from orxt.scheduler._executor import Scheduler
 from tests.conftest import (
     MockTraceWriter,
     MockTransport,
-    MockTransportNoTools,
     make_agent,
     make_categories,
 )
@@ -82,7 +81,7 @@ def trace_writer() -> MockTraceWriter:
 
 @pytest.fixture
 def transport() -> MockTransport:
-    return MockTransport()
+    return MockTransport(auto_execute_tools=True)
 
 
 @pytest.mark.asyncio
@@ -96,7 +95,7 @@ async def test_escalated_task_sends_event(
     mock_overseer = MockOverseerInterface()
     # Use a transport that never calls start_task/end_task
     # so the agent session ends without completing
-    bad_transport = MockTransportNoTools()
+    bad_transport = MockTransport()
     scheduler = Scheduler(
         trace_writer=trace_writer,
         transport_registry={
@@ -136,7 +135,7 @@ async def test_escalation_payload_content(
 ) -> None:
     """Escalation payload includes task name and attempts."""
     mock_overseer = MockOverseerInterface()
-    bad_transport = MockTransportNoTools()
+    bad_transport = MockTransport()
     scheduler = Scheduler(
         trace_writer=trace_writer,
         transport_registry={
@@ -174,7 +173,7 @@ async def test_no_overseer_escalation_noop(
     tmp_path: Path,
 ) -> None:
     """No Overseer: escalation event is no-op."""
-    bad_transport = MockTransportNoTools()
+    bad_transport = MockTransport()
     scheduler = Scheduler(
         trace_writer=trace_writer,
         transport_registry={

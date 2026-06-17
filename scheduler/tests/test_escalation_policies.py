@@ -19,7 +19,6 @@ from orxt.scheduler._types import (
 from tests.conftest import (
     MockTraceWriter,
     MockTransport,
-    MockTransportNoTools,
     make_agent,
 )
 
@@ -89,8 +88,8 @@ def _make_mixed_scheduler(
     transport never calls start_task/end_task.
     Agents using category "good" will complete normally.
     """
-    bad_transport = MockTransportNoTools()
-    good_transport = MockTransport()
+    bad_transport = MockTransport()
+    good_transport = MockTransport(auto_execute_tools=True)
     return Scheduler(
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={
@@ -290,7 +289,7 @@ async def test_parent_escalation_delivers_message(
     """When a child escalates with an active parent session,
     the message goes to the parent session, not the Overseer."""
     mock_overseer = MockOverseerInterface()
-    bad_transport = MockTransportNoTools()
+    bad_transport = MockTransport()
     scheduler = Scheduler(
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": bad_transport},
@@ -484,7 +483,7 @@ async def test_create_workflow_wires_params(
 ) -> None:
     """handle_create_workflow passes postchecks, budget,
     description, and goals to the trace layer and task spec."""
-    transport = MockTransport()
+    transport = MockTransport(auto_execute_tools=True)
     scheduler = Scheduler(
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},
