@@ -6,6 +6,7 @@ import sys
 import types
 import uuid
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -214,7 +215,7 @@ class TestAgentToolCallPath:
         assert outputs.get("t1") == "Mock response"
 
     async def test_precheck_failure_blocks(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         transport = MockTransport()
@@ -242,6 +243,7 @@ class TestAgentToolCallPath:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
 
@@ -255,7 +257,7 @@ class TestAgentToolCallPath:
             Scheduler._run_prechecks = original  # type: ignore[assignment]  # noqa: SLF001
 
     async def test_postcheck_failure_from_end_task(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         call_count = 0
@@ -376,6 +378,7 @@ class TestAgentToolCallPath:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
 
@@ -695,7 +698,7 @@ class TestHandleCreateWaitFor:
 
 class TestRetry:
     async def test_postcheck_failure_retries(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -802,6 +805,7 @@ class TestRetry:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
 
@@ -815,7 +819,7 @@ class TestRetry:
             Scheduler._run_postchecks = original_run_postchecks  # type: ignore[assignment]  # noqa: SLF001
 
     async def test_retry_exhausted_escalates(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -912,6 +916,7 @@ class TestRetry:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
 
@@ -925,7 +930,7 @@ class TestRetry:
             Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
 
     async def test_escalation_payload_constructed(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -1016,6 +1021,7 @@ class TestRetry:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             result = await sched.execute_task(
                 task, None,
@@ -1031,7 +1037,7 @@ class TestRetry:
 
 class TestTaskTimeout:
     async def test_timeout_cancels_task(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -1070,6 +1076,7 @@ class TestTaskTimeout:
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
+            read_root=tmp_path,
         )
         await sched.execute_workflow(config)
 
@@ -1123,7 +1130,7 @@ class TestBudgetPersistence:
 
 class TestAccumulateCostError:
     async def test_unknown_model_raises_immediately(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -1208,6 +1215,7 @@ class TestAccumulateCostError:
             agents={"test-agent": make_agent()},
             categories={"default": "mock-provider/nonexistent-model"},
             run_id=run_id,
+            read_root=tmp_path,
         )
         with pytest.raises(
             ValueError, match="Unknown model",
@@ -1261,7 +1269,7 @@ class TestFunctionTask:
 
 class TestForEach:
     async def test_iterates_over_items(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         transport = MockTransport()
@@ -1283,6 +1291,7 @@ class TestForEach:
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
+            read_root=tmp_path,
         )
         result = await sched.execute_task(
             task, None, variables={"items": ["a", "b", "c"]},
@@ -1291,7 +1300,7 @@ class TestForEach:
         assert len(result.structured_output["iterations"]) == 3
 
     async def test_abort_on_failure(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -1370,6 +1379,7 @@ class TestForEach:
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
+            read_root=tmp_path,
         )
         result = await sched.execute_task(
             task,
@@ -1381,7 +1391,7 @@ class TestForEach:
         )
 
     async def test_abort_transitions_to_failed_state(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -1456,6 +1466,7 @@ class TestForEach:
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
+            read_root=tmp_path,
         )
         await sched.execute_task(
             task,
@@ -1469,7 +1480,7 @@ class TestForEach:
         assert TaskState.POSTCHECK_FAILED in for_each_states
 
     async def test_max_concurrency_respected(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         concurrent_count = 0
@@ -1545,6 +1556,7 @@ class TestForEach:
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
+            read_root=tmp_path,
         )
         await sched.execute_task(
             task,
@@ -1568,7 +1580,7 @@ class TestTaskOutputPropagation:
         assert meta["t1"]["passed"] is True
 
     async def test_dependent_task_receives_output(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         received_prompts: list[str] = []
@@ -1657,6 +1669,7 @@ class TestTaskOutputPropagation:
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=run_id,
+            read_root=tmp_path,
         )
         await sched.execute_workflow(config)
 
@@ -1756,6 +1769,7 @@ class TestOnSuccessCallback:
         self,
         trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         callback_called = False
 
@@ -1794,6 +1808,7 @@ class TestOnSuccessCallback:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
             assert callback_called
@@ -1803,7 +1818,7 @@ class TestOnSuccessCallback:
 
 class TestPreRetryCallback:
     async def test_pre_retry_invoked(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         pre_retry_called = False
@@ -1927,6 +1942,7 @@ class TestPreRetryCallback:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
             assert pre_retry_called
@@ -1937,7 +1953,7 @@ class TestPreRetryCallback:
             )
 
     async def test_pre_retry_abort_escalates(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
 
@@ -2049,6 +2065,7 @@ class TestPreRetryCallback:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_task(
                 task, None,
@@ -2068,7 +2085,7 @@ class TestPreRetryCallback:
 
 class TestRetryResume:
     async def test_retry_resume_uses_same_session(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         session_ids_seen: list[str | None] = []
@@ -2176,6 +2193,7 @@ class TestRetryResume:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
 
@@ -2188,7 +2206,7 @@ class TestRetryResume:
 
 class TestRetryInjectFailure:
     async def test_injects_failure_context(
-        self, run_id: uuid.UUID,
+        self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
         received_prompts: list[str] = []
@@ -2297,6 +2315,7 @@ class TestRetryInjectFailure:
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
 
