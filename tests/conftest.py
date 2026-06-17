@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 
 from tests.shared_mocks import MockTraceWriter
 
+pytest_plugins = ["tests.pg_fixtures"]
+
 # ---------------------------------------------------------------------------
 # AgentTurn -- defines what tool calls an agent makes in a single turn
 # ---------------------------------------------------------------------------

@@ -27,7 +27,7 @@ from tests.pg_fixtures import skip_no_docker
 if TYPE_CHECKING:
     import asyncpg
 
-pytestmark = [skip_no_docker, pytest.mark.timeout(60)]
+pytestmark = skip_no_docker
 
 
 # -- Helpers ------------------------------------------------------------------
