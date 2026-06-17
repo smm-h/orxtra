@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import re
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -219,7 +221,7 @@ class EnforcementMixin:
                 continue
 
             result = await self._check_constraint(
-                kind, task_id,
+                kind, task_id, _text,
             )
             results.append(result)
 
@@ -229,16 +231,202 @@ class EnforcementMixin:
         self,
         kind: ConstraintKind,
         task_id: UUID,  # noqa: ARG002
+        constraint_text: str = "",
     ) -> CheckResult:
         """Check a single mechanical constraint.
 
-        Stubs for now -- each ConstraintKind will have
-        its own checker once implemented.
+        Dispatches to individual checker methods
+        based on the constraint kind.
         """
+        checkers = {
+            ConstraintKind.TESTS_PASS: (
+                self._check_tests_pass
+            ),
+            ConstraintKind.LINT_CLEAN: (
+                self._check_lint_clean
+            ),
+            ConstraintKind.NO_NEW_DEPENDENCIES: (
+                self._check_no_new_dependencies
+            ),
+        }
+        checker = checkers.get(kind)
+        if checker is not None:
+            return await checker()
+
+        if kind == ConstraintKind.NO_NEW_FILES_OUTSIDE:
+            return await self._check_no_new_files_outside(
+                constraint_text,
+            )
+
+        # Constraints requiring pre-task snapshots
+        if kind in (
+            ConstraintKind.NO_REMOVED_EXPORTS,
+            ConstraintKind.NO_CHANGED_SIGNATURES,
+        ):
+            return await self._check_snapshot_stub(kind)
+
+        return CheckResult(
+            passed=False,
+            message=(
+                f"Unknown constraint kind: {kind.value}"
+            ),
+        )
+
+    async def _check_tests_pass(self) -> CheckResult:
+        """Run pytest and check exit code."""
+        proc = await asyncio.create_subprocess_exec(
+            "pytest", "--tb=short", "-q",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _stderr = await proc.communicate()
+        if proc.returncode == 0:
+            return CheckResult(
+                passed=True,
+                message="All tests passed",
+            )
+        output = stdout.decode(
+            errors="replace",
+        ).strip()
+        return CheckResult(
+            passed=False,
+            message=(
+                f"Tests failed (exit {proc.returncode}):"
+                f" {output[:500]}"
+            ),
+        )
+
+    async def _check_lint_clean(self) -> CheckResult:
+        """Run ruff check and check exit code."""
+        proc = await asyncio.create_subprocess_exec(
+            "ruff", "check", ".",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _stderr = await proc.communicate()
+        if proc.returncode == 0:
+            return CheckResult(
+                passed=True,
+                message="Lint clean",
+            )
+        output = stdout.decode(
+            errors="replace",
+        ).strip()
+        return CheckResult(
+            passed=False,
+            message=(
+                f"Lint issues found: {output[:500]}"
+            ),
+        )
+
+    async def _check_no_new_dependencies(
+        self,
+    ) -> CheckResult:
+        """Check if dependency files changed."""
+        proc = await asyncio.create_subprocess_exec(
+            "git", "diff", "--name-only",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        changed = stdout.decode().strip().splitlines()
+        dep_files = {
+            "pyproject.toml",
+            "requirements.txt",
+            "requirements-dev.txt",
+            "setup.cfg",
+            "setup.py",
+        }
+        dep_changed = [
+            f
+            for f in changed
+            if any(f.endswith(d) for d in dep_files)
+        ]
+        if dep_changed:
+            return CheckResult(
+                passed=False,
+                message=(
+                    "Dependency files changed:"
+                    f" {', '.join(dep_changed)}"
+                ),
+            )
+        return CheckResult(
+            passed=True,
+            message="No dependency changes detected",
+        )
+
+    async def _check_no_new_files_outside(
+        self,
+        constraint_text: str,
+    ) -> CheckResult:
+        """Check for new files outside a directory.
+
+        The directory is extracted from the constraint
+        text, e.g. "no_new_files_outside(src/)".
+        """
+        match = re.search(r"\((.*?)\)", constraint_text)
+        if not match:
+            return CheckResult(
+                passed=False,
+                message=(
+                    "no_new_files_outside: no directory"
+                    " specified in constraint text"
+                ),
+            )
+        directory = match.group(1)
+
+        proc = await asyncio.create_subprocess_exec(
+            "git", "status", "--porcelain",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        lines = stdout.decode().strip().splitlines()
+        # New files have status "??" or "A "
+        new_files = []
+        for line in lines:
+            if line.startswith("??") or line.startswith(
+                "A ",
+            ):
+                filepath = line[3:].strip()
+                if not filepath.startswith(directory):
+                    new_files.append(filepath)
+        if new_files:
+            return CheckResult(
+                passed=False,
+                message=(
+                    f"New files outside {directory}:"
+                    f" {', '.join(new_files)}"
+                ),
+            )
         return CheckResult(
             passed=True,
             message=(
-                f"Constraint {kind.value} passed (stub)"
+                f"No new files outside {directory}"
+            ),
+        )
+
+    async def _check_snapshot_stub(
+        self,
+        kind: ConstraintKind,
+    ) -> CheckResult:
+        """Stub for constraints needing pre-task snapshots.
+
+        no_removed_exports and no_changed_signatures
+        require capturing export/signature state before
+        task execution, which is not yet implemented.
+        """
+        _logger.warning(
+            "Constraint check not yet implemented: %s"
+            " (requires pre-task snapshots)",
+            kind.value,
+        )
+        return CheckResult(
+            passed=True,
+            message=(
+                f"Constraint {kind.value} not yet"
+                " implemented"
+                " (requires pre-task snapshots)"
             ),
         )
 
