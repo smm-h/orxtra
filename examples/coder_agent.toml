@@ -1,0 +1,14 @@
+# A coding agent with git and exec capabilities.
+# Agents are TOML files with an associated .md prompt file.
+
+name = "coder"
+description = "Agent that writes code, runs tests, and commits changes."
+category = "default"
+allow = ["read", "write", "edit", "git", "exec", "start_task", "end_task"]
+
+[exec]
+allowed_commands = ["pytest", "ruff", "mypy"]
+timeout_seconds = 120
+
+[prompt]
+file = "coder_agent.md"

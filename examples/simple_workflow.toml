@@ -1,0 +1,30 @@
+# A workflow with 3 tasks demonstrating dependencies and postchecks.
+# Workflows define a DAG of tasks that the scheduler executes.
+
+description = "Implement a feature with tests and lint check."
+goals = ["Write implementation", "Add tests", "Pass lint"]
+
+[[tasks]]
+name = "implement"
+agent = "coder"
+task_prompt = "Implement the feature described in the project spec."
+
+[[tasks]]
+name = "test"
+agent = "coder"
+task_prompt = "Write tests for the implementation."
+depends_on = ["implement"]
+
+[[tasks.postchecks]]
+type = "script"
+callable = "subprocess:check_pytest"
+
+[[tasks]]
+name = "lint"
+agent = "coder"
+task_prompt = "Fix any lint issues found by ruff."
+depends_on = ["implement"]
+
+[[tasks.postchecks]]
+type = "script"
+callable = "subprocess:check_ruff"
