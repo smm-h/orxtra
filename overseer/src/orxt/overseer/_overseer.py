@@ -74,6 +74,14 @@ class Overseer:
         self._read_root = read_root
         self._extra_tools = extra_tools
 
+    def set_extra_tools(self, tools: list[Tool]) -> None:
+        """Replace extra tools list.
+
+        Used by the scheduler to inject lifecycle and consult tools after
+        construction (the Overseer is created before the scheduler exists).
+        """
+        self._extra_tools = tools
+
     @property
     def session(self) -> Session:
         return self._session
