@@ -32,6 +32,12 @@ from orxt.scheduler._graph import (
 )
 from orxt.scheduler._lifecycle_handlers import LifecycleHandlersMixin
 from orxt.scheduler._locks import FileLockRegistry
+from orxt.scheduler._services import (
+    ServiceInstance,
+    check_health,
+    start_service,
+    stop_service,
+)
 from orxt.scheduler._task_dispatch import TaskDispatchMixin
 from orxt.scheduler._validator import validate_task_tree
 from orxt.transport import Result
@@ -183,6 +189,7 @@ class Scheduler(
         self._mechanical_constraints: list[tuple[str, str]] = []
         self._pending_end_task_message: dict[UUID, str] = {}
         self._file_lock_registry = FileLockRegistry()
+        self._service_instances: list[ServiceInstance] = []
         self._pending_advisories: list[
             dict[str, Any]
         ] = []
@@ -361,15 +368,25 @@ class Scheduler(
                 self._run_id,
             )
 
-        task_id_map = await self._register_workflow_tasks(
-            config,
-        )
-        await self._execute_task_groups(
-            config, task_id_map,
-        )
+        # Start services
+        for svc_config in config.services:
+            instance = await start_service(
+                svc_config, self._read_root,
+            )
+            self._service_instances.append(instance)
 
-        # Coherence summary at run end
-        await self._write_coherence_summary()
+        try:
+            task_id_map = await self._register_workflow_tasks(
+                config,
+            )
+            await self._execute_task_groups(
+                config, task_id_map,
+            )
+
+            # Coherence summary at run end
+            await self._write_coherence_summary()
+        finally:
+            await self._stop_services()
 
         # Clean up PG listener
         await self._cleanup_pg_listener(
@@ -603,6 +620,14 @@ class Scheduler(
                     break
                 # CONTINUE_INDEPENDENT: do nothing, continue loop
 
+            # Health-check services between groups
+            for svc in self._service_instances:
+                if not await check_health(svc):
+                    _logger.warning(
+                        "Service %s unhealthy",
+                        svc.config.name,
+                    )
+
     def _init_task_state(
         self,
         task_id: UUID,
@@ -730,6 +755,12 @@ class Scheduler(
             "retries_used": retries,
         }
 
+    async def _stop_services(self) -> None:
+        """Stop all running service instances."""
+        for instance in self._service_instances:
+            await stop_service(instance)
+        self._service_instances.clear()
+
     async def abort(self) -> None:
         for atask in list(self._running_tasks):
             atask.cancel()
@@ -744,6 +775,7 @@ class Scheduler(
                 await self._trace_writer.transition_task(
                     task_id, TaskState.CANCELLED.value,
                 )
+        await self._stop_services()
 
     async def pause(self) -> None:
         self._paused.clear()

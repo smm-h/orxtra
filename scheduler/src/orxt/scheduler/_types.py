@@ -31,6 +31,7 @@ class WorkflowConfig(BaseModel):
     tasks: list[TaskSpec]
     dependencies: dict[str, list[str]]
     escalation_policy: EscalationPolicy = EscalationPolicy.CONTINUE_INDEPENDENT
+    services: list[ServiceConfig] = []
 
 
 class ServiceConfig(BaseModel):
