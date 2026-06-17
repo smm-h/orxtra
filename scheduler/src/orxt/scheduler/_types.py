@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from orxt.protocols._execution import AgentExecution, ScriptExecution
 from orxt.protocols._task import (
     AttemptSummary,
@@ -13,6 +15,12 @@ from orxt.protocols._task import (
 from pydantic import BaseModel, ConfigDict
 
 
+class EscalationPolicy(StrEnum):
+    CONTINUE_INDEPENDENT = "continue_independent"
+    HALT = "halt"
+    ABORT_ALL = "abort_all"
+
+
 class WorkflowConfig(BaseModel):
     """Parsed workflow TOML file."""
 
@@ -22,7 +30,7 @@ class WorkflowConfig(BaseModel):
     description: str
     tasks: list[TaskSpec]
     dependencies: dict[str, list[str]]
-    escalation_policy: str = "continue_independent"
+    escalation_policy: EscalationPolicy = EscalationPolicy.CONTINUE_INDEPENDENT
 
 
 class ServiceConfig(BaseModel):
@@ -42,6 +50,7 @@ __all__ = [
     "AgentExecution",
     "AttemptSummary",
     "EscalationPayload",
+    "EscalationPolicy",
     "Execution",
     "ScriptExecution",
     "ServiceConfig",

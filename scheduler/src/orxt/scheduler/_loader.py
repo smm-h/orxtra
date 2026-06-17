@@ -6,7 +6,7 @@ from typing import Any
 
 from orxt.protocols._execution import AgentExecution, ScriptExecution, Severity
 from orxt.protocols._task import Execution, TaskSpec
-from orxt.scheduler._types import WorkflowConfig
+from orxt.scheduler._types import EscalationPolicy, WorkflowConfig
 
 
 def _parse_postchecks(raw: dict[str, Any]) -> list[Execution]:
@@ -153,12 +153,18 @@ def load_workflow(source: Path | str) -> WorkflowConfig:
         for task in tasks
     ]
 
-    return WorkflowConfig(
-        name=workflow_section["name"],
-        description=workflow_section["description"],
-        tasks=updated_tasks,
-        dependencies=dependencies,
-    )
+    escalation_policy_str = workflow_section.get("escalation_policy")
+
+    kwargs: dict[str, Any] = {
+        "name": workflow_section["name"],
+        "description": workflow_section["description"],
+        "tasks": updated_tasks,
+        "dependencies": dependencies,
+    }
+    if escalation_policy_str is not None:
+        kwargs["escalation_policy"] = EscalationPolicy(escalation_policy_str)
+
+    return WorkflowConfig(**kwargs)
 
 
 __all__ = [

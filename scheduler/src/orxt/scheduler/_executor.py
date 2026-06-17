@@ -586,6 +586,23 @@ class Scheduler(
                     "retries_used": retries,
                 }
 
+            # Check for escalated tasks in this group
+            escalated_in_group = [
+                name for name in group
+                if self._task_states.get(task_id_map[name]) == TaskState.ESCALATED
+            ]
+            if escalated_in_group:
+                from orxt.scheduler._types import EscalationPolicy  # noqa: PLC0415
+
+                policy = config.escalation_policy
+                if policy == EscalationPolicy.HALT:
+                    self._paused.clear()
+                    break
+                elif policy == EscalationPolicy.ABORT_ALL:
+                    await self.abort()
+                    break
+                # CONTINUE_INDEPENDENT: do nothing, continue loop
+
     def _init_task_state(
         self,
         task_id: UUID,
