@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-import pytest
 import uuid6
 from orxt.agent import Agent
 from orxt.protocols import TaskSpec, TaskState
@@ -158,7 +157,7 @@ class TestStreamDeltasFlag:
         )
         sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
 
-        result = await sched.execute_task(
+        _result = await sched.execute_task(
             task, None, task_id=task_id,
         )
 
@@ -186,7 +185,7 @@ class TestStreamDeltasFlag:
         )
         sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
 
-        result = await sched.execute_task(
+        _result = await sched.execute_task(
             task, None, task_id=task_id,
         )
 
