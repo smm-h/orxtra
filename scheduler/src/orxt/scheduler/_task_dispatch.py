@@ -353,6 +353,9 @@ class TaskDispatchMixin:
             async with semaphore:
                 if abort:
                     return
+                iteration_id = await self._trace_writer.create_iteration(
+                    task_id, idx, item,
+                )
                 iter_vars = dict(variables or {})
                 iter_vars["item"] = item
 
@@ -371,6 +374,20 @@ class TaskDispatchMixin:
                         variables=iter_vars,
                     )
                     results[idx] = result
+                    check_dicts = (
+                        [
+                            {"passed": cr.passed, "message": cr.message}
+                            for cr in result.check_results
+                        ]
+                        if result.check_results
+                        else None
+                    )
+                    await self._trace_writer.complete_iteration(
+                        iteration_id,
+                        result.output,
+                        result.structured_output,
+                        check_dicts,
+                    )
                     if (
                         not all(
                             cr.passed
@@ -379,7 +396,10 @@ class TaskDispatchMixin:
                         and task.for_each_abort_on_failure
                     ):
                         abort = True
-                except Exception:  # noqa: BLE001
+                except Exception as exc:  # noqa: BLE001
+                    await self._trace_writer.fail_iteration(
+                        iteration_id, str(exc),
+                    )
                     if task.for_each_abort_on_failure:
                         abort = True
 
