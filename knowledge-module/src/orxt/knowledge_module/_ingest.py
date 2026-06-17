@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from orxt.knowledge_module._cognee_import import require_cognee
 from orxt.knowledge_module._config import configure_cognee
 from orxt.knowledge_module._freshness import ContentHashCache
 
@@ -10,28 +11,28 @@ if TYPE_CHECKING:
 
     from orxt.knowledge_module._types import KnowledgeConfig
 
-_cache = ContentHashCache()
+_cache: ContentHashCache | None = None
 
 
-async def ingest_lessons(config: KnowledgeConfig, lessons: list[dict[str, Any]]) -> int:
+async def ingest_lessons(
+    config: KnowledgeConfig, lessons: list[dict[str, Any]], pool: Any,  # noqa: ANN401
+) -> int:
+    global _cache  # noqa: PLW0603
+    if _cache is None:
+        _cache = ContentHashCache(pool)
+
     if not lessons:
         return 0
 
     configure_cognee(config)
-    try:
-        import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
-    except ImportError:
-        msg = (
-            "cognee is required for the knowledge module."
-            " Install it with: uv add cognee"
-        )
-        raise RuntimeError(msg) from None
+    cognee = require_cognee()
 
-    changed = [
-        lesson
-        for lesson in lessons
-        if _cache.is_changed(str(lesson.get("id", "")), str(lesson.get("content", "")))
-    ]
+    changed: list[dict[str, Any]] = []
+    for lesson in lessons:
+        key = str(lesson.get("id", ""))
+        content = str(lesson.get("content", ""))
+        if await _cache.is_changed(key, content):
+            changed.append(lesson)
 
     if not changed:
         return 0
@@ -43,7 +44,9 @@ async def ingest_lessons(config: KnowledgeConfig, lessons: list[dict[str, Any]])
     await cognee.cognify()
 
     for lesson in changed:
-        _cache.update(str(lesson.get("id", "")), str(lesson.get("content", "")))
+        await _cache.update(
+            str(lesson.get("id", "")), str(lesson.get("content", "")),
+        )
 
     return len(changed)
 
@@ -62,4 +65,4 @@ async def ingest_from_pool(
         rows = await conn.fetch(query, *params)
 
     lessons: list[dict[str, Any]] = [dict(row) for row in rows]
-    return await ingest_lessons(config, lessons)
+    return await ingest_lessons(config, lessons, pool)
