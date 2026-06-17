@@ -5,7 +5,7 @@ from orxt.overseer._autonomy import (
     requires_approval,
 )
 from orxt.overseer._health import HealthMetrics, HealthMonitor
-from orxt.overseer._overseer import Overseer, OverseerEvent
+from orxt.overseer._overseer import Overseer, OverseerEvent, load_overseer_prompt
 
 __all__ = [
     "AUTONOMY_RULES",
@@ -15,5 +15,6 @@ __all__ = [
     "Overseer",
     "OverseerEvent",
     "is_autonomous",
+    "load_overseer_prompt",
     "requires_approval",
 ]
