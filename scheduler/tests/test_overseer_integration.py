@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
@@ -191,6 +192,7 @@ _PATCH_HANDOFF = patch.object(
 
 
 def _make_scheduler(
+    read_root: Path,
     trace_writer: MockTraceWriter | None = None,
     overseer: MockOverseerAdapter | None = None,
     model_context_limit: int = 200_000,
@@ -210,6 +212,7 @@ def _make_scheduler(
         agents=agents,
         categories=categories,
         run_id=run_id,
+        read_root=read_root,
         overseer_interface=overseer,  # type: ignore[arg-type]
         model_context_limit=model_context_limit,
         handoff_checker=handoff_checker,  # type: ignore[arg-type]
@@ -337,9 +340,11 @@ class TestOverseerEventSending:
 
     async def test_run_started_event_sent(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
         event = _run_started_event()
@@ -352,9 +357,11 @@ class TestOverseerEventSending:
 
     async def test_task_failed_event_sent(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
         event = _task_failed_event()
@@ -367,9 +374,11 @@ class TestOverseerEventSending:
 
     async def test_inbox_answered_event_sent(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
         event = _inbox_answered_event()
@@ -382,9 +391,11 @@ class TestOverseerEventSending:
 
     async def test_inbox_rejected_event_sent(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
         event = _inbox_rejected_event()
@@ -397,9 +408,11 @@ class TestOverseerEventSending:
 
     async def test_structural_advisory_event_sent(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
         event = _structural_advisory_event()
@@ -412,9 +425,11 @@ class TestOverseerEventSending:
 
     async def test_budget_threshold_crossed_sent(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
         event = _budget_threshold_event()
@@ -427,8 +442,11 @@ class TestOverseerEventSending:
 
     async def test_no_overseer_skips_silently(
         self,
+        tmp_path: Path,
     ) -> None:
-        scheduler = _make_scheduler(overseer=None)
+        scheduler = _make_scheduler(
+            read_root=tmp_path, overseer=None,
+        )
         event = _run_started_event()
         # No overseer -> returns immediately,
         # _check_session_handoff never reached.
@@ -440,10 +458,12 @@ class TestVerifyThenAcceptLoop:
 
     async def test_no_errors_single_attempt(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.verify_results = [[]]
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -458,10 +478,12 @@ class TestVerifyThenAcceptLoop:
 
     async def test_error_then_pass_two_attempts(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.verify_results = [["error"], []]
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -476,6 +498,7 @@ class TestVerifyThenAcceptLoop:
 
     async def test_three_failures_logs_warning(
         self,
+        tmp_path: Path,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         adapter = MockOverseerAdapter()
@@ -485,6 +508,7 @@ class TestVerifyThenAcceptLoop:
             ["err3"],
         ]
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -509,6 +533,7 @@ class TestVerifyThenAcceptLoop:
 
     async def test_correction_contains_errors(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.verify_results = [
@@ -516,6 +541,7 @@ class TestVerifyThenAcceptLoop:
             [],
         ]
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -535,10 +561,12 @@ class TestDegradedMode:
 
     async def test_degraded_event_skips_overseer(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.degraded_types.add("TaskFailed")
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -552,11 +580,13 @@ class TestDegradedMode:
 
     async def test_degraded_uses_fallback_behavior(
         self,
+        tmp_path: Path,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.degraded_types.add("TaskFailed")
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -576,10 +606,12 @@ class TestDegradedMode:
 
     async def test_non_degraded_proceeds_normally(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.degraded_types.add("TaskFailed")
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -592,6 +624,7 @@ class TestDegradedMode:
 
     async def test_default_fallback_for_unknown(
         self,
+        tmp_path: Path,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         adapter = MockOverseerAdapter()
@@ -599,6 +632,7 @@ class TestDegradedMode:
             "HealthDegraded",
         )
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
         )
 
@@ -626,6 +660,7 @@ class TestCoherenceSummary:
 
     async def test_summary_written_at_run_end(
         self,
+        tmp_path: Path,
     ) -> None:
         tw = MockTraceWriter()
         adapter = MockOverseerAdapter()
@@ -633,7 +668,9 @@ class TestCoherenceSummary:
             response_text="test summary",
         )
         scheduler = _make_scheduler(
-            trace_writer=tw, overseer=adapter,
+            read_root=tmp_path,
+            trace_writer=tw,
+            overseer=adapter,
         )
 
         await scheduler._write_coherence_summary()  # noqa: SLF001
@@ -646,10 +683,13 @@ class TestCoherenceSummary:
 
     async def test_summary_skipped_without_overseer(
         self,
+        tmp_path: Path,
     ) -> None:
         tw = MockTraceWriter()
         scheduler = _make_scheduler(
-            trace_writer=tw, overseer=None,
+            read_root=tmp_path,
+            trace_writer=tw,
+            overseer=None,
         )
 
         await scheduler._write_coherence_summary()  # noqa: SLF001
@@ -669,6 +709,7 @@ class TestSessionHandoff:
 
     async def test_handoff_triggered_at_threshold(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.mock_session = MockOverseerSession(
@@ -684,6 +725,7 @@ class TestSessionHandoff:
             return_value=new_session,
         )
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
             model_context_limit=200_000,
             handoff_checker=mock_checker,
@@ -696,6 +738,7 @@ class TestSessionHandoff:
 
     async def test_handoff_not_triggered_below(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.mock_session = MockOverseerSession(
@@ -707,6 +750,7 @@ class TestSessionHandoff:
         mock_checker = AsyncMock(return_value=False)
         mock_performer = AsyncMock(return_value=None)
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
             model_context_limit=200_000,
             handoff_checker=mock_checker,
@@ -720,6 +764,7 @@ class TestSessionHandoff:
 
     async def test_handoff_new_session_used(
         self,
+        tmp_path: Path,
     ) -> None:
         adapter = MockOverseerAdapter()
         adapter.mock_session = MockOverseerSession(
@@ -737,6 +782,7 @@ class TestSessionHandoff:
             return_value=new_session,
         )
         scheduler = _make_scheduler(
+            read_root=tmp_path,
             overseer=adapter,
             model_context_limit=200_000,
             handoff_checker=mock_checker,
