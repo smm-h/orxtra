@@ -23,6 +23,7 @@ from orxt.protocols._events import StructuralAdvisory
 from orxt.protocols._execution import CheckResult
 from orxt.protocols._task import (
     AttemptSummary,
+    BudgetExhaustionPolicy,
     EscalationPayload,
     TaskContext,
     TaskResult,
@@ -69,6 +70,7 @@ if TYPE_CHECKING:
         OverseerInterface,
     )
     from orxt.scheduler._types import WorkflowConfig
+    from orxt.secrets._registry import SecretRegistry
     from orxt.trace import TraceWriter
     from orxt.transport import Transport
 
@@ -140,7 +142,10 @@ class Scheduler:
         knowledge_loader: Callable[[Path, Any, UUID], Awaitable[None]] | None = None,
         handoff_checker: Callable[[Any, int], Awaitable[bool]] | None = None,
         handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None = None,
-        budget_exhaustion_policy: str = "unlimited",
+        budget_exhaustion_policy: BudgetExhaustionPolicy = BudgetExhaustionPolicy.UNLIMITED,
+        budget_limit: Decimal | None = None,
+        autonomy_level: str = "max",
+        secret_registry: SecretRegistry | None = None,
     ) -> None:
         self._trace_writer = trace_writer
         self._pool = pool
@@ -155,6 +160,9 @@ class Scheduler:
         self._handoff_checker = handoff_checker
         self._handoff_performer = handoff_performer
         self._budget_exhaustion_policy = budget_exhaustion_policy
+        self._budget_limit = budget_limit
+        self._autonomy_level = autonomy_level
+        self._secret_registry = secret_registry
         self._active_tasks: dict[str, UUID] = {}
         self._task_states: dict[UUID, TaskState] = {}
         self._task_specs: dict[UUID, TaskSpec] = {}
@@ -570,10 +578,21 @@ class Scheduler:
                     cr.passed
                     for cr in result.check_results
                 )
+                tid = task_id_map[name]
+                start = self._task_start_times.get(tid)
+                duration = (
+                    time.monotonic() - start
+                    if start is not None
+                    else 0.0
+                )
+                meta = self._get_scoped_results_meta(
+                    None,
+                ).get(name, {})
+                retries = meta.get("retries_used", 0)
                 variables[f"{name}_result"] = {
                     "passed": all_passed,
-                    "duration_seconds": 0.0,
-                    "retries_used": 0,
+                    "duration_seconds": duration,
+                    "retries_used": retries,
                 }
 
     def _init_task_state(
@@ -1395,11 +1414,31 @@ class Scheduler:
             make_create_wait_for_tool(self, session_id),
             make_await_task_tool(self, session_id),
         ]
+        async def _trace_callback(
+            tool_name: str,
+            args: dict[str, Any],
+            result: str,
+            duration_ms: int,
+        ) -> None:
+            await self._trace_writer.write_event(
+                run_id=self._run_id,
+                event_type="tool_call",
+                data={
+                    "session_id": session_id,
+                    "task_id": str(task_id),
+                    "tool_name": tool_name,
+                    "args": args,
+                    "result": result,
+                    "duration_ms": duration_ms,
+                },
+                task_id=task_id,
+            )
+
         tools = wrap_tools_for_session(
             tools=raw_tools,
             scheduler_check=self.check_active_task,
-            secret_registry=None,
-            trace_callback=None,
+            secret_registry=self._secret_registry,
+            trace_callback=_trace_callback,
             session_id=session_id,
             mutation_tracker=self._session_mutations,
         )
@@ -2033,7 +2072,7 @@ class Scheduler:
         else:
             self._complete_task(
                 task_id, task.name,
-                str([
+                json.dumps([
                     r.output if r is not None else None
                     for r in results
                 ]),
@@ -2047,7 +2086,7 @@ class Scheduler:
             for r in results
         ]
         return TaskResult(
-            output=str(outputs),
+            output=json.dumps(outputs),
             structured_output={"iterations": outputs},
             check_results=[
                 CheckResult(

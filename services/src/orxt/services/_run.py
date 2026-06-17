@@ -68,6 +68,9 @@ async def start_run(
             pool=pool,
             overseer_interface=overseer,
             knowledge_dir=config.knowledge_dir,
+            budget_exhaustion_policy=config.budget_exhaustion_policy,
+            budget_limit=config.budget,
+            autonomy_level=config.autonomy_level,
         )
         workflow_config = load_workflow(config.workflow_path)
         await scheduler.execute_workflow(workflow_config)
