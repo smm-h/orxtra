@@ -8,7 +8,7 @@ from orxt.trace import read_inbox as _read_inbox
 if TYPE_CHECKING:
     from uuid import UUID
 
-    import asyncpg  # type: ignore[import-untyped]
+    import asyncpg
 
 
 async def list_inbox(

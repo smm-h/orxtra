@@ -21,7 +21,7 @@ class ContentHashCache:
             "SELECT hash FROM knowledge_hashes WHERE key = $1",
             key,
         )
-        return stored != self._hash(content)
+        return bool(stored != self._hash(content))
 
     async def update(self, key: str, content: str) -> None:
         h = self._hash(content)
