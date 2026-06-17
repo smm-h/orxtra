@@ -28,9 +28,20 @@ class TestTaskTransitions:
         with pytest.raises(InvalidTransitionError):
             validate_task_transition("created", "active")
 
-    def test_invalid_active_to_completed(self) -> None:
-        with pytest.raises(InvalidTransitionError):
-            validate_task_transition("active", "completed")
+    def test_valid_active_to_completed(self) -> None:
+        validate_task_transition("active", "completed")
+
+    def test_valid_active_to_suspended(self) -> None:
+        validate_task_transition("active", "suspended")
+
+    def test_valid_suspended_to_active(self) -> None:
+        validate_task_transition("suspended", "active")
+
+    def test_suspended_not_terminal(self) -> None:
+        assert "suspended" not in TASK_TERMINAL_STATES
+
+    def test_suspended_to_cancelled_valid(self) -> None:
+        validate_task_transition("suspended", "cancelled")
 
     def test_terminal_completed_raises(self) -> None:
         with pytest.raises(InvalidTransitionError):

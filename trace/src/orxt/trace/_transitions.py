@@ -3,9 +3,10 @@ from __future__ import annotations
 TASK_TRANSITIONS: dict[str, set[str]] = {
     "created": {"prechecking"},
     "prechecking": {"active", "precheck_failed"},
-    "active": {"postchecking"},
+    "active": {"postchecking", "suspended", "completed"},
     "postchecking": {"completed", "postcheck_failed"},
     "postcheck_failed": {"active", "escalated"},
+    "suspended": {"active"},
 }
 
 TASK_TERMINAL_STATES: set[str] = {
