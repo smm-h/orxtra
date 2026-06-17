@@ -260,12 +260,12 @@ class AgentExecutionMixin:
             # Lessons from previous runs
             if self._lessons:
                 fresh = [
-                    l for l in self._lessons
-                    if not l.get("stale", False)
+                    lesson for lesson in self._lessons
+                    if not lesson.get("stale", False)
                 ]
                 stale = [
-                    l for l in self._lessons
-                    if l.get("stale", False)
+                    lesson for lesson in self._lessons
+                    if lesson.get("stale", False)
                 ]
                 if fresh:
                     prompt += (
@@ -599,7 +599,8 @@ class AgentExecutionMixin:
             escalation_msg = (
                 f"[ESCALATION] Task '{task.name}' exhausted"
                 f" {max_attempts} attempt(s). "
-                f"Failed checks: {[cr.message for cr in check_results if not cr.passed]}. "
+                "Failed checks:"
+                f" {[cr.message for cr in check_results if not cr.passed]}. "
                 f"Agent summary: Retries exhausted."
             )
             async for _ in parent_session.send(escalation_msg):
@@ -642,7 +643,7 @@ class AgentExecutionMixin:
                 result_text = event.text
         return result_text
 
-    async def _create_agent_session(
+    async def _create_agent_session(  # noqa: C901, PLR0912, PLR0915
         self,
         task: TaskSpec,
         task_id: UUID,
