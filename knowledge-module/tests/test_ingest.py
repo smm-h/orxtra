@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,6 +17,18 @@ def _make_config() -> KnowledgeConfig:
     )
 
 
+def _sha256(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _make_pool(fetchval_return: str | None = None) -> MagicMock:
+    """Create a mock pool with fetchval and execute for ContentHashCache."""
+    pool = MagicMock()
+    pool.fetchval = AsyncMock(return_value=fetchval_return)
+    pool.execute = AsyncMock()
+    return pool
+
+
 @pytest.fixture
 def mock_cognee() -> MagicMock:
     mock = MagicMock()
@@ -30,53 +43,58 @@ def mock_cognee() -> MagicMock:
 @pytest.fixture(autouse=True)
 def _reset_ingest_cache() -> None:
     from orxt.knowledge_module import _ingest  # noqa: PLC0415
-    from orxt.knowledge_module._freshness import ContentHashCache  # noqa: PLC0415
 
-    _ingest._cache = ContentHashCache()  # noqa: SLF001
+    _ingest._cache = None  # noqa: SLF001
 
 
 class TestIngestLessons:
     @pytest.mark.asyncio
     async def test_ingest_calls_cognee(self, mock_cognee: MagicMock) -> None:
+        pool = _make_pool(fetchval_return=None)
         lessons = [{"id": "1", "content": "lesson one"}]
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
             from orxt.knowledge_module import _ingest  # noqa: PLC0415
 
-            count = await _ingest.ingest_lessons(_make_config(), lessons)
+            count = await _ingest.ingest_lessons(_make_config(), lessons, pool)
         assert count == 1
         mock_cognee.add.assert_awaited_once_with("lesson one")
         mock_cognee.cognify.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_empty_lessons_returns_zero(self, mock_cognee: MagicMock) -> None:
+        pool = _make_pool()
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
             from orxt.knowledge_module import _ingest  # noqa: PLC0415
 
-            count = await _ingest.ingest_lessons(_make_config(), [])
+            count = await _ingest.ingest_lessons(_make_config(), [], pool)
         assert count == 0
         mock_cognee.add.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_cognee_error_propagated(self, mock_cognee: MagicMock) -> None:
+        pool = _make_pool(fetchval_return=None)
         mock_cognee.cognify = AsyncMock(side_effect=RuntimeError("cognee failed"))
         lessons = [{"id": "1", "content": "lesson one"}]
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
             from orxt.knowledge_module import _ingest  # noqa: PLC0415
 
             with pytest.raises(RuntimeError, match="cognee failed"):
-                await _ingest.ingest_lessons(_make_config(), lessons)
+                await _ingest.ingest_lessons(_make_config(), lessons, pool)
 
     @pytest.mark.asyncio
     async def test_hash_prevents_reingestion(self, mock_cognee: MagicMock) -> None:
+        pool = _make_pool(fetchval_return=None)
         lessons = [{"id": "1", "content": "same content"}]
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
             from orxt.knowledge_module import _ingest  # noqa: PLC0415
 
-            count1 = await _ingest.ingest_lessons(_make_config(), lessons)
+            count1 = await _ingest.ingest_lessons(_make_config(), lessons, pool)
             assert count1 == 1
             mock_cognee.add.reset_mock()
             mock_cognee.cognify.reset_mock()
-            count2 = await _ingest.ingest_lessons(_make_config(), lessons)
+            # After first ingest, the hash is stored. Simulate DB returning the hash.
+            pool.fetchval = AsyncMock(return_value=_sha256("same content"))
+            count2 = await _ingest.ingest_lessons(_make_config(), lessons, pool)
             assert count2 == 0
             mock_cognee.add.assert_not_awaited()
 
@@ -91,6 +109,9 @@ class TestIngestFromPool:
         mock_pool.acquire = MagicMock()
         mock_pool.acquire.return_value.__aenter__ = AsyncMock(return_value=mock_conn)
         mock_pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
+        # Add fetchval/execute for ContentHashCache
+        mock_pool.fetchval = AsyncMock(return_value=None)
+        mock_pool.execute = AsyncMock()
 
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
             from orxt.knowledge_module import _ingest  # noqa: PLC0415
