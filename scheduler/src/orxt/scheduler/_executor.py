@@ -931,7 +931,7 @@ class Scheduler(
         if not hasattr(adapter, "session"):
             return
 
-        async for ev in adapter.session.send(  # type: ignore[union-attr]
+        async for ev in adapter.session.send(
             "The run is complete. Review the work "
             "against the original intent and "
             "produce a coherence summary.",
@@ -961,7 +961,7 @@ class Scheduler(
             return
 
         adapter = self._overseer_interface
-        session = adapter.session  # type: ignore[union-attr]
+        session = adapter.session
         needed = await self._handoff_checker(
             session, self._model_context_limit,
         )
@@ -975,7 +975,7 @@ class Scheduler(
                 self._trace_writer,
                 self._run_id,
             )
-            adapter.update_session(new_session)  # type: ignore[union-attr]
+            adapter.update_session(new_session)  # type: ignore[attr-defined]
 
     async def _send_pending_advisories(self) -> None:
         """Send stored structural advisories to the
@@ -994,21 +994,3 @@ class Scheduler(
             )
             await self._send_overseer_event(event)
         self._pending_advisories.clear()
-
-    @staticmethod
-    async def _call_callback(
-        callable_path: str,
-        context: TaskContext,
-    ) -> None:
-        parts = callable_path.split(":")
-        if len(parts) != 2:  # noqa: PLR2004
-            msg = (
-                f"Invalid callable path:"
-                f" {callable_path!r}"
-                " (expected 'module.path:function')"
-            )
-            raise ValueError(msg)
-        module_path, func_name = parts
-        module = importlib.import_module(module_path)
-        func = getattr(module, func_name)
-        await func(context)

@@ -54,10 +54,12 @@ if TYPE_CHECKING:
     from orxt.agent import Agent
     from orxt.protocols._tool import Tool
 
+from orxt.scheduler._base import SchedulerBase
+
 _logger = logging.getLogger("orxt.scheduler")
 
 
-class AgentExecutionMixin:
+class AgentExecutionMixin(SchedulerBase):
     """Mixin for agent and orchestrator task execution."""
 
     async def _execute_orchestrator_task(

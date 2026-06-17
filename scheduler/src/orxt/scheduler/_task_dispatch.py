@@ -19,10 +19,12 @@ from orxt.protocols._task import (
 if TYPE_CHECKING:
     from uuid import UUID
 
+from orxt.scheduler._base import SchedulerBase
+
 _logger = logging.getLogger("orxt.scheduler")
 
 
-class TaskDispatchMixin:
+class TaskDispatchMixin(SchedulerBase):
     """Mixin for composite, function, wait-for,
     decision-point, and for-each task execution."""
 

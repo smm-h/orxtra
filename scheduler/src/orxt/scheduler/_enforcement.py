@@ -26,10 +26,12 @@ if TYPE_CHECKING:
     from orxt.protocols._task import TaskSpec
     from orxt.transport import Usage
 
+from orxt.scheduler._base import SchedulerBase
+
 _logger = logging.getLogger("orxt.scheduler")
 
 
-class EnforcementMixin:
+class EnforcementMixin(SchedulerBase):
     """Mixin for budget enforcement, constraints, checks, and validation."""
 
     def _resolve_model_key(
