@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -39,6 +40,7 @@ def _make_scheduler(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: uuid6.UUID,
+    read_root: Path,
     budget_exhaustion_policy: BudgetExhaustionPolicy = BudgetExhaustionPolicy.UNLIMITED,
     overseer_interface: MockOverseerInterface | None = None,
 ) -> Scheduler:
@@ -50,6 +52,7 @@ def _make_scheduler(
         agents={"test-agent": make_agent()},
         categories=make_categories(),
         run_id=run_id,
+        read_root=read_root,
         budget_exhaustion_policy=(
             budget_exhaustion_policy
         ),
@@ -82,11 +85,11 @@ class MockOverseerInterface:
 
 
 def test_cost_tracking_accumulates(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
 ) -> None:
     """Cost tracking accumulates correctly."""
     scheduler = _make_scheduler(
-        trace_writer, transport, run_id,
+        trace_writer, transport, run_id, read_root=tmp_path,
     )
     task_id = uuid6.uuid7()
     task = TaskSpec(
@@ -112,11 +115,11 @@ def test_cost_tracking_accumulates(
 
 
 def test_no_budget_no_enforcement(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
 ) -> None:
     """No budget set: no enforcement events."""
     scheduler = _make_scheduler(
-        trace_writer, transport, run_id,
+        trace_writer, transport, run_id, read_root=tmp_path,
     )
     task_id = uuid6.uuid7()
     task = TaskSpec(
@@ -146,11 +149,11 @@ def test_no_budget_no_enforcement(
 
 
 def test_budget_threshold_event_at_80_pct(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
 ) -> None:
     """Budget threshold event emitted at 80%."""
     scheduler = _make_scheduler(
-        trace_writer, transport, run_id,
+        trace_writer, transport, run_id, read_root=tmp_path,
     )
     task_id = uuid6.uuid7()
     task = TaskSpec(
@@ -182,11 +185,11 @@ def test_budget_threshold_event_at_80_pct(
 
 
 def test_budget_exhausted_event(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
 ) -> None:
     """Budget exhausted event when cost >= budget."""
     scheduler = _make_scheduler(
-        trace_writer, transport, run_id,
+        trace_writer, transport, run_id, read_root=tmp_path,
     )
     task_id = uuid6.uuid7()
     task = TaskSpec(
@@ -215,7 +218,7 @@ def test_budget_exhausted_event(
 
 @pytest.mark.asyncio
 async def test_budget_events_sent_to_overseer(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
 ) -> None:
     """Budget events are sent to overseer."""
     mock_overseer = MockOverseerInterface()
@@ -223,6 +226,7 @@ async def test_budget_events_sent_to_overseer(
         trace_writer,
         transport,
         run_id,
+        read_root=tmp_path,
         overseer_interface=mock_overseer,
     )
     task_id = uuid6.uuid7()
@@ -239,13 +243,14 @@ async def test_budget_events_sent_to_overseer(
 
 
 def test_unlimited_policy_no_enforcement(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID,
+    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
 ) -> None:
     """Unlimited policy does nothing special."""
     scheduler = _make_scheduler(
         trace_writer,
         transport,
         run_id,
+        read_root=tmp_path,
         budget_exhaustion_policy=BudgetExhaustionPolicy.UNLIMITED,
     )
     assert (
