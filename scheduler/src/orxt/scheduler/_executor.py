@@ -120,6 +120,7 @@ class Scheduler(
         agents: dict[str, Agent],
         categories: dict[str, str],
         run_id: UUID,
+        read_root: Path,
         *,
         pool: asyncpg.Pool | None = None,
         overseer_interface: OverseerInterface | None = None,
@@ -141,6 +142,7 @@ class Scheduler(
         self._agents = agents
         self._categories = categories
         self._run_id = run_id
+        self._read_root = read_root
         self._overseer_interface = overseer_interface
         self._knowledge_dir = knowledge_dir
         self._model_context_limit = model_context_limit
