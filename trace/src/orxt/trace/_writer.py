@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     import asyncpg
 
-from orxt.trace._transitions import validate_run_transition, validate_task_transition
+from orxt.trace._transitions import InvalidTransitionError, validate_run_transition, validate_task_transition
 
 
 class TraceWriter:
@@ -375,39 +375,67 @@ class TraceWriter:
 
     async def answer_inbox_item(self, item_id: UUID, answer: str) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
-            await conn.execute(
+            status = await conn.execute(
                 "UPDATE inbox_items SET status = 'answered',"
                 " answer = $1, answered_at = now()"
-                " WHERE id = $2",
+                " WHERE id = $2 AND status = 'pending'",
                 answer,
                 item_id,
             )
+            if status == "UPDATE 0":
+                current = await conn.fetchval(
+                    "SELECT status FROM inbox_items WHERE id = $1",
+                    item_id,
+                )
+                msg = f"cannot transition inbox item {item_id} from {current!r} to 'answered': only 'pending' items can be answered"
+                raise InvalidTransitionError(msg)
 
     async def skip_inbox_item(self, item_id: UUID) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
-            await conn.execute(
+            status = await conn.execute(
                 "UPDATE inbox_items SET status = 'skipped'"
-                " WHERE id = $1",
+                " WHERE id = $1 AND status = 'pending'",
                 item_id,
             )
+            if status == "UPDATE 0":
+                current = await conn.fetchval(
+                    "SELECT status FROM inbox_items WHERE id = $1",
+                    item_id,
+                )
+                msg = f"cannot transition inbox item {item_id} from {current!r} to 'skipped': only 'pending' items can be skipped"
+                raise InvalidTransitionError(msg)
 
     async def reject_inbox_item(self, item_id: UUID, reason: str) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
-            await conn.execute(
+            status = await conn.execute(
                 "UPDATE inbox_items SET status = 'rejected',"
                 " rejection_reason = $1"
-                " WHERE id = $2",
+                " WHERE id = $2 AND status = 'pending'",
                 reason,
                 item_id,
             )
+            if status == "UPDATE 0":
+                current = await conn.fetchval(
+                    "SELECT status FROM inbox_items WHERE id = $1",
+                    item_id,
+                )
+                msg = f"cannot transition inbox item {item_id} from {current!r} to 'rejected': only 'pending' items can be rejected"
+                raise InvalidTransitionError(msg)
 
     async def expire_inbox_item(self, item_id: UUID) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
-            await conn.execute(
+            status = await conn.execute(
                 "UPDATE inbox_items SET status = 'expired'"
-                " WHERE id = $1",
+                " WHERE id = $1 AND status = 'pending'",
                 item_id,
             )
+            if status == "UPDATE 0":
+                current = await conn.fetchval(
+                    "SELECT status FROM inbox_items WHERE id = $1",
+                    item_id,
+                )
+                msg = f"cannot transition inbox item {item_id} from {current!r} to 'expired': only 'pending' items can be expired"
+                raise InvalidTransitionError(msg)
 
     async def write_context_diff(
         self, attempt_id: UUID, pre_refinement: str, refinement_diff: str
