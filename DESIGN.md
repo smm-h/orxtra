@@ -251,7 +251,7 @@ orxt is the engine for a single project's autonomous workflows. Cross-project co
 
 2. **No hook/middleware system.** Behavior is in the scheduler, not in interceptor chains.
 
-3. **No built-in agents.** orxt is a framework. It defines zero agents.
+3. **No built-in agent definitions.** orxt is a framework. It defines zero agent TOML files. The Overseer is a framework component with its own session, not an agent definition.
 
 4. **No model routing complexity.** Category to model is a flat dictionary lookup.
 
