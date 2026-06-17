@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -53,6 +54,7 @@ def _make_scheduler(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: UUID,
+    read_root: Path,
     overseer: MockOverseerInterface | None = None,
 ) -> Scheduler:
     return Scheduler(
@@ -63,6 +65,7 @@ def _make_scheduler(
         agents={"test-agent": make_agent()},
         categories=make_categories(),
         run_id=run_id,
+        read_root=read_root,
         overseer_interface=overseer,
     )
 
@@ -87,6 +90,7 @@ async def test_escalated_task_sends_event(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: UUID,
+    tmp_path: Path,
 ) -> None:
     """Escalated task sends TaskEscalated event to Overseer."""
     mock_overseer = MockOverseerInterface()
@@ -101,6 +105,7 @@ async def test_escalated_task_sends_event(
         agents={"test-agent": make_agent()},
         categories=make_categories(),
         run_id=run_id,
+        read_root=tmp_path,
         overseer_interface=mock_overseer,
     )
 
@@ -127,6 +132,7 @@ async def test_escalation_payload_content(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: UUID,
+    tmp_path: Path,
 ) -> None:
     """Escalation payload includes task name and attempts."""
     mock_overseer = MockOverseerInterface()
@@ -139,6 +145,7 @@ async def test_escalation_payload_content(
         agents={"test-agent": make_agent()},
         categories=make_categories(),
         run_id=run_id,
+        read_root=tmp_path,
         overseer_interface=mock_overseer,
     )
 
@@ -164,6 +171,7 @@ async def test_no_overseer_escalation_noop(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: UUID,
+    tmp_path: Path,
 ) -> None:
     """No Overseer: escalation event is no-op."""
     bad_transport = MockTransportNoTools()
@@ -175,6 +183,7 @@ async def test_no_overseer_escalation_noop(
         agents={"test-agent": make_agent()},
         categories=make_categories(),
         run_id=run_id,
+        read_root=tmp_path,
         # No overseer_interface
     )
 
@@ -196,11 +205,13 @@ async def test_decision_point_sends_event(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: UUID,
+    tmp_path: Path,
 ) -> None:
     """Decision point task sends event to Overseer."""
     mock_overseer = MockOverseerInterface()
     scheduler = _make_scheduler(
         trace_writer, transport, run_id,
+        read_root=tmp_path,
         overseer=mock_overseer,
     )
 
@@ -229,10 +240,12 @@ async def test_decision_point_no_overseer(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: UUID,
+    tmp_path: Path,
 ) -> None:
     """Decision point without Overseer still completes."""
     scheduler = _make_scheduler(
         trace_writer, transport, run_id,
+        read_root=tmp_path,
     )
 
     task = TaskSpec(
