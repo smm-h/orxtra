@@ -74,6 +74,11 @@ class MockProvider:
             result["is_error"] = True
         return result
 
+    def wrap_tool_results(
+        self, results: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return [{"role": "user", "content": results}]
+
     def format_assistant_message(
         self, blocks: list[ContentBlock],
     ) -> dict[str, Any]:
