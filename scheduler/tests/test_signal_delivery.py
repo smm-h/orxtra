@@ -1,4 +1,3 @@
-# ruff: noqa: SLF001
 """Phase 3 tests: trace-integrated signal delivery.
 
 Tests subscribe/unsubscribe, control signal dispatch,
@@ -66,7 +65,7 @@ class TestSignalDelivery:
         assert len(calls) == 1
         assert calls[0]["run_id"] == run_id
         # The mock stores the callback for later invocation
-        assert trace_writer._control_callback is cb
+        assert trace_writer._control_callback is cb  # noqa: SLF001
 
     async def test_transition_run_fires_callback(
         self,
@@ -93,8 +92,8 @@ class TestSignalDelivery:
 
         # Simulate what the real TraceWriter does after a
         # transition: invoke the stored control callback.
-        assert trace_writer._control_callback is not None
-        await trace_writer._control_callback(
+        assert trace_writer._control_callback is not None  # noqa: SLF001
+        await trace_writer._control_callback(  # noqa: SLF001
             run_id, "aborted",
         )
 
@@ -114,10 +113,10 @@ class TestSignalDelivery:
             pass
 
         await trace_writer.subscribe_run_control(run_id, cb)
-        assert trace_writer._control_callback is cb
+        assert trace_writer._control_callback is cb  # noqa: SLF001
 
         await trace_writer.unsubscribe_run_control(run_id)
-        assert trace_writer._control_callback is None
+        assert trace_writer._control_callback is None  # noqa: SLF001
 
         calls = trace_writer.get_calls(
             "unsubscribe_run_control",
@@ -177,7 +176,7 @@ class TestSignalDelivery:
         assert calls[0]["run_id"] == run_a
         assert calls[1]["run_id"] == run_b
         # Latest callback wins in the mock
-        assert trace_writer._control_callback is cb_b
+        assert trace_writer._control_callback is cb_b  # noqa: SLF001
 
     # -- _handle_control_signal dispatch --
 
@@ -195,17 +194,17 @@ class TestSignalDelivery:
             agent="test-agent",
             task_prompt="do stuff",
         )
-        scheduler._init_task_state(
+        scheduler._init_task_state(  # noqa: SLF001
             task_id, task_spec, parent=None,
         )
-        scheduler._task_states[task_id] = TaskState.ACTIVE
+        scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
 
-        await scheduler._handle_control_signal(
+        await scheduler._handle_control_signal(  # noqa: SLF001
             run_id, "aborted",
         )
 
         assert (
-            scheduler._task_states[task_id]
+            scheduler._task_states[task_id]  # noqa: SLF001
             == TaskState.CANCELLED
         )
         # abort() also transitions via trace_writer
@@ -228,7 +227,7 @@ class TestSignalDelivery:
         """_handle_control_signal('paused') sets the paused flag."""
         assert not scheduler.is_paused
 
-        await scheduler._handle_control_signal(
+        await scheduler._handle_control_signal(  # noqa: SLF001
             run_id, "paused",
         )
 
@@ -242,7 +241,7 @@ class TestSignalDelivery:
         """An unrecognized status is silently ignored."""
         assert not scheduler.is_paused
 
-        await scheduler._handle_control_signal(
+        await scheduler._handle_control_signal(  # noqa: SLF001
             run_id, "unknown_status",
         )
 
@@ -257,13 +256,13 @@ class TestSignalDelivery:
     ) -> None:
         """_bridge_trace_to_events wires the trace event callback
         to also fire on the in-process EventRegistry."""
-        await scheduler._bridge_trace_to_events()
+        await scheduler._bridge_trace_to_events()  # noqa: SLF001
 
         received: dict[str, object] | None = None
 
         async def listener() -> None:
             nonlocal received
-            received = await scheduler._event_registry.wait_for(
+            received = await scheduler._event_registry.wait_for(  # noqa: SLF001
                 "test_event", deadline_seconds=2.0,
             )
 
@@ -272,10 +271,10 @@ class TestSignalDelivery:
 
         # Fire through the bridged callback
         assert (
-            scheduler._trace_writer._event_callback
+            scheduler._trace_writer._event_callback  # noqa: SLF001
             is not None
         )
-        await scheduler._trace_writer._event_callback(
+        await scheduler._trace_writer._event_callback(  # noqa: SLF001
             uuid6.uuid7(),
             uuid6.uuid7(),
             "test_event",
@@ -291,15 +290,15 @@ class TestSignalDelivery:
     ) -> None:
         """A wait_for listener unblocks when an event is fired
         through the trace layer bridge."""
-        await scheduler._bridge_trace_to_events()
+        await scheduler._bridge_trace_to_events()  # noqa: SLF001
 
         task_id = uuid6.uuid7()
-        scheduler._event_registry.register(
+        scheduler._event_registry.register(  # noqa: SLF001
             "my_event", task_id,
         )
 
         async def waiter() -> dict[str, object] | None:
-            return await scheduler._event_registry.wait_for(
+            return await scheduler._event_registry.wait_for(  # noqa: SLF001
                 "my_event", deadline_seconds=2.0,
             )
 
@@ -308,10 +307,10 @@ class TestSignalDelivery:
 
         # Fire through the trace layer bridge
         assert (
-            scheduler._trace_writer._event_callback
+            scheduler._trace_writer._event_callback  # noqa: SLF001
             is not None
         )
-        await scheduler._trace_writer._event_callback(
+        await scheduler._trace_writer._event_callback(  # noqa: SLF001
             uuid6.uuid7(),
             uuid6.uuid7(),
             "my_event",
@@ -339,14 +338,14 @@ class TestSignalDelivery:
                 (event_id, run_id, event_type, data),
             )
 
-        scheduler._trace_writer._event_callback = (
+        scheduler._trace_writer._event_callback = (  # noqa: SLF001
             original_cb
         )
-        await scheduler._bridge_trace_to_events()
+        await scheduler._bridge_trace_to_events()  # noqa: SLF001
 
         eid = uuid6.uuid7()
         rid = uuid6.uuid7()
-        await scheduler._trace_writer._event_callback(
+        await scheduler._trace_writer._event_callback(  # noqa: SLF001
             eid, rid, "some_event", {"x": 1},
         )
 

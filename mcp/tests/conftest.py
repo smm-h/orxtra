@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# ruff: noqa: ANN401
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -9,10 +8,10 @@ from orxt.mcp._server import MCPServer
 
 
 @pytest.fixture
-def mock_pool() -> Any:
+def mock_pool() -> Any:  # noqa: ANN401
     return AsyncMock()
 
 
 @pytest.fixture
-def server(mock_pool: Any) -> Any:
+def server(mock_pool: Any) -> Any:  # noqa: ANN401
     return MCPServer(mock_pool)
