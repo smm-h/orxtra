@@ -20,6 +20,11 @@ if TYPE_CHECKING:
     from uuid import UUID
 
 from orxt.scheduler._base import SchedulerBase
+from orxt.scheduler._graph import (
+    build_graph,
+    find_parallel_groups,
+    topological_sort,
+)
 
 _logger = logging.getLogger("orxt.scheduler")
 
@@ -209,18 +214,52 @@ class TaskDispatchMixin(SchedulerBase):
             task_id, TaskState.ACTIVE.value,
         )
 
-        tasks = [
-            asyncio.create_task(
-                self.execute_task(sub, task_id),
-            )
-            for sub in task.subtasks
-        ]
-        for t in tasks:
-            self._running_tasks.add(t)
-            t.add_done_callback(
-                self._running_tasks.discard,
-            )
-        await asyncio.gather(*tasks)
+        # Check if any subtask has dependencies
+        has_deps = any(
+            sub.depends_on for sub in task.subtasks
+        )
+
+        if has_deps:
+            # Build dependency graph and execute in parallel groups
+            deps: dict[str, list[str]] = {}
+            for sub in task.subtasks:
+                if sub.depends_on:
+                    deps[sub.name] = list(sub.depends_on)
+            graph = build_graph(task.subtasks, deps)
+            order = topological_sort(graph)
+            groups = find_parallel_groups(graph, order)
+
+            name_to_sub = {
+                sub.name: sub for sub in task.subtasks
+            }
+            for group in groups:
+                group_tasks = [
+                    asyncio.create_task(
+                        self.execute_task(
+                            name_to_sub[name], task_id,
+                        ),
+                    )
+                    for name in group
+                ]
+                for t in group_tasks:
+                    self._running_tasks.add(t)
+                    t.add_done_callback(
+                        self._running_tasks.discard,
+                    )
+                await asyncio.gather(*group_tasks)
+        else:
+            tasks = [
+                asyncio.create_task(
+                    self.execute_task(sub, task_id),
+                )
+                for sub in task.subtasks
+            ]
+            for t in tasks:
+                self._running_tasks.add(t)
+                t.add_done_callback(
+                    self._running_tasks.discard,
+                )
+            await asyncio.gather(*tasks)
 
         # Run postchecks before completing
         self._task_states[task_id] = (
