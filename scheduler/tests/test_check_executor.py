@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -154,7 +155,7 @@ class TestRunConsult:
         await scheduler.run_consult("test-agent", "question")
         assert spy.received_tools == []
 
-    async def test_missing_category_raises(self) -> None:
+    async def test_missing_category_raises(self, tmp_path: Path) -> None:
         """run_consult raises ValueError when the agent's category is missing."""
         from orxt.agent import Agent  # noqa: PLC0415
 
@@ -172,6 +173,7 @@ class TestRunConsult:
             agents={"special-agent": agent},
             categories={"default": "anthropic/claude-sonnet-4-6"},
             run_id=uuid6.uuid7(),
+            read_root=tmp_path,
         )
 
         with pytest.raises(
@@ -181,7 +183,7 @@ class TestRunConsult:
                 "special-agent", "question",
             )
 
-    async def test_missing_provider_raises(self) -> None:
+    async def test_missing_provider_raises(self, tmp_path: Path) -> None:
         """run_consult raises ValueError when the provider is not registered."""
         sched = Scheduler(
             trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
@@ -189,6 +191,7 @@ class TestRunConsult:
             agents={"test-agent": make_agent()},
             categories={"default": "anthropic/claude-sonnet-4-6"},
             run_id=uuid6.uuid7(),
+            read_root=tmp_path,
         )
 
         with pytest.raises(
@@ -351,7 +354,7 @@ class TestCheckExecutorIntegration:
         assert result.passed is False
         assert "invalid verdict" in result.message.lower()
 
-    async def test_agent_execution_valid_verdict(self) -> None:
+    async def test_agent_execution_valid_verdict(self, tmp_path: Path) -> None:
         """AgentExecution postcheck with valid verdict JSON returns passed=True."""
         from orxt.verify._execution import _run_agent  # noqa: PLC0415
 
@@ -408,6 +411,7 @@ class TestCheckExecutorIntegration:
             agents={"test-agent": make_agent()},
             categories=make_categories(),
             run_id=uuid6.uuid7(),
+            read_root=tmp_path,
         )
 
         agent_exec = AgentExecution(
