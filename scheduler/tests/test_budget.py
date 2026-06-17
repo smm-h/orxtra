@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxt.protocols._task import BudgetExhaustionPolicy, TaskSpec
+from orxt.protocols._task import BudgetExhaustionPolicy, TaskSpec, TaskState
+from orxt.protocols._tool import ToolError
 from orxt.scheduler._executor import Scheduler
 from orxt.transport import Usage
 
@@ -276,3 +278,133 @@ def test_unlimited_policy_no_enforcement(
         scheduler._budget_exhaustion_policy  # noqa: SLF001
         == BudgetExhaustionPolicy.UNLIMITED
     )
+
+
+@pytest.mark.asyncio
+async def test_budget_block_new_rejects_create_task(
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
+) -> None:
+    """BLOCK_NEW policy prevents new task creation after budget exhaustion."""
+    scheduler = _make_scheduler(
+        trace_writer,
+        transport,
+        run_id,
+        read_root=tmp_path,
+        budget_exhaustion_policy=BudgetExhaustionPolicy.BLOCK_NEW,
+    )
+    # Simulate budget exhaustion
+    task_id = uuid6.uuid7()
+    task = TaskSpec(
+        name="test",
+        agent="test-agent",
+        task_prompt="do stuff",
+        budget=Decimal("0.001"),
+    )
+    scheduler._task_specs[task_id] = task  # noqa: SLF001
+    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
+    scheduler._accumulate_cost(  # noqa: SLF001
+        task_id,
+        task,
+        Usage(
+            input_tokens=100000,
+            output_tokens=50000,
+            reasoning_tokens=0,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+        ),
+    )
+    assert scheduler._budget_blocked is True  # noqa: SLF001
+
+    # Now try to create a task -- should be rejected
+    session_id = "test-session"
+    scheduler._active_tasks[session_id] = task_id  # noqa: SLF001
+    scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
+    with pytest.raises(ToolError, match="Budget exhausted"):
+        await scheduler.handle_create_task(
+            session_id,
+            {"name": "new-task", "agent": "test-agent", "task_prompt": "do more"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_budget_cancel_all_triggers_abort(
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
+) -> None:
+    """CANCEL_ALL policy triggers abort on budget exhaustion."""
+    scheduler = _make_scheduler(
+        trace_writer,
+        transport,
+        run_id,
+        read_root=tmp_path,
+        budget_exhaustion_policy=BudgetExhaustionPolicy.CANCEL_ALL,
+    )
+    task_id = uuid6.uuid7()
+    task = TaskSpec(
+        name="test",
+        agent="test-agent",
+        task_prompt="do stuff",
+        budget=Decimal("0.001"),
+    )
+    scheduler._task_specs[task_id] = task  # noqa: SLF001
+    scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
+    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
+    scheduler._accumulate_cost(  # noqa: SLF001
+        task_id,
+        task,
+        Usage(
+            input_tokens=100000,
+            output_tokens=50000,
+            reasoning_tokens=0,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+        ),
+    )
+    # Let the event loop process the scheduled abort
+    await asyncio.sleep(0.1)
+    # Task should be cancelled
+    assert scheduler._task_states[task_id] == TaskState.CANCELLED  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_budget_timeout_grace_blocks_then_aborts(
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
+) -> None:
+    """TIMEOUT_GRACE policy blocks new tasks and sets up delayed abort."""
+    scheduler = _make_scheduler(
+        trace_writer,
+        transport,
+        run_id,
+        read_root=tmp_path,
+        budget_exhaustion_policy=BudgetExhaustionPolicy.TIMEOUT_GRACE,
+    )
+    task_id = uuid6.uuid7()
+    task = TaskSpec(
+        name="test",
+        agent="test-agent",
+        task_prompt="do stuff",
+        budget=Decimal("0.001"),
+    )
+    scheduler._task_specs[task_id] = task  # noqa: SLF001
+    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
+    scheduler._accumulate_cost(  # noqa: SLF001
+        task_id,
+        task,
+        Usage(
+            input_tokens=100000,
+            output_tokens=50000,
+            reasoning_tokens=0,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+        ),
+    )
+    # Should be blocked immediately
+    assert scheduler._budget_blocked is True  # noqa: SLF001

@@ -96,6 +96,7 @@ class SchedulerBase(ABC):
     _paused: asyncio.Event
     _budget_threshold_events: list[tuple[UUID, str, Decimal, Decimal]]
     _budget_exhausted_events: list[tuple[UUID, str, Decimal, Decimal]]
+    _budget_blocked: bool
 
     # ------------------------------------------------------------------
     # Cross-mixin methods (from _executor.py)
@@ -138,6 +139,9 @@ class SchedulerBase(ABC):
     async def _send_overseer_event(
         self, event: OverseerEvent,
     ) -> None: ...
+
+    @abstractmethod
+    async def abort(self) -> None: ...
 
     @abstractmethod
     def _get_scoped_outputs(

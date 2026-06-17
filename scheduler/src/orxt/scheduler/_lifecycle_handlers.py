@@ -180,6 +180,9 @@ class LifecycleHandlersMixin(SchedulerBase):
         params: dict[str, Any] | CreateTaskParams,
     ) -> str:
         parent_id = self.check_active_task(session_id)
+        if self._budget_blocked:
+            msg = "Budget exhausted: new task creation blocked"
+            raise ToolError(msg)
         parsed = (
             params
             if isinstance(params, CreateTaskParams)
@@ -244,6 +247,9 @@ class LifecycleHandlersMixin(SchedulerBase):
         params: CreateWorkflowParams | dict[str, Any],
     ) -> str:
         parent_id = self.check_active_task(session_id)
+        if self._budget_blocked:
+            msg = "Budget exhausted: new workflow creation blocked"
+            raise ToolError(msg)
         parsed = CreateWorkflowParams.model_validate(
             params if isinstance(params, dict) else params.model_dump()
         )
