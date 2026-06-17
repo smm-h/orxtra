@@ -27,6 +27,29 @@ from orxt.tool._task_tools import (
 )
 from orxt.transport import Result, Usage
 
+from orxt.protocols._tool import Tool
+from orxt.tool._read_tools import (
+    make_read_tool,
+    make_list_dir_tool,
+    make_glob_tool,
+    make_grep_tool,
+    make_stat_tool,
+    make_diff_tool,
+)
+from orxt.tool._write_tools import (
+    make_write_tool,
+    make_edit_tool,
+    make_mkdir_tool,
+    make_move_tool,
+    make_copy_tool,
+    make_delete_tool,
+    make_set_executable_tool,
+)
+from orxt.tool._git_tool import make_git_tool
+from orxt.tool._notepad_tool import make_notepad_tool
+from orxt.tool._consult_tool import make_consult_tool
+from orxt.tool._http_tool import make_http_tool
+
 _logger = logging.getLogger("orxt.scheduler")
 
 
@@ -604,14 +627,151 @@ class AgentExecutionMixin:
             raise ValueError(msg)
 
         session_id = f"session-{task_id}-{attempt}"
-        raw_tools = [
+
+        # Build file/utility tools based on agent's allow list
+        agent_allow = set(agent_def.allow)
+        raw_tools: list[Tool] = []
+
+        # Preview configuration
+        preview_threshold = 10000
+        preview_lines = 50
+
+        # Read tools
+        if "read" in agent_allow:
+            raw_tools.append(make_read_tool(
+                self._read_root, preview_threshold,
+                preview_lines,
+                session_id=session_id,
+            ))
+        if "list_dir" in agent_allow:
+            raw_tools.append(
+                make_list_dir_tool(self._read_root),
+            )
+        if "glob" in agent_allow:
+            raw_tools.append(
+                make_glob_tool(self._read_root),
+            )
+        if "grep" in agent_allow:
+            raw_tools.append(make_grep_tool(
+                self._read_root, preview_threshold,
+                preview_lines,
+            ))
+        if "stat" in agent_allow:
+            raw_tools.append(
+                make_stat_tool(self._read_root),
+            )
+        if "diff" in agent_allow:
+            raw_tools.append(
+                make_diff_tool(self._read_root),
+            )
+
+        # Write tools (with write-safety)
+        if "write" in agent_allow:
+            raw_tools.append(make_write_tool(
+                self._read_root, None,
+                self._write_queue,
+                self._stale_tracker, session_id,
+            ))
+        if "edit" in agent_allow:
+            raw_tools.append(make_edit_tool(
+                self._read_root, None,
+                self._write_queue,
+                self._stale_tracker, session_id,
+            ))
+        if "mkdir" in agent_allow:
+            raw_tools.append(
+                make_mkdir_tool(self._read_root, None),
+            )
+        if "move" in agent_allow:
+            raw_tools.append(make_move_tool(
+                self._read_root, None,
+                self._write_queue,
+                self._stale_tracker, session_id,
+            ))
+        if "copy" in agent_allow:
+            raw_tools.append(make_copy_tool(
+                self._read_root, None,
+                self._write_queue,
+                self._stale_tracker, session_id,
+            ))
+        if "delete" in agent_allow:
+            raw_tools.append(
+                make_delete_tool(self._read_root, None),
+            )
+        if "set_executable" in agent_allow:
+            raw_tools.append(
+                make_set_executable_tool(
+                    self._read_root, None,
+                ),
+            )
+
+        # Git tool
+        if "git" in agent_allow:
+            write_tools = {
+                "write", "edit", "delete", "move",
+                "copy", "mkdir", "set_executable",
+            }
+            has_write = bool(agent_allow & write_tools)
+            subcommands = list(
+                ["status", "diff", "log", "show",
+                 "blame", "branches",
+                 "changed_files"]
+                + (["commit"] if has_write else []),
+            )
+            raw_tools.append(make_git_tool(
+                self._read_root, subcommands,
+                run_context={
+                    "run_id": str(self._run_id),
+                    "task_id": str(task_id),
+                },
+            ))
+
+        # Notepad
+        if "notepad" in agent_allow:
+            raw_tools.append(make_notepad_tool(
+                self._trace_writer,
+                str(self._run_id),
+                task.name,
+                task.agent,
+            ))
+
+        # HTTP
+        if "http" in agent_allow:
+            raw_tools.append(make_http_tool(
+                allowed_hosts="allow_all",
+            ))
+
+        # Consult
+        if "consult" in agent_allow:
+            consult_registry: dict[str, Tool] = {
+                t.name: t for t in raw_tools
+            }
+            raw_tools.append(make_consult_tool(
+                tool_registry=consult_registry,
+                transport_registry=(
+                    self._transport_registry
+                ),
+                trace_writer=self._trace_writer,
+                run_id=self._run_id,
+                read_root=self._read_root,
+                categories=self._categories,
+                agents=self._agents,
+            ))
+
+        # Always add lifecycle tools
+        raw_tools.extend([
             make_start_task_tool(self, session_id),
             make_end_task_tool(self, session_id),
             make_create_task_tool(self, session_id),
-            make_create_workflow_tool(self, session_id),
-            make_create_wait_for_tool(self, session_id),
+            make_create_workflow_tool(
+                self, session_id,
+            ),
+            make_create_wait_for_tool(
+                self, session_id,
+            ),
             make_await_task_tool(self, session_id),
-        ]
+        ])
+
         async def _trace_callback(
             tool_name: str,
             args: dict[str, Any],
