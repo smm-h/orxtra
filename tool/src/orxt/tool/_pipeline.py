@@ -17,7 +17,7 @@ FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
 })
 
 
-def wrap_tool_with_pipeline(  # noqa: PLR0913
+def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
     tool: Tool,
     scheduler_check: Callable[[str], UUID],
     secret_registry: SecretRegistry | None,

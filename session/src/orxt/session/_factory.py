@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from orxt.protocols import Tool
@@ -19,7 +19,7 @@ async def create_session(  # noqa: PLR0913
     trace_writer: TraceWriter,
     run_id: uuid.UUID,
     session_id: str | None = None,
-    pool: Any = None,
+    pool: object = None,
 ) -> Session:
     session = Session(
         transport=transport,
@@ -34,7 +34,8 @@ async def create_session(  # noqa: PLR0913
     if session_id is not None and pool is not None:
         sid = uuid.UUID(session_id) if isinstance(session_id, str) else session_id
         rows = await pool.fetch(
-            "SELECT tokens FROM transcripts WHERE session_id = $1 AND tokens IS NOT NULL",
+            "SELECT tokens FROM transcripts"
+            " WHERE session_id = $1 AND tokens IS NOT NULL",
             sid,
         )
         for row in rows:

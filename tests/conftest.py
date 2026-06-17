@@ -413,7 +413,7 @@ def simple_workflow(
     )
 
 
-def make_scheduler(
+def make_scheduler(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: IntegrationMockTransport | MultiAgentMockTransport,
     run_id: uuid.UUID,
