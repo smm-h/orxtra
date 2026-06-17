@@ -259,7 +259,7 @@ class Transport:
 
         # Combine all results into one user message
         combined_results = all_tool_results + remaining_results
-        ctx.history.append({"role": "user", "content": combined_results})
+        ctx.history.extend(self._provider.wrap_tool_results(combined_results))
 
         # Continue the state machine from CALLING_API
         state = TransportState.CALLING_API
@@ -636,7 +636,7 @@ class Transport:
                     )
                 )
 
-        ctx.history.append({"role": "user", "content": tool_results})
+        ctx.history.extend(self._provider.wrap_tool_results(tool_results))
         ctx.pending_tool_blocks = []
         return (TransportState.CALLING_API, events)
 

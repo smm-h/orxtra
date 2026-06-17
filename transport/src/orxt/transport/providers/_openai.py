@@ -141,6 +141,11 @@ class OpenAIProvider:
             "content": content,
         }
 
+    def wrap_tool_results(
+        self, results: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return results
+
     def format_assistant_message(
         self, blocks: list[ContentBlock],
     ) -> dict[str, Any]:
