@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# ruff: noqa: ANN401
 import json
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -31,12 +30,12 @@ def _rpc(
 
 
 @pytest.fixture
-def mock_pool() -> Any:
+def mock_pool() -> Any:  # noqa: ANN401
     return AsyncMock()
 
 
 @pytest.fixture
-def server(mock_pool: Any) -> MCPServer:
+def server(mock_pool: Any) -> MCPServer:  # noqa: ANN401
     return MCPServer(mock_pool)
 
 
@@ -107,7 +106,7 @@ async def test_tools_call_get_run(
 
 @patch("orxt.mcp._server.abort_run", new_callable=AsyncMock)
 async def test_tools_call_abort_run(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = None
     run_id = str(uuid4())
@@ -120,7 +119,7 @@ async def test_tools_call_abort_run(
 
 @patch("orxt.mcp._server.pause_run", new_callable=AsyncMock)
 async def test_tools_call_pause_run(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = None
     run_id = str(uuid4())
@@ -133,7 +132,7 @@ async def test_tools_call_pause_run(
 
 @patch("orxt.mcp._server.resume_run", new_callable=AsyncMock)
 async def test_tools_call_resume_run(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = None
     run_id = str(uuid4())
@@ -159,7 +158,7 @@ async def test_tools_call_list_inbox(
 
 @patch("orxt.mcp._server.get_inbox_item", new_callable=AsyncMock)
 async def test_tools_call_get_inbox_item(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = None
     item_id = str(uuid4())
@@ -175,7 +174,7 @@ async def test_tools_call_get_inbox_item(
 
 @patch("orxt.mcp._server.respond_to_inbox", new_callable=AsyncMock)
 async def test_tools_call_respond_to_inbox(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = None
     item_id = str(uuid4())
@@ -196,7 +195,7 @@ async def test_tools_call_respond_to_inbox(
 
 @patch("orxt.mcp._server.skip_inbox_item", new_callable=AsyncMock)
 async def test_tools_call_skip_inbox_item(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = None
     item_id = str(uuid4())
@@ -212,7 +211,7 @@ async def test_tools_call_skip_inbox_item(
 
 @patch("orxt.mcp._server.reject_inbox_item", new_callable=AsyncMock)
 async def test_tools_call_reject_inbox_item(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = None
     item_id = str(uuid4())
@@ -234,7 +233,7 @@ async def test_tools_call_reject_inbox_item(
 @patch("orxt.mcp._server.TraceWriter")
 @patch("orxt.mcp._server.fire_event", new_callable=AsyncMock)
 async def test_tools_call_fire_event(
-    mock_fn: AsyncMock, mock_writer_cls: Any, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, mock_writer_cls: Any, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = uuid4()
     mock_writer = mock_writer_cls.return_value
@@ -276,7 +275,7 @@ async def test_tools_call_show_pricing(
 
 @patch("orxt.mcp._server.dump_config", new_callable=AsyncMock)
 async def test_tools_call_show_config(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = {"timeout": 30}
     run_id = str(uuid4())
@@ -310,7 +309,7 @@ async def test_tools_call_query_events(
 
 @patch("orxt.mcp._server.get_transcript", new_callable=AsyncMock)
 async def test_tools_call_get_transcript(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = []
     session_id = str(uuid4())
@@ -326,7 +325,7 @@ async def test_tools_call_get_transcript(
 
 @patch("orxt.mcp._server.search_transcript", new_callable=AsyncMock)
 async def test_tools_call_search_transcript(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = []
     session_id = str(uuid4())
@@ -347,7 +346,7 @@ async def test_tools_call_search_transcript(
 
 @patch("orxt.mcp._server.list_tasks", new_callable=AsyncMock)
 async def test_tools_call_list_tasks(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = []
     run_id = str(uuid4())
@@ -363,7 +362,7 @@ async def test_tools_call_list_tasks(
 
 @patch("orxt.mcp._server.get_task_attempts", new_callable=AsyncMock)
 async def test_tools_call_get_task_attempts(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = []
     task_id = str(uuid4())
@@ -379,7 +378,7 @@ async def test_tools_call_get_task_attempts(
 
 @patch("orxt.mcp._server.get_notepad", new_callable=AsyncMock)
 async def test_tools_call_get_notepad(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = []
     run_id = str(uuid4())
@@ -395,7 +394,7 @@ async def test_tools_call_get_notepad(
 
 @patch("orxt.mcp._server.start_run_from_file", new_callable=AsyncMock)
 async def test_tools_call_start_run(
-    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     expected_id = uuid4()
     mock_fn.return_value = expected_id

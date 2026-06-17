@@ -1,4 +1,3 @@
-# ruff: noqa: SLF001
 """Phase 4 tests: cross-process PG LISTEN signal delivery."""
 
 from __future__ import annotations
@@ -158,7 +157,7 @@ class TestPgListener:
 
         async def wait_for_event() -> None:
             nonlocal received
-            received = await scheduler._event_registry.wait_for(
+            received = await scheduler._event_registry.wait_for(  # noqa: SLF001
                 "custom_event", deadline_seconds=2.0,
             )
 
@@ -184,7 +183,7 @@ class TestPgListener:
     ) -> None:
         """When pool is None, no PG listener is started.
         execute_workflow completes normally."""
-        assert scheduler._pool is None
+        assert scheduler._pool is None  # noqa: SLF001
         config = _decision_point_workflow()
         # Should complete without errors
         await scheduler.execute_workflow(config)
