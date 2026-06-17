@@ -230,7 +230,7 @@ class AgentExecutionMixin:
                 )
             )
             self._task_sessions[task_id] = session
-            self._session_mutations[session_id] = False
+            self._session_mutations[session_id] = set()
 
             prompt = self._resolve_prompt(
                 task.task_prompt, variables,
@@ -908,9 +908,10 @@ class AgentExecutionMixin:
         session_id: str,
         message: str,
     ) -> None:
-        mutations_detected = self._session_mutations.get(
-            session_id, False,
+        tracked_files = self._session_mutations.get(
+            session_id, set(),
         )
+        mutations_detected = bool(tracked_files)
         proc = await asyncio.create_subprocess_exec(
             "git", "status", "--porcelain",
             stdout=asyncio.subprocess.PIPE,
@@ -922,6 +923,7 @@ class AgentExecutionMixin:
         if mutations_detected:
             if dirty_files:
                 changed = []
+                has_generic = "__generic__" in tracked_files
                 for line in dirty_files.splitlines():
                     # porcelain format: XY filename
                     # or XY old -> new
@@ -934,7 +936,8 @@ class AgentExecutionMixin:
                             fname = fname.split(
                                 " -> ",
                             )[1]
-                        changed.append(fname)
+                        if has_generic or fname in tracked_files:
+                            changed.append(fname)
                 if changed:
                     file_args = ["--", *changed]
                     proc = (

@@ -174,7 +174,7 @@ class Scheduler(
         self._running_tasks: set[asyncio.Task[Any]] = set()
         self._background_tasks: set[asyncio.Task[Any]] = set()
         self._event_registry = EventRegistry()
-        self._session_mutations: dict[str, bool] = {}
+        self._session_mutations: dict[str, set[str]] = {}
         self._write_queue = WriteQueue()
         self._stale_tracker = StaleWriteTracker()
         self._notepad_entries: list[NotepadEntry] = []
