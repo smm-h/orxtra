@@ -2,19 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from orxt.knowledge_module._cognee_import import require_cognee
+
 if TYPE_CHECKING:
     from orxt.knowledge_module._types import KnowledgeConfig
 
 
 def configure_cognee(config: KnowledgeConfig) -> None:
-    try:
-        import cognee  # type: ignore[import-untyped]  # noqa: PLC0415
-    except ImportError:
-        msg = (
-            "cognee is required for the knowledge module."
-            " Install it with: uv add cognee"
-        )
-        raise RuntimeError(msg) from None
+    cognee = require_cognee()
 
     cognee.config.set_llm_config(
         {
