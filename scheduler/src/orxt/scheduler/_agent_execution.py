@@ -17,8 +17,10 @@ from orxt.protocols._task import (
 )
 from orxt.session import Session, create_session
 from orxt.tool._consult_tool import make_consult_tool
+from orxt.tool._exec_tool import make_exec_tool
 from orxt.tool._git_tool import make_git_tool
 from orxt.tool._http_tool import make_http_tool
+from orxt.tool._shell_tool import make_shell_tool
 from orxt.tool._notepad_tool import make_notepad_tool
 from orxt.tool._pipeline import wrap_tools_for_session
 from orxt.tool._read_tools import (
@@ -844,6 +846,43 @@ class AgentExecutionMixin:
                 read_root=self._read_root,
                 categories=self._categories,
                 agents=self._agents,
+            ))
+
+        # Exec tools (per-agent configured executables)
+        if "exec" in agent_allow and agent_def.exec_tools:
+            for exec_config in agent_def.exec_tools:
+                raw_tools.append(make_exec_tool(
+                    executable=exec_config.executable,
+                    description=exec_config.description,
+                    arg_schema={},
+                    read_root=self._read_root,
+                    timeout_ceiling=(
+                        exec_config.timeout_ceiling
+                    ),
+                    preview_threshold=preview_threshold,
+                    preview_lines=preview_lines,
+                ))
+
+        # Shell tool (per-agent configured shell access)
+        if (
+            "shell" in agent_allow
+            and agent_def.shell_config
+        ):
+            raw_tools.append(make_shell_tool(
+                allowed_binaries=(
+                    agent_def.shell_config
+                    .allowed_binaries
+                ),
+                description=(
+                    agent_def.shell_config.description
+                ),
+                read_root=self._read_root,
+                timeout_ceiling=(
+                    agent_def.shell_config
+                    .timeout_ceiling
+                ),
+                preview_threshold=preview_threshold,
+                preview_lines=preview_lines,
             ))
 
         # Always add lifecycle tools

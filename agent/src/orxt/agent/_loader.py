@@ -42,6 +42,11 @@ def load_agent(path: Path) -> Agent:
         raise ValueError(msg)
     agent_section["allow"] = tools_section["allow"]
 
+    exec_configs: list[dict[str, Any]] = data.get("exec", [])
+    shell_section: dict[str, Any] | None = data.get("shell")
+    agent_section["exec_tools"] = exec_configs
+    agent_section["shell_config"] = shell_section
+
     return Agent(**agent_section)
 
 
