@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -18,6 +17,8 @@ from tests.conftest import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from orxt.scheduler._overseer import OverseerEvent
 
 

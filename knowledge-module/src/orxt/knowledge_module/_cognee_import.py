@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from types import ModuleType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
 def require_cognee() -> ModuleType:

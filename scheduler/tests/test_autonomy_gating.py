@@ -77,9 +77,7 @@ sys.modules["orxt.overseer._autonomy"] = _mod
 from orxt.protocols._tool import Tool  # noqa: E402
 from orxt.scheduler._overseer import (  # noqa: E402
     OverseerAdapter,
-    TOOL_ACTION_TYPES,
 )
-
 
 # -- Helpers ----------------------------------------------
 

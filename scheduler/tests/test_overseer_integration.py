@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 from decimal import Decimal
-from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
@@ -46,6 +45,8 @@ from tests.conftest import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pytest
 
 

@@ -7,7 +7,7 @@ gracefully when no Overseer is configured.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import uuid6
 from orxt.scheduler._executor import Scheduler
@@ -20,6 +20,8 @@ from tests.conftest import (
     make_categories,
 )
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # -- Mock infrastructure ----------------------------------
 

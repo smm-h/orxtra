@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -26,6 +25,7 @@ from tests.conftest import (
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from pathlib import Path
 
     from orxt.protocols._tool import Tool
     from orxt.transport import Event

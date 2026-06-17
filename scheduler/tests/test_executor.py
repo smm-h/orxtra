@@ -6,7 +6,6 @@ import sys
 import types
 import uuid
 from decimal import Decimal
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -30,6 +29,7 @@ from orxt.transport import Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from pathlib import Path
 
     from orxt.transport import Event
 

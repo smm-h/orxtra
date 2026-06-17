@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
@@ -25,6 +24,8 @@ from tests.conftest import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from orxt.scheduler._overseer import OverseerEvent
 
 
@@ -73,7 +74,7 @@ class MockParentSession:
         """Async generator matching Session.send interface."""
         self.messages.append(message)
         return
-        yield  # noqa: RET504 -- makes this an async generator
+        yield
 
 
 def _make_mixed_scheduler(

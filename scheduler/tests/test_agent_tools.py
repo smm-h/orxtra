@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import uuid6
 from orxt.agent import Agent
 from orxt.protocols._task import TaskSpec
-from orxt.protocols._tool import Tool
 from orxt.scheduler._executor import Scheduler
 
 from tests.conftest import (
@@ -18,6 +16,11 @@ from tests.conftest import (
     MockTransport,
     make_categories,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from orxt.protocols._tool import Tool
 
 LIFECYCLE_TOOLS = frozenset({
     "start_task",
@@ -102,7 +105,7 @@ class TestReadWriteToolsPresent:
 
         assert "read" in names
         assert "write" in names
-        assert LIFECYCLE_TOOLS <= names
+        assert names >= LIFECYCLE_TOOLS
 
 
 class TestEmptyAllowOnlyLifecycle:
@@ -125,7 +128,7 @@ class TestGitToolPresent:
         names = await _extract_tool_names(sched)
 
         assert "git" in names
-        assert LIFECYCLE_TOOLS <= names
+        assert names >= LIFECYCLE_TOOLS
 
 
 class TestDisallowedToolAbsent:
@@ -254,7 +257,7 @@ class TestAllLifecycleToolsAlwaysPresent:
         sched = _make_scheduler(agent, tmp_path)
         names = await _extract_tool_names(sched)
 
-        assert LIFECYCLE_TOOLS <= names, (
+        assert names >= LIFECYCLE_TOOLS, (
             f"Missing lifecycle tools: "
             f"{LIFECYCLE_TOOLS - names}"
         )
