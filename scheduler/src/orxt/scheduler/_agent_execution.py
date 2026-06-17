@@ -585,18 +585,36 @@ class AgentExecutionMixin:
             task_id, TaskState.ESCALATED.value,
         )
 
-        # Send escalation event to Overseer
-        from orxt.protocols._events import (  # noqa: PLC0415
-            TaskEscalated,
+        # Try parent agent first, fall back to Overseer
+        parent_session = (
+            self._task_sessions.get(parent_task_id)
+            if parent_task_id is not None
+            else None
         )
-        await self._send_overseer_event(
-            TaskEscalated(
-                task_id=task_id,
-                task_name=task.name,
-                from_child_task_id=task_id,
-                payload=escalation,
-            ),
-        )
+        if (
+            parent_session is not None
+            and self._task_states.get(parent_task_id) == TaskState.ACTIVE
+        ):
+            escalation_msg = (
+                f"[ESCALATION] Task '{task.name}' exhausted"
+                f" {max_attempts} attempt(s). "
+                f"Failed checks: {[cr.message for cr in check_results if not cr.passed]}. "
+                f"Agent summary: Retries exhausted."
+            )
+            async for _ in parent_session.send(escalation_msg):
+                pass
+        else:
+            from orxt.protocols._events import (  # noqa: PLC0415
+                TaskEscalated,
+            )
+            await self._send_overseer_event(
+                TaskEscalated(
+                    task_id=task_id,
+                    task_name=task.name,
+                    from_child_task_id=task_id,
+                    payload=escalation,
+                ),
+            )
 
         return TaskResult(
             output=None,
