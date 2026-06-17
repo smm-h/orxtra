@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path as _Path
 from typing import TYPE_CHECKING
 
 from orxt.overseer._tools import (
@@ -41,6 +42,15 @@ if TYPE_CHECKING:
     from orxt.protocols._tool import Tool
     from orxt.session import Session
     from orxt.trace import TraceWriter
+
+_PROMPTS_DIR = _Path(__file__).resolve().parent.parent.parent.parent / "prompts"
+
+
+def load_overseer_prompt() -> str:
+    """Load the Overseer's base system prompt from the prompts directory."""
+    prompt_path = _PROMPTS_DIR / "overseer_base.md"
+    return prompt_path.read_text(encoding="utf-8")
+
 
 type OverseerEvent = (
     RunStarted
