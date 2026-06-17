@@ -118,7 +118,7 @@ class Scheduler(
     LifecycleHandlersMixin,
     EnforcementMixin,
 ):
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0915
         self,
         trace_writer: TraceWriter,
         transport_registry: dict[str, Transport],
@@ -141,7 +141,9 @@ class Scheduler(
         proportionality_threshold: float | None = None,
         autonomy_level: str = "max",
         secret_registry: SecretRegistry | None = None,
-        constraint_checkers: dict[str, Callable[..., Awaitable[CheckResult]]] | None = None,
+        constraint_checkers: (
+            dict[str, Callable[..., Awaitable[CheckResult]]] | None
+        ) = None,
     ) -> None:
         self._trace_writer = trace_writer
         self._pool = pool

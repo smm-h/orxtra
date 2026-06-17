@@ -198,7 +198,7 @@ class OverseerAdapter:
     """Bridges the scheduler's OverseerInterface protocol
     to the real Overseer instance."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         overseer: Overseer,
         health_monitor: HealthMonitor,
