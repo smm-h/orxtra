@@ -59,7 +59,7 @@ async def _fixed_escalation_ladder(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,
+    trace_writer: Any = None,  # noqa: ANN401
     run_id: UUID | None = None,
 ) -> None:
     """For TaskFailed/TaskEscalated: log and let the
@@ -76,7 +76,7 @@ async def _maintain_current_allocations(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,
+    trace_writer: Any = None,  # noqa: ANN401
     run_id: UUID | None = None,
 ) -> None:
     """For budget events: do nothing, just log."""
@@ -93,7 +93,7 @@ async def _escalate_to_human_inbox(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,
+    trace_writer: Any = None,  # noqa: ANN401
     run_id: UUID | None = None,
 ) -> None:
     """Default fallback: create an inbox item for
@@ -584,7 +584,7 @@ class OverseerAdapter:
                 continue
             try:
                 budget = Decimal(str(budget_str))
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S112
                 continue
             if budget > threshold:
                 errors.append(

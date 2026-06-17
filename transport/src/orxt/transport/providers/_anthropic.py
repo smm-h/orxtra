@@ -73,7 +73,7 @@ class AnthropicProvider:
                 blocks.append(ContentBlock(type="thinking", text=item["thinking"]))
         return blocks
 
-    async def parse_stream(
+    async def parse_stream(  # noqa: C901, PLR0912
         self,
         byte_stream: AsyncIterator[bytes],
     ) -> AsyncIterator[Event]:

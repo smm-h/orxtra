@@ -420,7 +420,11 @@ class Scheduler(
 
     async def _setup_pg_listener(
         self,
-    ) -> tuple[asyncio.Task[None] | None, asyncpg.pool.PoolConnectionProxy[Any] | None, object]:
+    ) -> tuple[
+        asyncio.Task[None] | None,
+        asyncpg.pool.PoolConnectionProxy[Any] | None,
+        object,
+    ]:
         """Set up cross-process signal delivery via PG LISTEN.
 
         Returns (listener_task, listener_conn,
@@ -492,7 +496,7 @@ class Scheduler(
         self,
         pg_listener_task: asyncio.Task[None] | None,
         pg_listener_conn: asyncpg.pool.PoolConnectionProxy[Any] | None,
-        on_notification: Any,
+        on_notification: Any,  # noqa: ANN401
     ) -> None:
         """Clean up PG listener resources."""
         if pg_listener_task is not None:
