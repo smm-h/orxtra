@@ -1,8 +1,8 @@
 """Tests for orchestrator task execution with await_task suspension."""
-# ruff: noqa: SLF001, ANN001, ANN201
 
 from __future__ import annotations
 
+import asyncio
 import re
 import uuid
 from typing import TYPE_CHECKING, Any
@@ -23,11 +23,16 @@ from orxt.transport import (
 from tests.conftest import MockTransportNoTools
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from orxt.protocols._tool import Tool
+    from orxt.scheduler._executor import Scheduler
+
+    from tests.conftest import MockTraceWriter
 
 
 @pytest.fixture
-def orchestrator_task():
+def orchestrator_task() -> TaskSpec:
     return TaskSpec(
         name="orchestrator",
         agent="test-agent",
@@ -40,13 +45,13 @@ def orchestrator_task():
 
 class TestOrchestratorDispatch:
     async def test_orchestrator_flag_dispatches_correctly(
-        self, orchestrator_task,
-    ):
+        self, orchestrator_task: TaskSpec,
+    ) -> None:
         """TaskSpec with orchestrator=True should dispatch
         to _execute_orchestrator_task."""
         assert orchestrator_task.orchestrator is True
 
-    async def test_taskspec_orchestrator_default_none(self):
+    async def test_taskspec_orchestrator_default_none(self) -> None:
         task = TaskSpec(
             name="normal",
             agent="test",
@@ -57,8 +62,8 @@ class TestOrchestratorDispatch:
         assert task.orchestrator is None
 
     async def test_execute_task_routes_to_orchestrator(
-        self, make_scheduler,
-    ):
+        self, make_scheduler: Callable[..., Scheduler],
+    ) -> None:
         """execute_task with orchestrator=True actually routes
         to _execute_orchestrator_task (not _execute_agent_task)."""
         # Use a transport that just returns a result (no tools)
@@ -75,13 +80,13 @@ class TestOrchestratorDispatch:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(
-            run_id=sched._run_id,
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
@@ -89,11 +94,13 @@ class TestOrchestratorDispatch:
 
         # Orchestrator completes with output from transport
         assert result.output == "done"
-        assert sched._task_states[task_id] == TaskState.COMPLETED
+        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
 
     async def test_orchestrator_transitions_active_then_completed(
-        self, make_scheduler, trace_writer,
-    ):
+        self,
+        make_scheduler: Callable[..., Scheduler],
+        trace_writer: MockTraceWriter,
+    ) -> None:
         """Orchestrator task transitions through ACTIVE -> COMPLETED."""
         sched = make_scheduler(
             transport_registry={
@@ -108,13 +115,13 @@ class TestOrchestratorDispatch:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(
-            run_id=sched._run_id,
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
 
         await sched.execute_task(task, None, task_id=task_id)
 
@@ -129,13 +136,13 @@ class TestOrchestratorDispatch:
 
 
 class TestAwaitTaskTool:
-    async def test_make_await_task_tool_is_suspending(self):
+    async def test_make_await_task_tool_is_suspending(self) -> None:
         mock_scheduler = AsyncMock()
         tool = make_await_task_tool(mock_scheduler, "session-1")
         assert tool.suspending is True
         assert tool.name == "await_task"
 
-    async def test_await_task_calls_handler(self):
+    async def test_await_task_calls_handler(self) -> None:
         mock_scheduler = AsyncMock()
         mock_scheduler.handle_await_task = AsyncMock(
             return_value="Awaiting task abc.",
@@ -150,12 +157,12 @@ class TestAwaitTaskTool:
 
 class TestHandleAwaitTask:
     async def test_handle_await_task_records_pending(
-        self, make_scheduler,
-    ):
+        self, make_scheduler: Callable[..., Scheduler],
+    ) -> None:
         scheduler = make_scheduler()
         task_id = uuid.uuid4()
-        scheduler._task_states[task_id] = TaskState.CREATED
-        scheduler._task_specs[task_id] = TaskSpec(
+        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
+        scheduler._task_specs[task_id] = TaskSpec(  # noqa: SLF001
             name="child",
             agent="test-agent",
             task_prompt="do stuff",
@@ -166,12 +173,12 @@ class TestHandleAwaitTask:
         result = await scheduler.handle_await_task(
             "session-1", str(task_id),
         )
-        assert scheduler._pending_await["session-1"] == str(task_id)
+        assert scheduler._pending_await["session-1"] == str(task_id)  # noqa: SLF001
         assert "Awaiting" in result
 
     async def test_handle_await_task_nonexistent_raises(
-        self, make_scheduler,
-    ):
+        self, make_scheduler: Callable[..., Scheduler],
+    ) -> None:
         scheduler = make_scheduler()
         with pytest.raises(Exception, match="does not exist"):
             await scheduler.handle_await_task(
@@ -180,10 +187,10 @@ class TestHandleAwaitTask:
 
 
 class TestTaskStateSuspended:
-    def test_suspended_state_exists(self):
+    def test_suspended_state_exists(self) -> None:
         assert TaskState.SUSPENDED == "suspended"
 
-    def test_suspended_in_enum(self):
+    def test_suspended_in_enum(self) -> None:
         assert "suspended" in [s.value for s in TaskState]
 
 
@@ -196,8 +203,10 @@ class TestOrchestratorSuspension:
     """
 
     async def test_orchestrator_suspends_and_resumes(  # noqa: C901
-        self, make_scheduler, trace_writer,
-    ):
+        self,
+        make_scheduler: Callable[..., Scheduler],
+        trace_writer: MockTraceWriter,
+    ) -> None:
         """Full orchestrator flow: create child, await, suspend,
         child runs, resume with result."""
         child_task_id_holder: list[str] = []
@@ -441,20 +450,20 @@ class TestOrchestratorSuspension:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(
-            run_id=sched._run_id,
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
         )
 
         # Verify the orchestrator completed
-        assert sched._task_states[task_id] == TaskState.COMPLETED
+        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
         assert result.output is not None
         output_lower = result.output.lower()
         assert (
@@ -463,7 +472,7 @@ class TestOrchestratorSuspension:
         )
 
         # Verify transport was actually resumed
-        assert transport._resumed is True
+        assert transport._resumed is True  # noqa: SLF001
 
         # Verify trace saw suspended and active transitions
         transitions = [
@@ -474,3 +483,754 @@ class TestOrchestratorSuspension:
         assert "suspended" in statuses
         # Should have gone active -> suspended -> active -> completed
         assert statuses.count("active") >= 2
+
+
+class TestOrchestratorMultiChild:
+    """Tests for orchestrator tasks that create and await
+    multiple children through sequential suspend/resume cycles."""
+
+    async def test_sequential_await_two_children(
+        self,
+        make_scheduler: Callable[..., Scheduler],
+        trace_writer: MockTraceWriter,
+    ) -> None:
+        """Orchestrator creates child A, awaits it, then creates
+        child B, awaits it. Both complete. Orchestrator gets both
+        results."""
+        child_ids: list[str] = []
+
+        class MultiAwaitTransport:
+            """Transport with 3 phases:
+            1. send: create child A, await A -> suspend
+            2. resume #1: create child B, await B -> suspend
+            3. resume #2: return final result
+            Child sends: start_task + end_task pattern.
+            """
+
+            def __init__(self) -> None:
+                self._send_count = 0
+                self._resume_count = 0
+
+            async def send(  # noqa: PLR0913
+                self,
+                message: str,
+                *,
+                model: str,
+                system_prompt: str,
+                tools: list[Tool],
+                session_id: str | None = None,
+                stream_deltas: bool = False,
+            ) -> Any:  # noqa: ANN401
+                _ = model, system_prompt, stream_deltas
+                self._send_count += 1
+                sid = session_id or str(uuid6.uuid7())
+                tool_map = {t.name: t for t in tools}
+
+                if self._send_count == 1:
+                    # Orchestrator: create child A, await A
+                    child_id = await tool_map[
+                        "create_task"
+                    ].execute({
+                        "name": "child-A",
+                        "agent": "test-agent",
+                        "task_prompt": "do child A work",
+                        "timeout": 60,
+                        "context_refinement": False,
+                    })
+                    child_ids.append(child_id)
+                    yield ToolUse(
+                        tool_name="create_task",
+                        input={"name": "child-A"},
+                        output=child_id,
+                        status="success",
+                    )
+                    await_result = await tool_map[
+                        "await_task"
+                    ].execute({"task_id": child_id})
+                    yield ToolUse(
+                        tool_name="await_task",
+                        input={"task_id": child_id},
+                        output=await_result,
+                        status="success",
+                    )
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=10,
+                        output_tokens=5,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield SessionSuspended(
+                        continuation=Continuation(
+                            executed_results=[],
+                            remaining_blocks=[],
+                            session_id=sid,
+                        ),
+                        session_id=sid,
+                    )
+                else:
+                    # Child send: start_task + end_task
+                    match = re.search(
+                        r"Your task ID is ([0-9a-f-]+)",
+                        message,
+                    )
+                    task_id_str = (
+                        match.group(1) if match else "unknown"
+                    )
+                    if "start_task" in tool_map:
+                        sr = await tool_map[
+                            "start_task"
+                        ].execute({"task_id": task_id_str})
+                        yield ToolUse(
+                            tool_name="start_task",
+                            input={"task_id": task_id_str},
+                            output=sr,
+                            status="success",
+                        )
+                    if "end_task" in tool_map:
+                        child_label = (
+                            "A" if self._send_count == 2
+                            else "B"
+                        )
+                        er = await tool_map[
+                            "end_task"
+                        ].execute(
+                            {"message": f"child {child_label} done"},
+                        )
+                        yield ToolUse(
+                            tool_name="end_task",
+                            input={
+                                "message": (
+                                    f"child {child_label} done"
+                                ),
+                            },
+                            output=er,
+                            status="success",
+                        )
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=10,
+                        output_tokens=5,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    child_label = (
+                        "A" if self._send_count == 2
+                        else "B"
+                    )
+                    yield Result(
+                        text=f"child {child_label} done",
+                        session_id=sid,
+                        total_input_tokens=10,
+                        total_output_tokens=5,
+                        total_reasoning_tokens=0,
+                        total_cache_read_tokens=0,
+                        total_cache_write_tokens=0,
+                        tool_calls=2,
+                    )
+
+            async def resume(  # noqa: PLR0913
+                self,
+                continuation: Continuation,
+                result: str,
+                *,
+                model: str,
+                system_prompt: str,
+                tools: list[Tool],
+                session_id: str | None = None,
+                stream_deltas: bool = False,
+            ) -> Any:  # noqa: ANN401
+                _ = model, system_prompt, stream_deltas
+                _ = continuation
+                self._resume_count += 1
+                sid = session_id or str(uuid6.uuid7())
+                tool_map = {t.name: t for t in tools}
+
+                if self._resume_count == 1:
+                    # Resume #1: create child B, await B
+                    child_id = await tool_map[
+                        "create_task"
+                    ].execute({
+                        "name": "child-B",
+                        "agent": "test-agent",
+                        "task_prompt": "do child B work",
+                        "timeout": 60,
+                        "context_refinement": False,
+                    })
+                    child_ids.append(child_id)
+                    yield ToolUse(
+                        tool_name="create_task",
+                        input={"name": "child-B"},
+                        output=child_id,
+                        status="success",
+                    )
+                    await_result = await tool_map[
+                        "await_task"
+                    ].execute({"task_id": child_id})
+                    yield ToolUse(
+                        tool_name="await_task",
+                        input={"task_id": child_id},
+                        output=await_result,
+                        status="success",
+                    )
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=5,
+                        output_tokens=3,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield SessionSuspended(
+                        continuation=Continuation(
+                            executed_results=[],
+                            remaining_blocks=[],
+                            session_id=sid,
+                        ),
+                        session_id=sid,
+                    )
+                else:
+                    # Resume #2: final result
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=5,
+                        output_tokens=3,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield Result(
+                        text=(
+                            "Both children done."
+                            f" Got: {result}"
+                        ),
+                        session_id=sid,
+                        total_input_tokens=20,
+                        total_output_tokens=11,
+                        total_reasoning_tokens=0,
+                        total_cache_read_tokens=0,
+                        total_cache_write_tokens=0,
+                        tool_calls=0,
+                    )
+
+        transport = MultiAwaitTransport()
+        sched = make_scheduler(
+            transport_registry={"anthropic": transport},
+        )
+
+        task = TaskSpec(
+            name="orch",
+            agent="test-agent",
+            task_prompt="orchestrate two children",
+            timeout=300,
+            context_refinement=False,
+            orchestrator=True,
+        )
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
+            parent_task_id=None,
+            name=task.name,
+            task_type="agent",
+        )
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+
+        result = await sched.execute_task(
+            task, None, task_id=task_id,
+        )
+
+        # Both children were created
+        assert len(child_ids) == 2
+
+        # Orchestrator completed
+        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert result.output is not None
+        assert "both" in result.output.lower()
+
+        # Transport went through 2 resumes
+        assert transport._resume_count == 2  # noqa: SLF001
+
+        # Verify trace: suspended twice, active 3+ times
+        transitions = [
+            c for c in trace_writer.get_calls("transition_task")
+            if c["task_id"] == task_id
+        ]
+        statuses = [t["new_status"] for t in transitions]
+        assert statuses.count("suspended") == 2
+        assert statuses.count("active") >= 3
+
+    async def test_orchestrator_postchecks_not_enforced(
+        self,
+        make_scheduler: Callable[..., Scheduler],
+    ) -> None:
+        """Orchestrator tasks complete without postcheck enforcement.
+
+        _execute_orchestrator_task goes directly to COMPLETED
+        without running postchecks. This test verifies the
+        orchestrator completes with expected output and documents
+        that postchecks are a known gap in the orchestrator path
+        (they are only enforced in _execute_agent_task via the
+        enforcement layer).
+        """
+        sched = make_scheduler(
+            transport_registry={
+                "anthropic": MockTransportNoTools(
+                    "orchestrator output",
+                ),
+            },
+        )
+        task = TaskSpec(
+            name="orch-with-checks",
+            agent="test-agent",
+            task_prompt="do checked work",
+            timeout=60,
+            context_refinement=False,
+            orchestrator=True,
+            # postchecks would go here if supported
+        )
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
+            parent_task_id=None,
+            name=task.name,
+            task_type="agent",
+        )
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+
+        result = await sched.execute_task(
+            task, None, task_id=task_id,
+        )
+
+        # Orchestrator completes successfully
+        assert result.output == "orchestrator output"
+        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        # check_results is empty because orchestrator
+        # path does not run postchecks
+        assert result.check_results == []
+
+    async def test_child_timeout_during_await(
+        self,
+        make_scheduler: Callable[..., Scheduler],
+    ) -> None:
+        """Orchestrator creates a child with a short timeout.
+        The child's transport sleeps longer than the timeout.
+        The child fails with timeout, and the orchestrator
+        resumes with the failure result."""
+        child_id_holder: list[str] = []
+
+        class TimeoutOrchestratorTransport:
+            """Orchestrator creates a child with timeout=1,
+            the child's transport sleeps forever."""
+
+            def __init__(self) -> None:
+                self._send_count = 0
+
+            async def send(  # noqa: PLR0913
+                self,
+                message: str,
+                *,
+                model: str,
+                system_prompt: str,
+                tools: list[Tool],
+                session_id: str | None = None,
+                stream_deltas: bool = False,
+            ) -> Any:  # noqa: ANN401
+                _ = model, system_prompt, stream_deltas
+                self._send_count += 1
+                sid = session_id or str(uuid6.uuid7())
+                tool_map = {t.name: t for t in tools}
+
+                if self._send_count == 1:
+                    # Orchestrator: create child with
+                    # short timeout, await it
+                    child_id = await tool_map[
+                        "create_task"
+                    ].execute({
+                        "name": "slow-child",
+                        "agent": "test-agent",
+                        "task_prompt": "take too long",
+                        "timeout": 1,
+                        "context_refinement": False,
+                    })
+                    child_id_holder.append(child_id)
+                    yield ToolUse(
+                        tool_name="create_task",
+                        input={"name": "slow-child"},
+                        output=child_id,
+                        status="success",
+                    )
+                    await_result = await tool_map[
+                        "await_task"
+                    ].execute({"task_id": child_id})
+                    yield ToolUse(
+                        tool_name="await_task",
+                        input={"task_id": child_id},
+                        output=await_result,
+                        status="success",
+                    )
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=10,
+                        output_tokens=5,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield SessionSuspended(
+                        continuation=Continuation(
+                            executed_results=[],
+                            remaining_blocks=[],
+                            session_id=sid,
+                        ),
+                        session_id=sid,
+                    )
+                else:
+                    # Child send: sleeps forever (will be
+                    # cancelled by timeout)
+                    await asyncio.sleep(999)
+                    # Should never reach here
+                    yield Result(
+                        text="unreachable",
+                        session_id=sid,
+                        total_input_tokens=0,
+                        total_output_tokens=0,
+                        total_reasoning_tokens=0,
+                        total_cache_read_tokens=0,
+                        total_cache_write_tokens=0,
+                        tool_calls=0,
+                    )
+
+            async def resume(  # noqa: PLR0913
+                self,
+                continuation: Continuation,
+                result: str,
+                *,
+                model: str,
+                system_prompt: str,
+                tools: list[Tool],
+                session_id: str | None = None,
+                stream_deltas: bool = False,
+            ) -> Any:  # noqa: ANN401
+                _ = (
+                    continuation, model,
+                    system_prompt, tools,
+                    stream_deltas,
+                )
+                sid = session_id or str(uuid6.uuid7())
+                yield StepFinish(
+                    reason="end_turn",
+                    input_tokens=5,
+                    output_tokens=3,
+                    reasoning_tokens=0,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                )
+                yield Result(
+                    text=(
+                        "Orchestrator done after"
+                        f" child result: {result}"
+                    ),
+                    session_id=sid,
+                    total_input_tokens=15,
+                    total_output_tokens=8,
+                    total_reasoning_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_cache_write_tokens=0,
+                    tool_calls=0,
+                )
+
+        transport = TimeoutOrchestratorTransport()
+        sched = make_scheduler(
+            transport_registry={"anthropic": transport},
+        )
+
+        task = TaskSpec(
+            name="orch-timeout",
+            agent="test-agent",
+            task_prompt="orchestrate with timeout child",
+            timeout=300,
+            context_refinement=False,
+            orchestrator=True,
+        )
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
+            parent_task_id=None,
+            name=task.name,
+            task_type="agent",
+        )
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+
+        result = await sched.execute_task(
+            task, None, task_id=task_id,
+        )
+
+        # The child timed out. The orchestrator resumes with
+        # the child's "no output" result (since child returned
+        # TaskResult(output=None) on timeout).
+        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert result.output is not None
+        # The resume message contains "no output" for timed-out child
+        assert "no output" in result.output.lower()
+
+    async def test_create_three_children_await_sequentially(
+        self,
+        make_scheduler: Callable[..., Scheduler],
+        trace_writer: MockTraceWriter,
+    ) -> None:
+        """Orchestrator creates 3 children upfront in the
+        initial send, then awaits them one by one via
+        sequential suspend/resume cycles."""
+        child_ids: list[str] = []
+
+        class ThreeChildTransport:
+            """Transport that:
+            1. send #1 (orchestrator): creates 3 children,
+               awaits the first -> suspend
+            2. send #2,3,4 (children): start_task + end_task
+            3. resume #1: awaits second child -> suspend
+            4. resume #2: awaits third child -> suspend
+            5. resume #3: returns final result
+            """
+
+            def __init__(self) -> None:
+                self._send_count = 0
+                self._resume_count = 0
+
+            async def send(  # noqa: PLR0913
+                self,
+                message: str,
+                *,
+                model: str,
+                system_prompt: str,
+                tools: list[Tool],
+                session_id: str | None = None,
+                stream_deltas: bool = False,
+            ) -> Any:  # noqa: ANN401
+                _ = model, system_prompt, stream_deltas
+                self._send_count += 1
+                sid = session_id or str(uuid6.uuid7())
+                tool_map = {t.name: t for t in tools}
+
+                if self._send_count == 1:
+                    # Orchestrator: create 3 children upfront
+                    for i in range(3):
+                        cid = await tool_map[
+                            "create_task"
+                        ].execute({
+                            "name": f"child-{i}",
+                            "agent": "test-agent",
+                            "task_prompt": f"do work {i}",
+                            "timeout": 60,
+                            "context_refinement": False,
+                        })
+                        child_ids.append(cid)
+                        yield ToolUse(
+                            tool_name="create_task",
+                            input={"name": f"child-{i}"},
+                            output=cid,
+                            status="success",
+                        )
+
+                    # Await the first child
+                    await_result = await tool_map[
+                        "await_task"
+                    ].execute(
+                        {"task_id": child_ids[0]},
+                    )
+                    yield ToolUse(
+                        tool_name="await_task",
+                        input={"task_id": child_ids[0]},
+                        output=await_result,
+                        status="success",
+                    )
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=10,
+                        output_tokens=5,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield SessionSuspended(
+                        continuation=Continuation(
+                            executed_results=[],
+                            remaining_blocks=[],
+                            session_id=sid,
+                        ),
+                        session_id=sid,
+                    )
+                else:
+                    # Child sends: start_task + end_task
+                    child_idx = self._send_count - 2
+                    match = re.search(
+                        r"Your task ID is ([0-9a-f-]+)",
+                        message,
+                    )
+                    task_id_str = (
+                        match.group(1) if match
+                        else "unknown"
+                    )
+                    if "start_task" in tool_map:
+                        sr = await tool_map[
+                            "start_task"
+                        ].execute(
+                            {"task_id": task_id_str},
+                        )
+                        yield ToolUse(
+                            tool_name="start_task",
+                            input={
+                                "task_id": task_id_str,
+                            },
+                            output=sr,
+                            status="success",
+                        )
+                    if "end_task" in tool_map:
+                        er = await tool_map[
+                            "end_task"
+                        ].execute(
+                            {"message": f"child {child_idx} done"},
+                        )
+                        yield ToolUse(
+                            tool_name="end_task",
+                            input={
+                                "message": (
+                                    f"child {child_idx} done"
+                                ),
+                            },
+                            output=er,
+                            status="success",
+                        )
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=10,
+                        output_tokens=5,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield Result(
+                        text=f"child {child_idx} done",
+                        session_id=sid,
+                        total_input_tokens=10,
+                        total_output_tokens=5,
+                        total_reasoning_tokens=0,
+                        total_cache_read_tokens=0,
+                        total_cache_write_tokens=0,
+                        tool_calls=2,
+                    )
+
+            async def resume(  # noqa: PLR0913
+                self,
+                continuation: Continuation,
+                result: str,
+                *,
+                model: str,
+                system_prompt: str,
+                tools: list[Tool],
+                session_id: str | None = None,
+                stream_deltas: bool = False,
+            ) -> Any:  # noqa: ANN401
+                _ = model, system_prompt, stream_deltas
+                _ = continuation
+                self._resume_count += 1
+                sid = session_id or str(uuid6.uuid7())
+                tool_map = {t.name: t for t in tools}
+
+                if self._resume_count <= 2:
+                    # Await the next child
+                    idx = self._resume_count
+                    await_result = await tool_map[
+                        "await_task"
+                    ].execute(
+                        {"task_id": child_ids[idx]},
+                    )
+                    yield ToolUse(
+                        tool_name="await_task",
+                        input={
+                            "task_id": child_ids[idx],
+                        },
+                        output=await_result,
+                        status="success",
+                    )
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=5,
+                        output_tokens=3,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield SessionSuspended(
+                        continuation=Continuation(
+                            executed_results=[],
+                            remaining_blocks=[],
+                            session_id=sid,
+                        ),
+                        session_id=sid,
+                    )
+                else:
+                    # Resume #3: final result
+                    yield StepFinish(
+                        reason="end_turn",
+                        input_tokens=5,
+                        output_tokens=3,
+                        reasoning_tokens=0,
+                        cache_read_tokens=0,
+                        cache_write_tokens=0,
+                    )
+                    yield Result(
+                        text="All 3 children done.",
+                        session_id=sid,
+                        total_input_tokens=30,
+                        total_output_tokens=17,
+                        total_reasoning_tokens=0,
+                        total_cache_read_tokens=0,
+                        total_cache_write_tokens=0,
+                        tool_calls=0,
+                    )
+
+        transport = ThreeChildTransport()
+        sched = make_scheduler(
+            transport_registry={"anthropic": transport},
+        )
+
+        task = TaskSpec(
+            name="orch-three",
+            agent="test-agent",
+            task_prompt="orchestrate three children",
+            timeout=300,
+            context_refinement=False,
+            orchestrator=True,
+        )
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
+            parent_task_id=None,
+            name=task.name,
+            task_type="agent",
+        )
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+
+        result = await sched.execute_task(
+            task, None, task_id=task_id,
+        )
+
+        # All 3 children were created
+        assert len(child_ids) == 3
+
+        # Orchestrator completed
+        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert result.output is not None
+        assert "3" in result.output or "all" in result.output.lower()
+
+        # Transport went through 3 resumes
+        assert transport._resume_count == 3  # noqa: SLF001
+
+        # Verify trace: suspended 3 times
+        transitions = [
+            c for c in trace_writer.get_calls("transition_task")
+            if c["task_id"] == task_id
+        ]
+        statuses = [t["new_status"] for t in transitions]
+        assert statuses.count("suspended") == 3
+        # active: initial + 3 resumes = 4
+        assert statuses.count("active") >= 4

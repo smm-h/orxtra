@@ -17,8 +17,18 @@ if TYPE_CHECKING:
 
     from orxt.transport import Event
 
+# Import MockTraceWriter from the repo-root tests/shared_mocks.py.
+# Direct importlib path import avoids scheduler/tests/ shadowing the
+# root tests/ package when pytest runs from the scheduler/ subdirectory.
+import importlib.util as _ilu
 
-from tests.shared_mocks import MockTraceWriter
+_spec = _ilu.spec_from_file_location(
+    "tests.shared_mocks",
+    Path(__file__).resolve().parents[2] / "tests" / "shared_mocks.py",
+)
+_mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
+_spec.loader.exec_module(_mod)  # type: ignore[union-attr]
+MockTraceWriter = _mod.MockTraceWriter
 
 
 class MockTransport:
