@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import asyncio
-import glob as glob_mod
 import json
 import logging
 import re
@@ -16,8 +15,8 @@ from orxt.protocols._constraints import (
     ConstraintKind,
 )
 from orxt.protocols._execution import CheckResult
-from orxt.session import compute_cost_usd
 from orxt.protocols._task import BudgetExhaustionPolicy
+from orxt.session import compute_cost_usd
 from orxt.verify import run_checks
 
 if TYPE_CHECKING:
@@ -431,11 +430,8 @@ class EnforcementMixin(SchedulerBase):
     ) -> dict[str, set[str]]:
         """Extract top-level names from files matching glob."""
         result: dict[str, set[str]] = {}
-        for filepath in glob_mod.glob(
-            glob_pattern, root_dir=str(self._read_root),
-            recursive=True,
-        ):
-            full = self._read_root / filepath
+        for full in self._read_root.glob(glob_pattern):
+            filepath = str(full.relative_to(self._read_root))
             if not full.is_file():
                 continue
             try:
@@ -444,9 +440,10 @@ class EnforcementMixin(SchedulerBase):
                 continue
             names: set[str] = set()
             for node in ast.iter_child_nodes(tree):
-                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-                    names.add(node.name)
-                elif isinstance(node, ast.ClassDef):
+                if isinstance(
+                    node,
+                    ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
+                ):
                     names.add(node.name)
                 elif isinstance(node, ast.Assign):
                     for target in node.targets:
@@ -460,11 +457,8 @@ class EnforcementMixin(SchedulerBase):
     ) -> dict[str, dict[str, list[str]]]:
         """Extract function signatures from files matching glob."""
         result: dict[str, dict[str, list[str]]] = {}
-        for filepath in glob_mod.glob(
-            glob_pattern, root_dir=str(self._read_root),
-            recursive=True,
-        ):
-            full = self._read_root / filepath
+        for full in self._read_root.glob(glob_pattern):
+            filepath = str(full.relative_to(self._read_root))
             if not full.is_file():
                 continue
             try:
@@ -474,13 +468,9 @@ class EnforcementMixin(SchedulerBase):
             sigs: dict[str, list[str]] = {}
             for node in ast.iter_child_nodes(tree):
                 if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-                    params: list[str] = []
-                    for arg in node.args.args:
-                        params.append(arg.arg)
-                    for arg in node.args.posonlyargs:
-                        params.append(arg.arg)
-                    for arg in node.args.kwonlyargs:
-                        params.append(arg.arg)
+                    params: list[str] = [arg.arg for arg in node.args.args]
+                    params.extend(arg.arg for arg in node.args.posonlyargs)
+                    params.extend(arg.arg for arg in node.args.kwonlyargs)
                     if node.args.vararg:
                         params.append(f"*{node.args.vararg.arg}")
                     if node.args.kwarg:

@@ -466,13 +466,15 @@ class Transport:
             full_text = "".join(text_parts)
             blocks.append(ContentBlock(type="text", text=full_text))
             events.append(Text(text=full_text))
-        for stu in tool_use_events:
-            blocks.append(ContentBlock(
+        blocks.extend(
+            ContentBlock(
                 type="tool_use",
                 tool_use_id=stu.tool_use_id,
                 tool_name=stu.tool_name,
                 tool_input=stu.tool_input,
-            ))
+            )
+            for stu in tool_use_events
+        )
 
         text_blocks, _thinking_blocks, tool_use_blocks = (
             self._categorize_blocks(blocks)

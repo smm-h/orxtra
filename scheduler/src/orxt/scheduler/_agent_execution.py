@@ -20,7 +20,6 @@ from orxt.tool._consult_tool import make_consult_tool
 from orxt.tool._exec_tool import make_exec_tool
 from orxt.tool._git_tool import make_git_tool
 from orxt.tool._http_tool import make_http_tool
-from orxt.tool._shell_tool import make_shell_tool
 from orxt.tool._notepad_tool import make_notepad_tool
 from orxt.tool._pipeline import wrap_tools_for_session
 from orxt.tool._read_tools import (
@@ -31,6 +30,7 @@ from orxt.tool._read_tools import (
     make_read_tool,
     make_stat_tool,
 )
+from orxt.tool._shell_tool import make_shell_tool
 from orxt.tool._task_tools import (
     make_await_task_tool,
     make_create_task_tool,
@@ -62,7 +62,7 @@ _logger = logging.getLogger("orxt.scheduler")
 class AgentExecutionMixin(SchedulerBase):
     """Mixin for agent and orchestrator task execution."""
 
-    async def _execute_orchestrator_task(
+    async def _execute_orchestrator_task(  # noqa: C901, PLR0915
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -720,7 +720,7 @@ class AgentExecutionMixin(SchedulerBase):
         )
         return session, session_id
 
-    def _build_agent_tools(
+    def _build_agent_tools(  # noqa: C901, PLR0912
         self,
         agent_def: Agent,
         task_id: UUID,
@@ -860,8 +860,8 @@ class AgentExecutionMixin(SchedulerBase):
 
         # Exec tools (per-agent configured executables)
         if "exec" in agent_allow and agent_def.exec_tools:
-            for exec_config in agent_def.exec_tools:
-                raw_tools.append(make_exec_tool(
+            raw_tools.extend(
+                make_exec_tool(
                     executable=exec_config.executable,
                     description=exec_config.description,
                     arg_schema={},
@@ -871,7 +871,9 @@ class AgentExecutionMixin(SchedulerBase):
                     ),
                     preview_threshold=preview_threshold,
                     preview_lines=preview_lines,
-                ))
+                )
+                for exec_config in agent_def.exec_tools
+            )
 
         # Shell tool (per-agent configured shell access)
         if (
@@ -911,7 +913,7 @@ class AgentExecutionMixin(SchedulerBase):
 
         return raw_tools
 
-    async def _assemble_agent_prompt(
+    async def _assemble_agent_prompt(  # noqa: C901, PLR0913
         self,
         task: TaskSpec,
         task_id: UUID,

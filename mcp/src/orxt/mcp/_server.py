@@ -287,6 +287,7 @@ class MCPServer:
         and forwards them as JSON-RPC notifications."""
 
         async def _listen() -> None:
+            drain_tasks: set[asyncio.Task[None]] = set()
             while True:
                 conn = None
                 try:
@@ -310,8 +311,10 @@ class MCPServer:
                         writer.write(
                             (json.dumps(notification) + "\n").encode(),
                         )
-                        # drain is async; schedule it
-                        asyncio.ensure_future(writer.drain())
+                        # drain is async; prevent GC
+                        task = asyncio.ensure_future(writer.drain())
+                        drain_tasks.add(task)
+                        task.add_done_callback(drain_tasks.discard)
 
                     await conn.add_listener(
                         "orxt_events", _on_notification,
@@ -323,10 +326,8 @@ class MCPServer:
                 except Exception:  # noqa: BLE001
                     # Connection dropped - wait and retry
                     if conn is not None:
-                        try:
+                        with contextlib.suppress(Exception):
                             await self._pool.release(conn)
-                        except Exception:  # noqa: BLE001, S110
-                            pass
                     await asyncio.sleep(1)
 
         return asyncio.create_task(_listen())

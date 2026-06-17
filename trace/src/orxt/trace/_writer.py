@@ -13,7 +13,11 @@ if TYPE_CHECKING:
 
     import asyncpg
 
-from orxt.trace._transitions import InvalidTransitionError, validate_run_transition, validate_task_transition
+from orxt.trace._transitions import (
+    InvalidTransitionError,
+    validate_run_transition,
+    validate_task_transition,
+)
 
 
 class TraceWriter:
@@ -387,7 +391,11 @@ class TraceWriter:
                     "SELECT status FROM inbox_items WHERE id = $1",
                     item_id,
                 )
-                msg = f"cannot transition inbox item {item_id} from {current!r} to 'answered': only 'pending' items can be answered"
+                msg = (
+                    f"cannot transition inbox item {item_id}"
+                    f" from {current!r} to 'answered':"
+                    " only 'pending' items can be answered"
+                )
                 raise InvalidTransitionError(msg)
 
     async def skip_inbox_item(self, item_id: UUID) -> None:
@@ -402,7 +410,11 @@ class TraceWriter:
                     "SELECT status FROM inbox_items WHERE id = $1",
                     item_id,
                 )
-                msg = f"cannot transition inbox item {item_id} from {current!r} to 'skipped': only 'pending' items can be skipped"
+                msg = (
+                    f"cannot transition inbox item {item_id}"
+                    f" from {current!r} to 'skipped':"
+                    " only 'pending' items can be skipped"
+                )
                 raise InvalidTransitionError(msg)
 
     async def reject_inbox_item(self, item_id: UUID, reason: str) -> None:
@@ -419,7 +431,11 @@ class TraceWriter:
                     "SELECT status FROM inbox_items WHERE id = $1",
                     item_id,
                 )
-                msg = f"cannot transition inbox item {item_id} from {current!r} to 'rejected': only 'pending' items can be rejected"
+                msg = (
+                    f"cannot transition inbox item {item_id}"
+                    f" from {current!r} to 'rejected':"
+                    " only 'pending' items can be rejected"
+                )
                 raise InvalidTransitionError(msg)
 
     async def expire_inbox_item(self, item_id: UUID) -> None:
@@ -434,7 +450,11 @@ class TraceWriter:
                     "SELECT status FROM inbox_items WHERE id = $1",
                     item_id,
                 )
-                msg = f"cannot transition inbox item {item_id} from {current!r} to 'expired': only 'pending' items can be expired"
+                msg = (
+                    f"cannot transition inbox item {item_id}"
+                    f" from {current!r} to 'expired':"
+                    " only 'pending' items can be expired"
+                )
                 raise InvalidTransitionError(msg)
 
     async def write_context_diff(
