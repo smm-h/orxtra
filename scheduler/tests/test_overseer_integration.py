@@ -332,6 +332,7 @@ def _make_adapter_for_verify() -> (
     adapter._current_tool_calls = []  # noqa: SLF001
     adapter._budget_limit = None  # noqa: SLF001
     adapter._spent_fn = None  # noqa: SLF001
+    adapter._proportionality_threshold = None  # noqa: SLF001
     return adapter, monitor
 
 
@@ -926,6 +927,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._proportionality_threshold = 0.5  # noqa: SLF001
         adapter._spent_fn = lambda: Decimal("2.00")  # noqa: SLF001
         # Remaining = 8.00, threshold = 4.00
         adapter._current_tool_calls = [  # noqa: SLF001
@@ -947,6 +949,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._proportionality_threshold = 0.5  # noqa: SLF001
         adapter._spent_fn = lambda: Decimal("2.00")  # noqa: SLF001
         # Remaining = 8.00, threshold = 4.00
         adapter._current_tool_calls = [  # noqa: SLF001
@@ -987,6 +990,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._proportionality_threshold = 0.5  # noqa: SLF001
         adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
         adapter._current_tool_calls = [  # noqa: SLF001
             {
@@ -1007,6 +1011,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._proportionality_threshold = 0.5  # noqa: SLF001
         adapter._spent_fn = lambda: Decimal("10.00")  # noqa: SLF001
         adapter._current_tool_calls = [  # noqa: SLF001
             {
@@ -1027,6 +1032,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._proportionality_threshold = 0.5  # noqa: SLF001
         adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
         # Remaining = 10.00, threshold = 5.00
         adapter._current_tool_calls = [  # noqa: SLF001
@@ -1048,6 +1054,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._proportionality_threshold = 0.5  # noqa: SLF001
         # spent_fn left as None (default)
         # Remaining = 10.00, threshold = 5.00
         adapter._current_tool_calls = [  # noqa: SLF001
@@ -1069,6 +1076,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._proportionality_threshold = 0.5  # noqa: SLF001
         adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
         adapter._current_tool_calls = [  # noqa: SLF001
             {

@@ -138,6 +138,7 @@ class Scheduler(
             BudgetExhaustionPolicy.UNLIMITED
         ),
         budget_limit: Decimal | None = None,
+        proportionality_threshold: float | None = None,
         autonomy_level: str = "max",
         secret_registry: SecretRegistry | None = None,
         constraint_checkers: dict[str, Callable[..., Awaitable[CheckResult]]] | None = None,
@@ -157,6 +158,7 @@ class Scheduler(
         self._handoff_performer = handoff_performer
         self._budget_exhaustion_policy = budget_exhaustion_policy
         self._budget_limit = budget_limit
+        self._proportionality_threshold = proportionality_threshold
         self._autonomy_level = autonomy_level
         self._secret_registry = secret_registry
         self._constraint_checkers = constraint_checkers or {}
