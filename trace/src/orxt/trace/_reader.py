@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 
 from orxt.trace._types import (
@@ -149,7 +150,7 @@ async def read_run_report(
         "created_at": run["created_at"],
         "finished_at": run["finished_at"],
         "autonomy_level": run["autonomy_level"],
-        "config_snapshot": run["config_snapshot"],
+        "config_snapshot": json.loads(run["config_snapshot"]) if isinstance(run["config_snapshot"], str) else run["config_snapshot"],
         "total_input_tokens": run["total_input_tokens"],
         "total_output_tokens": run["total_output_tokens"],
         "total_reasoning_tokens": run["total_reasoning_tokens"],

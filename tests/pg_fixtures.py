@@ -6,7 +6,6 @@ with the full orxt trace schema applied.
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import TYPE_CHECKING, AsyncIterator
 
 import pytest
@@ -59,15 +58,7 @@ async def pg_pool(pg_container) -> AsyncIterator[asyncpg.Pool]:
         "postgresql+psycopg2://", "postgresql://"
     )
 
-    async def _init_connection(conn: _asyncpg.Connection) -> None:
-        await conn.set_type_codec(
-            "jsonb",
-            encoder=json.dumps,
-            decoder=json.loads,
-            schema="pg_catalog",
-        )
-
-    pool = await _asyncpg.create_pool(url, init=_init_connection)
+    pool = await _asyncpg.create_pool(url)
 
     async with pool.acquire() as conn:
         # Drop all tables so each test starts clean.
