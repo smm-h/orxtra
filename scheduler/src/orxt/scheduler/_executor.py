@@ -419,7 +419,7 @@ class Scheduler(
 
     async def _setup_pg_listener(
         self,
-    ) -> tuple[asyncio.Task[None] | None, asyncpg.Connection | None, object]:
+    ) -> tuple[asyncio.Task[None] | None, asyncpg.pool.PoolConnectionProxy[Any] | None, object]:
         """Set up cross-process signal delivery via PG LISTEN.
 
         Returns (listener_task, listener_conn,
@@ -431,14 +431,14 @@ class Scheduler(
         pg_listener_conn = await self._pool.acquire()
 
         def _on_notification(
-            conn: object,
+            conn: asyncpg.Connection[Any] | asyncpg.pool.PoolConnectionProxy[Any],
             pid: int,
             channel: str,
-            payload: str,
+            payload: object,
         ) -> None:
             _ = conn, pid, channel
             try:
-                msg = json.loads(payload)
+                msg = json.loads(str(payload))
             except json.JSONDecodeError:
                 _logger.warning(
                     "Invalid PG notification payload:"
@@ -490,15 +490,15 @@ class Scheduler(
     async def _cleanup_pg_listener(
         self,
         pg_listener_task: asyncio.Task[None] | None,
-        pg_listener_conn: asyncpg.Connection | None,
-        on_notification: object,
+        pg_listener_conn: asyncpg.pool.PoolConnectionProxy[Any] | None,
+        on_notification: Any,
     ) -> None:
         """Clean up PG listener resources."""
         if pg_listener_task is not None:
             pg_listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await pg_listener_task
-        if pg_listener_conn is not None:
+        if pg_listener_conn is not None and self._pool is not None:
             await pg_listener_conn.remove_listener(
                 "orxt_events", on_notification,
             )
