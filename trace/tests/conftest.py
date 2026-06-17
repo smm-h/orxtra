@@ -46,6 +46,7 @@ class MockConnection:
         self._fetch_results: list[list[dict[str, object]]] = []
         self._fetchrow_results: list[dict[str, object] | None] = []
         self._fetchval_results: list[object] = []
+        self._execute_results: list[str] = []
 
     # -- queue helpers --
 
@@ -62,12 +63,17 @@ class MockConnection:
     def queue_fetchval(self, value: object) -> None:
         self._fetchval_results.append(value)
 
+    def queue_execute(self, result: str) -> None:
+        self._execute_results.append(result)
+
     # -- asyncpg-compatible interface --
 
     async def execute(
         self, sql: str, *args: object,
     ) -> str:
         self.executed.append((sql, args))
+        if self._execute_results:
+            return self._execute_results.pop(0)
         return "DONE"
 
     async def fetch(

@@ -486,6 +486,7 @@ class TestInbox:
     async def test_answer_inbox_item(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
+        mock_pool.conn.queue_execute("UPDATE 1")
         await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
 
         sql, args = mock_pool.conn.executed[0]
@@ -496,6 +497,7 @@ class TestInbox:
     async def test_skip_inbox_item(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
+        mock_pool.conn.queue_execute("UPDATE 1")
         await writer.skip_inbox_item(INBOX_ITEM_ID)
 
         sql, args = mock_pool.conn.executed[0]
@@ -506,6 +508,7 @@ class TestInbox:
     async def test_reject_inbox_item(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
+        mock_pool.conn.queue_execute("UPDATE 1")
         await writer.reject_inbox_item(
             INBOX_ITEM_ID, "not relevant",
         )
@@ -518,12 +521,43 @@ class TestInbox:
     async def test_expire_inbox_item(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
+        mock_pool.conn.queue_execute("UPDATE 1")
         await writer.expire_inbox_item(INBOX_ITEM_ID)
 
         sql, args = mock_pool.conn.executed[0]
         assert "update inbox_items" in sql.lower()
         assert "status = 'expired'" in sql.lower()
         assert args == (INBOX_ITEM_ID,)
+
+    async def test_answer_already_answered_raises(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        mock_pool.conn.queue_execute("UPDATE 0")
+        mock_pool.conn.queue_fetchval("answered")
+        with pytest.raises(
+            InvalidTransitionError,
+            match="cannot transition inbox item.*from 'answered' to 'answered'",
+        ):
+            await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
+
+    async def test_skip_expired_raises(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        mock_pool.conn.queue_execute("UPDATE 0")
+        mock_pool.conn.queue_fetchval("expired")
+        with pytest.raises(
+            InvalidTransitionError,
+            match="cannot transition inbox item.*from 'expired' to 'skipped'",
+        ):
+            await writer.skip_inbox_item(INBOX_ITEM_ID)
+
+    async def test_answer_pending_succeeds(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        mock_pool.conn.queue_execute("UPDATE 1")
+        await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
+        sql, args = mock_pool.conn.executed[0]
+        assert "status = 'pending'" in sql.lower()
 
 
 class TestContextDiff:
