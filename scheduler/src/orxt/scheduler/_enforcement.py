@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ast
 import asyncio
+import glob as glob_mod
 import json
 import logging
 import re
@@ -230,7 +232,7 @@ class EnforcementMixin:
     async def _check_constraint(
         self,
         kind: ConstraintKind,
-        task_id: UUID,  # noqa: ARG002
+        task_id: UUID,
         constraint_text: str = "",
     ) -> CheckResult:
         """Check a single mechanical constraint.
@@ -258,12 +260,15 @@ class EnforcementMixin:
                 constraint_text,
             )
 
-        # Constraints requiring pre-task snapshots
-        if kind in (
-            ConstraintKind.NO_REMOVED_EXPORTS,
-            ConstraintKind.NO_CHANGED_SIGNATURES,
-        ):
-            return await self._check_snapshot_stub(kind)
+        if kind == ConstraintKind.NO_REMOVED_EXPORTS:
+            return self._check_no_removed_exports(
+                task_id, constraint_text,
+            )
+
+        if kind == ConstraintKind.NO_CHANGED_SIGNATURES:
+            return self._check_no_changed_signatures(
+                task_id, constraint_text,
+            )
 
         return CheckResult(
             passed=False,
@@ -404,28 +409,188 @@ class EnforcementMixin:
             ),
         )
 
-    async def _check_snapshot_stub(
-        self,
-        kind: ConstraintKind,
-    ) -> CheckResult:
-        """Stub for constraints needing pre-task snapshots.
+    def _snapshot_exports(
+        self, glob_pattern: str,
+    ) -> dict[str, set[str]]:
+        """Extract top-level names from files matching glob."""
+        result: dict[str, set[str]] = {}
+        for filepath in glob_mod.glob(
+            glob_pattern, root_dir=str(self._read_root),
+            recursive=True,
+        ):
+            full = self._read_root / filepath
+            if not full.is_file():
+                continue
+            try:
+                tree = ast.parse(full.read_text())
+            except SyntaxError:
+                continue
+            names: set[str] = set()
+            for node in ast.iter_child_nodes(tree):
+                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                    names.add(node.name)
+                elif isinstance(node, ast.ClassDef):
+                    names.add(node.name)
+                elif isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            names.add(target.id)
+            result[filepath] = names
+        return result
 
-        no_removed_exports and no_changed_signatures
-        require capturing export/signature state before
-        task execution, which is not yet implemented.
+    def _snapshot_signatures(
+        self, glob_pattern: str,
+    ) -> dict[str, dict[str, list[str]]]:
+        """Extract function signatures from files matching glob."""
+        result: dict[str, dict[str, list[str]]] = {}
+        for filepath in glob_mod.glob(
+            glob_pattern, root_dir=str(self._read_root),
+            recursive=True,
+        ):
+            full = self._read_root / filepath
+            if not full.is_file():
+                continue
+            try:
+                tree = ast.parse(full.read_text())
+            except SyntaxError:
+                continue
+            sigs: dict[str, list[str]] = {}
+            for node in ast.iter_child_nodes(tree):
+                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                    params: list[str] = []
+                    for arg in node.args.args:
+                        params.append(arg.arg)
+                    for arg in node.args.posonlyargs:
+                        params.append(arg.arg)
+                    for arg in node.args.kwonlyargs:
+                        params.append(arg.arg)
+                    if node.args.vararg:
+                        params.append(f"*{node.args.vararg.arg}")
+                    if node.args.kwarg:
+                        params.append(f"**{node.args.kwarg.arg}")
+                    sigs[node.name] = params
+            result[filepath] = sigs
+        return result
+
+    def _capture_pre_task_snapshots(
+        self, task_id: UUID,
+    ) -> None:
+        """Capture export and signature snapshots before task execution.
+
+        Scans all active mechanical constraints that need snapshots
+        and stores the data keyed by task_id.
         """
-        _logger.warning(
-            "Constraint check not yet implemented: %s"
-            " (requires pre-task snapshots)",
-            kind.value,
-        )
+        snapshots: dict[str, Any] = {}
+        for text, kind_str in self._mechanical_constraints:
+            match = re.search(r"\((.*?)\)", text)
+            if match is None:
+                continue
+            glob_pattern = match.group(1)
+            try:
+                kind = ConstraintKind(kind_str)
+            except ValueError:
+                continue
+            if kind == ConstraintKind.NO_REMOVED_EXPORTS:
+                snapshots[f"exports:{glob_pattern}"] = (
+                    self._snapshot_exports(glob_pattern)
+                )
+            elif kind == ConstraintKind.NO_CHANGED_SIGNATURES:
+                snapshots[f"signatures:{glob_pattern}"] = (
+                    self._snapshot_signatures(glob_pattern)
+                )
+        if snapshots:
+            self._pre_task_snapshots[task_id] = snapshots
+
+    def _check_no_removed_exports(
+        self,
+        task_id: UUID,
+        constraint_text: str,
+    ) -> CheckResult:
+        """Check that no exports were removed."""
+        match = re.search(r"\((.*?)\)", constraint_text)
+        if not match:
+            return CheckResult(
+                passed=False,
+                message="no_removed_exports: no glob pattern specified",
+            )
+        glob_pattern = match.group(1)
+        key = f"exports:{glob_pattern}"
+        task_snapshots = self._pre_task_snapshots.get(task_id, {})
+        before = task_snapshots.get(key)
+        if before is None:
+            return CheckResult(
+                passed=True,
+                message=(
+                    "no_removed_exports: no pre-task snapshot"
+                    " (constraint added mid-task)"
+                ),
+            )
+        after = self._snapshot_exports(glob_pattern)
+        removed: list[str] = []
+        for filepath, old_names in before.items():
+            new_names = after.get(filepath, set())
+            missing = old_names - new_names
+            if missing:
+                removed.extend(
+                    f"{filepath}:{name}" for name in sorted(missing)
+                )
+        if removed:
+            return CheckResult(
+                passed=False,
+                message=(
+                    f"Removed exports: {', '.join(removed)}"
+                ),
+            )
         return CheckResult(
             passed=True,
-            message=(
-                f"Constraint {kind.value} not yet"
-                " implemented"
-                " (requires pre-task snapshots)"
-            ),
+            message="No exports removed",
+        )
+
+    def _check_no_changed_signatures(
+        self,
+        task_id: UUID,
+        constraint_text: str,
+    ) -> CheckResult:
+        """Check that no function signatures changed."""
+        match = re.search(r"\((.*?)\)", constraint_text)
+        if not match:
+            return CheckResult(
+                passed=False,
+                message="no_changed_signatures: no glob pattern specified",
+            )
+        glob_pattern = match.group(1)
+        key = f"signatures:{glob_pattern}"
+        task_snapshots = self._pre_task_snapshots.get(task_id, {})
+        before = task_snapshots.get(key)
+        if before is None:
+            return CheckResult(
+                passed=True,
+                message=(
+                    "no_changed_signatures: no pre-task snapshot"
+                    " (constraint added mid-task)"
+                ),
+            )
+        after = self._snapshot_signatures(glob_pattern)
+        changed: list[str] = []
+        for filepath, old_sigs in before.items():
+            new_sigs = after.get(filepath, {})
+            for func_name, old_params in old_sigs.items():
+                new_params = new_sigs.get(func_name)
+                if new_params is not None and old_params != new_params:
+                    changed.append(
+                        f"{filepath}:{func_name}"
+                        f" ({old_params} -> {new_params})"
+                    )
+        if changed:
+            return CheckResult(
+                passed=False,
+                message=(
+                    f"Changed signatures: {'; '.join(changed)}"
+                ),
+            )
+        return CheckResult(
+            passed=True,
+            message="No signatures changed",
         )
 
     def _validate_output_schema(
