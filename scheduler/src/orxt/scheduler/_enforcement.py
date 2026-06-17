@@ -256,6 +256,14 @@ class EnforcementMixin(SchedulerBase):
         Dispatches to individual checker methods
         based on the constraint kind.
         """
+        # Check for custom checker first
+        custom = self._constraint_checkers.get(
+            kind.value,
+        )
+        if custom is not None:
+            return await custom(
+                kind, task_id, constraint_text,
+            )
         checkers = {
             ConstraintKind.TESTS_PASS: (
                 self._check_tests_pass

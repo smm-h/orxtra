@@ -140,6 +140,7 @@ class Scheduler(
         budget_limit: Decimal | None = None,
         autonomy_level: str = "max",
         secret_registry: SecretRegistry | None = None,
+        constraint_checkers: dict[str, Callable[..., Awaitable[CheckResult]]] | None = None,
     ) -> None:
         self._trace_writer = trace_writer
         self._pool = pool
@@ -158,6 +159,7 @@ class Scheduler(
         self._budget_limit = budget_limit
         self._autonomy_level = autonomy_level
         self._secret_registry = secret_registry
+        self._constraint_checkers = constraint_checkers or {}
         self._active_tasks: dict[str, UUID] = {}
         self._task_states: dict[UUID, TaskState] = {}
         self._task_specs: dict[UUID, TaskSpec] = {}
