@@ -205,3 +205,14 @@ async def read_notepad(
         run_id,
     )
     return [NotepadEntry.model_validate(_record_to_dict(row)) for row in rows]
+
+
+async def read_active_constraints(
+    pool: asyncpg.Pool, run_id: UUID,
+) -> list[dict[str, Any]]:
+    """Read active constraints for a run."""
+    rows: list[asyncpg.Record] = await pool.fetch(
+        "SELECT * FROM constraints WHERE run_id = $1",
+        run_id,
+    )
+    return [_record_to_dict(row) for row in rows]
