@@ -23,6 +23,7 @@ from orxt.protocols._events import (
 if TYPE_CHECKING:
     from orxt.overseer._health import HealthMonitor
     from orxt.overseer._overseer import Overseer
+    from orxt.protocols._tool import Tool
     from orxt.session import Session
 
 _logger = logging.getLogger("orxt.scheduler")
@@ -141,6 +142,52 @@ class OverseerAdapter:
     ) -> None:
         """Update the overseer's session after handoff."""
         self._overseer.session = new_session
+
+    def gate_tools(
+        self, tools: list[Tool],
+    ) -> list[Tool]:
+        """Wrap tools with autonomy gating.
+
+        Tools whose action type is not autonomous at
+        the current level get a replacement execute
+        function that returns a blocked message instead
+        of running the original.
+        """
+        return [self._gate_tool(t) for t in tools]
+
+    def _gate_tool(self, tool: Tool) -> Tool:
+        """Wrap a single tool with autonomy gating."""
+        from orxt.protocols._tool import Tool as ToolCls  # noqa: PLC0415
+
+        action_type = TOOL_ACTION_TYPES.get(
+            tool.name, "scope_change",
+        )
+        if is_autonomous(
+            self._autonomy_level, action_type,
+        ):
+            return tool
+
+        level_value = self._autonomy_level.value
+
+        async def _gated_execute(
+            args: dict[str, Any],
+        ) -> str:
+            _ = args
+            return (
+                f"Action blocked: tool"
+                f" '{tool.name}' requires"
+                f" '{action_type}' autonomy"
+                f" (current level:"
+                f" '{level_value}')."
+            )
+
+        return ToolCls(
+            name=tool.name,
+            description=tool.description,
+            parameters=tool.parameters,
+            execute=_gated_execute,
+            suspending=tool.suspending,
+        )
 
     async def send_event(
         self, event: OverseerEvent,
