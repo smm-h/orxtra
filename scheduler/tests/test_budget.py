@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxt.protocols._task import TaskSpec
+from orxt.protocols._task import BudgetExhaustionPolicy, TaskSpec
 from orxt.scheduler._executor import Scheduler
 from orxt.transport import Usage
 
@@ -39,7 +39,7 @@ def _make_scheduler(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: uuid6.UUID,
-    budget_exhaustion_policy: str = "unlimited",
+    budget_exhaustion_policy: BudgetExhaustionPolicy = BudgetExhaustionPolicy.UNLIMITED,
     overseer_interface: MockOverseerInterface | None = None,
 ) -> Scheduler:
     return Scheduler(
@@ -246,9 +246,9 @@ def test_unlimited_policy_no_enforcement(
         trace_writer,
         transport,
         run_id,
-        budget_exhaustion_policy="unlimited",
+        budget_exhaustion_policy=BudgetExhaustionPolicy.UNLIMITED,
     )
     assert (
         scheduler._budget_exhaustion_policy  # noqa: SLF001
-        == "unlimited"
+        == BudgetExhaustionPolicy.UNLIMITED
     )
