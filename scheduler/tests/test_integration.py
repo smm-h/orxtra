@@ -1134,12 +1134,22 @@ class TestMechanicalConstraints:
             ("No new deps", "no_new_dependencies"),
         ])
 
-        results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
-            task_id,
+        mock_process = AsyncMock()
+        mock_process.returncode = 0
+        mock_process.communicate = AsyncMock(
+            return_value=(b"", b""),
         )
+        with patch(
+            "asyncio.create_subprocess_exec",
+            return_value=mock_process,
+        ):
+            results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
+                task_id,
+            )
         # Only the cheap one (no_new_dependencies) should run
         assert len(results) == 1
-        assert "no_new_dependencies" in results[0].message
+        assert results[0].passed is True
+        assert "No dependency changes detected" in results[0].message
 
     async def test_expensive_constraints_run_with_subtasks(
         self,
@@ -1178,14 +1188,24 @@ class TestMechanicalConstraints:
             ("No new deps", "no_new_dependencies"),
         ])
 
-        results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
-            task_id,
+        mock_process = AsyncMock()
+        mock_process.returncode = 0
+        mock_process.communicate = AsyncMock(
+            return_value=(b"", b""),
         )
+        with patch(
+            "asyncio.create_subprocess_exec",
+            return_value=mock_process,
+        ):
+            results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
+                task_id,
+            )
         # Both should run because task has subtasks
         assert len(results) == 2
+        assert all(r.passed for r in results)
         messages = [r.message for r in results]
-        assert any("tests_pass" in m for m in messages)
-        assert any("no_new_dependencies" in m for m in messages)
+        assert any("All tests passed" in m for m in messages)
+        assert any("No dependency changes detected" in m for m in messages)
 
     async def test_unknown_constraint_kind_fails(
         self,
