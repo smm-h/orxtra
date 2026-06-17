@@ -541,11 +541,13 @@ class TestEndTask:
         original_auto_commit = scheduler._auto_commit  # noqa: SLF001
         original_run_postchecks = scheduler._run_postchecks  # noqa: SLF001
 
-        async def tracking_auto_commit(*a: Any, **kw: Any) -> None:
+        async def tracking_auto_commit(*a: object, **kw: object) -> None:
             call_order.append("auto_commit")
             return await original_auto_commit(*a, **kw)
 
-        async def tracking_run_postchecks(*a: Any, **kw: Any) -> list[Any]:
+        async def tracking_run_postchecks(
+            *a: object, **kw: object,
+        ) -> list[CheckResult]:
             call_order.append("postchecks")
             return await original_run_postchecks(*a, **kw)
 
@@ -564,8 +566,14 @@ class TestEndTask:
         await scheduler.handle_start_task("sess-1", str(task_id))
 
         with (
-            patch.object(scheduler, "_auto_commit", side_effect=tracking_auto_commit),
-            patch.object(scheduler, "_run_postchecks", side_effect=tracking_run_postchecks),
+            patch.object(
+                scheduler, "_auto_commit",
+                side_effect=tracking_auto_commit,
+            ),
+            patch.object(
+                scheduler, "_run_postchecks",
+                side_effect=tracking_run_postchecks,
+            ),
         ):
             await scheduler.handle_end_task("sess-1", "Done")
 

@@ -108,8 +108,8 @@ class TestDeepImmutability:
     def test_secrets_dict_is_immutable(self) -> None:
         registry = SecretRegistry({"TOKEN": "abc123"})
         with pytest.raises(TypeError):
-            registry._secrets["new"] = "val"  # type: ignore[index]
-        assert isinstance(registry._scrub_order, tuple)
+            registry._secrets["new"] = "val"  # type: ignore[index]  # noqa: SLF001
+        assert isinstance(registry._scrub_order, tuple)  # noqa: SLF001
 
 
 class TestRoundTrip:

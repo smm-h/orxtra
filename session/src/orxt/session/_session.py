@@ -111,7 +111,9 @@ class Session:
             return True
         return captured
 
-    async def send(self, message: str, *, stream_deltas: bool = False) -> AsyncIterator[Event]:
+    async def send(
+        self, message: str, *, stream_deltas: bool = False,
+    ) -> AsyncIterator[Event]:
         self.turn_count += 1
         current_turn = self.turn_count
 

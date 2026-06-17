@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxt.agent import Agent
+from orxt.agent import Agent, ExecToolConfig, ShellConfig
 from pydantic import ValidationError
 
 
@@ -59,7 +59,6 @@ class TestAgentModel:
 
 class TestExecToolConfig:
     def test_valid(self) -> None:
-        from orxt.agent import ExecToolConfig
         cfg = ExecToolConfig(
             name="pytest",
             executable="pytest",
@@ -69,7 +68,6 @@ class TestExecToolConfig:
         assert cfg.timeout_ceiling == 300
 
     def test_custom_timeout(self) -> None:
-        from orxt.agent import ExecToolConfig
         cfg = ExecToolConfig(
             name="pytest",
             executable="pytest",
@@ -79,7 +77,6 @@ class TestExecToolConfig:
         assert cfg.timeout_ceiling == 60
 
     def test_rejects_extra(self) -> None:
-        from orxt.agent import ExecToolConfig
         with pytest.raises(ValidationError):
             ExecToolConfig(
                 name="pytest",
@@ -91,13 +88,11 @@ class TestExecToolConfig:
 
 class TestShellConfig:
     def test_valid(self) -> None:
-        from orxt.agent import ShellConfig
         cfg = ShellConfig(allowed_binaries=["ls", "cat"])
         assert cfg.allowed_binaries == ["ls", "cat"]
         assert cfg.timeout_ceiling == 300
 
     def test_custom_description(self) -> None:
-        from orxt.agent import ShellConfig
         cfg = ShellConfig(
             allowed_binaries=["ls"],
             description="Limited shell",
@@ -107,7 +102,6 @@ class TestShellConfig:
 
 class TestAgentWithExecShell:
     def test_agent_with_exec_tools(self) -> None:
-        from orxt.agent import ExecToolConfig
         agent = Agent(
             name="builder",
             description="Builds",
@@ -126,7 +120,6 @@ class TestAgentWithExecShell:
         assert agent.exec_tools[0].name == "pytest"
 
     def test_agent_with_shell(self) -> None:
-        from orxt.agent import ShellConfig
         agent = Agent(
             name="builder",
             description="Builds",

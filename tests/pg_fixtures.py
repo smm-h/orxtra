@@ -5,12 +5,13 @@ with the full orxt trace schema applied.
 """
 from __future__ import annotations
 
-import asyncio
-from typing import TYPE_CHECKING, AsyncIterator
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
+
     import asyncpg
 
 # Guard: skip gracefully when docker/testcontainers unavailable.
@@ -38,7 +39,7 @@ $$ LANGUAGE sql;
 
 
 @pytest.fixture(scope="session")
-def pg_container():
+def pg_container() -> Iterator[Any]:
     """Start a PostgreSQL 16 container for integration tests."""
     if not _HAS_TESTCONTAINERS:
         pytest.skip("testcontainers not available")
@@ -47,11 +48,10 @@ def pg_container():
 
 
 @pytest.fixture
-async def pg_pool(pg_container) -> AsyncIterator[asyncpg.Pool]:
+async def pg_pool(pg_container: Any) -> AsyncIterator[asyncpg.Pool]:  # noqa: ANN401
     """Create an asyncpg pool with the full orxt trace schema."""
-    import asyncpg as _asyncpg
-
-    from orxt.trace._schema import ALL_CREATE_STATEMENTS
+    import asyncpg as _asyncpg  # noqa: PLC0415
+    from orxt.trace._schema import ALL_CREATE_STATEMENTS  # noqa: PLC0415
 
     # testcontainers gives psycopg2-style URL; convert to plain postgresql://
     url = pg_container.get_connection_url().replace(

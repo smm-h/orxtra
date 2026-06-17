@@ -10,8 +10,6 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import pytest
-import uuid6
-
 from orxt.trace import (
     InvalidTransitionError,
     TraceWriter,
@@ -19,13 +17,13 @@ from orxt.trace import (
     read_active_constraints,
     read_run_report,
     release_run_lock,
-    RunLockError,
 )
 
 from tests.pg_fixtures import skip_no_docker
 
 if TYPE_CHECKING:
     import asyncpg
+    import uuid6
 
 pytestmark = skip_no_docker
 
@@ -66,7 +64,7 @@ class TestSchemaCreation:
 
     async def test_all_tables_created(self, pg_pool: asyncpg.Pool) -> None:
         """All expected tables exist after schema creation."""
-        from orxt.trace._schema import TABLE_NAMES
+        from orxt.trace._schema import TABLE_NAMES  # noqa: PLC0415
 
         rows = await pg_pool.fetch(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
@@ -195,7 +193,7 @@ class TestListenNotify:
             await listen_conn.add_listener("orxt_events", _on_notify)
 
             # Write an event (on a different connection via the pool)
-            event_id = await writer.write_event(
+            await writer.write_event(
                 run_id=run_id,
                 event_type="notify_test",
                 data={"trigger": True},
@@ -230,15 +228,16 @@ class TestAdvisoryLocks:
     async def test_second_acquire_fails(
         self, pg_pool: asyncpg.Pool
     ) -> None:
-        """Second acquire on the same run_id from a different connection raises RunLockError.
+        """Second acquire on the same run_id from a different connection.
 
-        Advisory locks are per-connection. We hold the lock on one
-        connection and attempt acquisition from a different one.
+        Raises RunLockError. Advisory locks are per-connection. We hold
+        the lock on one connection and attempt acquisition from a
+        different one.
         """
         writer = TraceWriter(pg_pool)
         run_id = await _create_run(writer)
 
-        from orxt.trace._lock import _lock_key
+        from orxt.trace._lock import _lock_key  # noqa: PLC0415
 
         key = _lock_key(run_id)
 

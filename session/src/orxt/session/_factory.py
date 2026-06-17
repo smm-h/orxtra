@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import asyncpg
     from orxt.protocols import Tool
     from orxt.trace import TraceWriter
     from orxt.transport import Transport
@@ -19,7 +20,7 @@ async def create_session(  # noqa: PLR0913
     trace_writer: TraceWriter,
     run_id: uuid.UUID,
     session_id: str | None = None,
-    pool: Any = None,
+    pool: asyncpg.Pool | None = None,
 ) -> Session:
     session = Session(
         transport=transport,
