@@ -178,6 +178,7 @@ class Scheduler(
         self._write_queue = WriteQueue()
         self._stale_tracker = StaleWriteTracker()
         self._notepad_entries: list[NotepadEntry] = []
+        self._lessons: list[dict[str, Any]] = []
         self._active_constraints: list[tuple[str, str]] = []
         self._mechanical_constraints: list[tuple[str, str]] = []
         self._pending_end_task_message: dict[UUID, str] = {}
