@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from orxt.knowledge_module._types import KnowledgeConfig
@@ -16,8 +16,22 @@ def _make_config() -> KnowledgeConfig:
     )
 
 
+def _make_pool() -> MagicMock:
+    pool = MagicMock()
+    pool.fetchval = AsyncMock(return_value=None)
+    pool.execute = AsyncMock()
+    return pool
+
+
 _COGNEE_MISSING = {"cognee": None}
 _ERROR_MATCH = "cognee is required for the knowledge module"
+
+
+@pytest.fixture(autouse=True)
+def _reset_ingest_cache() -> None:
+    from orxt.knowledge_module import _ingest  # noqa: PLC0415
+
+    _ingest._cache = None  # noqa: SLF001
 
 
 class TestCogneeMissing:
@@ -30,19 +44,21 @@ class TestCogneeMissing:
 
     @pytest.mark.asyncio
     async def test_ingest_without_cognee_raises(self) -> None:
+        pool = _make_pool()
         lessons = [{"id": "1", "content": "lesson one"}]
         with patch.dict(sys.modules, _COGNEE_MISSING):
             from orxt.knowledge_module import _ingest  # noqa: PLC0415
 
             with pytest.raises(RuntimeError, match=_ERROR_MATCH):
-                await _ingest.ingest_lessons(_make_config(), lessons)
+                await _ingest.ingest_lessons(_make_config(), lessons, pool)
 
     @pytest.mark.asyncio
     async def test_ingest_empty_without_cognee_returns_zero(self) -> None:
+        pool = _make_pool()
         with patch.dict(sys.modules, _COGNEE_MISSING):
             from orxt.knowledge_module import _ingest  # noqa: PLC0415
 
-            count = await _ingest.ingest_lessons(_make_config(), [])
+            count = await _ingest.ingest_lessons(_make_config(), [], pool)
         assert count == 0
 
     @pytest.mark.asyncio
