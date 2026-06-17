@@ -8,5 +8,18 @@
       "type": "pypi",
       "local": false
     }
+  },
+  "batch_limits": {
+    "exclusions": [
+      {
+        "reason": "**Initial implementation.** TOML and Markdown agent definition loader with strict validation, prompt composition from composable template files, and category resolution.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 1
+          }
+        ]
+      }
+    ]
   }
 }
