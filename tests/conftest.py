@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -212,6 +214,48 @@ class MockTraceWriter:
         self, **kwargs: object,
     ) -> None:
         self._record("write_constraint", **kwargs)
+
+    async def create_iteration(
+        self,
+        task_id: uuid.UUID,
+        index: int,
+        item_value: object,
+    ) -> uuid.UUID:
+        iteration_id = uuid6.uuid7()
+        self._record(
+            "create_iteration",
+            task_id=task_id,
+            index=index,
+            item_value=item_value,
+            iteration_id=iteration_id,
+        )
+        return iteration_id
+
+    async def complete_iteration(
+        self,
+        iteration_id: uuid.UUID,
+        output: str | None,
+        structured_output: dict[str, Any] | None,
+        check_results: list[dict[str, Any]] | None,
+    ) -> None:
+        self._record(
+            "complete_iteration",
+            iteration_id=iteration_id,
+            output=output,
+            structured_output=structured_output,
+            check_results=check_results,
+        )
+
+    async def fail_iteration(
+        self,
+        iteration_id: uuid.UUID,
+        error: str,
+    ) -> None:
+        self._record(
+            "fail_iteration",
+            iteration_id=iteration_id,
+            error=error,
+        )
 
     async def subscribe_run_control(
         self,
@@ -633,6 +677,7 @@ def make_scheduler(
     run_id: uuid.UUID,
     agents: dict[str, Agent] | None = None,
     categories: dict[str, str] | None = None,
+    read_root: Path | None = None,
 ) -> Scheduler:
     """Create a Scheduler with standard test wiring.
 
@@ -643,12 +688,15 @@ def make_scheduler(
         agents = {"test-agent": make_agent()}
     if categories is None:
         categories = make_categories()
+    if read_root is None:
+        read_root = Path(tempfile.mkdtemp())
     return Scheduler(
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},  # type: ignore[dict-item]
         agents=agents,
         categories=categories,
         run_id=run_id,
+        read_root=read_root,
     )
 
 
