@@ -225,3 +225,16 @@ class Session:
             msg = "No session ID available — no messages have been sent yet"
             raise RuntimeError(msg)
         return self._session_id
+
+    async def close(self) -> None:
+        """Write final transcript entry and clean up."""
+        # No-op if no session exists
+        if self._session_id is None:
+            return
+        # Could write a final transcript marker here
+
+    async def __aenter__(self) -> Session:
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        await self.close()
