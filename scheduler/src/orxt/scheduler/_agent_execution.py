@@ -49,6 +49,7 @@ from orxt.tool._write_tools import (
 from orxt.transport import Result, Usage
 
 if TYPE_CHECKING:
+    from orxt.agent import Agent
     from orxt.protocols._tool import Tool
 
 _logger = logging.getLogger("orxt.scheduler")
@@ -142,6 +143,78 @@ class AgentExecutionMixin:
                 if isinstance(ev, Result):
                     output_text = ev.text or ""
 
+        # Run postchecks if defined
+        if task.postchecks:
+            self._task_states[task_id] = TaskState.POSTCHECKING
+            await self._trace_writer.transition_task(
+                task_id, TaskState.POSTCHECKING.value,
+            )
+
+            postcheck_results = await self._run_postchecks(
+                task, task_id,
+            )
+            if not all(cr.passed for cr in postcheck_results):
+                self._task_states[task_id] = (
+                    TaskState.POSTCHECK_FAILED
+                )
+                await self._trace_writer.transition_task(
+                    task_id,
+                    TaskState.POSTCHECK_FAILED.value,
+                )
+                # Orchestrator session has ended, can't retry.
+                # Escalate immediately.
+                self._task_states[task_id] = (
+                    TaskState.ESCALATED
+                )
+                await self._trace_writer.transition_task(
+                    task_id,
+                    TaskState.ESCALATED.value,
+                )
+
+                from orxt.protocols._events import (  # noqa: PLC0415
+                    TaskEscalated,
+                )
+
+                escalation = EscalationPayload(
+                    task_name=task.name,
+                    task_id=task_id,
+                    agent_name=task.agent,
+                    attempts=1,
+                    failed_checks=[
+                        cr for cr in postcheck_results
+                        if not cr.passed
+                    ],
+                    agent_summary=(
+                        "Orchestrator postchecks failed"
+                    ),
+                )
+                await self._send_overseer_event(
+                    TaskEscalated(
+                        task_id=task_id,
+                        task_name=task.name,
+                        from_child_task_id=task_id,
+                        payload=escalation,
+                    ),
+                )
+
+                return TaskResult(
+                    output=None,
+                    structured_output=None,
+                    check_results=postcheck_results,
+                )
+
+            # Postchecks passed
+            self._task_states[task_id] = TaskState.COMPLETED
+            await self._trace_writer.transition_task(
+                task_id, TaskState.COMPLETED.value,
+            )
+            return TaskResult(
+                output=output_text,
+                structured_output=None,
+                check_results=postcheck_results,
+            )
+
+        # No postchecks: complete directly
         self._task_states[task_id] = TaskState.COMPLETED
         await self._trace_writer.transition_task(
             task_id, TaskState.COMPLETED.value,
@@ -233,111 +306,10 @@ class AgentExecutionMixin:
             self._task_sessions[task_id] = session
             self._session_mutations[session_id] = set()
 
-            prompt = self._resolve_prompt(
-                task.task_prompt, variables,
+            prompt = await self._assemble_agent_prompt(
+                task, task_id, variables, attempt,
+                attempt_id, prior_attempts,
             )
-            prompt = (
-                f"Your task ID is {task_id}."
-                " Call start_task first.\n\n"
-                f"{prompt}"
-            )
-
-            # Layer 2: Runtime system context
-            # Constraints
-            if self._active_constraints:
-                prompt += "\n\n## Active Constraints"
-                for text, tier in (
-                    self._active_constraints
-                ):
-                    prompt += f"\n- {text} ({tier})"
-
-            # Notepad content
-            if self._notepad_entries:
-                prompt += (
-                    f"\n\n{format_notepad(self._notepad_entries)}"
-                )
-
-            # Lessons from previous runs
-            if self._lessons:
-                fresh = [
-                    lesson for lesson in self._lessons
-                    if not lesson.get("stale", False)
-                ]
-                stale = [
-                    lesson for lesson in self._lessons
-                    if lesson.get("stale", False)
-                ]
-                if fresh:
-                    prompt += (
-                        "\n\n## Lessons (verified)"
-                    )
-                    for lesson in fresh:
-                        prompt += (
-                            f"\n- {lesson['text']}"
-                        )
-                if stale:
-                    prompt += (
-                        "\n\n## Lessons (may be stale)"
-                    )
-                    for lesson in stale:
-                        prompt += (
-                            f"\n- {lesson['text']}"
-                            f" [stale: source modified"
-                            f" after lesson was created]"
-                        )
-
-            # Prior failure context
-            if (
-                attempt > 1
-                and task.retry_inject_failure
-                and prior_attempts
-            ):
-                prompt += (
-                    "\n\n## Prior Failure Context"
-                )
-                for pa in prior_attempts:
-                    prompt += (
-                        f"\nPrior attempt {pa['attempt']}"
-                        f" failed: {pa['error']}"
-                    )
-
-            # Layer 3: Overseer context refinement
-            if (
-                task.context_refinement
-                and self._overseer_interface is not None
-                and hasattr(
-                    self._overseer_interface,
-                    "refine_context",
-                )
-            ):
-                pre_refinement = prompt
-                refined = await (
-                    self._overseer_interface
-                    .refine_context(
-                        task.name, prompt,
-                    )
-                )
-                if refined != prompt:
-                    import difflib  # noqa: PLC0415
-
-                    diff = "\n".join(
-                        difflib.unified_diff(
-                            prompt.splitlines(),
-                            refined.splitlines(),
-                            fromfile="pre-refinement",
-                            tofile="post-refinement",
-                            lineterm="",
-                        )
-                    )
-                    await (
-                        self._trace_writer
-                        .write_context_diff(
-                            attempt_id,
-                            pre_refinement,
-                            diff,
-                        )
-                    )
-                    prompt = refined
 
             snap_in = session.total_input_tokens
             snap_out = session.total_output_tokens
@@ -643,7 +615,7 @@ class AgentExecutionMixin:
                 result_text = event.text
         return result_text
 
-    async def _create_agent_session(  # noqa: C901, PLR0912, PLR0915
+    async def _create_agent_session(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -677,7 +649,70 @@ class AgentExecutionMixin:
 
         session_id = f"session-{task_id}-{attempt}"
 
-        # Build file/utility tools based on agent's allow list
+        raw_tools = self._build_agent_tools(
+            agent_def, task_id, session_id,
+            task.name, task.agent,
+        )
+
+        async def _trace_callback(
+            tool_name: str,
+            args: dict[str, Any],
+            result: str,
+            duration_ms: int,
+        ) -> None:
+            await self._trace_writer.write_event(
+                run_id=self._run_id,
+                event_type="tool_call",
+                data={
+                    "session_id": session_id,
+                    "task_id": str(task_id),
+                    "tool_name": tool_name,
+                    "args": args,
+                    "result": result,
+                    "duration_ms": duration_ms,
+                },
+                task_id=task_id,
+            )
+
+        tools = wrap_tools_for_session(
+            tools=raw_tools,
+            scheduler_check=self.check_active_task,
+            secret_registry=self._secret_registry,
+            trace_callback=_trace_callback,
+            session_id=session_id,
+            mutation_tracker=self._session_mutations,
+        )
+
+        previous_session_id: str | None = None
+        if (
+            attempt > 1
+            and task.retry_resume
+            and task_id in self._task_sessions
+        ):
+            prev = self._task_sessions[task_id]
+            previous_session_id = prev.session_id
+
+        session = await create_session(
+            transport=transport,
+            model=model,
+            system_prompt=agent_def.prompt,
+            tools=tools,
+            trace_writer=self._trace_writer,
+            run_id=self._run_id,
+            session_id=previous_session_id,
+            pool=self._pool,
+        )
+        return session, session_id
+
+    def _build_agent_tools(
+        self,
+        agent_def: Agent,
+        task_id: UUID,
+        session_id: str,
+        task_name: str,
+        task_agent: str,
+    ) -> list[Tool]:
+        """Build raw tools based on agent's allow list."""
         agent_allow = set(agent_def.allow)
         raw_tools: list[Tool] = []
 
@@ -780,8 +815,8 @@ class AgentExecutionMixin:
             raw_tools.append(make_notepad_tool(
                 self._trace_writer,
                 str(self._run_id),
-                task.name,
-                task.agent,
+                task_name,
+                task_agent,
             ))
 
         # HTTP
@@ -821,55 +856,125 @@ class AgentExecutionMixin:
             make_await_task_tool(self, session_id),
         ])
 
-        async def _trace_callback(
-            tool_name: str,
-            args: dict[str, Any],
-            result: str,
-            duration_ms: int,
-        ) -> None:
-            await self._trace_writer.write_event(
-                run_id=self._run_id,
-                event_type="tool_call",
-                data={
-                    "session_id": session_id,
-                    "task_id": str(task_id),
-                    "tool_name": tool_name,
-                    "args": args,
-                    "result": result,
-                    "duration_ms": duration_ms,
-                },
-                task_id=task_id,
+        return raw_tools
+
+    async def _assemble_agent_prompt(
+        self,
+        task: TaskSpec,
+        task_id: UUID,
+        variables: dict[str, Any] | None,
+        attempt: int,
+        attempt_id: UUID,
+        prior_attempts: list[dict[str, Any]],
+    ) -> str:
+        """Assemble full prompt with runtime context layers."""
+        prompt = self._resolve_prompt(
+            task.task_prompt, variables,
+        )
+        prompt = (
+            f"Your task ID is {task_id}."
+            " Call start_task first.\n\n"
+            f"{prompt}"
+        )
+
+        # Layer 2: Runtime system context
+        # Constraints
+        if self._active_constraints:
+            prompt += "\n\n## Active Constraints"
+            for text, tier in (
+                self._active_constraints
+            ):
+                prompt += f"\n- {text} ({tier})"
+
+        # Notepad content
+        if self._notepad_entries:
+            prompt += (
+                f"\n\n{format_notepad(self._notepad_entries)}"
             )
 
-        tools = wrap_tools_for_session(
-            tools=raw_tools,
-            scheduler_check=self.check_active_task,
-            secret_registry=self._secret_registry,
-            trace_callback=_trace_callback,
-            session_id=session_id,
-            mutation_tracker=self._session_mutations,
-        )
+        # Lessons from previous runs
+        if self._lessons:
+            fresh = [
+                lesson for lesson in self._lessons
+                if not lesson.get("stale", False)
+            ]
+            stale = [
+                lesson for lesson in self._lessons
+                if lesson.get("stale", False)
+            ]
+            if fresh:
+                prompt += (
+                    "\n\n## Lessons (verified)"
+                )
+                for lesson in fresh:
+                    prompt += (
+                        f"\n- {lesson['text']}"
+                    )
+            if stale:
+                prompt += (
+                    "\n\n## Lessons (may be stale)"
+                )
+                for lesson in stale:
+                    prompt += (
+                        f"\n- {lesson['text']}"
+                        f" [stale: source modified"
+                        f" after lesson was created]"
+                    )
 
-        previous_session_id: str | None = None
+        # Prior failure context
         if (
             attempt > 1
-            and task.retry_resume
-            and task_id in self._task_sessions
+            and task.retry_inject_failure
+            and prior_attempts
         ):
-            prev = self._task_sessions[task_id]
-            previous_session_id = prev.session_id
+            prompt += (
+                "\n\n## Prior Failure Context"
+            )
+            for pa in prior_attempts:
+                prompt += (
+                    f"\nPrior attempt {pa['attempt']}"
+                    f" failed: {pa['error']}"
+                )
 
-        session = await create_session(
-            transport=transport,
-            model=model,
-            system_prompt=agent_def.prompt,
-            tools=tools,
-            trace_writer=self._trace_writer,
-            run_id=self._run_id,
-            session_id=previous_session_id,
-            pool=self._pool,
-        )
-        return session, session_id
+        # Layer 3: Overseer context refinement
+        if (
+            task.context_refinement
+            and self._overseer_interface is not None
+            and hasattr(
+                self._overseer_interface,
+                "refine_context",
+            )
+        ):
+            pre_refinement = prompt
+            refined = await (
+                self._overseer_interface
+                .refine_context(
+                    task.name, prompt,
+                )
+            )
+            if refined != prompt:
+                import difflib  # noqa: PLC0415
+
+                diff = "\n".join(
+                    difflib.unified_diff(
+                        prompt.splitlines(),
+                        refined.splitlines(),
+                        fromfile="pre-refinement",
+                        tofile="post-refinement",
+                        lineterm="",
+                    )
+                )
+                await (
+                    self._trace_writer
+                    .write_context_diff(
+                        attempt_id,
+                        pre_refinement,
+                        diff,
+                    )
+                )
+                prompt = refined
+
+        return prompt
 
     @staticmethod
     def _resolve_prompt(
