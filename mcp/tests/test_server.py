@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import json
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -542,3 +544,65 @@ def test_serialize_nested_dict() -> None:
 def test_serialize_empty_containers() -> None:
     assert _serialize([]) == []
     assert _serialize({}) == {}
+
+
+# ------------------------------------------------------------------
+# PG listener
+# ------------------------------------------------------------------
+
+
+async def test_pg_listener_forwards_notifications() -> None:
+    """PG notifications are forwarded as JSON-RPC notifications."""
+    # Create mock writer
+    written: list[bytes] = []
+
+    class MockWriter:
+        def write(self, data: bytes) -> None:
+            written.append(data)
+        async def drain(self) -> None:
+            pass
+
+    # Create mock connection that captures the listener callback
+    callbacks: list[Any] = []
+
+    class MockConn:
+        async def add_listener(self, channel: str, callback: Any) -> None:
+            callbacks.append((channel, callback))
+
+    class MockPool:
+        async def acquire(self) -> MockConn:
+            return MockConn()
+        async def release(self, conn: Any) -> None:
+            pass
+
+    server = MCPServer(pool=MockPool())
+    writer = MockWriter()
+
+    # Start the listener
+    task = await server._start_pg_listener(writer)  # noqa: SLF001
+
+    # Give it time to acquire and register
+    await asyncio.sleep(0.05)
+
+    # Verify callback was registered
+    assert len(callbacks) == 1
+    assert callbacks[0][0] == "orxt_events"
+
+    # Simulate a notification
+    callback_fn = callbacks[0][1]
+    callback_fn(None, 0, "orxt_events", '{"event_type": "task_completed"}')
+
+    # Give drain time to complete
+    await asyncio.sleep(0.05)
+
+    # Check output
+    assert len(written) == 1
+    notification = json.loads(written[0].decode())
+    assert notification["jsonrpc"] == "2.0"
+    assert notification["method"] == "notifications/event"
+    assert notification["params"]["event_type"] == "task_completed"
+    assert "id" not in notification
+
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
