@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
@@ -43,6 +44,7 @@ def _make_scheduler(  # noqa: PLR0913
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    read_root: Path,
     *,
     pool: object | None = None,
 ) -> Scheduler:
@@ -52,6 +54,7 @@ def _make_scheduler(  # noqa: PLR0913
         agents=agents,
         categories=categories,
         run_id=run_id,
+        read_root=read_root,
         pool=pool,  # type: ignore[arg-type]
     )
 
@@ -63,12 +66,13 @@ async def test_recovery_called_at_startup(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    tmp_path: Path,
 ) -> None:
     """All three recovery functions are called when pool is provided."""
     mock_pool = AsyncMock()
     sched = _make_scheduler(
         trace_writer, transport, agents, categories,
-        run_id, pool=mock_pool,
+        run_id, tmp_path, pool=mock_pool,
     )
 
     with (
@@ -109,12 +113,13 @@ async def test_advisory_lock_acquired(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    tmp_path: Path,
 ) -> None:
     """acquire_run_lock is called with the correct pool and run_id."""
     mock_pool = AsyncMock()
     sched = _make_scheduler(
         trace_writer, transport, agents, categories,
-        run_id, pool=mock_pool,
+        run_id, tmp_path, pool=mock_pool,
     )
 
     with (
@@ -152,11 +157,12 @@ async def test_recovery_skipped_without_pool(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    tmp_path: Path,
 ) -> None:
     """Recovery functions are NOT called when pool is None."""
     sched = _make_scheduler(
         trace_writer, transport, agents, categories,
-        run_id,
+        run_id, tmp_path,
     )
 
     with (
@@ -192,12 +198,13 @@ async def test_lock_error_propagates(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    tmp_path: Path,
 ) -> None:
     """RunLockError from acquire_run_lock propagates to the caller."""
     mock_pool = AsyncMock()
     sched = _make_scheduler(
         trace_writer, transport, agents, categories,
-        run_id, pool=mock_pool,
+        run_id, tmp_path, pool=mock_pool,
     )
 
     with (
@@ -236,13 +243,14 @@ async def test_recovery_order(
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
+    tmp_path: Path,
 ) -> None:
     """Recovery functions are called in the correct order:
     reclaim, reevaluate, clean, then lock."""
     mock_pool = AsyncMock()
     sched = _make_scheduler(
         trace_writer, transport, agents, categories,
-        run_id, pool=mock_pool,
+        run_id, tmp_path, pool=mock_pool,
     )
 
     call_order: list[str] = []
@@ -299,7 +307,7 @@ async def test_recovery_before_knowledge_loading(  # noqa: PLR0913
     agents: dict[str, Agent],
     categories: dict[str, str],
     run_id: uuid.UUID,
-    tmp_path: object,
+    tmp_path: Path,
 ) -> None:
     """Recovery runs before knowledge loading when both
     pool and knowledge_dir are set."""
@@ -318,6 +326,7 @@ async def test_recovery_before_knowledge_loading(  # noqa: PLR0913
         agents=agents,
         categories=categories,
         run_id=run_id,
+        read_root=tmp_path,
         pool=mock_pool,  # type: ignore[arg-type]
         knowledge_dir=tmp_path,  # type: ignore[arg-type]
         knowledge_loader=track_knowledge,  # type: ignore[arg-type]
