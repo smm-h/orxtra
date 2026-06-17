@@ -46,6 +46,22 @@ class Thinking:
 
 
 @dataclass(frozen=True)
+class StreamToolUse:
+    """A tool_use block assembled from streaming chunks."""
+
+    tool_use_id: str
+    tool_name: str
+    tool_input: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class StreamUsage:
+    """Usage info extracted from a streaming message_delta."""
+
+    usage: Usage
+
+
+@dataclass(frozen=True)
 class ToolUse:
     tool_name: str
     input: dict[str, Any]
@@ -104,6 +120,8 @@ Event = (
     | Text
     | StreamDelta
     | Thinking
+    | StreamToolUse
+    | StreamUsage
     | ToolUse
     | StepFinish
     | ApiRetry

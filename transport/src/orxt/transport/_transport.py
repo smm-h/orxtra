@@ -19,6 +19,8 @@ from ._events import (
     StepFinish,
     StepStart,
     StreamDelta,
+    StreamToolUse,
+    StreamUsage,
     Text,
     Thinking,
     ToolUse,
@@ -441,16 +443,20 @@ class Transport:
             return (TransportState.DONE, events)
 
         # Reconstruct content blocks from the stream events.
-        # parse_stream yields StreamDelta and Thinking events. We accumulate
-        # text and thinking content to build ContentBlocks for history.
         text_parts: list[str] = []
         thinking_parts: list[str] = []
+        tool_use_events: list[StreamToolUse] = []
+        stream_usage: Usage | None = None
         for event in stream_events:
             events.append(event)
             if isinstance(event, StreamDelta):
                 text_parts.append(event.text)
             elif isinstance(event, Thinking):
                 thinking_parts.append(event.text)
+            elif isinstance(event, StreamToolUse):
+                tool_use_events.append(event)
+            elif isinstance(event, StreamUsage):
+                stream_usage = event.usage
 
         # Build ContentBlocks from accumulated stream content
         blocks: list[ContentBlock] = []
@@ -460,14 +466,20 @@ class Transport:
             full_text = "".join(text_parts)
             blocks.append(ContentBlock(type="text", text=full_text))
             events.append(Text(text=full_text))
+        for stu in tool_use_events:
+            blocks.append(ContentBlock(
+                type="tool_use",
+                tool_use_id=stu.tool_use_id,
+                tool_name=stu.tool_name,
+                tool_input=stu.tool_input,
+            ))
 
         text_blocks, _thinking_blocks, tool_use_blocks = (
             self._categorize_blocks(blocks)
         )
 
-        # Streaming does not provide usage data; parse_stream yields only
-        # content deltas. Usage tracking requires provider enhancement.
-        usage = Usage()
+        # Use streaming usage if available, otherwise empty
+        usage = stream_usage if stream_usage is not None else Usage()
         self._accumulate_usage(ctx, usage)
 
         if tool_use_blocks:

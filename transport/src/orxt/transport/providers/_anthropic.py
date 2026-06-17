@@ -8,7 +8,14 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-from orxt.transport._events import ContentBlock, StreamDelta, Thinking, Usage
+from orxt.transport._events import (
+    ContentBlock,
+    StreamDelta,
+    StreamToolUse,
+    StreamUsage,
+    Thinking,
+    Usage,
+)
 
 if TYPE_CHECKING:
     from orxt.transport._events import Event
@@ -72,6 +79,11 @@ class AnthropicProvider:
     ) -> AsyncIterator[Event]:
         buffer = b""
         event_type = ""
+        # Tool use accumulation state
+        current_tool_id: str | None = None
+        current_tool_name: str | None = None
+        current_tool_json_parts: list[str] = []
+
         async for chunk in byte_stream:
             buffer += chunk
             while b"\n" in buffer:
@@ -81,13 +93,53 @@ class AnthropicProvider:
                     event_type = line[7:]
                 elif line.startswith("data: "):
                     data: dict[str, Any] = json.loads(line[6:])
-                    if event_type == "content_block_delta":
+                    if event_type == "content_block_start":
+                        content_block = data.get("content_block", {})
+                        if content_block.get("type") == "tool_use":
+                            current_tool_id = content_block.get("id", "")
+                            current_tool_name = content_block.get("name", "")
+                            current_tool_json_parts = []
+                    elif event_type == "content_block_delta":
                         delta: dict[str, Any] = data["delta"]
                         delta_type: str = delta["type"]
                         if delta_type == "text_delta":
                             yield StreamDelta(text=delta["text"])
                         elif delta_type == "thinking_delta":
                             yield Thinking(text=delta["thinking"])
+                        elif delta_type == "input_json_delta":
+                            current_tool_json_parts.append(
+                                delta.get("partial_json", ""),
+                            )
+                    elif event_type == "content_block_stop":
+                        if current_tool_id is not None:
+                            json_str = "".join(current_tool_json_parts)
+                            try:
+                                tool_input = (
+                                    json.loads(json_str) if json_str else {}
+                                )
+                            except json.JSONDecodeError:
+                                tool_input = {}
+                            yield StreamToolUse(
+                                tool_use_id=current_tool_id,
+                                tool_name=current_tool_name or "",
+                                tool_input=tool_input,
+                            )
+                            current_tool_id = None
+                            current_tool_name = None
+                            current_tool_json_parts = []
+                    elif event_type == "message_delta":
+                        usage_data = data.get("usage", {})
+                        if usage_data:
+                            yield StreamUsage(
+                                usage=Usage(
+                                    input_tokens=usage_data.get(
+                                        "input_tokens", 0,
+                                    ),
+                                    output_tokens=usage_data.get(
+                                        "output_tokens", 0,
+                                    ),
+                                ),
+                            )
                     elif event_type == "message_stop":
                         return
 

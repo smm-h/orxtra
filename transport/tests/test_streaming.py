@@ -6,7 +6,7 @@ import json
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.transport._events import StreamDelta, Thinking
+from orxt.transport._events import StreamDelta, StreamToolUse, Thinking
 from orxt.transport.providers._anthropic import AnthropicProvider
 from orxt.transport.providers._openai import OpenAIProvider
 
@@ -291,3 +291,136 @@ class TestOpenAIStreamEdgeCases:
         assert len(events) == 1
         assert isinstance(events[0], StreamDelta)
         assert events[0].text == "ok"
+
+
+class TestAnthropicStreamToolUse:
+    """Tests for Anthropic streaming tool_use."""
+
+    async def test_tool_use_assembled_from_stream(
+        self,
+        anthropic_provider: AnthropicProvider,
+    ) -> None:
+        """Tool use blocks are assembled from content_block_start/delta/stop."""
+        chunks = [
+            _anthropic_sse(
+                "content_block_start",
+                json.dumps({
+                    "index": 0,
+                    "content_block": {
+                        "type": "tool_use",
+                        "id": "toolu_123",
+                        "name": "read_file",
+                        "input": {},
+                    },
+                }),
+            ),
+            _anthropic_sse(
+                "content_block_delta",
+                json.dumps({
+                    "delta": {
+                        "type": "input_json_delta",
+                        "partial_json": '{"path": "/',
+                    },
+                }),
+            ),
+            _anthropic_sse(
+                "content_block_delta",
+                json.dumps({
+                    "delta": {
+                        "type": "input_json_delta",
+                        "partial_json": 'etc/hosts"}',
+                    },
+                }),
+            ),
+            _anthropic_sse("content_block_stop", "{}"),
+            _anthropic_sse("message_stop", "{}"),
+        ]
+        events = [
+            event
+            async for event in anthropic_provider.parse_stream(
+                _bytes_iter(chunks),
+            )
+        ]
+        assert len(events) == 1
+        assert isinstance(events[0], StreamToolUse)
+        assert events[0].tool_use_id == "toolu_123"
+        assert events[0].tool_name == "read_file"
+        assert events[0].tool_input == {"path": "/etc/hosts"}
+
+    async def test_text_then_tool_use(
+        self,
+        anthropic_provider: AnthropicProvider,
+    ) -> None:
+        """Mixed text and tool_use blocks in one stream."""
+        chunks = [
+            _anthropic_sse(
+                "content_block_delta",
+                json.dumps({
+                    "delta": {
+                        "type": "text_delta",
+                        "text": "Let me read that file.",
+                    },
+                }),
+            ),
+            _anthropic_sse(
+                "content_block_start",
+                json.dumps({
+                    "index": 1,
+                    "content_block": {
+                        "type": "tool_use",
+                        "id": "toolu_456",
+                        "name": "read_file",
+                        "input": {},
+                    },
+                }),
+            ),
+            _anthropic_sse(
+                "content_block_delta",
+                json.dumps({
+                    "delta": {
+                        "type": "input_json_delta",
+                        "partial_json": '{"path": "/tmp/test"}',
+                    },
+                }),
+            ),
+            _anthropic_sse("content_block_stop", "{}"),
+            _anthropic_sse("message_stop", "{}"),
+        ]
+        events = [
+            event
+            async for event in anthropic_provider.parse_stream(
+                _bytes_iter(chunks),
+            )
+        ]
+        assert len(events) == 2
+        assert isinstance(events[0], StreamDelta)
+        assert events[0].text == "Let me read that file."
+        assert isinstance(events[1], StreamToolUse)
+        assert events[1].tool_name == "read_file"
+
+
+class TestOpenAIStreamToolUse:
+    """Tests for OpenAI streaming tool_use."""
+
+    async def test_tool_call_assembled(
+        self,
+        openai_provider: OpenAIProvider,
+    ) -> None:
+        """Tool calls are accumulated and yielded on [DONE]."""
+        chunks = [
+            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1", "function": {"name": "read_file", "arguments": ""}}]}}]}\n',
+            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{\\"path\\": "}}]}}]}\n',
+            b'data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "\\"/tmp/test\\"}"}}]}}]}\n',
+            b"data: [DONE]\n\n",
+        ]
+        events = [
+            event
+            async for event in openai_provider.parse_stream(
+                _bytes_iter(chunks),
+            )
+        ]
+        assert len(events) == 1
+        assert isinstance(events[0], StreamToolUse)
+        assert events[0].tool_use_id == "call_1"
+        assert events[0].tool_name == "read_file"
+        assert events[0].tool_input == {"path": "/tmp/test"}
