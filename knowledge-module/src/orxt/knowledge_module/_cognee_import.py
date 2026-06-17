@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from types import ModuleType
-from typing import cast
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
 def require_cognee() -> ModuleType:
@@ -15,4 +17,4 @@ def require_cognee() -> ModuleType:
         )
         raise RuntimeError(msg) from None
     else:
-        return cast(ModuleType, cognee)
+        return cast("ModuleType", cognee)
