@@ -1,0 +1,7 @@
+# Category-to-model mapping for multi-provider setups.
+# Categories assign agents to specific LLM providers and models.
+
+[categories]
+default = "anthropic/claude-sonnet-4-6"
+reasoning = "anthropic/claude-opus-4-6"
+fast = "openai/gpt-4o-mini"
