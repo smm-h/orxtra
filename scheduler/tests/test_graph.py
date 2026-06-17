@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import sys
 import types
+from typing import TYPE_CHECKING
 
 import pytest
 from orxt.protocols._execution import CheckResult
 from orxt.protocols._task import TaskContext, TaskResult, TaskSpec
-from orxt.scheduler._executor import Scheduler
 from orxt.scheduler._graph import (
     CycleError,
     build_graph,
@@ -15,7 +15,10 @@ from orxt.scheduler._graph import (
 )
 from orxt.scheduler._types import WorkflowConfig
 
-from tests.conftest import MockTraceWriter
+if TYPE_CHECKING:
+    from orxt.scheduler._executor import Scheduler
+
+    from tests.conftest import MockTraceWriter
 
 
 def _make_task(name: str) -> TaskSpec:
@@ -186,12 +189,10 @@ class TestCompositeWithDependencies:
             )
 
         # Register functions in a temporary module
-        import types
         mod = types.ModuleType("_test_dep_funcs")
         mod.task_a = task_a
         mod.task_b = task_b
         mod.task_c = task_c
-        import sys
         sys.modules["_test_dep_funcs"] = mod
 
         try:
@@ -258,11 +259,9 @@ class TestCompositeWithDependencies:
                 ],
             )
 
-        import types
         mod = types.ModuleType("_test_nodep_funcs")
         mod.task_x = task_x
         mod.task_y = task_y
-        import sys
         sys.modules["_test_nodep_funcs"] = mod
 
         try:
@@ -330,12 +329,10 @@ class TestCompositeWithDependencies:
                 ],
             )
 
-        import types
         mod = types.ModuleType("_test_chain_funcs")
         mod.task_a = task_a
         mod.task_b = task_b
         mod.task_c = task_c
-        import sys
         sys.modules["_test_chain_funcs"] = mod
 
         try:
