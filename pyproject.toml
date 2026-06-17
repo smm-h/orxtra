@@ -52,6 +52,7 @@ dev = [
     "asyncpg-stubs",
     "mypy",
     "ruff",
+    "testcontainers[postgres]",
 ]
 
 [tool.ruff]
