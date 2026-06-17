@@ -20,4 +20,4 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-services = { path = "../services", editable = true }
+services = { workspace = true }

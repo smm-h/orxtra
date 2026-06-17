@@ -10,7 +10,7 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [tool.uv.sources]
-orxt-protocols = { path = "../protocols", editable = true }
+orxt-protocols = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest-asyncio>=1.4.0"]

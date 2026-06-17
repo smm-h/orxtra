@@ -18,5 +18,5 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-transport = { path = "../transport", editable = true }
-trace = { path = "../trace", editable = true }
+transport = { workspace = true }
+trace = { workspace = true }

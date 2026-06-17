@@ -21,11 +21,11 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-orxt-protocols = { path = "../protocols", editable = true }
-trace = { path = "../trace", editable = true }
-session = { path = "../session", editable = true }
-knowledge-module = { path = "../knowledge-module", editable = true }
-tool = { path = "../tool", editable = true }
+orxt-protocols = { workspace = true }
+trace = { workspace = true }
+session = { workspace = true }
+knowledge-module = { workspace = true }
+tool = { workspace = true }
 
 [dependency-groups]
 dev = [
