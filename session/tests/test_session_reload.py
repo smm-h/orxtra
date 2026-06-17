@@ -38,8 +38,24 @@ class TestSessionReload:
     ) -> None:
         pool = MockPool(
             fetch_rows=[
-                {"tokens": {"input_tokens": 100, "output_tokens": 50, "reasoning_tokens": 10, "cache_read_tokens": 5, "cache_write_tokens": 3}},
-                {"tokens": {"input_tokens": 200, "output_tokens": 80, "reasoning_tokens": 20, "cache_read_tokens": 15, "cache_write_tokens": 7}},
+                {
+                    "tokens": {
+                        "input_tokens": 100,
+                        "output_tokens": 50,
+                        "reasoning_tokens": 10,
+                        "cache_read_tokens": 5,
+                        "cache_write_tokens": 3,
+                    },
+                },
+                {
+                    "tokens": {
+                        "input_tokens": 200,
+                        "output_tokens": 80,
+                        "reasoning_tokens": 20,
+                        "cache_read_tokens": 15,
+                        "cache_write_tokens": 7,
+                    },
+                },
             ],
             fetchval_result=4,
         )

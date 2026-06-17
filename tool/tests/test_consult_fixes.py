@@ -234,14 +234,17 @@ class TestGitReadOnlySubcommands:
         # These should NOT raise ToolError for "not allowed" -- they may
         # raise other errors (e.g., git not available, path issues) which
         # is fine; we only care they pass the subcommand allowlist check.
-        read_only = ["status", "diff", "log", "show", "blame", "branches", "changed_files"]
+        read_only = [
+            "status", "diff", "log", "show",
+            "blame", "branches", "changed_files",
+        ]
         for subcmd in read_only:
             try:
                 await git_tool.execute({"subcommand": subcmd})
             except ToolError as e:
-                assert "not allowed" not in str(e), (
+                assert "not allowed" not in str(e), (  # noqa: PT017
                     f"Read-only subcommand {subcmd!r} was rejected"
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 # Other failures (subprocess, path, etc.) are fine
                 pass

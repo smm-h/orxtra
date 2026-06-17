@@ -399,9 +399,11 @@ class Transport:
             if block.text is not None
         )
 
-        for block in text_blocks:
-            if block.text is not None:
-                events.append(Text(text=block.text))
+        events.extend(
+            Text(text=block.text)
+            for block in text_blocks
+            if block.text is not None
+        )
 
         if tool_use_blocks:
             ctx.history.append(self._provider.format_assistant_message(blocks))
@@ -738,11 +740,12 @@ class Transport:
                     timeout=120.0,
                 ) as response:
                     if response.status_code == 200:  # noqa: PLR2004
-                        collected: list[Event] = []
-                        async for event in self._provider.parse_stream(
-                            response.aiter_bytes(),
-                        ):
-                            collected.append(event)
+                        collected: list[Event] = [
+                            event
+                            async for event in self._provider.parse_stream(
+                                response.aiter_bytes(),
+                            )
+                        ]
                         return collected, retry_events
 
                     last_status = response.status_code
