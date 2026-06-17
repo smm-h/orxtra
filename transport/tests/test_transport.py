@@ -59,8 +59,18 @@ class MockProvider:
     async def parse_stream(  # type: ignore[override]
         self, byte_stream: AsyncIterator[bytes],
     ) -> AsyncIterator[Event]:
-        return  # type: ignore[return-value]
-        yield  # makes this a valid async generator
+        # Drain the byte stream (required by httpx)
+        async for _ in byte_stream:
+            pass
+        # Yield StreamDelta/Thinking events from configured response blocks
+        if self._call_index < len(self._responses):
+            blocks, _ = self._responses[self._call_index]
+            self._call_index += 1
+            for block in blocks:
+                if block.type == "text" and block.text is not None:
+                    yield StreamDelta(text=block.text)
+                elif block.type == "thinking" and block.text is not None:
+                    yield Thinking(text=block.text)
 
     def extract_usage(self, response: dict[str, Any]) -> Usage:
         _, usage = self._responses[self._call_index]

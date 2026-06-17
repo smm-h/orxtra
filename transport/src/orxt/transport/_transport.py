@@ -354,6 +354,14 @@ class Transport:
         self,
         ctx: _StepContext,
     ) -> tuple[TransportState, list[Event]]:
+        if ctx.stream_deltas:
+            return await self._step_calling_api_streaming(ctx)
+        return await self._step_calling_api_non_streaming(ctx)
+
+    async def _step_calling_api_non_streaming(
+        self,
+        ctx: _StepContext,
+    ) -> tuple[TransportState, list[Event]]:
         events: list[Event] = []
 
         request = self._provider.build_request(
@@ -393,8 +401,6 @@ class Transport:
 
         for block in text_blocks:
             if block.text is not None:
-                if ctx.stream_deltas:
-                    events.append(StreamDelta(text=block.text))
                 events.append(Text(text=block.text))
 
         if tool_use_blocks:
@@ -403,6 +409,70 @@ class Transport:
             return (TransportState.EXECUTING_TOOLS, events)
 
         # Text-only response: finish
+        ctx.history.append(self._provider.format_assistant_message(blocks))
+        events.extend(self._build_finish_events(ctx, usage, text_blocks))
+        return (TransportState.DONE, events)
+
+    async def _step_calling_api_streaming(
+        self,
+        ctx: _StepContext,
+    ) -> tuple[TransportState, list[Event]]:
+        events: list[Event] = []
+
+        request = self._provider.build_request(
+            messages=ctx.history,
+            tools=ctx.tool_specs,
+            system=ctx.system_prompt,
+            model=ctx.model,
+        )
+
+        json_body = request["json_body"]
+        json_body["stream"] = True
+
+        stream_events, retry_events = await self._send_streaming_with_retry(
+            url=request["url"],
+            headers=request["headers"],
+            json_body=json_body,
+        )
+        events.extend(retry_events)
+        if stream_events is None:
+            return (TransportState.DONE, events)
+
+        # Reconstruct content blocks from the stream events.
+        # parse_stream yields StreamDelta and Thinking events. We accumulate
+        # text and thinking content to build ContentBlocks for history.
+        text_parts: list[str] = []
+        thinking_parts: list[str] = []
+        for event in stream_events:
+            events.append(event)
+            if isinstance(event, StreamDelta):
+                text_parts.append(event.text)
+            elif isinstance(event, Thinking):
+                thinking_parts.append(event.text)
+
+        # Build ContentBlocks from accumulated stream content
+        blocks: list[ContentBlock] = []
+        if thinking_parts:
+            blocks.append(ContentBlock(type="thinking", text="".join(thinking_parts)))
+        if text_parts:
+            full_text = "".join(text_parts)
+            blocks.append(ContentBlock(type="text", text=full_text))
+            events.append(Text(text=full_text))
+
+        text_blocks, thinking_blocks, tool_use_blocks = (
+            self._categorize_blocks(blocks)
+        )
+
+        # Streaming does not provide usage data; parse_stream yields only
+        # content deltas. Usage tracking requires provider enhancement.
+        usage = Usage()
+        self._accumulate_usage(ctx, usage)
+
+        if tool_use_blocks:
+            ctx.history.append(self._provider.format_assistant_message(blocks))
+            ctx.pending_tool_blocks = tool_use_blocks
+            return (TransportState.EXECUTING_TOOLS, events)
+
         ctx.history.append(self._provider.format_assistant_message(blocks))
         events.extend(self._build_finish_events(ctx, usage, text_blocks))
         return (TransportState.DONE, events)
@@ -640,3 +710,107 @@ class Transport:
             )
         )
         return None, events
+
+    async def _send_streaming_with_retry(
+        self,
+        *,
+        url: str,
+        headers: dict[str, str],
+        json_body: dict[str, Any],
+    ) -> tuple[list[Event] | None, list[Event]]:
+        """Send a streaming request and collect parsed events.
+
+        Returns (stream_events, retry_events) where stream_events is a list of
+        events from parse_stream, or None on failure. retry_events contains any
+        ApiRetry or Error events from the retry loop.
+        """
+        retry_events: list[Event] = []
+        last_error: str = ""
+        last_status: int = 0
+
+        for attempt in range(self._retry.max_retries + 1):
+            try:
+                async with httpx.AsyncClient() as client:
+                    async with client.stream(
+                        "POST",
+                        url,
+                        headers=headers,
+                        json=json_body,
+                        timeout=120.0,
+                    ) as response:
+                        if response.status_code == 200:  # noqa: PLR2004
+                            collected: list[Event] = []
+                            async for event in self._provider.parse_stream(
+                                response.aiter_bytes(),
+                            ):
+                                collected.append(event)
+                            return collected, retry_events
+
+                        last_status = response.status_code
+                        # Read the error body from the stream
+                        error_body = (await response.aread()).decode("utf-8")
+                        last_error = error_body
+
+                        if response.status_code not in _TRANSIENT_STATUS_CODES:
+                            retry_events.append(
+                                Error(
+                                    name="api_error",
+                                    message=(
+                                        f"HTTP {response.status_code}: {error_body}"
+                                    ),
+                                    metadata={
+                                        "status_code": response.status_code,
+                                    },
+                                )
+                            )
+                            return None, retry_events
+
+                        if attempt < self._retry.max_retries:
+                            delay = min(
+                                self._retry.backoff_base_seconds * (2**attempt),
+                                self._retry.backoff_max_seconds,
+                            )
+                            if self._retry.jitter:
+                                delay *= random.random()  # noqa: S311
+                            retry_events.append(
+                                ApiRetry(
+                                    attempt=attempt + 1,
+                                    max_retries=self._retry.max_retries,
+                                    delay_ms=int(delay * 1000),
+                                    status_code=response.status_code,
+                                    error=error_body,
+                                )
+                            )
+                            await asyncio.sleep(delay)
+
+            except httpx.HTTPError as e:
+                last_error = str(e)
+                last_status = 0
+                if attempt < self._retry.max_retries:
+                    delay = min(
+                        self._retry.backoff_base_seconds * (2**attempt),
+                        self._retry.backoff_max_seconds,
+                    )
+                    if self._retry.jitter:
+                        delay *= random.random()  # noqa: S311
+                    retry_events.append(
+                        ApiRetry(
+                            attempt=attempt + 1,
+                            max_retries=self._retry.max_retries,
+                            delay_ms=int(delay * 1000),
+                            status_code=0,
+                            error=str(e),
+                        )
+                    )
+                    await asyncio.sleep(delay)
+
+        retry_events.append(
+            Error(
+                name="max_retries_exceeded",
+                message=(
+                    f"Failed after {self._retry.max_retries + 1} attempts: {last_error}"
+                ),
+                metadata={"status_code": last_status},
+            )
+        )
+        return None, retry_events
