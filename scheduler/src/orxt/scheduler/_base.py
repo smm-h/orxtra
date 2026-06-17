@@ -86,6 +86,7 @@ class SchedulerBase(ABC):
     _notepad_entries: list[NotepadEntry]
     _lessons: list[dict[str, Any]]
     _active_constraints: list[tuple[str, str]]
+    _constraint_checkers: dict[str, Callable[..., Awaitable[CheckResult]]]
     _mechanical_constraints: list[tuple[str, str]]
     _pending_end_task_message: dict[UUID, str]
     _file_lock_registry: FileLockRegistry
