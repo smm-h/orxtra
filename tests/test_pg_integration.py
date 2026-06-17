@@ -184,15 +184,15 @@ class TestListenNotify:
 
         notifications: list[dict[str, Any]] = []
 
+        def _on_notify(
+            conn: object, pid: int, channel: str, payload: str
+        ) -> None:
+            notifications.append(json.loads(payload))
+
         # Set up LISTEN on a dedicated connection
         listen_conn = await pg_pool.acquire()
         try:
-            await listen_conn.add_listener(
-                "orxt_events",
-                lambda conn, pid, channel, payload: notifications.append(
-                    json.loads(payload)
-                ),
-            )
+            await listen_conn.add_listener("orxt_events", _on_notify)
 
             # Write an event (on a different connection via the pool)
             event_id = await writer.write_event(
@@ -209,7 +209,7 @@ class TestListenNotify:
             assert payload["event_type"] == "notify_test"
             assert payload["run_id"] == str(run_id)
         finally:
-            await listen_conn.remove_listener("orxt_events", lambda *_: None)
+            await listen_conn.remove_listener("orxt_events", _on_notify)
             await pg_pool.release(listen_conn)
 
 
@@ -230,16 +230,38 @@ class TestAdvisoryLocks:
     async def test_second_acquire_fails(
         self, pg_pool: asyncpg.Pool
     ) -> None:
-        """Second acquire on the same run_id raises RunLockError."""
+        """Second acquire on the same run_id from a different connection raises RunLockError.
+
+        Advisory locks are per-connection. We hold the lock on one
+        connection and attempt acquisition from a different one.
+        """
         writer = TraceWriter(pg_pool)
         run_id = await _create_run(writer)
 
-        await acquire_run_lock(pg_pool, run_id)
+        from orxt.trace._lock import _lock_key
+
+        key = _lock_key(run_id)
+
+        # Hold the lock on a dedicated connection
+        conn1 = await pg_pool.acquire()
         try:
-            with pytest.raises(RunLockError):
-                await acquire_run_lock(pg_pool, run_id)
+            acquired = await conn1.fetchval(
+                "SELECT pg_try_advisory_lock($1)", key
+            )
+            assert acquired is True
+
+            # Second acquire from a DIFFERENT connection must fail
+            conn2 = await pg_pool.acquire()
+            try:
+                acquired2 = await conn2.fetchval(
+                    "SELECT pg_try_advisory_lock($1)", key
+                )
+                assert acquired2 is False
+            finally:
+                await pg_pool.release(conn2)
         finally:
-            await release_run_lock(pg_pool, run_id)
+            await conn1.fetchval("SELECT pg_advisory_unlock($1)", key)
+            await pg_pool.release(conn1)
 
 
 # -- Constraints round-trip ----------------------------------------------------
