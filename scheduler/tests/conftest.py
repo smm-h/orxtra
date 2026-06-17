@@ -197,6 +197,25 @@ class MockTraceWriter:
             summary=summary,
         )
 
+    async def create_inbox_item(
+        self,
+        run_id: uuid.UUID,
+        decision_type: str,
+        question: str,
+        options: list[dict[str, Any]],
+        **kwargs: object,
+    ) -> uuid.UUID:
+        item_id = uuid6.uuid7()
+        self._record(
+            "create_inbox_item",
+            run_id=run_id,
+            decision_type=decision_type,
+            question=question,
+            options=options,
+            **kwargs,
+        )
+        return item_id
+
     async def write_lesson(
         self, **kwargs: object,
     ) -> None:
