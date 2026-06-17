@@ -4,6 +4,10 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any, Protocol
 
+from orxt.overseer._autonomy import (
+    AutonomyLevel,
+    is_autonomous,
+)
 from orxt.protocols._events import (
     BudgetExhausted,
     BudgetThresholdCrossed,
@@ -48,6 +52,40 @@ FALLBACK_BEHAVIORS: dict[str, str] = {
 }
 _DEFAULT_FALLBACK = "escalate_to_human_inbox"
 
+# Maps Overseer tool names to autonomy action types.
+# Action types from _autonomy.py: read_only, retry,
+# budget_reallocation, concurrency, task_assumption,
+# scope_change, architecture_decision,
+# understanding_assumption
+TOOL_ACTION_TYPES: dict[str, str] = {
+    # Read tools are always allowed
+    "read": "read_only",
+    "list_dir": "read_only",
+    "glob": "read_only",
+    "grep": "read_only",
+    "stat": "read_only",
+    "diff": "read_only",
+    "notepad": "read_only",
+    # Memory tools
+    "record_decision": "task_assumption",
+    "record_assumption": "task_assumption",
+    "write_lesson": "task_assumption",
+    "update_workflow_status": "read_only",
+    # Constraint tools
+    "add_constraint": "architecture_decision",
+    # Inbox/escalation
+    "create_inbox_item": "read_only",
+    # Lifecycle tools -- scope changes
+    "create_workflow": "scope_change",
+    "create_task": "scope_change",
+    "start_task": "retry",
+    "end_task": "retry",
+    "create_wait_for": "scope_change",
+    "await_task": "retry",
+    # Consult is read-only
+    "consult": "read_only",
+}
+
 
 class OverseerInterface(Protocol):
     """Interface the scheduler uses to communicate
@@ -78,9 +116,11 @@ class OverseerAdapter:
         self,
         overseer: Overseer,
         health_monitor: HealthMonitor,
+        autonomy_level: AutonomyLevel = AutonomyLevel.MAX,
     ) -> None:
         self._overseer = overseer
         self._health_monitor = health_monitor
+        self._autonomy_level = autonomy_level
         self._last_tool_calls: dict[
             str, list[dict[str, Any]]
         ] = {}
@@ -163,7 +203,10 @@ class OverseerAdapter:
         response and return a list of error messages."""
         errors: list[str] = []
 
-        # 1. Schema validation (stub)
+        # 1. Schema validation
+        errors.extend(
+            self._check_schema_validation(),
+        )
 
         # 2. Constraint consistency: check for duplicate
         #    mechanical constraints on the same glob
@@ -187,6 +230,109 @@ class OverseerAdapter:
             success=len(errors) == 0,
             is_repetition=is_repetition,
         )
+
+        return errors
+
+    def _check_schema_validation(
+        self,
+    ) -> list[str]:
+        """Validate create_task/create_workflow tool call
+        args against TaskSpec/WorkflowConfig schema."""
+        errors: list[str] = []
+
+        for tc in self._current_tool_calls:
+            tool_name = tc["tool_name"]
+            args = tc["input"]
+
+            if tool_name == "create_task":
+                task_errors = (
+                    self._validate_create_task_args(args)
+                )
+                errors.extend(task_errors)
+            elif tool_name == "create_workflow":
+                wf_errors = (
+                    self._validate_create_workflow_args(
+                        args,
+                    )
+                )
+                errors.extend(wf_errors)
+
+        return errors
+
+    @staticmethod
+    def _validate_create_task_args(
+        args: dict[str, Any],
+    ) -> list[str]:
+        """Validate create_task tool call arguments."""
+        errors: list[str] = []
+
+        # Check required fields
+        required = [
+            "name",
+            "agent",
+            "task_prompt",
+            "timeout",
+            "context_refinement",
+        ]
+        for field in required:
+            if field not in args:
+                errors.append(
+                    f"Schema: create_task missing"
+                    f" required field '{field}'"
+                )
+
+        if errors:
+            return errors
+
+        # Try to construct a TaskSpec and validate
+        try:
+            from orxt.protocols._task import TaskSpec  # noqa: PLC0415
+            from orxt.scheduler._types import WorkflowConfig  # noqa: PLC0415
+            from orxt.scheduler._validator import validate_task_tree  # noqa: PLC0415
+
+            task = TaskSpec(**args)
+            config = WorkflowConfig(
+                name="validation",
+                description="Schema validation",
+                tasks=[task],
+                dependencies={},
+            )
+            tree_errors = validate_task_tree(config)
+            for te in tree_errors:
+                errors.append(f"Schema: {te}")
+        except Exception as e:  # noqa: BLE001
+            errors.append(
+                f"Schema: create_task args invalid:"
+                f" {e}"
+            )
+
+        return errors
+
+    @staticmethod
+    def _validate_create_workflow_args(
+        args: dict[str, Any],
+    ) -> list[str]:
+        """Validate create_workflow tool call arguments."""
+        errors: list[str] = []
+
+        required = ["name", "description", "goals"]
+        for field in required:
+            if field not in args:
+                errors.append(
+                    f"Schema: create_workflow missing"
+                    f" required field '{field}'"
+                )
+
+        if errors:
+            return errors
+
+        # Validate goals is a non-empty list
+        goals = args.get("goals", [])
+        if not goals:
+            errors.append(
+                "Schema: create_workflow requires"
+                " at least one goal"
+            )
 
         return errors
 
