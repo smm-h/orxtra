@@ -192,7 +192,7 @@ _PATCH_HANDOFF = patch.object(
 )
 
 
-def _make_scheduler(
+def _make_scheduler(  # noqa: PLR0913
     read_root: Path,
     trace_writer: MockTraceWriter | None = None,
     overseer: MockOverseerAdapter | None = None,

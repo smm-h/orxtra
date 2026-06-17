@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import logging
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import uuid6
+
+if TYPE_CHECKING:
+    import pytest
 from orxt.protocols._events import (
     BudgetThresholdCrossed,
     HealthDegraded,
@@ -87,7 +90,7 @@ class _MockTraceWriter:
 
 
 async def test_fixed_escalation_ladder_logs(
-    caplog: Any,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """_fixed_escalation_ladder logs with the event type name."""
     logger = logging.getLogger("test.degraded")
@@ -101,7 +104,7 @@ async def test_fixed_escalation_ladder_logs(
 
 
 async def test_maintain_current_allocations_is_noop(
-    caplog: Any,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """_maintain_current_allocations logs but does not call trace_writer."""
     logger = logging.getLogger("test.degraded")
@@ -138,7 +141,7 @@ async def test_escalate_to_human_inbox_creates_inbox_item() -> None:
 
 
 async def test_escalate_to_human_inbox_skips_without_trace_writer(
-    caplog: Any,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """_escalate_to_human_inbox only logs when trace_writer is None."""
     logger = logging.getLogger("test.degraded")

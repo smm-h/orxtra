@@ -62,7 +62,7 @@ def _simple_task(
     )
 
 
-def _make_scheduler(
+def _make_scheduler(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: Any,  # noqa: ANN401
     run_id: uuid.UUID,

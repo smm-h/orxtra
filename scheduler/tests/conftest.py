@@ -219,7 +219,7 @@ def run_id() -> uuid.UUID:
 
 
 @pytest.fixture
-def scheduler(
+def scheduler(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -238,7 +238,7 @@ def scheduler(
 
 
 @pytest.fixture
-def make_scheduler(
+def make_scheduler(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
