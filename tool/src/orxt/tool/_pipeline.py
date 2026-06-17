@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from orxt.protocols._tool import Tool
 from orxt.write_safety import with_transient_retry
@@ -119,5 +119,5 @@ async def compose(tool: Tool, args: dict[str, Any]) -> str:
     """
     raw = getattr(tool.execute, "_raw_execute", None)
     if raw is not None:
-        return await raw(args)
+        return cast(str, await raw(args))
     return await tool.execute(args)

@@ -354,7 +354,7 @@ def make_read_tool(
     )
 
 
-def _load_gitignore(read_root: Path) -> pathspec.PathSpec | None:
+def _load_gitignore(read_root: Path) -> pathspec.PathSpec | None:  # type: ignore[type-arg]
     """Load .gitignore patterns from the read root directory."""
     gitignore_path = read_root / ".gitignore"
     if not gitignore_path.is_file():
@@ -366,7 +366,7 @@ def _load_gitignore(read_root: Path) -> pathspec.PathSpec | None:
 def _list_recursive(  # noqa: C901
     resolved: Path,
     pattern: str | None,
-    gitignore: pathspec.PathSpec | None = None,
+    gitignore: pathspec.PathSpec | None = None,  # type: ignore[type-arg]
 ) -> list[tuple[str, str, str]]:
     """Walk directory recursively, collecting entries."""
     entries: list[tuple[str, str, str]] = []
@@ -404,7 +404,7 @@ def _list_recursive(  # noqa: C901
 def _list_immediate(
     resolved: Path,
     pattern: str | None,
-    gitignore: pathspec.PathSpec | None = None,
+    gitignore: pathspec.PathSpec | None = None,  # type: ignore[type-arg]
 ) -> list[tuple[str, str, str]]:
     """List immediate children of a directory."""
     entries: list[tuple[str, str, str]] = []
