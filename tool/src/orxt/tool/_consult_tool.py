@@ -104,7 +104,7 @@ def make_consult_tool(  # noqa: PLR0913
             tools=list(filtered_tools.values()),
         ):
             if type(event).__name__ == "Result":
-                result_text = event.text  # type: ignore[union-attr]
+                result_text = event.text
 
         return result_text
 
