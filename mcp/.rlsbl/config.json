@@ -8,5 +8,18 @@
       "type": "pypi",
       "local": false
     }
+  },
+  "batch_limits": {
+    "exclusions": [
+      {
+        "reason": "**Initial implementation.** MCP server providing human interface via dashboard and AI client integration.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 1
+          }
+        ]
+      }
+    ]
   }
 }
