@@ -58,6 +58,7 @@ async def pg_pool(pg_container) -> AsyncIterator[asyncpg.Pool]:
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://"
     )
+
     async def _init_connection(conn: _asyncpg.Connection) -> None:
         await conn.set_type_codec(
             "jsonb",
