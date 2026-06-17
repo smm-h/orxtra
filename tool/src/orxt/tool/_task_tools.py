@@ -7,6 +7,8 @@ from orxt.tool._validation import validate_args
 
 
 class TaskSchedulerRef(Protocol):
+    """All task_id parameters are UUID-formatted strings. The scheduler converts to UUID internally."""
+
     async def handle_start_task(self, session_id: str, task_id: str) -> str: ...
     async def handle_end_task(self, session_id: str, message: str) -> str: ...
     async def handle_create_task(
