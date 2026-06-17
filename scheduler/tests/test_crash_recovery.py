@@ -60,7 +60,7 @@ def _make_scheduler(  # noqa: PLR0913
 
 
 @pytest.mark.asyncio
-async def test_recovery_called_at_startup(
+async def test_recovery_called_at_startup(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -107,7 +107,7 @@ async def test_recovery_called_at_startup(
 
 
 @pytest.mark.asyncio
-async def test_advisory_lock_acquired(
+async def test_advisory_lock_acquired(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -151,7 +151,7 @@ async def test_advisory_lock_acquired(
 
 
 @pytest.mark.asyncio
-async def test_recovery_skipped_without_pool(
+async def test_recovery_skipped_without_pool(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -192,7 +192,7 @@ async def test_recovery_skipped_without_pool(
 
 
 @pytest.mark.asyncio
-async def test_lock_error_propagates(
+async def test_lock_error_propagates(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -237,7 +237,7 @@ async def test_lock_error_propagates(
 
 
 @pytest.mark.asyncio
-async def test_recovery_order(
+async def test_recovery_order(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],

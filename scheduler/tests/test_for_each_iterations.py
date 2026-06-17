@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from orxt.protocols._task import TaskSpec
 
 if TYPE_CHECKING:
+    from orxt.scheduler._executor import Scheduler
+
     from tests.conftest import MockTraceWriter
 
 
 class TestForEachIterations:
     async def test_creates_iterations(
         self,
-        scheduler: Any,
+        scheduler: Scheduler,
         trace_writer: MockTraceWriter,
     ) -> None:
         """create_iteration is called once per item."""
@@ -37,7 +39,7 @@ class TestForEachIterations:
 
     async def test_completes_iterations(
         self,
-        scheduler: Any,
+        scheduler: Scheduler,
         trace_writer: MockTraceWriter,
     ) -> None:
         """complete_iteration is called for each successful iteration."""
@@ -59,7 +61,7 @@ class TestForEachIterations:
 
     async def test_iteration_records_check_results(
         self,
-        scheduler: Any,
+        scheduler: Scheduler,
         trace_writer: MockTraceWriter,
     ) -> None:
         """complete_iteration receives check result dicts."""

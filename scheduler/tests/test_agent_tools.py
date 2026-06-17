@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -186,7 +186,7 @@ class TestWriteToolsReceiveWriteQueue:
         )
 
         def capturing_wrap(
-            tools: list[Tool], **kwargs: Any,
+            tools: list[Tool], **kwargs: object,
         ) -> list[Tool]:
             captured_tools.extend(tools)
             return original_wrap(tools=tools, **kwargs)
@@ -310,7 +310,7 @@ class TestGitSubcommandsDependOnWriteAccess:
         def capturing_make(
             read_root: Path,
             allowed_subcommands: list[str],
-            **kwargs: Any,
+            **kwargs: object,
         ) -> Tool:
             captured_subcommands.append(
                 allowed_subcommands,
@@ -359,7 +359,7 @@ class TestGitSubcommandsDependOnWriteAccess:
         def capturing_make(
             read_root: Path,
             allowed_subcommands: list[str],
-            **kwargs: Any,
+            **kwargs: object,
         ) -> Tool:
             captured_subcommands.append(
                 allowed_subcommands,

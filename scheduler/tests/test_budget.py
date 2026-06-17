@@ -37,7 +37,7 @@ def transport() -> MockTransport:
     return MockTransport()
 
 
-def _make_scheduler(
+def _make_scheduler(  # noqa: PLR0913
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: uuid6.UUID,
@@ -86,7 +86,10 @@ class MockOverseerInterface:
 
 
 def test_cost_tracking_accumulates(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
 ) -> None:
     """Cost tracking accumulates correctly."""
     scheduler = _make_scheduler(
@@ -116,7 +119,10 @@ def test_cost_tracking_accumulates(
 
 
 def test_no_budget_no_enforcement(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
 ) -> None:
     """No budget set: no enforcement events."""
     scheduler = _make_scheduler(
@@ -150,7 +156,10 @@ def test_no_budget_no_enforcement(
 
 
 def test_budget_threshold_event_at_80_pct(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
 ) -> None:
     """Budget threshold event emitted at 80%."""
     scheduler = _make_scheduler(
@@ -186,7 +195,10 @@ def test_budget_threshold_event_at_80_pct(
 
 
 def test_budget_exhausted_event(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
 ) -> None:
     """Budget exhausted event when cost >= budget."""
     scheduler = _make_scheduler(
@@ -219,7 +231,10 @@ def test_budget_exhausted_event(
 
 @pytest.mark.asyncio
 async def test_budget_events_sent_to_overseer(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
 ) -> None:
     """Budget events are sent to overseer."""
     mock_overseer = MockOverseerInterface()
@@ -244,7 +259,10 @@ async def test_budget_events_sent_to_overseer(
 
 
 def test_unlimited_policy_no_enforcement(
-    trace_writer: MockTraceWriter, transport: MockTransport, run_id: uuid6.UUID, tmp_path: Path,
+    trace_writer: MockTraceWriter,
+    transport: MockTransport,
+    run_id: uuid6.UUID,
+    tmp_path: Path,
 ) -> None:
     """Unlimited policy does nothing special."""
     scheduler = _make_scheduler(
