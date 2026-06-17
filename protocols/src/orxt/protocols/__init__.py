@@ -52,11 +52,11 @@ from orxt.protocols._tool import Tool, ToolError
 
 __all__ = [
     "ALWAYS_ACTIVE_CONSTRAINTS",
-    "AutonomyLevel",
     "EXPENSIVE_CONSTRAINTS",
     "SEVERITY_ORDER",
     "AgentExecution",
     "AttemptSummary",
+    "AutonomyLevel",
     "BudgetExhausted",
     "BudgetExhaustionPolicy",
     "BudgetThresholdCrossed",

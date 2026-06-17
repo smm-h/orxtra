@@ -21,9 +21,9 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from uuid import UUID
 
-    from orxt.protocols._autonomy import AutonomyLevel
     from orxt.overseer._health import HealthMonitor
     from orxt.overseer._overseer import Overseer
+    from orxt.protocols._autonomy import AutonomyLevel
     from orxt.protocols._tool import Tool
     from orxt.session import Session
 
