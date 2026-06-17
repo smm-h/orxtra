@@ -8,5 +8,18 @@
       "type": "pypi",
       "local": false
     }
+  },
+  "batch_limits": {
+    "exclusions": [
+      {
+        "reason": "**Initial implementation.** Task executor managing recursive task hierarchy with pre/post-check enforcement, runtime task creation, budget tracking, constraint enforcement, autonomy gating, escalation policies, for-each iterations, crash recovery, and Overseer event routing.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 1
+          }
+        ]
+      }
+    ]
   }
 }
