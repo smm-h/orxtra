@@ -14,6 +14,7 @@ import sys
 import types
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
@@ -65,6 +66,7 @@ def _make_scheduler(
     trace_writer: MockTraceWriter,
     transport: Any,  # noqa: ANN401
     run_id: uuid.UUID,
+    read_root: Path,
     agents: dict[str, Agent] | None = None,
     categories: dict[str, str] | None = None,
 ) -> Scheduler:
@@ -74,6 +76,7 @@ def _make_scheduler(
         agents=agents or {"test-agent": make_agent()},
         categories=categories or make_categories(),
         run_id=run_id,
+        read_root=read_root,
     )
 
 
@@ -101,6 +104,7 @@ class TestVerifyIntegration:
     async def test_prechecks_call_verify_when_defined(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """ScriptExecution prechecks call verify.run_checks."""
         trace_writer = MockTraceWriter()
@@ -133,6 +137,7 @@ class TestVerifyIntegration:
             )
             sched = _make_scheduler(
                 trace_writer, MockTransport(), run_id,
+                read_root=tmp_path,
             )
             config = WorkflowConfig(
                 name="pre-wf",
@@ -148,6 +153,7 @@ class TestVerifyIntegration:
     async def test_postchecks_call_verify_when_defined(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """ScriptExecution postchecks call verify.run_checks."""
         trace_writer = MockTraceWriter()
@@ -180,6 +186,7 @@ class TestVerifyIntegration:
             )
             sched = _make_scheduler(
                 trace_writer, MockTransport(), run_id,
+                read_root=tmp_path,
             )
             config = WorkflowConfig(
                 name="post-wf",
@@ -229,6 +236,7 @@ class TestContextAssembly:
     async def test_constraints_injected_into_prompt(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """Active constraints are injected as '## Active Constraints'."""
         trace_writer = MockTraceWriter()
@@ -294,6 +302,7 @@ class TestContextAssembly:
 
         sched = _make_scheduler(
             trace_writer, CapturingTransport(), run_id,
+            read_root=tmp_path,
         )
         sched._active_constraints.append(  # noqa: SLF001
             ("No new dependencies", "mechanical"),
@@ -315,6 +324,7 @@ class TestContextAssembly:
     async def test_notepad_entries_injected_into_prompt(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """Notepad entries formatted and injected into prompt."""
         trace_writer = MockTraceWriter()
@@ -380,6 +390,7 @@ class TestContextAssembly:
 
         sched = _make_scheduler(
             trace_writer, CapturingTransport(), run_id,
+            read_root=tmp_path,
         )
         entry = NotepadEntry(
             run_id=run_id,
@@ -407,6 +418,7 @@ class TestContextAssembly:
     async def test_prior_failure_context_injected(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """Prior failure context injected on retry with retry_inject_failure."""
         trace_writer = MockTraceWriter()
@@ -512,6 +524,7 @@ class TestContextAssembly:
             )
             sched = _make_scheduler(
                 trace_writer, CapturingTransport(), run_id,
+                read_root=tmp_path,
             )
             await sched.execute_workflow(config)
 
@@ -812,12 +825,14 @@ class TestDecisionPoint:
     async def test_decision_point_task_completes(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """Decision point tasks transition to ACTIVE, emit
         event, and complete."""
         trace_writer = MockTraceWriter()
         sched = _make_scheduler(
             trace_writer, MockTransport(), run_id,
+            read_root=tmp_path,
         )
 
         task = TaskSpec(
@@ -1037,6 +1052,7 @@ class TestStructuralAdvisories:
     async def test_write_capable_agents_no_advisory(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """Write-capable agents do not produce advisories."""
         trace_writer = MockTraceWriter()
@@ -1049,6 +1065,7 @@ class TestStructuralAdvisories:
         )
         sched = _make_scheduler(
             trace_writer, MockTransport(), run_id,
+            read_root=tmp_path,
             agents={"writer-agent": write_agent},
         )
         task = _simple_task("writer", agent="writer-agent")
@@ -1203,6 +1220,7 @@ class TestFixThenReverify:
     async def test_fix_callback_retries_check(
         self,
         run_id: uuid.UUID,
+        tmp_path: Path,
     ) -> None:
         """When a precheck fails with a fix callable, verify
         calls fix then re-runs the check."""
@@ -1248,6 +1266,7 @@ class TestFixThenReverify:
             )
             sched = _make_scheduler(
                 trace_writer, MockTransport(), run_id,
+                read_root=tmp_path,
             )
             config = WorkflowConfig(
                 name="fix-wf",
