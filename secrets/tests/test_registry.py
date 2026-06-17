@@ -103,6 +103,15 @@ class TestImmutability:
         assert reg.substitute("{{secret:NEW}}") == "{{secret:NEW}}"
 
 
+class TestDeepImmutability:
+
+    def test_secrets_dict_is_immutable(self) -> None:
+        registry = SecretRegistry({"TOKEN": "abc123"})
+        with pytest.raises(TypeError):
+            registry._secrets["new"] = "val"  # type: ignore[index]
+        assert isinstance(registry._scrub_order, tuple)
+
+
 class TestRoundTrip:
 
     def test_scrub_of_substituted_returns_original(self) -> None:
