@@ -64,6 +64,7 @@ class SchedulerBase(ABC):
     _handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None
     _budget_exhaustion_policy: BudgetExhaustionPolicy
     _budget_limit: Decimal | None
+    _proportionality_threshold: float | None
     _autonomy_level: str
     _secret_registry: SecretRegistry | None
     _active_tasks: dict[str, UUID]

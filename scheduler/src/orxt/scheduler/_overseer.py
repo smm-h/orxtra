@@ -205,6 +205,7 @@ class OverseerAdapter:
         autonomy_level: AutonomyLevel | None = None,
         budget_limit: Decimal | None = None,
         spent_fn: Callable[[], Decimal] | None = None,
+        proportionality_threshold: float | None = None,
     ) -> None:
         if autonomy_level is None:
             from orxt.protocols._autonomy import AutonomyLevel  # noqa: PLC0415
@@ -214,6 +215,7 @@ class OverseerAdapter:
         self._autonomy_level = autonomy_level
         self._budget_limit = budget_limit
         self._spent_fn = spent_fn
+        self._proportionality_threshold = proportionality_threshold
         self._last_tool_calls: dict[
             str, list[dict[str, Any]]
         ] = {}
@@ -561,8 +563,15 @@ class OverseerAdapter:
     def _check_proportionality(
         self,
     ) -> list[str]:
-        """Flag create_workflow budgets that exceed 50%
-        of remaining run budget."""
+        """Flag create_workflow budgets that exceed
+        the configured fraction of remaining run budget."""
+        if self._proportionality_threshold is None:
+            if self._budget_limit is not None:
+                return [
+                    "proportionality_threshold required"
+                    " when budget is set",
+                ]
+            return []
         if self._budget_limit is None:
             return []
         spent = (
@@ -574,7 +583,9 @@ class OverseerAdapter:
         if remaining <= 0:
             return []
 
-        threshold = remaining * Decimal("0.5")
+        threshold = remaining * Decimal(
+            str(self._proportionality_threshold),
+        )
         errors: list[str] = []
         for tc in self._current_tool_calls:
             if tc["tool_name"] != "create_workflow":
@@ -589,8 +600,9 @@ class OverseerAdapter:
             if budget > threshold:
                 errors.append(
                     f"Proportionality: create_workflow"
-                    f" budget ${budget} exceeds 50% of"
-                    f" remaining run budget"
+                    f" budget ${budget} exceeds"
+                    f" {self._proportionality_threshold:.0%}"
+                    f" of remaining run budget"
                     f" ${remaining}"
                 )
         return errors
