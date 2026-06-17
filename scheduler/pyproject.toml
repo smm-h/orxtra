@@ -25,11 +25,11 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-orxt-protocols = { path = "../protocols", editable = true }
-orxt-write-safety = { path = "../write-safety", editable = true }
-agent = { path = "../agent", editable = true }
-tool = { path = "../tool", editable = true }
-session = { path = "../session", editable = true }
-trace = { path = "../trace", editable = true }
-verify = { path = "../verify", editable = true }
-notepad = { path = "../notepad", editable = true }
+orxt-protocols = { workspace = true }
+orxt-write-safety = { workspace = true }
+agent = { workspace = true }
+tool = { workspace = true }
+session = { workspace = true }
+trace = { workspace = true }
+verify = { workspace = true }
+notepad = { workspace = true }

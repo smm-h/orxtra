@@ -12,7 +12,7 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [tool.uv.sources]
-orxt-protocols = { path = "../protocols", editable = true }
+orxt-protocols = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

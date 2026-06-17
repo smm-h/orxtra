@@ -20,6 +20,6 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-scheduler = { path = "../scheduler", editable = true }
-overseer = { path = "../overseer", editable = true }
-trace = { path = "../trace", editable = true }
+scheduler = { workspace = true }
+overseer = { workspace = true }
+trace = { workspace = true }

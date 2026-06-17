@@ -15,9 +15,9 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [tool.uv.sources]
-orxt-protocols = { path = "../protocols", editable = true }
-orxt-secrets = { path = "../secrets", editable = true }
-orxt-write-safety = { path = "../write-safety", editable = true }
+orxt-protocols = { workspace = true }
+orxt-secrets = { workspace = true }
+orxt-write-safety = { workspace = true }
 
 [dependency-groups]
 dev = [

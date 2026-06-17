@@ -12,7 +12,7 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [tool.uv.sources]
-orxt-secrets = { path = "../secrets", editable = true }
+orxt-secrets = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
