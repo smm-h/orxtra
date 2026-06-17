@@ -330,6 +330,8 @@ def _make_adapter_for_verify() -> (
     adapter._last_tool_calls = {}  # noqa: SLF001
     adapter._previous_tool_calls = {}  # noqa: SLF001
     adapter._current_tool_calls = []  # noqa: SLF001
+    adapter._budget_limit = None  # noqa: SLF001
+    adapter._spent_fn = None  # noqa: SLF001
     return adapter, monitor
 
 
@@ -913,4 +915,171 @@ class TestConstraintConsistency:
         assert not any(
             "Constraint consistency" in e
             for e in errors
+        )
+
+
+class TestProportionalityCheck:
+    """OverseerAdapter flags disproportionate budgets."""
+
+    async def test_large_budget_flagged(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal("2.00")  # noqa: SLF001
+        # Remaining = 8.00, threshold = 4.00
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_workflow",
+                "input": {"budget": "5.00"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert any(
+            "Proportionality" in e for e in errors
+        )
+
+    async def test_small_budget_passes(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal("2.00")  # noqa: SLF001
+        # Remaining = 8.00, threshold = 4.00
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_workflow",
+                "input": {"budget": "3.00"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert not any(
+            "Proportionality" in e for e in errors
+        )
+
+    async def test_no_budget_limit_skips(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        # _budget_limit defaults to None
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_workflow",
+                "input": {"budget": "999.00"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert not any(
+            "Proportionality" in e for e in errors
+        )
+
+    async def test_no_budget_in_workflow_skips(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal("0")  # noqa: SLF001
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_workflow",
+                "input": {"name": "test"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert not any(
+            "Proportionality" in e for e in errors
+        )
+
+    async def test_zero_remaining_skips(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal("10.00")  # noqa: SLF001
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_workflow",
+                "input": {"budget": "1.00"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert not any(
+            "Proportionality" in e for e in errors
+        )
+
+    async def test_exactly_at_threshold_passes(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal("0")  # noqa: SLF001
+        # Remaining = 10.00, threshold = 5.00
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_workflow",
+                "input": {"budget": "5.00"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert not any(
+            "Proportionality" in e for e in errors
+        )
+
+    async def test_no_spent_fn_assumes_zero(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        # _spent_fn is None (default)
+        # Remaining = 10.00, threshold = 5.00
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_workflow",
+                "input": {"budget": "6.00"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert any(
+            "Proportionality" in e for e in errors
+        )
+
+    async def test_non_workflow_calls_ignored(
+        self,
+    ) -> None:
+        adapter, _ = _make_adapter_for_verify()
+        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
+        adapter._spent_fn = lambda: Decimal("0")  # noqa: SLF001
+        adapter._current_tool_calls = [  # noqa: SLF001
+            {
+                "tool_name": "create_task",
+                "input": {"budget": "999.00"},
+                "status": "success",
+            },
+        ]
+
+        errors = await adapter.verify_actions()
+
+        assert not any(
+            "Proportionality" in e for e in errors
         )
