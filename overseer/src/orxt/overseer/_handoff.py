@@ -45,7 +45,7 @@ async def perform_handoff(
         },
     )
 
-    new_session = create_session(
+    new_session = await create_session(
         transport=session._transport,  # noqa: SLF001
         model=session.model,
         system_prompt=session.system_prompt,
