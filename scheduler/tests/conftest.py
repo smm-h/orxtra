@@ -239,6 +239,48 @@ class MockTraceWriter:
             refinement_diff=refinement_diff,
         )
 
+    async def create_iteration(
+        self,
+        task_id: uuid.UUID,
+        index: int,
+        item_value: object,
+    ) -> uuid.UUID:
+        iteration_id = uuid6.uuid7()
+        self._record(
+            "create_iteration",
+            task_id=task_id,
+            index=index,
+            item_value=item_value,
+            iteration_id=iteration_id,
+        )
+        return iteration_id
+
+    async def complete_iteration(
+        self,
+        iteration_id: uuid.UUID,
+        output: str | None,
+        structured_output: dict[str, Any] | None,
+        check_results: list[dict[str, Any]] | None,
+    ) -> None:
+        self._record(
+            "complete_iteration",
+            iteration_id=iteration_id,
+            output=output,
+            structured_output=structured_output,
+            check_results=check_results,
+        )
+
+    async def fail_iteration(
+        self,
+        iteration_id: uuid.UUID,
+        error: str,
+    ) -> None:
+        self._record(
+            "fail_iteration",
+            iteration_id=iteration_id,
+            error=error,
+        )
+
     async def subscribe_run_control(
         self,
         run_id: uuid.UUID,
