@@ -62,7 +62,7 @@ class AgentExecutionMixin:
         self,
         task: TaskSpec,
         task_id: UUID,
-        parent_task_id: UUID | None,  # noqa: ARG002
+        parent_task_id: UUID | None,
         variables: dict[str, Any] | None = None,
     ) -> TaskResult:
         """Execute an orchestrator task with multi-turn suspension support."""
@@ -186,6 +186,10 @@ class AgentExecutionMixin:
                     ],
                     agent_summary=(
                         "Orchestrator postchecks failed"
+                    ),
+                    context=self._make_task_context(
+                        task, task_id, parent_task_id,
+                        1, [], variables,
                     ),
                 )
                 await self._send_overseer_event(
