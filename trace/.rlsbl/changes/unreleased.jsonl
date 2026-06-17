@@ -2,3 +2,4 @@
 {"commits":["307d79cf70674bec146bbad4edf5dd363cbd4ace"],"user_facing":false}
 {"commits":["5b9d7c36ca3b24d2d61bcf1cd2317eb5b9dcf1a7"],"user_facing":true,"description":"**New function.** `read_active_constraints` reads all active constraints for a run from the database.","type":"feature"}
 {"commits":["2f34d8de28a6ba25467c0ee6b23cd84621fd7db0"],"user_facing":true,"description":"**State machine fix.** Added `suspended` state and `active -> completed` transition to task state machine.","type":"fix"}
+{"commits":["32e0f6dc69859f4062345039773b36859cb7e0b1"],"user_facing":true,"description":"**Bug fix.** `read_run_report` now correctly parses JSONB `config_snapshot` returned as string by asyncpg.","type":"fix"}
