@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import uuid6
@@ -64,7 +64,7 @@ def _make_scheduler(
     )
 
 
-def _extract_tool_names(
+async def _extract_tool_names(
     scheduler: Scheduler,
 ) -> set[str]:
     """Call _create_agent_session with create_session
@@ -74,11 +74,12 @@ def _extract_tool_names(
 
     with patch(
         "orxt.scheduler._agent_execution.create_session",
+        new_callable=AsyncMock,
     ) as mock_create:
         mock_session = MagicMock()
         mock_create.return_value = mock_session
 
-        scheduler._create_agent_session(  # noqa: SLF001
+        await scheduler._create_agent_session(  # noqa: SLF001
             task, task_id, 1,
         )
 
@@ -92,12 +93,12 @@ class TestReadWriteToolsPresent:
     """Agent with allow=["read", "write"] gets read
     and write tools plus lifecycle tools."""
 
-    def test_read_write_plus_lifecycle(
+    async def test_read_write_plus_lifecycle(
         self, tmp_path: Path,
     ) -> None:
         agent = _agent(["read", "write"])
         sched = _make_scheduler(agent, tmp_path)
-        names = _extract_tool_names(sched)
+        names = await _extract_tool_names(sched)
 
         assert "read" in names
         assert "write" in names
@@ -107,10 +108,10 @@ class TestReadWriteToolsPresent:
 class TestEmptyAllowOnlyLifecycle:
     """Agent with allow=[] gets only lifecycle tools."""
 
-    def test_empty_allow(self, tmp_path: Path) -> None:
+    async def test_empty_allow(self, tmp_path: Path) -> None:
         agent = _agent([])
         sched = _make_scheduler(agent, tmp_path)
-        names = _extract_tool_names(sched)
+        names = await _extract_tool_names(sched)
 
         assert names == LIFECYCLE_TOOLS
 
@@ -118,10 +119,10 @@ class TestEmptyAllowOnlyLifecycle:
 class TestGitToolPresent:
     """Agent with allow=["git"] gets the git tool."""
 
-    def test_git_tool(self, tmp_path: Path) -> None:
+    async def test_git_tool(self, tmp_path: Path) -> None:
         agent = _agent(["git"])
         sched = _make_scheduler(agent, tmp_path)
-        names = _extract_tool_names(sched)
+        names = await _extract_tool_names(sched)
 
         assert "git" in names
         assert LIFECYCLE_TOOLS <= names
@@ -131,12 +132,12 @@ class TestDisallowedToolAbsent:
     """A tool NOT in the agent's allow list is NOT
     in the session tools."""
 
-    def test_write_absent_when_not_allowed(
+    async def test_write_absent_when_not_allowed(
         self, tmp_path: Path,
     ) -> None:
         agent = _agent(["read"])
         sched = _make_scheduler(agent, tmp_path)
-        names = _extract_tool_names(sched)
+        names = await _extract_tool_names(sched)
 
         assert "read" in names
         assert "write" not in names
@@ -146,12 +147,12 @@ class TestDisallowedToolAbsent:
         assert "http" not in names
         assert "consult" not in names
 
-    def test_read_absent_when_not_allowed(
+    async def test_read_absent_when_not_allowed(
         self, tmp_path: Path,
     ) -> None:
         agent = _agent(["write"])
         sched = _make_scheduler(agent, tmp_path)
-        names = _extract_tool_names(sched)
+        names = await _extract_tool_names(sched)
 
         assert "write" in names
         assert "read" not in names
@@ -161,7 +162,7 @@ class TestWriteToolsReceiveWriteQueue:
     """Write tools are constructed with write-safety
     (WriteQueue and StaleWriteTracker)."""
 
-    def test_write_tool_has_write_queue(
+    async def test_write_tool_has_write_queue(
         self, tmp_path: Path,
     ) -> None:
         agent = _agent(["write", "edit", "move", "copy"])
@@ -191,6 +192,7 @@ class TestWriteToolsReceiveWriteQueue:
             patch(
                 "orxt.scheduler._agent_execution"
                 ".create_session",
+                new_callable=AsyncMock,
                 return_value=MagicMock(),
             ),
             patch(
@@ -199,7 +201,7 @@ class TestWriteToolsReceiveWriteQueue:
                 side_effect=capturing_wrap,
             ),
         ):
-            sched._create_agent_session(  # noqa: SLF001
+            await sched._create_agent_session(  # noqa: SLF001
                 task, task_id, 1,
             )
 
@@ -245,12 +247,12 @@ class TestAllLifecycleToolsAlwaysPresent:
             "all-standard",
         ],
     )
-    def test_lifecycle_always_present(
+    async def test_lifecycle_always_present(
         self, allow: list[str], tmp_path: Path,
     ) -> None:
         agent = _agent(allow)
         sched = _make_scheduler(agent, tmp_path)
-        names = _extract_tool_names(sched)
+        names = await _extract_tool_names(sched)
 
         assert LIFECYCLE_TOOLS <= names, (
             f"Missing lifecycle tools: "
@@ -261,7 +263,7 @@ class TestAllLifecycleToolsAlwaysPresent:
 class TestFullToolSuite:
     """Agent with all allow entries gets all tools."""
 
-    def test_all_tools(self, tmp_path: Path) -> None:
+    async def test_all_tools(self, tmp_path: Path) -> None:
         all_allow = [
             "read", "list_dir", "glob", "grep",
             "stat", "diff", "write", "edit", "mkdir",
@@ -270,7 +272,7 @@ class TestFullToolSuite:
         ]
         agent = _agent(all_allow)
         sched = _make_scheduler(agent, tmp_path)
-        names = _extract_tool_names(sched)
+        names = await _extract_tool_names(sched)
 
         expected = {
             "read", "list_dir", "glob", "grep",
@@ -286,7 +288,7 @@ class TestGitSubcommandsDependOnWriteAccess:
     the commit subcommand; without write tools it does
     not."""
 
-    def test_git_with_write_has_commit(
+    async def test_git_with_write_has_commit(
         self, tmp_path: Path,
     ) -> None:
         agent = _agent(["git", "write"])
@@ -319,6 +321,7 @@ class TestGitSubcommandsDependOnWriteAccess:
             patch(
                 "orxt.scheduler._agent_execution"
                 ".create_session",
+                new_callable=AsyncMock,
                 return_value=MagicMock(),
             ),
             patch(
@@ -327,14 +330,14 @@ class TestGitSubcommandsDependOnWriteAccess:
                 side_effect=capturing_make,
             ),
         ):
-            sched._create_agent_session(  # noqa: SLF001
+            await sched._create_agent_session(  # noqa: SLF001
                 task, task_id, 1,
             )
 
         assert len(captured_subcommands) == 1
         assert "commit" in captured_subcommands[0]
 
-    def test_git_without_write_no_commit(
+    async def test_git_without_write_no_commit(
         self, tmp_path: Path,
     ) -> None:
         agent = _agent(["git"])
@@ -367,6 +370,7 @@ class TestGitSubcommandsDependOnWriteAccess:
             patch(
                 "orxt.scheduler._agent_execution"
                 ".create_session",
+                new_callable=AsyncMock,
                 return_value=MagicMock(),
             ),
             patch(
@@ -375,7 +379,7 @@ class TestGitSubcommandsDependOnWriteAccess:
                 side_effect=capturing_make,
             ),
         ):
-            sched._create_agent_session(  # noqa: SLF001
+            await sched._create_agent_session(  # noqa: SLF001
                 task, task_id, 1,
             )
 
