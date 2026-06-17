@@ -36,7 +36,7 @@ def trace_writer() -> MockTraceWriter:
 
 @pytest.fixture
 def transport() -> MockTransport:
-    return MockTransport()
+    return MockTransport(auto_execute_tools=True)
 
 
 def _make_scheduler(  # noqa: PLR0913

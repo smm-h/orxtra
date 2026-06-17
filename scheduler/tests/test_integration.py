@@ -136,7 +136,7 @@ class TestVerifyIntegration:
                 ],
             )
             sched = _make_scheduler(
-                trace_writer, MockTransport(), run_id,
+                trace_writer, MockTransport(auto_execute_tools=True), run_id,
                 read_root=tmp_path,
             )
             config = WorkflowConfig(
@@ -185,7 +185,7 @@ class TestVerifyIntegration:
                 ],
             )
             sched = _make_scheduler(
-                trace_writer, MockTransport(), run_id,
+                trace_writer, MockTransport(auto_execute_tools=True), run_id,
                 read_root=tmp_path,
             )
             config = WorkflowConfig(
@@ -831,7 +831,7 @@ class TestDecisionPoint:
         event, and complete."""
         trace_writer = MockTraceWriter()
         sched = _make_scheduler(
-            trace_writer, MockTransport(), run_id,
+            trace_writer, MockTransport(auto_execute_tools=True), run_id,
             read_root=tmp_path,
         )
 
@@ -1064,7 +1064,7 @@ class TestStructuralAdvisories:
             allow=["read", "write", "edit"],
         )
         sched = _make_scheduler(
-            trace_writer, MockTransport(), run_id,
+            trace_writer, MockTransport(auto_execute_tools=True), run_id,
             read_root=tmp_path,
             agents={"writer-agent": write_agent},
         )
@@ -1284,7 +1284,7 @@ class TestFixThenReverify:
                 ],
             )
             sched = _make_scheduler(
-                trace_writer, MockTransport(), run_id,
+                trace_writer, MockTransport(auto_execute_tools=True), run_id,
                 read_root=tmp_path,
             )
             config = WorkflowConfig(

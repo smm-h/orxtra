@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 import uuid6
+from orxt.protocols._tool import Tool, ToolError
+from orxt.transport import Continuation, Event, Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     import uuid
+    from collections.abc import AsyncIterator
     from decimal import Decimal
 
 
@@ -296,3 +300,170 @@ class MockTraceWriter:
         return [
             kwargs for m, kwargs in self.calls if m == method
         ]
+
+
+class MockTransport:
+    """Configurable transport mock for all test scenarios.
+
+    Modes:
+    - Event sequence mode (session tests): set_events() / set_resume_events()
+    - LLM simulation mode (scheduler tests): auto_execute_tools=True
+    - No-tools mode: auto_execute_tools=False, no events set
+    """
+
+    def __init__(
+        self,
+        response_text: str = "Mock response",
+        auto_execute_tools: bool = False,
+    ) -> None:
+        self.calls: list[dict[str, Any]] = []
+        self.resume_calls: list[dict[str, Any]] = []
+        self._event_sequences: list[list[Event]] = []
+        self._resume_event_sequences: list[list[Event]] = []
+        self._response_text = response_text
+        self._auto_execute_tools = auto_execute_tools
+        self._call_count = 0
+
+    def set_events(self, *sequences: list[Event]) -> None:
+        self._event_sequences = list(sequences)
+
+    def set_resume_events(self, *sequences: list[Event]) -> None:
+        self._resume_event_sequences = list(sequences)
+
+    async def send(  # noqa: PLR0913
+        self,
+        message: str,
+        *,
+        model: str,
+        system_prompt: str,
+        tools: list[Tool],
+        session_id: str | None = None,
+        stream_deltas: bool = False,
+    ) -> AsyncIterator[Event]:
+        self.calls.append({
+            "message": message,
+            "model": model,
+            "system_prompt": system_prompt,
+            "tools": tools,
+            "session_id": session_id,
+            "stream_deltas": stream_deltas,
+        })
+        self._call_count += 1
+
+        # If event sequences were set, use them (session test mode)
+        if self._event_sequences:
+            events = self._event_sequences.pop(0)
+            for event in events:
+                yield event
+            return
+
+        # Auto-execute tools mode (scheduler test mode)
+        sid = session_id or str(uuid6.uuid7())
+        if self._auto_execute_tools:
+            tool_map = {t.name: t for t in tools}
+            task_id_match = re.search(
+                r"Your task ID is ([0-9a-f-]+)", message,
+            )
+            task_id_str = (
+                task_id_match.group(1)
+                if task_id_match
+                else "unknown"
+            )
+
+            if "start_task" in tool_map:
+                try:
+                    start_result = await tool_map[
+                        "start_task"
+                    ].execute({"task_id": task_id_str})
+                except ToolError as e:
+                    start_result = f"Error: {e}"
+                yield ToolUse(
+                    tool_name="start_task",
+                    input={"task_id": task_id_str},
+                    output=start_result,
+                    status="success",
+                )
+
+            if "end_task" in tool_map:
+                try:
+                    end_result = await tool_map[
+                        "end_task"
+                    ].execute(
+                        {"message": self._response_text},
+                    )
+                except ToolError as e:
+                    end_result = f"Error: {e}"
+                yield ToolUse(
+                    tool_name="end_task",
+                    input={
+                        "message": self._response_text,
+                    },
+                    output=end_result,
+                    status="success",
+                )
+
+            yield StepFinish(
+                reason="end_turn",
+                input_tokens=10,
+                output_tokens=5,
+                reasoning_tokens=0,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+            )
+            yield Result(
+                text=self._response_text,
+                session_id=sid,
+                total_input_tokens=10,
+                total_output_tokens=5,
+                total_reasoning_tokens=0,
+                total_cache_read_tokens=0,
+                total_cache_write_tokens=0,
+                tool_calls=2,
+            )
+            return
+
+        # No-tools mode (default, just yields finish + result)
+        yield StepFinish(
+            reason="end_turn",
+            input_tokens=10,
+            output_tokens=5,
+            reasoning_tokens=0,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+        )
+        yield Result(
+            text=self._response_text,
+            session_id=sid,
+            total_input_tokens=10,
+            total_output_tokens=5,
+            total_reasoning_tokens=0,
+            total_cache_read_tokens=0,
+            total_cache_write_tokens=0,
+            tool_calls=0,
+        )
+
+    async def resume(  # noqa: PLR0913
+        self,
+        continuation: Continuation,
+        await_result: str,
+        *,
+        model: str,
+        system_prompt: str,
+        tools: list[Tool],
+        stream_deltas: bool = False,
+    ) -> AsyncIterator[Event]:
+        self.resume_calls.append({
+            "continuation": continuation,
+            "await_result": await_result,
+            "model": model,
+            "system_prompt": system_prompt,
+            "tools": tools,
+            "stream_deltas": stream_deltas,
+        })
+        events = (
+            self._resume_event_sequences.pop(0)
+            if self._resume_event_sequences
+            else []
+        )
+        for event in events:
+            yield event

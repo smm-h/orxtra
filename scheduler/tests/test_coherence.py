@@ -129,7 +129,7 @@ def _make_scheduler(
     overseer: MockOverseerAdapter | None = None,
 ) -> Scheduler:
     tw = trace_writer or MockTraceWriter()
-    transport = MockTransport()
+    transport = MockTransport(auto_execute_tools=True)
     agents = {"test-agent": make_agent()}
     categories = make_categories()
     run_id = uuid6.uuid7()

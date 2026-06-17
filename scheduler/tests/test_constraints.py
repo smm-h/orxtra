@@ -66,7 +66,7 @@ def trace_writer() -> MockTraceWriter:
 
 @pytest.fixture
 def transport() -> MockTransport:
-    return MockTransport()
+    return MockTransport(auto_execute_tools=True)
 
 
 @pytest.fixture
@@ -217,7 +217,7 @@ async def test_no_removed_exports_detects_removal(
 ) -> None:
     """no_removed_exports detects when a function is removed."""
     trace = MockTraceWriter()
-    transport = MockTransport()
+    transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
         trace_writer=trace,
@@ -259,7 +259,7 @@ async def test_no_removed_exports_passes_when_unchanged(
 ) -> None:
     """no_removed_exports passes when nothing is removed."""
     trace = MockTraceWriter()
-    transport = MockTransport()
+    transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
         trace_writer=trace,
@@ -292,7 +292,7 @@ async def test_no_changed_signatures_detects_change(
 ) -> None:
     """no_changed_signatures detects parameter changes."""
     trace = MockTraceWriter()
-    transport = MockTransport()
+    transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
         trace_writer=trace,
@@ -328,7 +328,7 @@ async def test_no_changed_signatures_passes_when_unchanged(
 ) -> None:
     """no_changed_signatures passes when signatures are unchanged."""
     trace = MockTraceWriter()
-    transport = MockTransport()
+    transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
         trace_writer=trace,

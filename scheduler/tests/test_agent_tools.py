@@ -56,7 +56,7 @@ def _make_scheduler(
     tmp_path: Path,
 ) -> Scheduler:
     trace = MockTraceWriter()
-    transport = MockTransport()
+    transport = MockTransport(auto_execute_tools=True)
     return Scheduler(
         trace_writer=trace,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},  # type: ignore[dict-item]

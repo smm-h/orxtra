@@ -22,7 +22,7 @@ from orxt.transport import (
     ToolUse,
 )
 
-from tests.conftest import MockTransportNoTools
+from tests.conftest import MockTransport
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -71,7 +71,7 @@ class TestOrchestratorDispatch:
         # Use a transport that just returns a result (no tools)
         sched = make_scheduler(
             transport_registry={
-                "anthropic": MockTransportNoTools("done"),
+                "anthropic": MockTransport("done"),
             },
         )
         task = TaskSpec(
@@ -106,7 +106,7 @@ class TestOrchestratorDispatch:
         """Orchestrator task transitions through ACTIVE -> COMPLETED."""
         sched = make_scheduler(
             transport_registry={
-                "anthropic": MockTransportNoTools("output"),
+                "anthropic": MockTransport("output"),
             },
         )
         task = TaskSpec(
@@ -328,7 +328,7 @@ class TestOrchestratorSuspension:
         # This means we need SuspendingTransport to also handle
         # the child's send (which is a regular agent send).
 
-        # Simpler approach: use MockTransportNoTools for the
+        # Simpler approach: use MockTransport for the
         # child via a multi-behavior transport.
 
         class OrchestratorTransport:
@@ -773,7 +773,7 @@ class TestOrchestratorMultiChild:
         """
         sched = make_scheduler(
             transport_registry={
-                "anthropic": MockTransportNoTools(
+                "anthropic": MockTransport(
                     "orchestrator output",
                 ),
             },
@@ -811,7 +811,7 @@ class TestOrchestratorMultiChild:
         """Orchestrator with failing postchecks escalates."""
         sched = make_scheduler(
             transport_registry={
-                "anthropic": MockTransportNoTools(
+                "anthropic": MockTransport(
                     "orchestrator output",
                 ),
             },

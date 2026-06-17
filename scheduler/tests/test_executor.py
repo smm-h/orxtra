@@ -219,7 +219,7 @@ class TestAgentToolCallPath:
         self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
-        transport = MockTransport()
+        transport = MockTransport(auto_execute_tools=True)
 
         async def failing_prechecks(
             self: Scheduler,
@@ -1325,7 +1325,7 @@ class TestForEach:
         self, run_id: uuid.UUID, tmp_path: Path,
     ) -> None:
         trace_writer = MockTraceWriter()
-        transport = MockTransport()
+        transport = MockTransport(auto_execute_tools=True)
 
         task = TaskSpec(
             name="iter-task",
@@ -1857,7 +1857,7 @@ class TestOnSuccessCallback:
             )
             sched = Scheduler(
                 trace_writer=trace_writer,  # type: ignore[arg-type]
-                transport_registry={"anthropic": MockTransport()},  # type: ignore[dict-item]
+                transport_registry={"anthropic": MockTransport(auto_execute_tools=True)},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
                 categories=make_categories(),
                 run_id=run_id,

@@ -169,7 +169,7 @@ class TestRunConsult:
 
         sched = Scheduler(
             trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
-            transport_registry={"anthropic": MockTransport()},  # type: ignore[dict-item]
+            transport_registry={"anthropic": MockTransport(auto_execute_tools=True)},  # type: ignore[dict-item]
             agents={"special-agent": agent},
             categories={"default": "anthropic/claude-sonnet-4-6"},
             run_id=uuid6.uuid7(),

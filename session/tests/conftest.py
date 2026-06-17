@@ -1,81 +1,23 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 from orxt.session._session import Session
-from orxt.transport import Continuation, Event, Result, StepFinish, StepStart
+from orxt.transport import Event, Result, StepFinish, StepStart
 
-if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+import importlib.util as _ilu
+from pathlib import Path
 
-    from orxt.protocols import Tool
-
-
-class MockTransport:
-    """Transport mock that yields configurable event sequences."""
-
-    def __init__(self) -> None:
-        self.calls: list[dict[str, Any]] = []
-        self._event_sequences: list[list[Event]] = []
-        self.resume_calls: list[dict[str, Any]] = []
-        self._resume_event_sequences: list[list[Event]] = []
-
-    def set_events(self, *sequences: list[Event]) -> None:
-        self._event_sequences = list(sequences)
-
-    def set_resume_events(self, *sequences: list[Event]) -> None:
-        self._resume_event_sequences = list(sequences)
-
-    async def send(  # noqa: PLR0913
-        self,
-        message: str,
-        *,
-        model: str,
-        system_prompt: str,
-        tools: list[Tool],
-        session_id: str | None = None,
-        stream_deltas: bool = False,
-    ) -> AsyncIterator[Event]:
-        self.calls.append({
-            "message": message,
-            "model": model,
-            "system_prompt": system_prompt,
-            "tools": tools,
-            "session_id": session_id,
-            "stream_deltas": stream_deltas,
-        })
-        events = self._event_sequences.pop(0) if self._event_sequences else []
-        for event in events:
-            yield event
-
-    async def resume(  # noqa: PLR0913
-        self,
-        continuation: Continuation,
-        await_result: str,
-        *,
-        model: str,
-        system_prompt: str,
-        tools: list[Tool],
-        stream_deltas: bool = False,
-    ) -> AsyncIterator[Event]:
-        self.resume_calls.append({
-            "continuation": continuation,
-            "await_result": await_result,
-            "model": model,
-            "system_prompt": system_prompt,
-            "tools": tools,
-            "stream_deltas": stream_deltas,
-        })
-        events = (
-            self._resume_event_sequences.pop(0)
-            if self._resume_event_sequences
-            else []
-        )
-        for event in events:
-            yield event
+_spec = _ilu.spec_from_file_location(
+    "tests.shared_mocks",
+    Path(__file__).resolve().parents[2] / "tests" / "shared_mocks.py",
+)
+_mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
+_spec.loader.exec_module(_mod)  # type: ignore[union-attr]
+MockTransport = _mod.MockTransport
 
 
 class MockTraceWriter:
