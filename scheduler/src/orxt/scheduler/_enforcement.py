@@ -17,6 +17,7 @@ from orxt.protocols._constraints import (
 )
 from orxt.protocols._execution import CheckResult
 from orxt.session import compute_cost_usd
+from orxt.protocols._task import BudgetExhaustionPolicy
 from orxt.verify import run_checks
 
 if TYPE_CHECKING:
@@ -83,6 +84,20 @@ class EnforcementMixin(SchedulerBase):
                         spent,
                     ),
                 )
+                # Enforce budget exhaustion policy
+                policy = self._budget_exhaustion_policy
+                if policy == BudgetExhaustionPolicy.BLOCK_NEW:
+                    self._budget_blocked = True
+                elif policy == BudgetExhaustionPolicy.CANCEL_ALL:
+                    asyncio.get_event_loop().call_soon(
+                        lambda: asyncio.ensure_future(self.abort()),
+                    )
+                elif policy == BudgetExhaustionPolicy.TIMEOUT_GRACE:
+                    self._budget_blocked = True
+                    asyncio.get_event_loop().call_later(
+                        60,
+                        lambda: asyncio.ensure_future(self.abort()),
+                    )
 
     async def _send_budget_events(
         self, task_id: UUID,

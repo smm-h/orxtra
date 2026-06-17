@@ -203,6 +203,7 @@ class Scheduler(
         self._budget_exhausted_events: list[
             tuple[UUID, str, Decimal, Decimal]
         ] = []
+        self._budget_blocked = False
 
     async def run_consult(
         self,
