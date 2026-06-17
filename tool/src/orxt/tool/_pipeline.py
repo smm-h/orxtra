@@ -25,7 +25,7 @@ def wrap_tool_with_pipeline(  # noqa: PLR0913
     session_id: str,
     is_start_task: bool = False,
     is_file_mutation: bool = False,
-    mutation_tracker: dict[str, bool] | None = None,
+    mutation_tracker: dict[str, set[str]] | None = None,
 ) -> Tool:
     """Return a new Tool with the same schema but a wrapped execute that runs
     the full pipeline: active-task check, secret substitution, execution,
@@ -56,7 +56,17 @@ def wrap_tool_with_pipeline(  # noqa: PLR0913
 
         # 5. Mutation tracking.
         if is_file_mutation and mutation_tracker is not None:
-            mutation_tracker[session_id] = True
+            paths = mutation_tracker.setdefault(session_id, set())
+            # Extract path from tool args
+            if "path" in effective_args:
+                paths.add(str(effective_args["path"]))
+            if "source" in effective_args:
+                paths.add(str(effective_args["source"]))
+            if "destination" in effective_args:
+                paths.add(str(effective_args["destination"]))
+            # shell tool has "command" but no path -- track as generic mutation
+            if not paths:
+                paths.add("__generic__")
 
         # 6. Trace callback.
         if trace_callback is not None:
@@ -81,7 +91,7 @@ def wrap_tools_for_session(  # noqa: PLR0913
     secret_registry: SecretRegistry | None,
     trace_callback: Callable[..., Any] | None,
     session_id: str,
-    mutation_tracker: dict[str, bool] | None = None,
+    mutation_tracker: dict[str, set[str]] | None = None,
 ) -> list[Tool]:
     """Wrap all tools in the list with the execution pipeline."""
     return [

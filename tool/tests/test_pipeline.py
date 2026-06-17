@@ -213,7 +213,7 @@ class TestMutationTracking:
 
     @pytest.mark.asyncio
     async def test_file_mutation_tool_sets_flag(self) -> None:
-        tracker: dict[str, bool] = {}
+        tracker: dict[str, set[str]] = {}
         wrapped = wrap_tool_with_pipeline(
             tool=_dummy_tool(),
             scheduler_check=_passing_scheduler_check,
@@ -224,11 +224,11 @@ class TestMutationTracking:
             mutation_tracker=tracker,
         )
         await wrapped.execute({})
-        assert tracker[_SESSION_ID] is True
+        assert tracker[_SESSION_ID] == {"__generic__"}
 
     @pytest.mark.asyncio
     async def test_non_mutation_tool_does_not_set_flag(self) -> None:
-        tracker: dict[str, bool] = {}
+        tracker: dict[str, set[str]] = {}
         wrapped = wrap_tool_with_pipeline(
             tool=_dummy_tool(),
             scheduler_check=_passing_scheduler_check,
@@ -342,7 +342,7 @@ class TestWrapToolsForSession:
             _dummy_tool(name="edit"),
             _dummy_tool(name="read"),
         ]
-        tracker: dict[str, bool] = {}
+        tracker: dict[str, set[str]] = {}
         wrapped = wrap_tools_for_session(
             tools=tools,
             scheduler_check=_passing_scheduler_check,
@@ -376,7 +376,7 @@ class TestFullPipeline:
     async def test_full_pipeline_integration(self) -> None:
         registry = SecretRegistry({"TOKEN": "secret-val-999"})
         callback = AsyncMock()
-        tracker: dict[str, bool] = {}
+        tracker: dict[str, set[str]] = {}
         captured_args: dict[str, Any] = {}
 
         async def _execute(args: dict[str, Any]) -> str:
@@ -408,7 +408,7 @@ class TestFullPipeline:
         assert "{{secret:TOKEN}}" in result
 
         # Mutation tracked.
-        assert tracker[_SESSION_ID] is True
+        assert tracker[_SESSION_ID] == {"__generic__"}
 
         # Trace callback invoked.
         callback.assert_awaited_once()
@@ -511,7 +511,7 @@ class TestCompose:
     @pytest.mark.asyncio
     async def test_compose_doesnt_trigger_mutation_tracker(self) -> None:
         """compose bypasses the pipeline, so mutation tracking is skipped."""
-        tracker: dict[str, bool] = {}
+        tracker: dict[str, set[str]] = {}
         tool = _dummy_tool(name="write", result="wrote")
         wrapped = wrap_tool_with_pipeline(
             tool=tool,
