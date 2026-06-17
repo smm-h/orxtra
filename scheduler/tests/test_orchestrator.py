@@ -7,10 +7,12 @@ import re
 import uuid
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
 import uuid6
 from orxt.protocols import TaskSpec, TaskState
+from orxt.protocols._execution import CheckResult, ScriptExecution
 from orxt.tool import make_await_task_tool
 from orxt.transport import (
     Continuation,
@@ -760,18 +762,14 @@ class TestOrchestratorMultiChild:
         assert statuses.count("suspended") == 2
         assert statuses.count("active") >= 3
 
-    async def test_orchestrator_postchecks_not_enforced(
+    async def test_orchestrator_without_postchecks_completes(
         self,
         make_scheduler: Callable[..., Scheduler],
     ) -> None:
-        """Orchestrator tasks complete without postcheck enforcement.
+        """Orchestrator tasks without postchecks complete directly.
 
-        _execute_orchestrator_task goes directly to COMPLETED
-        without running postchecks. This test verifies the
-        orchestrator completes with expected output and documents
-        that postchecks are a known gap in the orchestrator path
-        (they are only enforced in _execute_agent_task via the
-        enforcement layer).
+        When no postchecks are defined, the orchestrator path
+        goes straight to COMPLETED with empty check_results.
         """
         sched = make_scheduler(
             transport_registry={
@@ -787,7 +785,6 @@ class TestOrchestratorMultiChild:
             timeout=60,
             context_refinement=False,
             orchestrator=True,
-            # postchecks would go here if supported
         )
         task_id = await sched._trace_writer.create_task(  # noqa: SLF001
             run_id=sched._run_id,  # noqa: SLF001
@@ -804,9 +801,74 @@ class TestOrchestratorMultiChild:
         # Orchestrator completes successfully
         assert result.output == "orchestrator output"
         assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
-        # check_results is empty because orchestrator
-        # path does not run postchecks
         assert result.check_results == []
+
+    async def test_orchestrator_with_failing_postchecks_escalates(
+        self,
+        make_scheduler: Callable[..., Scheduler],
+        trace_writer: MockTraceWriter,
+    ) -> None:
+        """Orchestrator with failing postchecks escalates."""
+        sched = make_scheduler(
+            transport_registry={
+                "anthropic": MockTransportNoTools(
+                    "orchestrator output",
+                ),
+            },
+        )
+        task = TaskSpec(
+            name="orch-failing-checks",
+            agent="test-agent",
+            task_prompt="do checked work",
+            timeout=60,
+            context_refinement=False,
+            orchestrator=True,
+            postchecks=[
+                ScriptExecution(callable="check_quality"),
+            ],
+        )
+        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
+            run_id=sched._run_id,  # noqa: SLF001
+            parent_task_id=None,
+            name=task.name,
+            task_type="agent",
+        )
+        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+
+        # Monkey-patch _run_postchecks to return failure
+        async def _failing_postchecks(
+            _task: TaskSpec,
+            _task_id: UUID,
+        ) -> list[CheckResult]:
+            return [
+                CheckResult(
+                    passed=False,
+                    message="Quality check failed",
+                ),
+            ]
+
+        sched._run_postchecks = _failing_postchecks  # type: ignore[assignment]  # noqa: SLF001
+
+        result = await sched.execute_task(
+            task, None, task_id=task_id,
+        )
+
+        assert sched._task_states[task_id] == TaskState.ESCALATED  # noqa: SLF001
+        assert result.output is None
+        assert any(
+            not cr.passed for cr in result.check_results
+        )
+
+        # Verify trace transitions
+        transitions = [
+            c for c in trace_writer.get_calls("transition_task")
+            if c["task_id"] == task_id
+        ]
+        statuses = [t["new_status"] for t in transitions]
+        assert "postchecking" in statuses
+        assert "postcheck_failed" in statuses
+        assert "escalated" in statuses
+        assert "completed" not in statuses
 
     async def test_child_timeout_during_await(
         self,
