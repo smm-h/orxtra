@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Protocol
 
 from orxt.protocols._events import (
@@ -202,6 +203,8 @@ class OverseerAdapter:
         overseer: Overseer,
         health_monitor: HealthMonitor,
         autonomy_level: AutonomyLevel | None = None,
+        budget_limit: Decimal | None = None,
+        spent_fn: Callable[[], Decimal] | None = None,
     ) -> None:
         if autonomy_level is None:
             from orxt.overseer._autonomy import AutonomyLevel  # noqa: PLC0415
@@ -209,6 +212,8 @@ class OverseerAdapter:
         self._overseer = overseer
         self._health_monitor = health_monitor
         self._autonomy_level = autonomy_level
+        self._budget_limit = budget_limit
+        self._spent_fn = spent_fn
         self._last_tool_calls: dict[
             str, list[dict[str, Any]]
         ] = {}
@@ -354,7 +359,10 @@ class OverseerAdapter:
             self._check_repetition(event_type),
         )
 
-        # 4. Proportionality check (stub)
+        # 4. Proportionality check
+        errors.extend(
+            self._check_proportionality(),
+        )
 
         # Record health metrics
         is_repetition = any(
@@ -548,6 +556,43 @@ class OverseerAdapter:
         # Store current as previous for next comparison
         self._previous_tool_calls[event_type] = current
 
+        return errors
+
+    def _check_proportionality(
+        self,
+    ) -> list[str]:
+        """Flag create_workflow budgets that exceed 50%
+        of remaining run budget."""
+        if self._budget_limit is None:
+            return []
+        spent = (
+            self._spent_fn()
+            if self._spent_fn is not None
+            else Decimal(0)
+        )
+        remaining = self._budget_limit - spent
+        if remaining <= 0:
+            return []
+
+        threshold = remaining * Decimal("0.5")
+        errors: list[str] = []
+        for tc in self._current_tool_calls:
+            if tc["tool_name"] != "create_workflow":
+                continue
+            budget_str = tc.get("input", {}).get("budget")
+            if budget_str is None:
+                continue
+            try:
+                budget = Decimal(str(budget_str))
+            except Exception:  # noqa: BLE001
+                continue
+            if budget > threshold:
+                errors.append(
+                    f"Proportionality: create_workflow"
+                    f" budget ${budget} exceeds 50% of"
+                    f" remaining run budget"
+                    f" ${remaining}"
+                )
         return errors
 
     async def refine_context(
