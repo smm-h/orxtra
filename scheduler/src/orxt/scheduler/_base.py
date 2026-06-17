@@ -6,13 +6,13 @@ references in any mixin without seeing the concrete ``Scheduler`` class.
 
 from __future__ import annotations
 
-import asyncio
 from abc import ABC, abstractmethod
-from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    import asyncio
     from collections.abc import Awaitable, Callable
+    from decimal import Decimal
     from pathlib import Path
     from uuid import UUID
 

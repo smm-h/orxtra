@@ -923,7 +923,7 @@ class AgentExecutionMixin(SchedulerBase):
         prior_attempts: list[dict[str, Any]],
     ) -> str:
         """Assemble full prompt with runtime context layers."""
-        assert task.task_prompt is not None
+        assert task.task_prompt is not None  # noqa: S101
         prompt = self._resolve_prompt(
             task.task_prompt, variables,
         )

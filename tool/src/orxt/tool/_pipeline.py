@@ -119,5 +119,5 @@ async def compose(tool: Tool, args: dict[str, Any]) -> str:
     """
     raw = getattr(tool.execute, "_raw_execute", None)
     if raw is not None:
-        return cast(str, await raw(args))
+        return cast("str", await raw(args))
     return await tool.execute(args)

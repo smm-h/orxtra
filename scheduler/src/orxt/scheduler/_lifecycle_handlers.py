@@ -12,7 +12,6 @@ from orxt.protocols._tools import (
     CreateWaitForParams,
     CreateWorkflowParams,
 )
-
 from orxt.scheduler._base import SchedulerBase
 
 _logger = logging.getLogger("orxt.scheduler")
