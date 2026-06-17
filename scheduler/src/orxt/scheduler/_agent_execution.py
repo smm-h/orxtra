@@ -256,6 +256,35 @@ class AgentExecutionMixin:
                     f"\n\n{format_notepad(self._notepad_entries)}"
                 )
 
+            # Lessons from previous runs
+            if self._lessons:
+                fresh = [
+                    l for l in self._lessons
+                    if not l.get("stale", False)
+                ]
+                stale = [
+                    l for l in self._lessons
+                    if l.get("stale", False)
+                ]
+                if fresh:
+                    prompt += (
+                        "\n\n## Lessons (verified)"
+                    )
+                    for lesson in fresh:
+                        prompt += (
+                            f"\n- {lesson['text']}"
+                        )
+                if stale:
+                    prompt += (
+                        "\n\n## Lessons (may be stale)"
+                    )
+                    for lesson in stale:
+                        prompt += (
+                            f"\n- {lesson['text']}"
+                            f" [stale: source modified"
+                            f" after lesson was created]"
+                        )
+
             # Prior failure context
             if (
                 attempt > 1
