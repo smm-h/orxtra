@@ -3,63 +3,78 @@
 # Each sub-project is independently useful for a narrow purpose.
 # Together they compose into a full autonomous agent orchestration system.
 
+# --- Releasables ---
+
+[[releasables]]
+name = "orxt"
+
 # --- Foundation layer ---
 
 [[projects]]
 path = "protocols"
 description = "Shared types: Execution, task lifecycle, event descriptors, action tool schemas"
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "secrets"
 description = "Secret registry, substitution, and scrubbing"
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "write-safety"
 description = "Write queue, stale-write detection, atomic replace, transient replay"
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "transport"
 description = "Typed LLM client via Provider protocol"
 depends_on = ["protocols"]
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "agent"
 description = "Agent definition loader (TOML + composable .md prompts)"
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "tool"
 description = "Tool registry with granular constructors"
 depends_on = ["protocols", "secrets", "write-safety"]
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "verify"
 description = "Check runner (pre/post-check Execution dispatch)"
 depends_on = ["protocols"]
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "trace"
 description = "PG schema owner (events, task results, transcripts, inbox, state machines)"
 depends_on = ["secrets"]
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "notepad"
 description = "Append-only cross-agent context sharing"
 depends_on = ["trace"]
 library = true
+releasable = "orxt"
 
 [[projects]]
 path = "session"
 description = "Session lifecycle, token tracking, cross-restart resumption"
 depends_on = ["transport", "trace"]
 library = true
+releasable = "orxt"
 
 # --- Orchestration layer ---
 
@@ -67,6 +82,7 @@ library = true
 path = "scheduler"
 description = "Task executor (recursive hierarchy, budgets, constraints)"
 depends_on = ["protocols", "agent", "tool", "write-safety", "session", "trace", "verify", "notepad"]
+releasable = "orxt"
 
 # --- Intelligence layer ---
 
@@ -74,11 +90,13 @@ depends_on = ["protocols", "agent", "tool", "write-safety", "session", "trace", 
 path = "overseer"
 description = "Persistent LLM with action tools, PG memory, session handoff"
 depends_on = ["protocols", "trace", "session", "knowledge-module"]
+releasable = "orxt"
 
 [[projects]]
 path = "knowledge-module"
 description = "Experimental semantic enrichment via cognee"
 depends_on = ["trace"]
+releasable = "orxt"
 
 # --- Interface layer ---
 
@@ -86,16 +104,19 @@ depends_on = ["trace"]
 path = "services"
 description = "Shared business logic for all frontends"
 depends_on = ["scheduler", "overseer", "trace"]
+releasable = "orxt"
 
 [[projects]]
 path = "cli"
 description = "strictcli CLI frontend (agents are the primary users)"
 depends_on = ["services"]
+releasable = "orxt"
 
 [[projects]]
 path = "mcp"
 description = "MCP server (human interface via dashboard/AI client)"
 depends_on = ["services"]
+releasable = "orxt"
 
 # --- Infrastructure ---
 
@@ -103,6 +124,7 @@ depends_on = ["services"]
 path = "schema"
 description = "pgdesign database schema definitions"
 dev_node = true
+releasable = false
 
 # --- Architecture layers ---
 
