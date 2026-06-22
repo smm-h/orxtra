@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("orxtra-services")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
+
 from orxtra.services._config import dump_config, show_pricing
 from orxtra.services._events import fire_event
 from orxtra.services._inbox import (
@@ -34,6 +41,7 @@ from orxtra.services._validate import (
 )
 
 __all__ = [
+    "__version__",
     "RunConfig",
     "abort_run",
     "dump_config",

@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("orxtra-scheduler")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
+
 from orxtra.scheduler._events import EventRegistry
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._graph import (
@@ -37,6 +44,7 @@ from orxtra.scheduler._types import (
 from orxtra.scheduler._validator import validate_task_tree
 
 __all__ = [
+    "__version__",
     "AgentExecution",
     "AttemptSummary",
     "CycleError",

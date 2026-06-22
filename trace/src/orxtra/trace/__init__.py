@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("orxtra-trace")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
+
 from orxtra.trace._lock import (
     RunLockError,
     acquire_run_lock,
@@ -42,6 +49,7 @@ from orxtra.trace._types import (
 from orxtra.trace._writer import TraceWriter
 
 __all__ = [
+    "__version__",
     "InboxItem",
     "InvalidTransitionError",
     "IterationResult",
