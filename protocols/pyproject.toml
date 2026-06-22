@@ -1,6 +1,6 @@
 [project]
 name = "orxt-protocols"
-version = "0.0.0"
+version = "0.1.0"
 license = "BUSL-1.1"
 description = "Shared types: Execution, task lifecycle, event descriptors, action tool schemas, check results."
 requires-python = ">=3.12"

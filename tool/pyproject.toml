@@ -1,6 +1,6 @@
 [project]
 name = "orxt-tool"
-version = "0.0.0"
+version = "0.1.0"
 license = "BUSL-1.1"
 description = "Tool registry with granular constructors. Path enforcement, write safety, no-truncation previews."
 requires-python = ">=3.12"
