@@ -1,0 +1,372 @@
+{
+  "generated_at": "2026-06-22T10:53:53Z",
+  "package_count": 17,
+  "packages": {
+    "protocols": {
+      "path": "protocols",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Shared types: Execution, task lifecycle, event descriptors, action tool schemas",
+      "deps": [],
+      "rdeps": [
+        "transport",
+        "tool",
+        "verify",
+        "session",
+        "scheduler",
+        "overseer",
+        "services"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "secrets": {
+      "path": "secrets",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Secret registry, substitution, and scrubbing",
+      "deps": [],
+      "rdeps": [
+        "tool",
+        "scheduler"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "write-safety": {
+      "path": "write-safety",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Write queue, stale-write detection, atomic replace, transient replay",
+      "deps": [],
+      "rdeps": [
+        "tool",
+        "scheduler"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "transport": {
+      "path": "transport",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Typed LLM client via Provider protocol",
+      "deps": [
+        "protocols"
+      ],
+      "rdeps": [
+        "session",
+        "scheduler",
+        "overseer"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "agent": {
+      "path": "agent",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Agent definition loader (TOML + composable .md prompts)",
+      "deps": [],
+      "rdeps": [
+        "scheduler",
+        "services"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "tool": {
+      "path": "tool",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Tool registry with granular constructors",
+      "deps": [
+        "protocols",
+        "secrets",
+        "write-safety"
+      ],
+      "rdeps": [
+        "scheduler",
+        "overseer"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "verify": {
+      "path": "verify",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Check runner (pre/post-check Execution dispatch)",
+      "deps": [
+        "protocols"
+      ],
+      "rdeps": [
+        "scheduler"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "trace": {
+      "path": "trace",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "PG schema owner (events, task results, transcripts, inbox, state machines)",
+      "deps": [],
+      "rdeps": [
+        "notepad",
+        "session",
+        "scheduler",
+        "overseer",
+        "services",
+        "cli",
+        "mcp"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "notepad": {
+      "path": "notepad",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Append-only cross-agent context sharing",
+      "deps": [
+        "trace"
+      ],
+      "rdeps": [
+        "scheduler"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "session": {
+      "path": "session",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Session lifecycle, token tracking, cross-restart resumption",
+      "deps": [
+        "protocols",
+        "transport",
+        "trace"
+      ],
+      "rdeps": [
+        "scheduler",
+        "overseer",
+        "services"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "scheduler": {
+      "path": "scheduler",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Task executor (recursive hierarchy, budgets, constraints)",
+      "deps": [
+        "protocols",
+        "agent",
+        "tool",
+        "write-safety",
+        "session",
+        "trace",
+        "verify",
+        "notepad",
+        "secrets",
+        "transport"
+      ],
+      "rdeps": [
+        "services"
+      ],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "overseer": {
+      "path": "overseer",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Persistent LLM with action tools, PG memory, session handoff",
+      "deps": [
+        "protocols",
+        "trace",
+        "session",
+        "tool",
+        "transport"
+      ],
+      "rdeps": [
+        "services"
+      ],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "knowledge-module": {
+      "path": "knowledge-module",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Experimental semantic enrichment via cognee",
+      "deps": [],
+      "rdeps": [],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "services": {
+      "path": "services",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "Shared business logic for all frontends",
+      "deps": [
+        "agent",
+        "protocols",
+        "scheduler",
+        "session",
+        "overseer",
+        "trace"
+      ],
+      "rdeps": [
+        "cli",
+        "mcp"
+      ],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "cli": {
+      "path": "cli",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "strictcli CLI frontend (agents are the primary users)",
+      "deps": [
+        "services",
+        "trace"
+      ],
+      "rdeps": [],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "mcp": {
+      "path": "mcp",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.0",
+      "description": "MCP server (human interface via dashboard/AI client)",
+      "deps": [
+        "services",
+        "trace"
+      ],
+      "rdeps": [],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
+    "schema": {
+      "path": "schema",
+      "targets": [
+        "pgdesign"
+      ],
+      "version": "0.1.0",
+      "description": "pgdesign database schema definitions",
+      "deps": [],
+      "rdeps": [],
+      "library": false,
+      "dev_only": true,
+      "releasable_flag": false,
+      "test_only": false
+    }
+  },
+  "graph": {
+    "leaf_nodes": [
+      "agent",
+      "knowledge-module",
+      "protocols",
+      "schema",
+      "secrets",
+      "trace",
+      "write-safety"
+    ],
+    "root_nodes": [
+      "cli",
+      "knowledge-module",
+      "mcp",
+      "schema"
+    ],
+    "max_depth": 5,
+    "topological_order": [
+      "agent",
+      "knowledge-module",
+      "protocols",
+      "schema",
+      "secrets",
+      "trace",
+      "notepad",
+      "transport",
+      "session",
+      "verify",
+      "write-safety",
+      "tool",
+      "overseer",
+      "scheduler",
+      "services",
+      "cli",
+      "mcp"
+    ]
+  }
+}
