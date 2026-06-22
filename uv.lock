@@ -9,23 +9,23 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "orxt",
-    "orxt-agent",
-    "orxt-cli",
-    "orxt-knowledge-module",
-    "orxt-mcp",
-    "orxt-notepad",
-    "orxt-overseer",
-    "orxt-protocols",
-    "orxt-scheduler",
-    "orxt-secrets",
-    "orxt-services",
-    "orxt-session",
-    "orxt-tool",
-    "orxt-trace",
-    "orxt-transport",
-    "orxt-verify",
-    "orxt-write-safety",
+    "orxtra",
+    "orxtra-agent",
+    "orxtra-cli",
+    "orxtra-knowledge-module",
+    "orxtra-mcp",
+    "orxtra-notepad",
+    "orxtra-overseer",
+    "orxtra-protocols",
+    "orxtra-scheduler",
+    "orxtra-secrets",
+    "orxtra-services",
+    "orxtra-session",
+    "orxtra-tool",
+    "orxtra-trace",
+    "orxtra-transport",
+    "orxtra-verify",
+    "orxtra-write-safety",
 ]
 
 [[package]]
@@ -2099,7 +2099,7 @@ wheels = [
 ]
 
 [[package]]
-name = "orxt"
+name = "orxtra"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -2148,7 +2148,7 @@ dev = [
 ]
 
 [[package]]
-name = "orxt-agent"
+name = "orxtra-agent"
 version = "0.1.1"
 source = { editable = "agent" }
 dependencies = [
@@ -2167,24 +2167,24 @@ requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
-name = "orxt-cli"
+name = "orxtra-cli"
 version = "0.1.1"
 source = { editable = "cli" }
 dependencies = [
-    { name = "orxt-services" },
-    { name = "orxt-trace" },
+    { name = "orxtra-services" },
+    { name = "orxtra-trace" },
     { name = "strictcli" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "orxt-services", editable = "services" },
-    { name = "orxt-trace", editable = "trace" },
+    { name = "orxtra-services", editable = "services" },
+    { name = "orxtra-trace", editable = "trace" },
     { name = "strictcli" },
 ]
 
 [[package]]
-name = "orxt-knowledge-module"
+name = "orxtra-knowledge-module"
 version = "0.1.1"
 source = { editable = "knowledge-module" }
 dependencies = [
@@ -2199,12 +2199,12 @@ requires-dist = [
 ]
 
 [[package]]
-name = "orxt-mcp"
+name = "orxtra-mcp"
 version = "0.1.1"
 source = { editable = "mcp" }
 dependencies = [
-    { name = "orxt-services" },
-    { name = "orxt-trace" },
+    { name = "orxtra-services" },
+    { name = "orxtra-trace" },
 ]
 
 [package.dev-dependencies]
@@ -2214,19 +2214,19 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "orxt-services", editable = "services" },
-    { name = "orxt-trace", editable = "trace" },
+    { name = "orxtra-services", editable = "services" },
+    { name = "orxtra-trace", editable = "trace" },
 ]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
-name = "orxt-notepad"
+name = "orxtra-notepad"
 version = "0.1.1"
 source = { editable = "notepad" }
 dependencies = [
-    { name = "orxt-trace" },
+    { name = "orxtra-trace" },
     { name = "pydantic" },
 ]
 
@@ -2237,7 +2237,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "orxt-trace", editable = "trace" },
+    { name = "orxtra-trace", editable = "trace" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
@@ -2245,15 +2245,15 @@ requires-dist = [
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
-name = "orxt-overseer"
+name = "orxtra-overseer"
 version = "0.1.1"
 source = { editable = "overseer" }
 dependencies = [
-    { name = "orxt-protocols" },
-    { name = "orxt-session" },
-    { name = "orxt-tool" },
-    { name = "orxt-trace" },
-    { name = "orxt-transport" },
+    { name = "orxtra-protocols" },
+    { name = "orxtra-session" },
+    { name = "orxtra-tool" },
+    { name = "orxtra-trace" },
+    { name = "orxtra-transport" },
     { name = "pydantic" },
 ]
 
@@ -2266,11 +2266,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-session", editable = "session" },
-    { name = "orxt-tool", editable = "tool" },
-    { name = "orxt-trace", editable = "trace" },
-    { name = "orxt-transport", editable = "transport" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-session", editable = "session" },
+    { name = "orxtra-tool", editable = "tool" },
+    { name = "orxtra-trace", editable = "trace" },
+    { name = "orxtra-transport", editable = "transport" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
@@ -2282,7 +2282,7 @@ dev = [
 ]
 
 [[package]]
-name = "orxt-protocols"
+name = "orxtra-protocols"
 version = "0.1.3"
 source = { editable = "protocols" }
 dependencies = [
@@ -2293,44 +2293,44 @@ dependencies = [
 requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 
 [[package]]
-name = "orxt-scheduler"
+name = "orxtra-scheduler"
 version = "0.1.1"
 source = { editable = "scheduler" }
 dependencies = [
     { name = "jsonschema" },
-    { name = "orxt-agent" },
-    { name = "orxt-notepad" },
-    { name = "orxt-overseer" },
-    { name = "orxt-protocols" },
-    { name = "orxt-secrets" },
-    { name = "orxt-session" },
-    { name = "orxt-tool" },
-    { name = "orxt-trace" },
-    { name = "orxt-transport" },
-    { name = "orxt-verify" },
-    { name = "orxt-write-safety" },
+    { name = "orxtra-agent" },
+    { name = "orxtra-notepad" },
+    { name = "orxtra-overseer" },
+    { name = "orxtra-protocols" },
+    { name = "orxtra-secrets" },
+    { name = "orxtra-session" },
+    { name = "orxtra-tool" },
+    { name = "orxtra-trace" },
+    { name = "orxtra-transport" },
+    { name = "orxtra-verify" },
+    { name = "orxtra-write-safety" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "jsonschema" },
-    { name = "orxt-agent", editable = "agent" },
-    { name = "orxt-notepad", editable = "notepad" },
-    { name = "orxt-overseer", editable = "overseer" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-secrets", editable = "secrets" },
-    { name = "orxt-session", editable = "session" },
-    { name = "orxt-tool", editable = "tool" },
-    { name = "orxt-trace", editable = "trace" },
-    { name = "orxt-transport", editable = "transport" },
-    { name = "orxt-verify", editable = "verify" },
-    { name = "orxt-write-safety", editable = "write-safety" },
+    { name = "orxtra-agent", editable = "agent" },
+    { name = "orxtra-notepad", editable = "notepad" },
+    { name = "orxtra-overseer", editable = "overseer" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-secrets", editable = "secrets" },
+    { name = "orxtra-session", editable = "session" },
+    { name = "orxtra-tool", editable = "tool" },
+    { name = "orxtra-trace", editable = "trace" },
+    { name = "orxtra-transport", editable = "transport" },
+    { name = "orxtra-verify", editable = "verify" },
+    { name = "orxtra-write-safety", editable = "write-safety" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
 [[package]]
-name = "orxt-secrets"
+name = "orxtra-secrets"
 version = "0.1.1"
 source = { editable = "secrets" }
 
@@ -2345,61 +2345,61 @@ dev = [
 dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
-name = "orxt-services"
+name = "orxtra-services"
 version = "0.1.1"
 source = { editable = "services" }
 dependencies = [
     { name = "asyncpg" },
-    { name = "orxt-agent" },
-    { name = "orxt-overseer" },
-    { name = "orxt-protocols" },
-    { name = "orxt-scheduler" },
-    { name = "orxt-session" },
-    { name = "orxt-trace" },
+    { name = "orxtra-agent" },
+    { name = "orxtra-overseer" },
+    { name = "orxtra-protocols" },
+    { name = "orxtra-scheduler" },
+    { name = "orxtra-session" },
+    { name = "orxtra-trace" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "asyncpg" },
-    { name = "orxt-agent", editable = "agent" },
-    { name = "orxt-overseer", editable = "overseer" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-scheduler", editable = "scheduler" },
-    { name = "orxt-session", editable = "session" },
-    { name = "orxt-trace", editable = "trace" },
+    { name = "orxtra-agent", editable = "agent" },
+    { name = "orxtra-overseer", editable = "overseer" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-scheduler", editable = "scheduler" },
+    { name = "orxtra-session", editable = "session" },
+    { name = "orxtra-trace", editable = "trace" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
 [[package]]
-name = "orxt-session"
+name = "orxtra-session"
 version = "0.1.1"
 source = { editable = "session" }
 dependencies = [
-    { name = "orxt-protocols" },
-    { name = "orxt-trace" },
-    { name = "orxt-transport" },
+    { name = "orxtra-protocols" },
+    { name = "orxtra-trace" },
+    { name = "orxtra-transport" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-trace", editable = "trace" },
-    { name = "orxt-transport", editable = "transport" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-trace", editable = "trace" },
+    { name = "orxtra-transport", editable = "transport" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
 [[package]]
-name = "orxt-tool"
+name = "orxtra-tool"
 version = "0.1.1"
 source = { editable = "tool" }
 dependencies = [
     { name = "httpx" },
     { name = "jsonschema" },
-    { name = "orxt-protocols" },
-    { name = "orxt-secrets" },
-    { name = "orxt-write-safety" },
+    { name = "orxtra-protocols" },
+    { name = "orxtra-secrets" },
+    { name = "orxtra-write-safety" },
     { name = "pathspec" },
     { name = "pydantic" },
 ]
@@ -2413,9 +2413,9 @@ dev = [
 requires-dist = [
     { name = "httpx" },
     { name = "jsonschema" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-secrets", editable = "secrets" },
-    { name = "orxt-write-safety", editable = "write-safety" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-secrets", editable = "secrets" },
+    { name = "orxtra-write-safety", editable = "write-safety" },
     { name = "pathspec" },
     { name = "pydantic", specifier = ">=2" },
 ]
@@ -2424,7 +2424,7 @@ requires-dist = [
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
-name = "orxt-trace"
+name = "orxtra-trace"
 version = "0.1.1"
 source = { editable = "trace" }
 dependencies = [
@@ -2441,12 +2441,12 @@ requires-dist = [
 ]
 
 [[package]]
-name = "orxt-transport"
+name = "orxtra-transport"
 version = "0.1.1"
 source = { editable = "transport" }
 dependencies = [
     { name = "httpx" },
-    { name = "orxt-protocols" },
+    { name = "orxtra-protocols" },
     { name = "pydantic" },
     { name = "uuid6" },
 ]
@@ -2460,7 +2460,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "httpx" },
-    { name = "orxt-protocols", editable = "protocols" },
+    { name = "orxtra-protocols", editable = "protocols" },
     { name = "pydantic", specifier = ">=2" },
     { name = "uuid6" },
 ]
@@ -2472,11 +2472,11 @@ dev = [
 ]
 
 [[package]]
-name = "orxt-verify"
+name = "orxtra-verify"
 version = "0.1.1"
 source = { editable = "verify" }
 dependencies = [
-    { name = "orxt-protocols" },
+    { name = "orxtra-protocols" },
     { name = "pydantic" },
 ]
 
@@ -2487,7 +2487,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "orxt-protocols", editable = "protocols" },
+    { name = "orxtra-protocols", editable = "protocols" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
@@ -2495,7 +2495,7 @@ requires-dist = [
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
-name = "orxt-write-safety"
+name = "orxtra-write-safety"
 version = "0.1.1"
 source = { editable = "write-safety" }
 
