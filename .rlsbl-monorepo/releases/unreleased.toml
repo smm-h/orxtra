@@ -1,0 +1,9 @@
+[releasables.orxt]
+# Version bump type: patch, minor, or major
+bump = "patch"
+# Short description of this release (required)
+description = "Fix CI publish workflow for workspace builds."
+# Optional context explaining why these changes were made
+context = ""
+include = ["pypi"]
+exclude = []
