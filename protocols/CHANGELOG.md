@@ -2,16 +2,15 @@
 
 # Changelog
 
+## 0.1.1
+
+Fix CI publish workflow for workspace builds.
+
+### Fixes
+
+- **Fix.** CI publish workflow uses `--out-dir dist` for correct dist placement in workspace builds.
+
 ## 0.1.0
-
-First public release of orxt.
-
-<details>
-<summary>Context</summary>
-
-Initial release of all 16 sub-projects as orxt-* packages on PyPI, with BSL 1.1 license and npm CLI wrapper.
-
-</details>
 
 ### Breaking
 

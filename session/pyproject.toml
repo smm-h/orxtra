@@ -1,6 +1,6 @@
 [project]
 name = "orxt-session"
-version = "0.1.0"
+version = "0.1.1"
 license = "BUSL-1.1"
 description = "Session lifecycle, token tracking, cross-restart resumption via PG transcripts."
 requires-python = ">=3.12"
