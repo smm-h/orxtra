@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from orxtra.agent import load_agents, load_categories
+from orxtra.overseer._knowledge import load_knowledge_files
 from orxtra.protocols._task import BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, load_workflow
 from orxtra.trace import RunReport, RunSummary, TraceWriter, read_run_report
@@ -70,12 +71,14 @@ async def start_run(
             read_root=config.read_root,
             pool=pool,
             overseer_interface=overseer,
-            knowledge_dir=config.knowledge_dir,
             budget_exhaustion_policy=config.budget_exhaustion_policy,
             budget_limit=config.budget,
             autonomy_level=config.autonomy_level,
         )
         workflow_config = load_workflow(config.workflow_path)
+        await load_knowledge_files(
+            config.knowledge_dir, writer, run_id,
+        )
         await scheduler.execute_workflow(workflow_config)
         await writer.transition_run(run_id, "completed")
     except Exception:

@@ -57,9 +57,7 @@ class SchedulerBase(ABC):
     _run_id: UUID
     _read_root: Path
     _overseer_interface: OverseerInterface | None
-    _knowledge_dir: Path | None
     _model_context_limit: int
-    _knowledge_loader: Callable[[Path, Any, UUID], Awaitable[None]] | None
     _handoff_checker: Callable[[Any, int], Awaitable[bool]] | None
     _handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None
     _budget_exhaustion_policy: BudgetExhaustionPolicy
