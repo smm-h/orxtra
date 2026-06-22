@@ -8,6 +8,7 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
+from orxtra.tool._discovery import collect_tools
 from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool
 from orxtra.tool._http_tool import make_http_tool
@@ -68,6 +69,7 @@ __all__ = [
     "TaskSchedulerRef",
     "check_and_preview",
     "check_write_scope",
+    "collect_tools",
     "compose",
     "make_await_task_tool",
     "make_consult_tool",
