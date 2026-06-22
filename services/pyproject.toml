@@ -1,12 +1,16 @@
 [project]
 name = "orxt-services"
 version = "0.0.0"
+license = "BUSL-1.1"
 description = "Shared business logic for all frontends. Run, inbox, trace queries, validation, config."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "asyncpg",
+    "orxt-agent",
+    "orxt-protocols",
     "orxt-scheduler",
+    "orxt-session",
     "orxt-overseer",
     "orxt-trace",
 ]
@@ -20,6 +24,9 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
+orxt-agent = { workspace = true }
+orxt-protocols = { workspace = true }
 orxt-scheduler = { workspace = true }
+orxt-session = { workspace = true }
 orxt-overseer = { workspace = true }
 orxt-trace = { workspace = true }

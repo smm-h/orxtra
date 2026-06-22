@@ -1,6 +1,7 @@
 [project]
 name = "orxt-scheduler"
 version = "0.0.0"
+license = "BUSL-1.1"
 description = "Task executor. Recursive task hierarchy, dependency graphs, budgets, constraints, crash recovery."
 requires-python = ">=3.12"
 dependencies = [
@@ -14,6 +15,9 @@ dependencies = [
     "orxt-trace",
     "orxt-verify",
     "orxt-notepad",
+    "orxt-overseer",
+    "orxt-secrets",
+    "orxt-transport",
 ]
 keywords = ["rlsbl"]
 
@@ -33,3 +37,6 @@ orxt-session = { workspace = true }
 orxt-trace = { workspace = true }
 orxt-verify = { workspace = true }
 orxt-notepad = { workspace = true }
+orxt-overseer = { workspace = true }
+orxt-secrets = { workspace = true }
+orxt-transport = { workspace = true }

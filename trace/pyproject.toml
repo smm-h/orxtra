@@ -1,18 +1,15 @@
 [project]
 name = "orxt-trace"
 version = "0.0.0"
+license = "BUSL-1.1"
 description = "PG schema owner. Events, task results, transcripts, inbox, state machines, crash recovery."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "asyncpg",
     "uuid6",
-    "orxt-secrets",
 ]
 keywords = ["rlsbl"]
-
-[tool.uv.sources]
-orxt-secrets = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
