@@ -22,7 +22,6 @@ jobs:
       session: ${{ steps.changes.outputs.session }}
       scheduler: ${{ steps.changes.outputs.scheduler }}
       overseer: ${{ steps.changes.outputs.overseer }}
-      knowledge-module: ${{ steps.changes.outputs.knowledge-module }}
       services: ${{ steps.changes.outputs.services }}
       cli: ${{ steps.changes.outputs.cli }}
       mcp: ${{ steps.changes.outputs.mcp }}
@@ -45,7 +44,6 @@ jobs:
           session: 'session/**'
           scheduler: 'scheduler/**'
           overseer: 'overseer/**'
-          knowledge-module: 'knowledge-module/**'
           services: 'services/**'
           cli: 'cli/**'
           mcp: 'mcp/**'
@@ -98,10 +96,6 @@ jobs:
     needs: detect
     if: needs.detect.outputs.overseer == 'true'
     uses: ./.github/workflows/overseer-ci.yml
-  knowledge-module:
-    needs: detect
-    if: needs.detect.outputs.knowledge-module == 'true'
-    uses: ./.github/workflows/knowledge-module-ci.yml
   services:
     needs: detect
     if: needs.detect.outputs.services == 'true'
