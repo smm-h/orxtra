@@ -23,18 +23,16 @@ def make_test_tool(
     return_value: str,
     renderer: Renderer[Any] | None = None,
 ) -> Tool:
-    """Create a Tool that returns a fixed string.
+    """Create a Tool that returns a fixed ToolOutput.
 
-    Since Tool.execute currently returns ``str``, this helper simply
-    wraps the given ``return_value`` in a coroutine.  When Phase 1.4
-    migrates Tool to return ``ToolOutput``, this helper will be updated
-    to use ``renderer`` and ``ToolOutput``.  For now ``renderer`` is
-    accepted but unused, so callers can be written ahead of time.
+    The ``renderer`` parameter is accepted for future use but currently
+    unused -- the ``return_value`` string is used directly as both
+    ``ToolOutput.text`` and ``ToolOutput.data``.
     """
-    _ = renderer  # Will be used after Tool migration in Phase 1.4
+    _ = renderer  # Reserved for future use
 
-    async def _execute(args: dict[str, Any]) -> str:
-        return return_value
+    async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
+        return ToolOutput(data=return_value, text=return_value)
 
     return Tool(
         name=name,

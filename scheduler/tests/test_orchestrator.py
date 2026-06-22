@@ -150,7 +150,7 @@ class TestAwaitTaskTool:
             return_value="Awaiting task abc.",
         )
         tool = make_await_task_tool(mock_scheduler, "session-1")
-        result = await tool.execute({"task_id": "abc"})
+        result = (await tool.execute({"task_id": "abc"})).text
         mock_scheduler.handle_await_task.assert_called_once_with(
             "session-1", "abc",
         )
@@ -238,13 +238,13 @@ class TestOrchestratorSuspension:
 
                 # Call create_task to make a child
                 if "create_task" in tool_map:
-                    child_id = await tool_map["create_task"].execute({
+                    child_id = (await tool_map["create_task"].execute({
                         "name": "child-work",
                         "agent": "test-agent",
                         "task_prompt": "do child work",
                         "timeout": 60,
                         "context_refinement": False,
-                    })
+                    })).text
                     child_task_id_holder.append(child_id)
                     yield ToolUse(
                         tool_name="create_task",
@@ -255,9 +255,9 @@ class TestOrchestratorSuspension:
 
                 # Call await_task (suspending tool)
                 if "await_task" in tool_map and child_task_id_holder:
-                    await_result = await tool_map["await_task"].execute(
+                    await_result = (await tool_map["await_task"].execute(
                         {"task_id": child_task_id_holder[0]},
-                    )
+                    )).text
                     yield ToolUse(
                         tool_name="await_task",
                         input={"task_id": child_task_id_holder[0]},
@@ -377,9 +377,9 @@ class TestOrchestratorSuspension:
                     )
 
                     if "start_task" in tool_map:
-                        sr = await tool_map["start_task"].execute(
+                        sr = (await tool_map["start_task"].execute(
                             {"task_id": task_id_str},
-                        )
+                        )).text
                         yield ToolUse(
                             tool_name="start_task",
                             input={"task_id": task_id_str},
@@ -387,9 +387,9 @@ class TestOrchestratorSuspension:
                             status="success",
                         )
                     if "end_task" in tool_map:
-                        er = await tool_map["end_task"].execute(
+                        er = (await tool_map["end_task"].execute(
                             {"message": "child done"},
-                        )
+                        )).text
                         yield ToolUse(
                             tool_name="end_task",
                             input={"message": "child done"},
@@ -530,7 +530,7 @@ class TestOrchestratorMultiChild:
 
                 if self._send_count == 1:
                     # Orchestrator: create child A, await A
-                    child_id = await tool_map[
+                    child_id = (await tool_map[
                         "create_task"
                     ].execute({
                         "name": "child-A",
@@ -538,7 +538,7 @@ class TestOrchestratorMultiChild:
                         "task_prompt": "do child A work",
                         "timeout": 60,
                         "context_refinement": False,
-                    })
+                    })).text
                     child_ids.append(child_id)
                     yield ToolUse(
                         tool_name="create_task",
@@ -546,9 +546,9 @@ class TestOrchestratorMultiChild:
                         output=child_id,
                         status="success",
                     )
-                    await_result = await tool_map[
+                    await_result = (await tool_map[
                         "await_task"
-                    ].execute({"task_id": child_id})
+                    ].execute({"task_id": child_id})).text
                     yield ToolUse(
                         tool_name="await_task",
                         input={"task_id": child_id},
@@ -581,9 +581,9 @@ class TestOrchestratorMultiChild:
                         match.group(1) if match else "unknown"
                     )
                     if "start_task" in tool_map:
-                        sr = await tool_map[
+                        sr = (await tool_map[
                             "start_task"
-                        ].execute({"task_id": task_id_str})
+                        ].execute({"task_id": task_id_str})).text
                         yield ToolUse(
                             tool_name="start_task",
                             input={"task_id": task_id_str},
@@ -595,11 +595,11 @@ class TestOrchestratorMultiChild:
                             "A" if self._send_count == 2
                             else "B"
                         )
-                        er = await tool_map[
+                        er = (await tool_map[
                             "end_task"
                         ].execute(
                             {"message": f"child {child_label} done"},
-                        )
+                        )).text
                         yield ToolUse(
                             tool_name="end_task",
                             input={
@@ -652,7 +652,7 @@ class TestOrchestratorMultiChild:
 
                 if self._resume_count == 1:
                     # Resume #1: create child B, await B
-                    child_id = await tool_map[
+                    child_id = (await tool_map[
                         "create_task"
                     ].execute({
                         "name": "child-B",
@@ -660,7 +660,7 @@ class TestOrchestratorMultiChild:
                         "task_prompt": "do child B work",
                         "timeout": 60,
                         "context_refinement": False,
-                    })
+                    })).text
                     child_ids.append(child_id)
                     yield ToolUse(
                         tool_name="create_task",
@@ -668,9 +668,9 @@ class TestOrchestratorMultiChild:
                         output=child_id,
                         status="success",
                     )
-                    await_result = await tool_map[
+                    await_result = (await tool_map[
                         "await_task"
-                    ].execute({"task_id": child_id})
+                    ].execute({"task_id": child_id})).text
                     yield ToolUse(
                         tool_name="await_task",
                         input={"task_id": child_id},
@@ -905,7 +905,7 @@ class TestOrchestratorMultiChild:
                 if self._send_count == 1:
                     # Orchestrator: create child with
                     # short timeout, await it
-                    child_id = await tool_map[
+                    child_id = (await tool_map[
                         "create_task"
                     ].execute({
                         "name": "slow-child",
@@ -913,7 +913,7 @@ class TestOrchestratorMultiChild:
                         "task_prompt": "take too long",
                         "timeout": 1,
                         "context_refinement": False,
-                    })
+                    })).text
                     child_id_holder.append(child_id)
                     yield ToolUse(
                         tool_name="create_task",
@@ -921,9 +921,9 @@ class TestOrchestratorMultiChild:
                         output=child_id,
                         status="success",
                     )
-                    await_result = await tool_map[
+                    await_result = (await tool_map[
                         "await_task"
-                    ].execute({"task_id": child_id})
+                    ].execute({"task_id": child_id})).text
                     yield ToolUse(
                         tool_name="await_task",
                         input={"task_id": child_id},
@@ -1076,7 +1076,7 @@ class TestOrchestratorMultiChild:
                 if self._send_count == 1:
                     # Orchestrator: create 3 children upfront
                     for i in range(3):
-                        cid = await tool_map[
+                        cid = (await tool_map[
                             "create_task"
                         ].execute({
                             "name": f"child-{i}",
@@ -1084,7 +1084,7 @@ class TestOrchestratorMultiChild:
                             "task_prompt": f"do work {i}",
                             "timeout": 60,
                             "context_refinement": False,
-                        })
+                        })).text
                         child_ids.append(cid)
                         yield ToolUse(
                             tool_name="create_task",
@@ -1094,11 +1094,11 @@ class TestOrchestratorMultiChild:
                         )
 
                     # Await the first child
-                    await_result = await tool_map[
+                    await_result = (await tool_map[
                         "await_task"
                     ].execute(
                         {"task_id": child_ids[0]},
-                    )
+                    )).text
                     yield ToolUse(
                         tool_name="await_task",
                         input={"task_id": child_ids[0]},
@@ -1133,11 +1133,11 @@ class TestOrchestratorMultiChild:
                         else "unknown"
                     )
                     if "start_task" in tool_map:
-                        sr = await tool_map[
+                        sr = (await tool_map[
                             "start_task"
                         ].execute(
                             {"task_id": task_id_str},
-                        )
+                        )).text
                         yield ToolUse(
                             tool_name="start_task",
                             input={
@@ -1147,11 +1147,11 @@ class TestOrchestratorMultiChild:
                             status="success",
                         )
                     if "end_task" in tool_map:
-                        er = await tool_map[
+                        er = (await tool_map[
                             "end_task"
                         ].execute(
                             {"message": f"child {child_idx} done"},
-                        )
+                        )).text
                         yield ToolUse(
                             tool_name="end_task",
                             input={
@@ -1201,11 +1201,11 @@ class TestOrchestratorMultiChild:
                 if self._resume_count <= 2:
                     # Await the next child
                     idx = self._resume_count
-                    await_result = await tool_map[
+                    await_result = (await tool_map[
                         "await_task"
                     ].execute(
                         {"task_id": child_ids[idx]},
-                    )
+                    )).text
                     yield ToolUse(
                         tool_name="await_task",
                         input={
@@ -1296,3 +1296,4 @@ class TestOrchestratorMultiChild:
         assert statuses.count("suspended") == 3
         # active: initial + 3 resumes = 4
         assert statuses.count("active") >= 4
+

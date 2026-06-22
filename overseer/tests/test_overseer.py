@@ -195,10 +195,10 @@ async def test_tools_are_functional(
     decision_tool = next(
         t for t in tools if t.name == "record_decision"
     )
-    result = await decision_tool.execute({
+    result = (await decision_tool.execute({
         "decision_type": "test",
         "choice": {"key": "value"},
-    })
+    })).text
     parsed = json.loads(result)
     assert "decision_id" in parsed
     assert len(tw.calls) == 1

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 import respx
 from orxtra.protocols import Tool, ToolError
+from orxtra.protocols._results import Confirmation, ToolOutput
 from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,
@@ -169,7 +170,7 @@ def _make_tool(
         }
     if execute_fn is None:
 
-        async def execute_fn(args: dict[str, Any]) -> str:
+        async def execute_fn(args: dict[str, Any]) -> ToolOutput[str]:
             return f"result for {args}"
 
     return Tool(
@@ -235,8 +236,8 @@ class TestToolCallLoop:
     async def test_single_tool_call_then_text(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def execute(args: dict[str, Any]) -> str:
-            return "tool output"
+        async def execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="tool output", text="tool output")
 
         tool = _make_tool(execute_fn=execute)
         provider = MockProvider(
@@ -288,13 +289,13 @@ class TestMultiToolResponse:
 
         call_log: list[str] = []
 
-        async def exec_a(args: dict[str, Any]) -> str:
+        async def exec_a(args: dict[str, Any]) -> ToolOutput[str]:
             call_log.append("a")
-            return "result_a"
+            return ToolOutput(data="result_a", text="result_a")
 
-        async def exec_b(args: dict[str, Any]) -> str:
+        async def exec_b(args: dict[str, Any]) -> ToolOutput[str]:
             call_log.append("b")
-            return "result_b"
+            return ToolOutput(data="result_b", text="result_b")
 
         tool_a = _make_tool(name="tool_a", execute_fn=exec_a)
         tool_b = _make_tool(name="tool_b", execute_fn=exec_b)
@@ -346,7 +347,7 @@ class TestToolExecutionError:
     async def test_tool_error_propagated(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def failing_execute(args: dict[str, Any]) -> str:
+        async def failing_execute(args: dict[str, Any]) -> ToolOutput[str]:
             msg = "Permission denied"
             raise ToolError(msg)
 
@@ -710,9 +711,9 @@ class TestToolUseDurationMs:
     async def test_duration_is_recorded(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def slow_execute(args: dict[str, Any]) -> str:
+        async def slow_execute(args: dict[str, Any]) -> ToolOutput[str]:
             await asyncio.sleep(0.01)
-            return "done"
+            return ToolOutput(data="done", text="done")
 
         tool = _make_tool(execute_fn=slow_execute)
         provider = MockProvider(
@@ -747,7 +748,7 @@ class TestToolUseDurationMs:
     async def test_duration_on_error(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def error_execute(args: dict[str, Any]) -> str:
+        async def error_execute(args: dict[str, Any]) -> ToolOutput[str]:
             await asyncio.sleep(0.01)
             msg = "fail"
             raise ToolError(msg)
@@ -788,8 +789,8 @@ class TestResultAggregatesTokens:
     async def test_tokens_summed_across_api_calls(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def execute(args: dict[str, Any]) -> str:
-            return "ok"
+        async def execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="ok", text="ok")
 
         tool = _make_tool(execute_fn=execute)
         provider = MockProvider(
@@ -997,11 +998,11 @@ class TestMultiRoundToolCalls:
     async def test_two_rounds_then_text(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def exec_a(args: dict[str, Any]) -> str:
-            return "result_a"
+        async def exec_a(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="result_a", text="result_a")
 
-        async def exec_b(args: dict[str, Any]) -> str:
-            return "result_b"
+        async def exec_b(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="result_b", text="result_b")
 
         tool_a = _make_tool(name="tool_a", execute_fn=exec_a)
         tool_b = _make_tool(name="tool_b", execute_fn=exec_b)

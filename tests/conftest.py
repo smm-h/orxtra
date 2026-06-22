@@ -141,11 +141,11 @@ class IntegrationMockTransport:
                 executed_count += 1
                 continue
             try:
-                result = await tool.execute(tool_args)
+                tool_output = await tool.execute(tool_args)
                 yield ToolUse(
                     tool_name=tool_name,
                     input=tool_args,
-                    output=result,
+                    output=tool_output.text,
                     status="success",
                 )
             except ToolError as e:
@@ -306,11 +306,11 @@ class MultiAgentMockTransport:
                 executed_count += 1
                 continue
             try:
-                result = await tool.execute(tool_args)
+                tool_output = await tool.execute(tool_args)
                 yield ToolUse(
                     tool_name=tool_name,
                     input=tool_args,
-                    output=result,
+                    output=tool_output.text,
                     status="success",
                 )
             except ToolError as e:

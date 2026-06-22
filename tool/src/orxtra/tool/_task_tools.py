@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from orxtra.protocols._results import TaskLifecycleResult, ToolOutput
 from orxtra.protocols._tool import Tool
 from orxtra.tool._validation import validate_args
 
@@ -44,10 +45,16 @@ def make_start_task_tool(
 ) -> Tool:
     """Create a tool that enters a task, triggering its pre-checks."""
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
         validate_args(arguments, _START_TASK_PARAMETERS)
-        return await scheduler_ref.handle_start_task(
+        text = await scheduler_ref.handle_start_task(
             session_id, arguments["task_id"]
+        )
+        return ToolOutput(
+            data=TaskLifecycleResult(
+                message=text, task_id=arguments["task_id"], details=None,
+            ),
+            text=text,
         )
 
     return Tool(
@@ -85,10 +92,14 @@ def make_end_task_tool(
 ) -> Tool:
     """Create a tool that completes the active task with a summary message."""
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
         validate_args(arguments, _END_TASK_PARAMETERS)
-        return await scheduler_ref.handle_end_task(
+        text = await scheduler_ref.handle_end_task(
             session_id, arguments["message"]
+        )
+        return ToolOutput(
+            data=TaskLifecycleResult(message=text, task_id=None, details=None),
+            text=text,
         )
 
     return Tool(
@@ -181,9 +192,13 @@ def make_create_task_tool(
 ) -> Tool:
     """Create a tool that creates a concrete subtask within the active task."""
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
         validate_args(arguments, _CREATE_TASK_PARAMETERS)
-        return await scheduler_ref.handle_create_task(session_id, arguments)
+        text = await scheduler_ref.handle_create_task(session_id, arguments)
+        return ToolOutput(
+            data=TaskLifecycleResult(message=text, task_id=text, details=None),
+            text=text,
+        )
 
     return Tool(
         name="create_task",
@@ -233,10 +248,14 @@ def make_create_workflow_tool(
 ) -> Tool:
     """Create a tool that creates a goal-oriented task tree."""
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
         validate_args(arguments, _CREATE_WORKFLOW_PARAMETERS)
-        return await scheduler_ref.handle_create_workflow(
+        text = await scheduler_ref.handle_create_workflow(
             session_id, arguments
+        )
+        return ToolOutput(
+            data=TaskLifecycleResult(message=text, task_id=text, details=None),
+            text=text,
         )
 
     return Tool(
@@ -282,10 +301,14 @@ def make_create_wait_for_tool(
 ) -> Tool:
     """Create a tool that blocks until a named event fires or timeout expires."""
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
         validate_args(arguments, _CREATE_WAIT_FOR_PARAMETERS)
-        return await scheduler_ref.handle_create_wait_for(
+        text = await scheduler_ref.handle_create_wait_for(
             session_id, arguments
+        )
+        return ToolOutput(
+            data=TaskLifecycleResult(message=text, task_id=text, details=None),
+            text=text,
         )
 
     return Tool(
@@ -317,10 +340,16 @@ def make_await_task_tool(
 ) -> Tool:
     """Create a tool that suspends the session until a child task completes."""
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
         validate_args(arguments, _AWAIT_TASK_PARAMETERS)
-        return await scheduler_ref.handle_await_task(
+        text = await scheduler_ref.handle_await_task(
             session_id, arguments["task_id"]
+        )
+        return ToolOutput(
+            data=TaskLifecycleResult(
+                message=text, task_id=arguments["task_id"], details=None,
+            ),
+            text=text,
         )
 
     return Tool(

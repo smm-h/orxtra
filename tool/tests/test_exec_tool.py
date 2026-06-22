@@ -81,7 +81,7 @@ class TestSuccessfulExecution:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({})
+            raw = (await tool.execute({})).text
         result = json.loads(raw)
         assert result["stdout"] == "hello world"
         assert result["exit_code"] == 0
@@ -96,7 +96,7 @@ class TestSuccessfulExecution:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({})
+            raw = (await tool.execute({})).text
         result = json.loads(raw)
         assert result["exit_code"] == 1
 
@@ -149,7 +149,7 @@ class TestSuccessfulExecution:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({})
+            raw = (await tool.execute({})).text
         result = json.loads(raw)
         assert result["stderr"] == "warning: something"
 
@@ -162,7 +162,7 @@ class TestSuccessfulExecution:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({})
+            raw = (await tool.execute({})).text
         result = json.loads(raw)
         assert result["duration_ms"] >= 0
 
@@ -194,7 +194,7 @@ class TestTimeout:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = fake_wait_for
-            raw = await tool.execute({})
+            raw = (await tool.execute({})).text
         result = json.loads(raw)
         assert result["timed_out"] is True
         proc.terminate.assert_called_once()
@@ -223,7 +223,7 @@ class TestTimeout:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = fake_wait_for
-            raw = await tool.execute({})
+            raw = (await tool.execute({})).text
         result = json.loads(raw)
         assert result["timed_out"] is True
         proc.terminate.assert_called_once()
@@ -267,7 +267,7 @@ class TestPreview:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({})
+            raw = (await tool.execute({})).text
         result = json.loads(raw)
         # The full output is much larger than the preview.
         assert len(result["stdout"]) < len(large_output)

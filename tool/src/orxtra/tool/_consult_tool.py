@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from orxtra.protocols._results import ConsultResponse, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._validation import validate_args
 
@@ -48,7 +49,7 @@ def make_consult_tool(  # noqa: PLR0913
     categories: dict[str, str],
     agents: dict[str, Any],
 ) -> Tool:
-    async def _execute(args: dict[str, Any]) -> str:
+    async def _execute(args: dict[str, Any]) -> ToolOutput[ConsultResponse]:
         validate_args(args, _CONSULT_SCHEMA)
 
         agent_name = args["agent"]
@@ -106,7 +107,10 @@ def make_consult_tool(  # noqa: PLR0913
             if type(event).__name__ == "Result":
                 result_text = event.text
 
-        return result_text
+        return ToolOutput(
+            data=ConsultResponse(text=result_text, model=model_name),
+            text=result_text,
+        )
 
     return Tool(
         name="consult",

@@ -222,7 +222,8 @@ class Transport:
 
             start = time.monotonic_ns()
             try:
-                result_text = await tool.execute(tool_input)
+                result = await tool.execute(tool_input)
+                result_text = result.text
                 duration_ms = (time.monotonic_ns() - start) // 1_000_000
                 yield ToolUse(
                     tool_name=tool_name,
@@ -230,6 +231,7 @@ class Transport:
                     output=result_text,
                     status="success",
                     duration_ms=duration_ms,
+                    typed_output=result.data,
                 )
                 remaining_results.append(
                     self._provider.format_tool_result(
@@ -550,7 +552,8 @@ class Transport:
             if tool.suspending:
                 start = time.monotonic_ns()
                 try:
-                    result_text = await tool.execute(tool_input)
+                    result = await tool.execute(tool_input)
+                    result_text = result.text
                     duration_ms = (time.monotonic_ns() - start) // 1_000_000
                     events.append(
                         ToolUse(
@@ -559,6 +562,7 @@ class Transport:
                             output=result_text,
                             status="success",
                             duration_ms=duration_ms,
+                            typed_output=result.data,
                         )
                     )
                     tool_results.append(
@@ -597,7 +601,8 @@ class Transport:
             # Normal (non-suspending) tool execution
             start = time.monotonic_ns()
             try:
-                result_text = await tool.execute(tool_input)
+                result = await tool.execute(tool_input)
+                result_text = result.text
                 duration_ms = (time.monotonic_ns() - start) // 1_000_000
                 events.append(
                     ToolUse(
@@ -606,6 +611,7 @@ class Transport:
                         output=result_text,
                         status="success",
                         duration_ms=duration_ms,
+                        typed_output=result.data,
                     )
                 )
                 tool_results.append(

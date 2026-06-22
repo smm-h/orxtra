@@ -69,6 +69,7 @@ class ToolUse:
     status: str
     error: str | None = None
     duration_ms: int = 0
+    typed_output: Any | None = None
 
 
 @dataclass(frozen=True)

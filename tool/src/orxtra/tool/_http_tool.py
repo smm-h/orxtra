@@ -8,6 +8,7 @@ import urllib.parse
 from typing import Any
 
 import httpx
+from orxtra.protocols._results import HttpResponse, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._preview import check_and_preview
 from orxtra.tool._validation import validate_args
@@ -55,7 +56,7 @@ def make_http_tool(
         "additionalProperties": False,
     }
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[HttpResponse]:
         validate_args(args, schema)
 
         method: str = args["method"]
@@ -108,14 +109,22 @@ def make_http_tool(
             response_body, preview_threshold, preview_lines,
         )
 
-        result: dict[str, Any] = {
+        result_dict: dict[str, Any] = {
             "status_code": response.status_code,
             "headers": dict(response.headers),
             "body": preview_result.content,
             "elapsed_ms": elapsed_ms,
         }
 
-        return json.dumps(result)
+        return ToolOutput(
+            data=HttpResponse(
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                body=response_body,
+                elapsed_ms=elapsed_ms,
+            ),
+            text=json.dumps(result_dict),
+        )
 
     return Tool(
         name="http",

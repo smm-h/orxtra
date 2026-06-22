@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 import respx
 from orxtra.protocols import Tool
+from orxtra.protocols._results import Confirmation, ToolOutput
 from orxtra.transport._events import (
     ContentBlock,
     Event,
@@ -148,7 +149,7 @@ def _make_tool(
         }
     if execute_fn is None:
 
-        async def execute_fn(args: dict[str, Any]) -> str:
+        async def execute_fn(args: dict[str, Any]) -> ToolOutput[str]:
             return f"result for {args}"
 
     return Tool(
@@ -211,8 +212,8 @@ class TestNormalFlowUnchanged:
         """Normal flow: CALLING_API -> EXECUTING_TOOLS -> CALLING_API -> DONE."""
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def execute(args: dict[str, Any]) -> str:
-            return "tool output"
+        async def execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="tool output", text="tool output")
 
         tool = _make_tool(execute_fn=execute)
         provider = MockProvider(
@@ -255,8 +256,8 @@ class TestSuspendingToolTriggersSuspension:
     async def test_suspending_tool_yields_session_suspended(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def await_execute(args: dict[str, Any]) -> str:
-            return "awaiting approval"
+        async def await_execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="awaiting approval", text="awaiting approval")
 
         await_tool = _make_tool(
             name="await_tool", execute_fn=await_execute, suspending=True,
@@ -308,17 +309,17 @@ class TestResumeExecutesRemainingTools:
 
         call_log: list[str] = []
 
-        async def read_exec(args: dict[str, Any]) -> str:
+        async def read_exec(args: dict[str, Any]) -> ToolOutput[str]:
             call_log.append("read")
-            return "file content"
+            return ToolOutput(data="file content", text="file content")
 
-        async def await_exec(args: dict[str, Any]) -> str:
+        async def await_exec(args: dict[str, Any]) -> ToolOutput[str]:
             call_log.append("await")
-            return "awaiting"
+            return ToolOutput(data="awaiting", text="awaiting")
 
-        async def write_exec(args: dict[str, Any]) -> str:
+        async def write_exec(args: dict[str, Any]) -> ToolOutput[str]:
             call_log.append("write")
-            return "written"
+            return ToolOutput(data="written", text="written")
 
         read_tool = _make_tool(name="read_tool", execute_fn=read_exec)
         await_tool = _make_tool(
@@ -409,8 +410,8 @@ class TestResumeReturnsToDone:
     async def test_resume_continues_to_calling_api(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def await_exec(args: dict[str, Any]) -> str:
-            return "waiting"
+        async def await_exec(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="waiting", text="waiting")
 
         await_tool = _make_tool(
             name="await_tool", execute_fn=await_exec, suspending=True,
@@ -464,17 +465,17 @@ class TestMultiToolBatchWithSuspend:
 
         executed: list[str] = []
 
-        async def read_fn(args: dict[str, Any]) -> str:
+        async def read_fn(args: dict[str, Any]) -> ToolOutput[str]:
             executed.append("read")
-            return "read_result"
+            return ToolOutput(data="read_result", text="read_result")
 
-        async def await_fn(args: dict[str, Any]) -> str:
+        async def await_fn(args: dict[str, Any]) -> ToolOutput[str]:
             executed.append("await")
-            return "await_initiated"
+            return ToolOutput(data="await_initiated", text="await_initiated")
 
-        async def write_fn(args: dict[str, Any]) -> str:
+        async def write_fn(args: dict[str, Any]) -> ToolOutput[str]:
             executed.append("write")
-            return "write_result"
+            return ToolOutput(data="write_result", text="write_result")
 
         read = _make_tool(name="read", execute_fn=read_fn)
         await_t = _make_tool(name="await_t", execute_fn=await_fn, suspending=True)
@@ -554,8 +555,8 @@ class TestHistoryAfterResume:
     async def test_history_alternation(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def await_exec(args: dict[str, Any]) -> str:
-            return "waiting"
+        async def await_exec(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="waiting", text="waiting")
 
         await_tool = _make_tool(
             name="await_tool", execute_fn=await_exec, suspending=True,
@@ -617,10 +618,10 @@ class TestDoubleSuspension:
 
         call_count = 0
 
-        async def await_exec(args: dict[str, Any]) -> str:
+        async def await_exec(args: dict[str, Any]) -> ToolOutput[str]:
             nonlocal call_count
             call_count += 1
-            return f"await_{call_count}"
+            return ToolOutput(data=f"await_{call_count}", text=f"await_{call_count}")
 
         await_tool = _make_tool(
             name="await_tool", execute_fn=await_exec, suspending=True,
@@ -700,8 +701,8 @@ class TestSuspendIsLastToolInBatch:
     async def test_no_remaining_tools_after_suspension(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def await_exec(args: dict[str, Any]) -> str:
-            return "waiting"
+        async def await_exec(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="waiting", text="waiting")
 
         await_tool = _make_tool(
             name="await_tool", execute_fn=await_exec, suspending=True,
@@ -757,8 +758,8 @@ class TestContinuationPreservesSessionId:
     async def test_session_id_preserved(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
-        async def await_exec(args: dict[str, Any]) -> str:
-            return "waiting"
+        async def await_exec(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="waiting", text="waiting")
 
         await_tool = _make_tool(
             name="await_tool", execute_fn=await_exec, suspending=True,

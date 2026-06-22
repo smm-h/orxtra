@@ -4,6 +4,7 @@ import json
 import time
 from typing import TYPE_CHECKING, Any, cast
 
+from orxtra.protocols._results import ToolOutput
 from orxtra.protocols._tool import Tool
 from orxtra.write_safety import with_transient_retry
 
@@ -32,7 +33,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
     the full pipeline: active-task check, secret substitution, execution,
     secret scrubbing, mutation tracking, and trace callback."""
 
-    async def wrapped_execute(args: dict[str, Any]) -> str:
+    async def wrapped_execute(args: dict[str, Any]) -> ToolOutput[Any]:
         # 1. Active task check (skip for start_task itself).
         if not is_start_task:
             scheduler_check(session_id)
@@ -53,7 +54,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
 
         # 4. Secret scrubbing.
         if secret_registry is not None:
-            result = secret_registry.scrub(result)
+            result = ToolOutput(data=result.data, text=secret_registry.scrub(result.text))
 
         # 5. Mutation tracking.
         if is_file_mutation and mutation_tracker is not None:
@@ -69,9 +70,9 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
             if not paths:
                 paths.add("__generic__")
 
-        # 6. Trace callback.
+        # 6. Trace callback (trace expects str).
         if trace_callback is not None:
-            await trace_callback(tool.name, args, result, duration_ms)
+            await trace_callback(tool.name, args, result.text, duration_ms)
 
         # 7. Return result.
         return result
@@ -110,7 +111,7 @@ def wrap_tools_for_session(  # noqa: PLR0913
     ]
 
 
-async def compose(tool: Tool, args: dict[str, Any]) -> str:
+async def compose(tool: Tool, args: dict[str, Any]) -> ToolOutput[Any]:
     """Call a tool's raw execute, bypassing the pipeline.
 
     Use when tool A calls tool B as an implementation detail.
@@ -119,5 +120,5 @@ async def compose(tool: Tool, args: dict[str, Any]) -> str:
     """
     raw = getattr(tool.execute, "_raw_execute", None)
     if raw is not None:
-        return cast("str", await raw(args))
+        return cast("ToolOutput[Any]", await raw(args))
     return await tool.execute(args)

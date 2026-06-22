@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from orxtra.protocols._results import ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.secrets._registry import SecretRegistry
 from orxtra.tool._pipeline import compose, wrap_tool_with_pipeline, wrap_tools_for_session
@@ -22,8 +23,8 @@ _TASK_ID = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 def _dummy_tool(name: str = "test_tool", result: str = "ok") -> Tool:
     """Create a simple async tool for testing."""
 
-    async def _execute(args: dict[str, Any]) -> str:
-        return result
+    async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
+        return ToolOutput(data=result, text=result)
 
     return Tool(
         name=name,
@@ -74,7 +75,7 @@ class TestActiveTaskCheck:
             session_id=_SESSION_ID,
             is_start_task=True,
         )
-        result = await wrapped.execute({})
+        result = (await wrapped.execute({})).text
         assert result == "ok"
 
     @pytest.mark.asyncio
@@ -86,7 +87,7 @@ class TestActiveTaskCheck:
             trace_callback=None,
             session_id=_SESSION_ID,
         )
-        result = await wrapped.execute({})
+        result = (await wrapped.execute({})).text
         assert result == "success"
 
 
@@ -103,9 +104,9 @@ class TestSecretSubstitution:
         registry = SecretRegistry({"API_KEY": "real-key-123"})
         captured_args: dict[str, Any] = {}
 
-        async def _capture(args: dict[str, Any]) -> str:
+        async def _capture(args: dict[str, Any]) -> ToolOutput[str]:
             captured_args.update(args)
-            return "ok"
+            return ToolOutput(data="ok", text="ok")
 
         tool = Tool(
             name="test",
@@ -134,7 +135,7 @@ class TestSecretSubstitution:
             trace_callback=None,
             session_id=_SESSION_ID,
         )
-        result = await wrapped.execute({})
+        result = (await wrapped.execute({})).text
         assert "real-key-123" not in result
         assert "{{secret:API_KEY}}" in result
 
@@ -142,9 +143,9 @@ class TestSecretSubstitution:
     async def test_no_secret_registry_no_substitution(self) -> None:
         captured_args: dict[str, Any] = {}
 
-        async def _capture(args: dict[str, Any]) -> str:
+        async def _capture(args: dict[str, Any]) -> ToolOutput[str]:
             captured_args.update(args)
-            return "ok"
+            return ToolOutput(data="ok", text="ok")
 
         tool = Tool(
             name="test",
@@ -199,7 +200,7 @@ class TestTraceCallback:
             trace_callback=None,
             session_id=_SESSION_ID,
         )
-        result = await wrapped.execute({})
+        result = (await wrapped.execute({})).text
         assert result == "ok"
 
 
@@ -252,7 +253,7 @@ class TestMutationTracking:
             is_file_mutation=True,
             mutation_tracker=None,
         )
-        result = await wrapped.execute({})
+        result = (await wrapped.execute({})).text
         assert result == "ok"
 
 
@@ -271,12 +272,12 @@ class TestTransientRetry:
 
         call_count = 0
 
-        async def _flaky_execute(args: dict[str, Any]) -> str:
+        async def _flaky_execute(args: dict[str, Any]) -> ToolOutput[str]:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
                 raise OSError(errno.EIO, "I/O error")
-            return "success"
+            return ToolOutput(data="success", text="success")
 
         tool = Tool(
             name="flaky",
@@ -291,7 +292,7 @@ class TestTransientRetry:
             trace_callback=None,
             session_id=_SESSION_ID,
         )
-        result = await wrapped.execute({})
+        result = (await wrapped.execute({})).text
         assert result == "success"
         assert call_count == 2
 
@@ -302,7 +303,7 @@ class TestTransientRetry:
 
         call_count = 0
 
-        async def _failing_execute(args: dict[str, Any]) -> str:
+        async def _failing_execute(args: dict[str, Any]) -> ToolOutput[str]:
             nonlocal call_count
             call_count += 1
             raise OSError(errno.ENOENT, "No such file")
@@ -398,7 +399,7 @@ class TestWrapToolsForSession:
             session_id=_SESSION_ID,
         )
         # start_task is exempt from the active task check.
-        result = await wrapped[0].execute({})
+        result = (await wrapped[0].execute({})).text
         assert result == "ok"
         # other is NOT exempt.
         with pytest.raises(ToolError, match="No active task for session"):
@@ -448,9 +449,9 @@ class TestFullPipeline:
         tracker: dict[str, set[str]] = {}
         captured_args: dict[str, Any] = {}
 
-        async def _execute(args: dict[str, Any]) -> str:
+        async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
             captured_args.update(args)
-            return "response includes secret-val-999"
+            return ToolOutput(data="response includes secret-val-999", text="response includes secret-val-999")
 
         tool = Tool(
             name="write",
@@ -467,7 +468,7 @@ class TestFullPipeline:
             is_file_mutation=True,
             mutation_tracker=tracker,
         )
-        result = await wrapped.execute({"auth": "{{secret:TOKEN}}"})
+        result = (await wrapped.execute({"auth": "{{secret:TOKEN}}"})).text
 
         # Secret substituted in args.
         assert captured_args["auth"] == "secret-val-999"
@@ -500,9 +501,9 @@ class TestCompose:
         """compose bypasses the pipeline and calls the original execute."""
         captured: list[str] = []
 
-        async def _raw_execute(args: dict[str, Any]) -> str:
+        async def _raw_execute(args: dict[str, Any]) -> ToolOutput[str]:
             captured.append("raw")
-            return "raw_result"
+            return ToolOutput(data="raw_result", text="raw_result")
 
         tool = Tool(
             name="test",
@@ -517,7 +518,7 @@ class TestCompose:
             trace_callback=None,
             session_id=_SESSION_ID,
         )
-        result = await compose(wrapped, {})
+        result = (await compose(wrapped, {})).text
         assert result == "raw_result"
         assert captured == ["raw"]
 
@@ -525,7 +526,7 @@ class TestCompose:
     async def test_compose_on_unwrapped_tool_calls_execute_directly(self) -> None:
         """compose on an unwrapped tool just calls execute."""
         tool = _dummy_tool(result="direct")
-        result = await compose(tool, {})
+        result = (await compose(tool, {})).text
         assert result == "direct"
 
     @pytest.mark.asyncio
@@ -533,9 +534,9 @@ class TestCompose:
         """Double-wrapped tool's compose still calls the original raw execute."""
         call_log: list[str] = []
 
-        async def _innermost(args: dict[str, Any]) -> str:
+        async def _innermost(args: dict[str, Any]) -> ToolOutput[str]:
             call_log.append("innermost")
-            return "inner_result"
+            return ToolOutput(data="inner_result", text="inner_result")
 
         tool = Tool(
             name="test",
@@ -557,7 +558,7 @@ class TestCompose:
             trace_callback=None,
             session_id=_SESSION_ID,
         )
-        result = await compose(wrapped_twice, {})
+        result = (await compose(wrapped_twice, {})).text
         assert result == "inner_result"
         assert call_log == ["innermost"]
 
@@ -573,7 +574,7 @@ class TestCompose:
             trace_callback=None,
             session_id=_SESSION_ID,
         )
-        result = await compose(wrapped, {})
+        result = (await compose(wrapped, {})).text
         # The raw execute returns the unscrubbed result.
         assert "secret-val-999" in result
 
