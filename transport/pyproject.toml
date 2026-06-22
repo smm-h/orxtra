@@ -1,6 +1,7 @@
 [project]
 name = "orxt-transport"
 version = "0.0.0"
+license = "BUSL-1.1"
 description = "Typed LLM client via Provider protocol. Raw httpx, streaming events, tool-call loop, auto-retry."
 requires-python = ">=3.12"
 dependencies = [

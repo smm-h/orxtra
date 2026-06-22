@@ -1,6 +1,7 @@
 [project]
 name = "orxt-overseer"
 version = "0.0.0"
+license = "BUSL-1.1"
 description = "Persistent LLM with action tools, PG memory, health monitoring, session handoff."
 requires-python = ">=3.12"
 dependencies = [
@@ -8,8 +9,8 @@ dependencies = [
     "orxt-protocols",
     "orxt-trace",
     "orxt-session",
-    "orxt-knowledge-module",
     "orxt-tool",
+    "orxt-transport",
 ]
 keywords = ["rlsbl"]
 
@@ -24,8 +25,8 @@ packages = ["src/orxt"]
 orxt-protocols = { workspace = true }
 orxt-trace = { workspace = true }
 orxt-session = { workspace = true }
-orxt-knowledge-module = { workspace = true }
 orxt-tool = { workspace = true }
+orxt-transport = { workspace = true }
 
 [dependency-groups]
 dev = [
