@@ -1,2 +1,0 @@
-{"commits":["23dcf0d24f8690a2900c005cdbba44590123bae4","263053877602bfac086eac369b1f6a5fb8843439","2f983ea8dd4b954d32612c0b1a14c8ac74c77488","8335e3d97a6fce626c5125c2b90ccb0586bdf214","b9d811287d8e1d530cf06efefd6dc6e0d57b863f","e9eceaf755b1ca928dc529c309b6cac3d70d5d72","ebaaf70cae2fae657dd4879d3aca2c2264a03b42"],"user_facing":true,"description":"**Initial implementation.** PostgreSQL-backed append-only cross-agent IPC for sharing context between concurrent agent sessions.","type":"feature"}
-{"commits":["40d89d9a6022c8eb42f36d391c4cde3edd455b01"],"user_facing":false}

@@ -1,0 +1,141 @@
+{
+  "batch_limits": {
+    "exclusions": [
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 4
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 7
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 9
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 12
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 14
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 16
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 21
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 23
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 25
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 29
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 31
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 33
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 35
+          }
+        ]
+      },
+      {
+        "reason": "auto-created during changelog consolidation",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 37
+          }
+        ]
+      }
+    ]
+  }
+}
