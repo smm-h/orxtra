@@ -31,17 +31,17 @@ Every piece of work is a task with explicit boundaries, entry conditions, and ex
 
 A typed LLM client with streaming and tools:
 ```
-uv pip install ./transport
+pip install orxt-transport
 ```
 
 Deterministic task execution (no AI brain, consumer provides task trees):
 ```
-uv pip install ./scheduler
+pip install orxt-scheduler
 ```
 
 Full autonomous system with Overseer, verification, and human inbox:
 ```
-uv pip install ./cli
+pip install orxt-cli
 ```
 
 ## Design principles
@@ -58,4 +58,4 @@ See each module's `DESIGN.md` for the full spec.
 
 ## Status
 
-Design phase. Implementation has not started.
+Active implementation.
