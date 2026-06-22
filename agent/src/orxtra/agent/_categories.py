@@ -23,6 +23,9 @@ def load_categories(path: Path) -> dict[str, str]:
 
 
 def resolve_category(agent: Agent, categories: dict[str, str]) -> str:
+    if agent.category is None:
+        msg = "Agent has no category (uses explicit provider/model)"
+        raise ValueError(msg)
     if agent.category not in categories:
         msg = f"Unknown category: {agent.category}"
         raise ValueError(msg)

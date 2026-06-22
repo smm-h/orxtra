@@ -89,9 +89,24 @@ def make_consult_tool(  # noqa: PLR0913
                 ],
             )
 
-        # Resolve model from agent category
-        resolved = categories[agent_def.category]
-        provider_name, _, model_name = resolved.partition("/")
+        # Resolve provider + model
+        if (
+            agent_def.provider is not None
+            and agent_def.model is not None
+        ):
+            provider_name = agent_def.provider
+            model_name = agent_def.model
+        else:
+            if agent_def.category is None:
+                msg = (
+                    f"Agent '{agent_name}' has no category,"
+                    " provider, or model"
+                )
+                raise ToolError(msg)
+            resolved = categories[agent_def.category]
+            provider_name, _, model_name = (
+                resolved.partition("/")
+            )
         transport = transport_registry.get(provider_name)
         if transport is None:
             msg = f"Transport for provider {provider_name!r} not found"
