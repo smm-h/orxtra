@@ -11,8 +11,7 @@ if (result.error) {
   if (result.error.code === "ENOENT") {
     console.error("Error: orxt Python CLI not found.");
     console.error("Install it with: uv tool install orxt-cli");
-    console.error("Or: pip install orxt-cli");
-    console.error("Requires Python >= 3.12");
+    console.error("Requires Python >= 3.12 and uv (https://docs.astral.sh/uv/)");
     process.exit(1);
   }
   console.error("Error:", result.error.message);
