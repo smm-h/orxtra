@@ -692,6 +692,7 @@ dependencies = [
     { name = "orxtra-scheduler" },
     { name = "orxtra-session" },
     { name = "orxtra-trace" },
+    { name = "orxtra-transport" },
     { name = "pydantic" },
 ]
 
@@ -704,6 +705,7 @@ requires-dist = [
     { name = "orxtra-scheduler", editable = "scheduler" },
     { name = "orxtra-session", editable = "session" },
     { name = "orxtra-trace", editable = "trace" },
+    { name = "orxtra-transport", editable = "transport" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
