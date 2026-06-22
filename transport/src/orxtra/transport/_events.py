@@ -116,6 +116,20 @@ class SessionSuspended:
     session_id: str | None
 
 
+@dataclass(frozen=True)
+class LivenessWarning:
+    """Emitted when no SSE event has arrived within the health threshold."""
+
+    elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class StuckDetected:
+    """Emitted when no SSE event has arrived within the stuck threshold."""
+
+    elapsed_seconds: float
+
+
 Event = (
     StepStart
     | Text
@@ -129,4 +143,6 @@ Event = (
     | Error
     | Result
     | SessionSuspended
+    | LivenessWarning
+    | StuckDetected
 )

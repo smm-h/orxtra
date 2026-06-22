@@ -14,6 +14,7 @@ from ._events import (
     ContentBlock,
     Error,
     Event,
+    LivenessWarning,
     Result,
     SessionSuspended,
     StepFinish,
@@ -21,11 +22,13 @@ from ._events import (
     StreamDelta,
     StreamToolUse,
     StreamUsage,
+    StuckDetected,
     Text,
     Thinking,
     ToolUse,
     Usage,
 )
+from ._liveness import LivenessMonitor
 from ._state_machine import Continuation, TransportState
 
 if TYPE_CHECKING:
@@ -576,18 +579,21 @@ class Transport:
         ctx.pending_tool_blocks = []
         return (TransportState.CALLING_API, events)
 
-    async def _send_streaming_with_retry(
+    async def _send_streaming_with_retry(  # noqa: C901, PLR0912
         self,
         *,
         url: str,
         headers: dict[str, str],
         json_body: dict[str, Any],
+        health_threshold: float = 30.0,
+        stuck_threshold: float = 120.0,
     ) -> tuple[list[Event] | None, list[Event]]:
         """Send a streaming request and collect parsed events.
 
         Returns (stream_events, retry_events) where stream_events is a list of
         events from parse_stream, or None on failure. retry_events contains any
-        ApiRetry or Error events from the retry loop.
+        ApiRetry, Error, LivenessWarning, or StuckDetected events from the
+        retry loop.
         """
         retry_events: list[Event] = []
         last_error: str = ""
@@ -603,12 +609,55 @@ class Transport:
                     timeout=120.0,
                 ) as response:
                     if response.status_code == 200:  # noqa: PLR2004
-                        collected: list[Event] = [
-                            event
-                            async for event in self._provider.parse_stream(
-                                response.aiter_bytes(),
+                        monitor = LivenessMonitor(
+                            health_threshold=health_threshold,
+                            stuck_threshold=stuck_threshold,
+                        )
+                        collected: list[Event] = []
+                        warning_emitted = False
+                        stuck = False
+                        stream = self._provider.parse_stream(
+                            response.aiter_bytes(),
+                        )
+                        async for event in stream:
+                            monitor.record_event()
+                            collected.append(event)
+                        # Check liveness after stream ends
+                        status = monitor.check()
+                        if status == "warning" and not warning_emitted:
+                            elapsed = monitor.elapsed or 0.0
+                            retry_events.append(
+                                LivenessWarning(
+                                    elapsed_seconds=elapsed,
+                                ),
                             )
-                        ]
+                        elif status == "stuck":
+                            elapsed = monitor.elapsed or 0.0
+                            retry_events.append(
+                                StuckDetected(
+                                    elapsed_seconds=elapsed,
+                                ),
+                            )
+                            stuck = True
+                        if stuck and attempt < self._retry.max_retries:
+                            # Treat stuck as a transient failure and retry
+                            delay = min(
+                                self._retry.backoff_base_seconds * (2**attempt),
+                                self._retry.backoff_max_seconds,
+                            )
+                            if self._retry.jitter:
+                                delay *= random.random()  # noqa: S311
+                            retry_events.append(
+                                ApiRetry(
+                                    attempt=attempt + 1,
+                                    max_retries=self._retry.max_retries,
+                                    delay_ms=int(delay * 1000),
+                                    status_code=0,
+                                    error="Stream stuck: no events received",
+                                )
+                            )
+                            await asyncio.sleep(delay)
+                            continue
                         return collected, retry_events
 
                     last_status = response.status_code

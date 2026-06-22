@@ -12,6 +12,7 @@ from orxtra.transport._events import (
     ContentBlock,
     Error,
     Event,
+    LivenessWarning,
     Result,
     SessionSuspended,
     StepFinish,
@@ -19,11 +20,13 @@ from orxtra.transport._events import (
     StreamDelta,
     StreamToolUse,
     StreamUsage,
+    StuckDetected,
     Text,
     Thinking,
     ToolUse,
     Usage,
 )
+from orxtra.transport._liveness import LivenessMonitor
 from orxtra.transport._provider import Provider, RetryPolicy
 from orxtra.transport._state_machine import Continuation, TransportState
 from orxtra.transport._transport import Transport
@@ -35,6 +38,8 @@ __all__ = [
     "Continuation",
     "Error",
     "Event",
+    "LivenessMonitor",
+    "LivenessWarning",
     "Provider",
     "Result",
     "RetryPolicy",
@@ -44,6 +49,7 @@ __all__ = [
     "StreamDelta",
     "StreamToolUse",
     "StreamUsage",
+    "StuckDetected",
     "Text",
     "Thinking",
     "ToolUse",
