@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-22T18:24:10Z",
-  "package_count": 17,
+  "generated_at": "2026-06-22T20:20:51Z",
+  "package_count": 16,
   "packages": {
     "protocols": {
       "path": "protocols",
@@ -221,18 +221,6 @@
       "releasable_flag": true,
       "test_only": false
     },
-    "knowledge-module": {
-      "path": "knowledge-module",
-      "targets": [],
-      "version": null,
-      "description": "Experimental semantic enrichment via cognee",
-      "deps": [],
-      "rdeps": [],
-      "library": false,
-      "dev_only": false,
-      "releasable_flag": true,
-      "test_only": false
-    },
     "services": {
       "path": "services",
       "targets": [],
@@ -303,7 +291,6 @@
   "graph": {
     "leaf_nodes": [
       "agent",
-      "knowledge-module",
       "protocols",
       "schema",
       "secrets",
@@ -312,14 +299,12 @@
     ],
     "root_nodes": [
       "cli",
-      "knowledge-module",
       "mcp",
       "schema"
     ],
     "max_depth": 5,
     "topological_order": [
       "agent",
-      "knowledge-module",
       "protocols",
       "schema",
       "secrets",
