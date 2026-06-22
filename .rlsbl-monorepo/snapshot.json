@@ -1,13 +1,11 @@
 {
-  "generated_at": "2026-06-22T12:58:41Z",
+  "generated_at": "2026-06-22T17:49:47Z",
   "package_count": 17,
   "packages": {
     "protocols": {
       "path": "protocols",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Shared types: Execution, task lifecycle, event descriptors, action tool schemas",
       "deps": [],
       "rdeps": [
@@ -26,10 +24,8 @@
     },
     "secrets": {
       "path": "secrets",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Secret registry, substitution, and scrubbing",
       "deps": [],
       "rdeps": [
@@ -43,10 +39,8 @@
     },
     "write-safety": {
       "path": "write-safety",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Write queue, stale-write detection, atomic replace, transient replay",
       "deps": [],
       "rdeps": [
@@ -60,10 +54,8 @@
     },
     "transport": {
       "path": "transport",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Typed LLM client via Provider protocol",
       "deps": [
         "protocols"
@@ -80,10 +72,8 @@
     },
     "agent": {
       "path": "agent",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Agent definition loader (TOML + composable .md prompts)",
       "deps": [],
       "rdeps": [
@@ -97,10 +87,8 @@
     },
     "tool": {
       "path": "tool",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Tool registry with granular constructors",
       "deps": [
         "protocols",
@@ -118,10 +106,8 @@
     },
     "verify": {
       "path": "verify",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Check runner (pre/post-check Execution dispatch)",
       "deps": [
         "protocols"
@@ -136,10 +122,8 @@
     },
     "trace": {
       "path": "trace",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "PG schema owner (events, task results, transcripts, inbox, state machines)",
       "deps": [],
       "rdeps": [
@@ -158,10 +142,8 @@
     },
     "notepad": {
       "path": "notepad",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Append-only cross-agent context sharing",
       "deps": [
         "trace"
@@ -176,10 +158,8 @@
     },
     "session": {
       "path": "session",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Session lifecycle, token tracking, cross-restart resumption",
       "deps": [
         "protocols",
@@ -198,10 +178,8 @@
     },
     "scheduler": {
       "path": "scheduler",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Task executor (recursive hierarchy, budgets, constraints)",
       "deps": [
         "protocols",
@@ -225,10 +203,8 @@
     },
     "overseer": {
       "path": "overseer",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Persistent LLM with action tools, PG memory, session handoff",
       "deps": [
         "protocols",
@@ -247,10 +223,8 @@
     },
     "knowledge-module": {
       "path": "knowledge-module",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Experimental semantic enrichment via cognee",
       "deps": [],
       "rdeps": [],
@@ -261,10 +235,8 @@
     },
     "services": {
       "path": "services",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "Shared business logic for all frontends",
       "deps": [
         "agent",
@@ -285,10 +257,8 @@
     },
     "cli": {
       "path": "cli",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "strictcli CLI frontend (agents are the primary users)",
       "deps": [
         "services",
@@ -302,10 +272,8 @@
     },
     "mcp": {
       "path": "mcp",
-      "targets": [
-        "pypi"
-      ],
-      "version": "0.1.1",
+      "targets": [],
+      "version": null,
       "description": "MCP server (human interface via dashboard/AI client)",
       "deps": [
         "services",
