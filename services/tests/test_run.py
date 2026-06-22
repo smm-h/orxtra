@@ -53,7 +53,7 @@ async def test_start_run_creates_run(mock_pool: AsyncMock, sample_run_id: UUID) 
             categories_path=Path("/cats.toml"),
             read_root=Path("/project"),
             db_url="postgres://localhost/test",
-            provider_configs={"anthropic": {"api_key": "test"}},
+            provider_configs={"anthropic": {"type": "anthropic", "api_key": "test"}},
             budget=Decimal("10.00"),
             autonomy_level="supervised",
         )
@@ -82,6 +82,7 @@ async def test_start_run_from_file(
         'autonomy_level = "supervised"\n'
         "\n"
         "[provider_configs.anthropic]\n"
+        'type = "anthropic"\n'
         'api_key = "test"\n'
     )
     with (
@@ -197,7 +198,7 @@ def test_run_config_valid() -> None:
         categories_path=Path("/cats.toml"),
         read_root=Path("/project"),
         db_url="postgres://localhost/test",
-        provider_configs={"anthropic": {"api_key": "key"}},
+        provider_configs={"anthropic": {"type": "anthropic", "api_key": "key"}},
         budget=Decimal("5.00"),
         autonomy_level="autonomous",
     )
@@ -263,7 +264,7 @@ def _default_config() -> RunConfig:
         categories_path=Path("/cats.toml"),
         read_root=Path("/project"),
         db_url="postgres://localhost/test",
-        provider_configs={"anthropic": {"api_key": "test"}},
+        provider_configs={"anthropic": {"type": "anthropic", "api_key": "test"}},
         budget=Decimal("10.00"),
         autonomy_level="supervised",
     )
@@ -498,6 +499,7 @@ async def test_start_run_from_file_with_workflow_path(
         'autonomy_level = "supervised"\n'
         "\n"
         "[provider_configs.anthropic]\n"
+        'type = "anthropic"\n'
         'api_key = "test"\n'
     )
     with (
@@ -528,7 +530,7 @@ def test_run_config_with_workflow_path() -> None:
         categories_path=Path("/cats.toml"),
         read_root=Path("/project"),
         db_url="postgres://localhost/test",
-        provider_configs={"anthropic": {"api_key": "key"}},
+        provider_configs={"anthropic": {"type": "anthropic", "api_key": "key"}},
         budget=Decimal("5.00"),
         autonomy_level="autonomous",
     )

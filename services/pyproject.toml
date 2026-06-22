@@ -13,6 +13,7 @@ dependencies = [
     "orxtra-session",
     "orxtra-overseer",
     "orxtra-trace",
+    "orxtra-transport",
 ]
 keywords = ["rlsbl"]
 
@@ -30,3 +31,4 @@ orxtra-scheduler = { workspace = true }
 orxtra-session = { workspace = true }
 orxtra-overseer = { workspace = true }
 orxtra-trace = { workspace = true }
+orxtra-transport = { workspace = true }

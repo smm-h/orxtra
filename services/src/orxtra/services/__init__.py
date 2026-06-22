@@ -8,6 +8,7 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.services._config import dump_config, show_pricing
+from orxtra.services._providers import build_transport_registry
 from orxtra.services._events import fire_event
 from orxtra.services._inbox import (
     get_inbox_item,
@@ -44,6 +45,7 @@ __all__ = [
     "__version__",
     "RunConfig",
     "abort_run",
+    "build_transport_registry",
     "dump_config",
     "fire_event",
     "get_inbox_item",
