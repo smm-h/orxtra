@@ -2,7 +2,6 @@
   "version": 1,
   "files": {
     ".github/workflows/ci.yml": "1845c9e1fceab5a4beb27ed554cbf581174a1ccbc6ce9fca018b8d1743e1e8f5",
-    ".github/workflows/publish.yml": "c86fe3682721199f304390f8acbaf57aef8b5e6d98cca4787aa70ef209979596",
     "CHANGELOG.md": "fca781960bc4a70fce00e622926810542c6c62b34357a1228fa2e8432108c013",
     ".gitignore": "100e6627e77d2cc9c3f94c9cb92207d486300006d298fa6bdd505da96c73ff25",
     ".rlsbl/hooks/pre-checks.sh": "60c57d4563263124530e6f33aca77550ea2161ad3b33b3ba6ad1c03fea9eb6e2",
