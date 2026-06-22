@@ -17,6 +17,7 @@ jobs:
     - run: uv python install ${{ matrix.python-version }}
     - run: uv sync
     - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
     defaults:
       run:
         working-directory: verify
