@@ -1,0 +1,6 @@
+[releasables.orxtra]
+bump = "minor"
+description = "Renamed from orxt to orxtra."
+context = "Full rename: PyPI package, Python imports, npm package, GitHub repo. All orxt.* imports are now orxtra.*."
+include = ["pypi"]
+exclude = []
