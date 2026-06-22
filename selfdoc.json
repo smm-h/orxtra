@@ -8,7 +8,7 @@
   ],
   "docs": "docs/",
   "output": "docs/_build/",
-  "base_url": "https://orxt.smmh.dev",
+  "base_url": "https://orxtra.smmh.dev",
   "root_files": [
     "docs/_CLAUDE.md",
     "docs/_README.md"
@@ -19,7 +19,7 @@
     ]
   },
   "topology": {
-    "slug": "orxt",
+    "slug": "orxtra",
     "docs_base": "https://docs.smmh.dev",
     "posts_base": "https://blog.smmh.dev",
     "assembly": "smm-h/selfdoc-cache",

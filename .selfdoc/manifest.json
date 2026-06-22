@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "name": "orxt",
-  "slug": "orxt",
+  "name": "orxtra",
+  "slug": "orxtra",
   "version": "0.1.0",
   "description": null,
   "language": "python",
-  "base_url": "https://orxt.smmh.dev",
+  "base_url": "https://orxtra.smmh.dev",
   "pages": [
     {
       "path": "gen-index.md",
@@ -14,7 +14,7 @@
     },
     {
       "path": "index.md",
-      "title": "orxt",
+      "title": "orxtra",
       "type": "doc"
     }
   ],

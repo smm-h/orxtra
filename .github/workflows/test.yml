@@ -12,19 +12,19 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: orxt_test
-          POSTGRES_PASSWORD: orxt_test
-          POSTGRES_DB: orxt_test
+          POSTGRES_USER: orxtra_test
+          POSTGRES_PASSWORD: orxtra_test
+          POSTGRES_DB: orxtra_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U orxt_test"
+          --health-cmd="pg_isready -U orxtra_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
     env:
       ORXT_TEST_PG: "1"
-      ORXT_TEST_PG_DSN: "postgresql://orxt_test:orxt_test@localhost:5432/orxt_test"
+      ORXT_TEST_PG_DSN: "postgresql://orxtra_test:orxtra_test@localhost:5432/orxtra_test"
     strategy:
       matrix:
         python-version: ['3.12', '3.13']
