@@ -1,0 +1,31 @@
+{
+  "name": "orxt",
+  "version": "0.1.0",
+  "license": "BUSL-1.1",
+  "description": "Autonomous multi-agent AI workflows. npm wrapper for the orxt Python CLI.",
+  "bin": {
+    "orxt": "bin/orxt.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "files": [
+    "bin",
+    "scripts"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smm-h/orxt.git",
+    "directory": "npm"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "workflows",
+    "orchestration",
+    "cli"
+  ]
+}
