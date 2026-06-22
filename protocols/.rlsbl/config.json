@@ -10,16 +10,6 @@
     }
   },
   "batch_limits": {
-    "exclusions": [
-      {
-        "reason": "**Initial implementation.** Shared types and interfaces: Execution model (script/agent/workflow), task lifecycle states, event descriptors, action tool schemas, check results, budget exhaustion policies.",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 1
-          }
-        ]
-      }
-    ]
+    "exclusions": []
   }
 }
