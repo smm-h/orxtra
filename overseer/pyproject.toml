@@ -1,15 +1,15 @@
 [project]
-name = "overseer"
+name = "orxt-overseer"
 version = "0.0.0"
 description = "Persistent LLM with action tools, PG memory, health monitoring, session handoff."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "orxt-protocols",
-    "trace",
-    "session",
-    "knowledge-module",
-    "tool",
+    "orxt-trace",
+    "orxt-session",
+    "orxt-knowledge-module",
+    "orxt-tool",
 ]
 keywords = ["rlsbl"]
 
@@ -22,10 +22,10 @@ packages = ["src/orxt"]
 
 [tool.uv.sources]
 orxt-protocols = { workspace = true }
-trace = { workspace = true }
-session = { workspace = true }
-knowledge-module = { workspace = true }
-tool = { workspace = true }
+orxt-trace = { workspace = true }
+orxt-session = { workspace = true }
+orxt-knowledge-module = { workspace = true }
+orxt-tool = { workspace = true }
 
 [dependency-groups]
 dev = [

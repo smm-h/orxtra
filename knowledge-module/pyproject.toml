@@ -1,11 +1,11 @@
 [project]
-name = "knowledge-module"
+name = "orxt-knowledge-module"
 version = "0.0.0"
 description = "Experimental semantic enrichment via cognee. Knowledge graph over the lessons table."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
-    "trace",
+    "orxt-trace",
     "cognee",
 ]
 keywords = ["rlsbl"]
@@ -18,4 +18,4 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-trace = { workspace = true }
+orxt-trace = { workspace = true }

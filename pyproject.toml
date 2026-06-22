@@ -11,19 +11,19 @@ dependencies = [
     "orxt-protocols",
     "orxt-secrets",
     "orxt-write-safety",
-    "transport",
-    "agent",
-    "tool",
-    "verify",
-    "trace",
-    "notepad",
-    "session",
-    "scheduler",
-    "overseer",
-    "knowledge-module",
-    "services",
-    "cli",
-    "mcp",
+    "orxt-transport",
+    "orxt-agent",
+    "orxt-tool",
+    "orxt-verify",
+    "orxt-trace",
+    "orxt-notepad",
+    "orxt-session",
+    "orxt-scheduler",
+    "orxt-overseer",
+    "orxt-knowledge-module",
+    "orxt-services",
+    "orxt-cli",
+    "orxt-mcp",
 ]
 
 [tool.uv.workspace]
@@ -50,19 +50,19 @@ members = [
 orxt-protocols = { workspace = true }
 orxt-secrets = { workspace = true }
 orxt-write-safety = { workspace = true }
-transport = { workspace = true }
-agent = { workspace = true }
-tool = { workspace = true }
-verify = { workspace = true }
-trace = { workspace = true }
-notepad = { workspace = true }
-session = { workspace = true }
-scheduler = { workspace = true }
-overseer = { workspace = true }
-knowledge-module = { workspace = true }
-services = { workspace = true }
-cli = { workspace = true }
-mcp = { workspace = true }
+orxt-transport = { workspace = true }
+orxt-agent = { workspace = true }
+orxt-tool = { workspace = true }
+orxt-verify = { workspace = true }
+orxt-trace = { workspace = true }
+orxt-notepad = { workspace = true }
+orxt-session = { workspace = true }
+orxt-scheduler = { workspace = true }
+orxt-overseer = { workspace = true }
+orxt-knowledge-module = { workspace = true }
+orxt-services = { workspace = true }
+orxt-cli = { workspace = true }
+orxt-mcp = { workspace = true }
 
 [dependency-groups]
 dev = [

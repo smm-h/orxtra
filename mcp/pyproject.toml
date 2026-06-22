@@ -1,10 +1,10 @@
 [project]
-name = "mcp"
+name = "orxt-mcp"
 version = "0.0.0"
 description = "MCP server exposing the orxt API. Human interface via dashboard or AI client."
 requires-python = ">=3.12"
 dependencies = [
-    "services",
+    "orxt-services",
 ]
 keywords = ["rlsbl"]
 
@@ -16,7 +16,7 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-services = { workspace = true }
+orxt-services = { workspace = true }
 
 [dependency-groups]
 dev = [

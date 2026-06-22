@@ -1,12 +1,12 @@
 [project]
-name = "session"
+name = "orxt-session"
 version = "0.0.0"
 description = "Session lifecycle, token tracking, cross-restart resumption via PG transcripts."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
-    "transport",
-    "trace",
+    "orxt-transport",
+    "orxt-trace",
 ]
 keywords = ["rlsbl"]
 
@@ -18,5 +18,5 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-transport = { workspace = true }
-trace = { workspace = true }
+orxt-transport = { workspace = true }
+orxt-trace = { workspace = true }
