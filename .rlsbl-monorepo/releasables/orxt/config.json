@@ -135,6 +135,11 @@
             "line": 37
           }
         ]
+      },
+      {
+        "version": "unreleased",
+        "line": 49,
+        "reason": "bulk coverage for root-level commits during first release"
       }
     ]
   }
