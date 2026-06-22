@@ -32,6 +32,8 @@ def _mock_agent_def(
     """Create a mock agent definition."""
     agent = MagicMock()
     agent.category = category
+    agent.provider = None
+    agent.model = None
     agent.allow = allow or []
     agent.prompt = "You are a test agent."
     return agent

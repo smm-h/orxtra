@@ -222,14 +222,29 @@ class Scheduler(
             msg = f"Agent '{agent}' not found"
             raise ValueError(msg)
 
-        # Resolve model from agent category
-        category_str = agent_def.category
-        resolved = self._categories.get(category_str)
-        if resolved is None:
-            msg = f"Category '{category_str}' not found"
-            raise ValueError(msg)
-
-        provider_name, model = resolved.split("/", 1)
+        # Resolve provider + model
+        if (
+            agent_def.provider is not None
+            and agent_def.model is not None
+        ):
+            provider_name = agent_def.provider
+            model = agent_def.model
+        else:
+            category_str = agent_def.category
+            if category_str is None:
+                msg = (
+                    f"Agent '{agent}' has no category,"
+                    " provider, or model"
+                )
+                raise ValueError(msg)
+            resolved = self._categories.get(category_str)
+            if resolved is None:
+                msg = (
+                    f"Category '{category_str}'"
+                    " not found"
+                )
+                raise ValueError(msg)
+            provider_name, model = resolved.split("/", 1)
         transport = self._transport_registry.get(
             provider_name,
         )

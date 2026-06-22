@@ -159,6 +159,21 @@ class TestLoadAgent:
         assert agent.exec_tools == []
         assert agent.shell_config is None
 
+    def test_agent_with_provider_model(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("Do the thing")
+        toml_content = (
+            '[agent]\nname = "direct"\ndescription = "Direct routing"\n'
+            'prompt = "prompt.md"\nprovider = "anthropic"\n'
+            'model = "claude-sonnet-4-6"\n\n'
+            '[tools]\nallow = ["read"]\n'
+        )
+        path = tmp_path / "direct.toml"
+        path.write_text(toml_content)
+        agent = load_agent(path)
+        assert agent.provider == "anthropic"
+        assert agent.model == "claude-sonnet-4-6"
+        assert agent.category is None
+
     def test_self_circular_include_raises(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("{include:prompt.md}")
         path = _write_agent(

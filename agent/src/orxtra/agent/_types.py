@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class ExecToolConfig(BaseModel):
@@ -23,7 +23,38 @@ class Agent(BaseModel):
     name: str
     description: str
     prompt: str
-    category: str
+    category: str | None = None
+    provider: str | None = None
+    model: str | None = None
     allow: list[str]
     exec_tools: list[ExecToolConfig] = []
     shell_config: ShellConfig | None = None
+
+    @model_validator(mode="after")
+    def _validate_routing(self) -> Agent:
+        has_category = self.category is not None
+        has_provider = self.provider is not None
+        has_model = self.model is not None
+
+        if has_category and (has_provider or has_model):
+            msg = (
+                "Agent cannot have both 'category' and"
+                " 'provider'/'model'. Use one or the other."
+            )
+            raise ValueError(msg)
+
+        if has_provider != has_model:
+            msg = (
+                "'provider' and 'model' must both be set"
+                " or both be unset"
+            )
+            raise ValueError(msg)
+
+        if not has_category and not has_provider:
+            msg = (
+                "Agent must have either 'category' or both"
+                " 'provider' and 'model'"
+            )
+            raise ValueError(msg)
+
+        return self

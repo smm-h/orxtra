@@ -79,6 +79,8 @@ def _build(
     if agents is None:
         agent = MagicMock()
         agent.category = "default"
+        agent.provider = None
+        agent.model = None
         agent.allow = ["read"]
         agent.prompt = "You are helpful."
         agents = {"helper": agent}
@@ -102,8 +104,10 @@ class TestUsesAllowNotTools:
         """An agent mock with .allow but no .tools should not raise."""
         # spec limits the mock to exactly these attributes -- accessing
         # anything else (like .tools) raises AttributeError.
-        agent = MagicMock(spec=["category", "allow", "prompt"])
+        agent = MagicMock(spec=["category", "provider", "model", "allow", "prompt"])
         agent.category = "default"
+        agent.provider = None
+        agent.model = None
         agent.allow = ["read"]
         agent.prompt = "You are helpful."
 
@@ -116,8 +120,10 @@ class TestUsesAllowNotTools:
     @pytest.mark.asyncio
     async def test_allow_list_controls_http_reconstruction(self) -> None:
         """HTTP tool is reconstructed when 'http' is in allow, not tools."""
-        agent = MagicMock(spec=["category", "allow", "prompt"])
+        agent = MagicMock(spec=["category", "provider", "model", "allow", "prompt"])
         agent.category = "default"
+        agent.provider = None
+        agent.model = None
         agent.allow = ["read", "http"]
         agent.prompt = "You are helpful."
 
@@ -175,6 +181,8 @@ class TestSystemPromptPassed:
         """transport.send receives system_prompt equal to agent_def.prompt."""
         agent = MagicMock()
         agent.category = "default"
+        agent.provider = None
+        agent.model = None
         agent.allow = ["read"]
         agent.prompt = "You are an expert code reviewer."
 
@@ -202,6 +210,8 @@ class TestGitReadOnlySubcommands:
         """git commit is rejected in consult mode."""
         agent = MagicMock()
         agent.category = "default"
+        agent.provider = None
+        agent.model = None
         agent.allow = ["read", "git"]
         agent.prompt = "You are helpful."
 
@@ -222,6 +232,8 @@ class TestGitReadOnlySubcommands:
         """Read-only subcommands like status and diff do not raise ToolError."""
         agent = MagicMock()
         agent.category = "default"
+        agent.provider = None
+        agent.model = None
         agent.allow = ["read", "git"]
         agent.prompt = "You are helpful."
 

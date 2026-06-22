@@ -42,7 +42,15 @@ class EnforcementMixin(SchedulerBase):
         agent_def = self._agents.get(task.agent)
         if agent_def is None:
             return None
+        # Explicit provider+model on agent
+        if (
+            agent_def.provider is not None
+            and agent_def.model is not None
+        ):
+            return f"{agent_def.provider}/{agent_def.model}"
         category_str = task.category or agent_def.category
+        if category_str is None:
+            return None
         return self._categories.get(category_str)
 
     def _accumulate_cost(

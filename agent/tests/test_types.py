@@ -100,6 +100,87 @@ class TestShellConfig:
         assert cfg.description == "Limited shell"
 
 
+class TestAgentRouting:
+    """Tests for the category vs provider/model validation."""
+
+    def test_category_only(self) -> None:
+        agent = Agent(
+            name="a",
+            description="d",
+            prompt="p",
+            category="fast",
+            allow=[],
+        )
+        assert agent.category == "fast"
+        assert agent.provider is None
+        assert agent.model is None
+
+    def test_provider_and_model_only(self) -> None:
+        agent = Agent(
+            name="a",
+            description="d",
+            prompt="p",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
+            allow=[],
+        )
+        assert agent.provider == "anthropic"
+        assert agent.model == "claude-sonnet-4-6"
+        assert agent.category is None
+
+    def test_both_category_and_provider_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="cannot have both"):
+            Agent(
+                name="a",
+                description="d",
+                prompt="p",
+                category="fast",
+                provider="anthropic",
+                model="claude-sonnet-4-6",
+                allow=[],
+            )
+
+    def test_category_and_provider_without_model_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="cannot have both"):
+            Agent(
+                name="a",
+                description="d",
+                prompt="p",
+                category="fast",
+                provider="anthropic",
+                allow=[],
+            )
+
+    def test_provider_without_model_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="must both be set"):
+            Agent(
+                name="a",
+                description="d",
+                prompt="p",
+                provider="anthropic",
+                allow=[],
+            )
+
+    def test_model_without_provider_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="must both be set"):
+            Agent(
+                name="a",
+                description="d",
+                prompt="p",
+                model="claude-sonnet-4-6",
+                allow=[],
+            )
+
+    def test_neither_category_nor_provider_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="must have either"):
+            Agent(
+                name="a",
+                description="d",
+                prompt="p",
+                allow=[],
+            )
+
+
 class TestAgentWithExecShell:
     def test_agent_with_exec_tools(self) -> None:
         agent = Agent(
