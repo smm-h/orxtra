@@ -4,11 +4,11 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation. Monorepo with 16 sub-projects, all layers implemented across 90 source modules and 107 test files. Foundation, orchestration, and intelligence layers are functional; production PG integration and end-to-end hardening in progress.
+Active implementation. Monorepo with 15 sub-projects, all layers implemented across 90 source modules and 107 test files. Foundation, orchestration, and intelligence layers are functional; production PG integration and end-to-end hardening in progress.
 
 ## Philosophy
 
-Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 16.
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 15.
 
 ### Structured Programming for AI Workflows
 
@@ -49,7 +49,6 @@ orxtra/
     scheduler/                  # Orchestration: task executor
 
     overseer/                   # Intelligence: persistent LLM brain
-    knowledge-module/           # Intelligence: cognee enrichment (experimental)
 
     services/                   # Interface: shared business logic
     cli/                        # Interface: strictcli CLI
@@ -64,7 +63,7 @@ Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 |---|---|---|
 | Foundation | protocols, secrets, write-safety, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + secrets + write-safety, trace -> secrets, verify -> protocols) |
 | Orchestration | scheduler | Depends on foundation |
-| Intelligence | overseer, knowledge-module | Depends on foundation (not orchestration -- shared protocols at the seam) |
+| Intelligence | overseer | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Interfaces | services, cli, mcp | Depends on orchestration + intelligence |
 
 Higher layers can depend on lower layers. Lower layers cannot depend on higher layers. The Overseer and scheduler share types via the protocols module but never import each other.
@@ -83,7 +82,6 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **Session** wraps transport with token tracking, transcript persistence, cross-restart resumption.
 - **Scheduler** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints.
 - **Overseer** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent.
-- **Knowledge-module** is an experimental cognee enrichment layer over the flat lessons table. Disabled by default. May be removed.
 - **Services** is shared business logic consumed by CLI, MCP, and the Python API.
 - **CLI** is a strictcli frontend. Agents are the primary users.
 - **MCP** is an MCP server for human interface via dashboard/AI client.
@@ -97,7 +95,7 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **ruff** with `select = ["ALL"]` and documented ignores.
 - **httpx** for all LLM API communication (no official SDKs).
 - **asyncpg** for PostgreSQL.
-- **cognee** (experimental, third-party) for semantic enrichment of the lessons table.
+
 
 ### Our tools
 

@@ -1,6 +1,6 @@
 # orxtra -- single publishable package
 # Sub-projects remain as workspace members for development but are never published separately.
-# hatch force-include maps all 16 sub-project source dirs into the wheel.
+# hatch force-include maps all 15 sub-project source dirs into the wheel.
 
 [project]
 name = "orxtra"
@@ -10,7 +10,6 @@ description = "Autonomous multi-agent AI workflows"
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg",
-    "cognee",
     "httpx",
     "jsonschema",
     "pathspec",
@@ -43,7 +42,6 @@ include = [
     "scheduler/src/",
     "overseer/src/",
     "overseer/prompts/",
-    "knowledge-module/src/",
     "services/src/",
     "cli/src/",
     "mcp/src/",
@@ -63,7 +61,6 @@ include = [
 "scheduler/src/orxtra/scheduler" = "orxtra/scheduler"
 "overseer/src/orxtra/overseer" = "orxtra/overseer"
 "overseer/prompts" = "orxtra/overseer/prompts"
-"knowledge-module/src/orxtra/knowledge_module" = "orxtra/knowledge_module"
 "services/src/orxtra/services" = "orxtra/services"
 "cli/src/orxtra/cli" = "orxtra/cli"
 "mcp/src/orxtra/mcp" = "orxtra/mcp"
@@ -82,7 +79,6 @@ members = [
     "session",
     "scheduler",
     "overseer",
-    "knowledge-module",
     "services",
     "cli",
     "mcp",
@@ -101,7 +97,6 @@ orxtra-notepad = { workspace = true }
 orxtra-session = { workspace = true }
 orxtra-scheduler = { workspace = true }
 orxtra-overseer = { workspace = true }
-orxtra-knowledge-module = { workspace = true }
 orxtra-services = { workspace = true }
 orxtra-cli = { workspace = true }
 orxtra-mcp = { workspace = true }
@@ -168,10 +163,6 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "pathspec.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "cognee.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

@@ -709,7 +709,7 @@ columns = ["inbox_item_id"]
 # ---------------------------------------------------------------------------
 
 [tables.lessons]
-comment = "Cross-run knowledge base. Primary store for learned facts; the knowledge module indexes these into cognee for semantic retrieval."
+comment = "Cross-run knowledge base. Primary store for learned facts."
 
 [tables.lessons.columns.id]
 type = "id"
