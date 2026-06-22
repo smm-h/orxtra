@@ -22,7 +22,6 @@ Every piece of work is a task with explicit boundaries, entry conditions, and ex
 | Foundation | `session/` | Session lifecycle: token tracking, transcript persistence, resumption |
 | Orchestration | `scheduler/` | Task executor: recursive task hierarchy, budgets, constraints |
 | Intelligence | `overseer/` | Persistent LLM brain: action tools, PG memory, session handoff |
-| Intelligence | `knowledge-module/` | Semantic enrichment via cognee (experimental, disabled by default) |
 | Interface | `services/` | Shared business logic for all frontends |
 | Interface | `cli/` | strictcli CLI (agents are the primary users) |
 | Interface | `mcp/` | MCP server (human interface via dashboard/AI client) |
