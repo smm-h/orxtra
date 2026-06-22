@@ -294,7 +294,7 @@ async def test_start_run_constructs_scheduler(
         call_kwargs = mock_scheduler_cls.call_args[1]
         assert call_kwargs["trace_writer"] is mock_writer
         assert call_kwargs["run_id"] == sample_run_id
-        assert call_kwargs["knowledge_dir"] == Path("/knowledge")
+        assert "knowledge_dir" not in call_kwargs
 
 
 @pytest.mark.asyncio

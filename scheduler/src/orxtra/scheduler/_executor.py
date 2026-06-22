@@ -129,9 +129,7 @@ class Scheduler(
         *,
         pool: asyncpg.Pool | None = None,
         overseer_interface: OverseerInterface | None = None,
-        knowledge_dir: Path | None = None,
         model_context_limit: int = 200_000,
-        knowledge_loader: Callable[[Path, Any, UUID], Awaitable[None]] | None = None,
         handoff_checker: Callable[[Any, int], Awaitable[bool]] | None = None,
         handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None = None,
         budget_exhaustion_policy: BudgetExhaustionPolicy = (
@@ -153,9 +151,7 @@ class Scheduler(
         self._run_id = run_id
         self._read_root = read_root
         self._overseer_interface = overseer_interface
-        self._knowledge_dir = knowledge_dir
         self._model_context_limit = model_context_limit
-        self._knowledge_loader = knowledge_loader
         self._handoff_checker = handoff_checker
         self._handoff_performer = handoff_performer
         self._budget_exhaustion_policy = budget_exhaustion_policy
@@ -363,17 +359,6 @@ class Scheduler(
         pg_listener_task, pg_listener_conn, on_notification = (
             await self._setup_pg_listener()
         )
-
-        # Load knowledge files at run start
-        if (
-            self._knowledge_dir is not None
-            and self._knowledge_loader is not None
-        ):
-            await self._knowledge_loader(
-                self._knowledge_dir,
-                self._trace_writer,
-                self._run_id,
-            )
 
         # Start services
         for svc_config in config.services:
