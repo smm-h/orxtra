@@ -339,9 +339,6 @@ class AgentExecutionMixin(SchedulerBase):
                             prompt,
                             session_id,
                             task_id,
-                            stream_deltas=bool(
-                                task.stream_deltas,
-                            ),
                         ),
                         timeout=float(task.timeout),
                     )
@@ -351,9 +348,6 @@ class AgentExecutionMixin(SchedulerBase):
                         prompt,
                         session_id,
                         task_id,
-                        stream_deltas=bool(
-                            task.stream_deltas,
-                        ),
                     )
             except TimeoutError:
                 await self._fail_attempt_timeout(
@@ -622,11 +616,9 @@ class AgentExecutionMixin(SchedulerBase):
         prompt: str,
         session_id: str,  # noqa: ARG002
         task_id: UUID,  # noqa: ARG002
-        *,
-        stream_deltas: bool = False,
     ) -> str:
         result_text = ""
-        async for event in session.send(prompt, stream_deltas=stream_deltas):
+        async for event in session.send(prompt):
             if isinstance(event, Result):
                 result_text = event.text
         return result_text
@@ -896,6 +888,21 @@ class AgentExecutionMixin(SchedulerBase):
                 preview_threshold=preview_threshold,
                 preview_lines=preview_lines,
             ))
+
+        # Custom tools: resolve remaining allow-list
+        # names from _custom_tools. Built-ins win on
+        # name collision (checked against names already
+        # in raw_tools).
+        if self._custom_tools:
+            builtin_names = {t.name for t in raw_tools}
+            for name in agent_allow:
+                if (
+                    name not in builtin_names
+                    and name in self._custom_tools
+                ):
+                    raw_tools.append(
+                        self._custom_tools[name](),
+                    )
 
         # Always add lifecycle tools
         raw_tools.extend([

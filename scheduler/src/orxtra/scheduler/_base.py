@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         TaskSpec,
         TaskState,
     )
+    from orxtra.protocols._tool import Tool
     from orxtra.scheduler._events import EventRegistry
     from orxtra.scheduler._locks import FileLockRegistry
     from orxtra.scheduler._overseer import OverseerEvent, OverseerInterface
@@ -97,6 +98,7 @@ class SchedulerBase(ABC):
     _budget_threshold_events: list[tuple[UUID, str, Decimal, Decimal]]
     _budget_exhausted_events: list[tuple[UUID, str, Decimal, Decimal]]
     _budget_blocked: bool
+    _custom_tools: dict[str, Callable[..., Tool]]
 
     # ------------------------------------------------------------------
     # Cross-mixin methods (from _executor.py)

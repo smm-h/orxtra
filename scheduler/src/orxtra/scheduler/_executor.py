@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     import asyncpg
     from orxtra.agent import Agent
     from orxtra.protocols._task import Execution
+    from orxtra.protocols._tool import Tool
     from orxtra.scheduler._overseer import (
         OverseerEvent,
         OverseerInterface,
@@ -142,6 +143,9 @@ class Scheduler(
         constraint_checkers: (
             dict[str, Callable[..., Awaitable[CheckResult]]] | None
         ) = None,
+        custom_tools: (
+            dict[str, Callable[..., Tool]] | None
+        ) = None,
     ) -> None:
         self._trace_writer = trace_writer
         self._pool = pool
@@ -160,6 +164,7 @@ class Scheduler(
         self._autonomy_level = autonomy_level
         self._secret_registry = secret_registry
         self._constraint_checkers = constraint_checkers or {}
+        self._custom_tools = custom_tools or {}
         self._active_tasks: dict[str, UUID] = {}
         self._task_states: dict[UUID, TaskState] = {}
         self._task_specs: dict[UUID, TaskSpec] = {}
