@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from orxtra.scheduler._types import WorkflowConfig
     from orxtra.secrets._registry import SecretRegistry
     from orxtra.session import Session
-    from orxtra.trace import TraceWriter
+    from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport
 
 _logger = logging.getLogger("orxtra.scheduler")
@@ -121,7 +121,7 @@ class Scheduler(
 ):
     def __init__(  # noqa: PLR0913, PLR0915
         self,
-        trace_writer: TraceWriter,
+        trace_writer: TraceWriter | StorageBackend,
         transport_registry: dict[str, Transport],
         agents: dict[str, Agent],
         categories: dict[str, str],
@@ -129,6 +129,7 @@ class Scheduler(
         read_root: Path,
         *,
         pool: asyncpg.Pool | None = None,
+        backend: StorageBackend | None = None,
         overseer_interface: OverseerInterface | None = None,
         model_context_limit: int = 200_000,
         handoff_checker: Callable[[Any, int], Awaitable[bool]] | None = None,
@@ -147,7 +148,10 @@ class Scheduler(
             dict[str, Callable[..., Tool]] | None
         ) = None,
     ) -> None:
-        self._trace_writer = trace_writer
+        # When a StorageBackend is provided, use it as the trace writer
+        # (it implements all the same write methods).
+        self._trace_writer = backend if backend is not None else trace_writer
+        self._backend = backend
         self._pool = pool
         self._transport_registry = transport_registry
         self._agents = agents
@@ -426,7 +430,18 @@ class Scheduler(
         )
 
     async def _crash_recovery(self) -> None:
-        """Three-pass idempotent crash recovery startup."""
+        """Three-pass idempotent crash recovery startup.
+
+        Acquires the run lock FIRST so that clean_orphaned does not
+        mark our own run as orphaned.
+        """
+        # When using a StorageBackend, recovery is done through the backend
+        if self._backend is not None:
+            await self._backend.acquire_run_lock(self._run_id)
+            await self._backend.reclaim_interrupted()
+            await self._backend.reevaluate_blocked()
+            await self._backend.clean_orphaned()
+            return
         if self._pool is None:
             return
         from orxtra.trace import (  # noqa: PLC0415
@@ -436,12 +451,12 @@ class Scheduler(
             reevaluate_blocked,
         )
 
-        await reclaim_interrupted(self._pool)
-        await reevaluate_blocked(self._pool)
-        await clean_orphaned(self._pool)
         await acquire_run_lock(
             self._pool, self._run_id,
         )
+        await reclaim_interrupted(self._pool)
+        await reevaluate_blocked(self._pool)
+        await clean_orphaned(self._pool)
 
     async def _setup_pg_listener(
         self,
@@ -843,7 +858,8 @@ class Scheduler(
         This makes wait-for tasks work when fire_event inserts
         an event row via the trace layer.
         """
-        original_callback = self._trace_writer._event_callback  # noqa: SLF001
+        writer = self._trace_writer
+        original_callback = getattr(writer, "_event_callback", None)
 
         async def _bridged_callback(
             event_id: UUID,
@@ -860,7 +876,8 @@ class Scheduler(
                 event_type, data,
             )
 
-        self._trace_writer._event_callback = _bridged_callback  # noqa: SLF001
+        # Both TraceWriter and InMemoryBackend have _event_callback
+        setattr(writer, "_event_callback", _bridged_callback)  # noqa: B010
 
     async def _send_overseer_event(
         self, event: OverseerEvent,
