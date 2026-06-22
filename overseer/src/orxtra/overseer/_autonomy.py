@@ -1,6 +1,6 @@
 """Autonomy types -- re-exported from protocols."""
 
-from orxt.protocols._autonomy import (
+from orxtra.protocols._autonomy import (
     AUTONOMY_RULES,
     AutonomyLevel,
     is_autonomous,

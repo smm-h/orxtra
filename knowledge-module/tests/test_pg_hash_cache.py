@@ -4,7 +4,7 @@ import hashlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from orxt.knowledge_module._freshness import ContentHashCache
+from orxtra.knowledge_module._freshness import ContentHashCache
 
 
 def _sha256(text: str) -> str:

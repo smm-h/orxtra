@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from orxt.session._factory import create_session
+from orxtra.session._factory import create_session
 
 from .conftest import MockTraceWriter, MockTransport
 

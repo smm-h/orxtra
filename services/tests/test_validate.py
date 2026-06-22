@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from orxt.services._validate import (
+from orxtra.services._validate import (
     validate_agent,
     validate_categories,
     validate_workflow,
@@ -13,7 +13,7 @@ from orxt.services._validate import (
 
 @pytest.mark.asyncio
 async def test_validate_agent_valid() -> None:
-    with patch("orxt.services._validate.load_agent") as mock_load:
+    with patch("orxtra.services._validate.load_agent") as mock_load:
         mock_load.return_value = MagicMock()
 
         result = await validate_agent(Path("/agents/coder.toml"))
@@ -24,7 +24,7 @@ async def test_validate_agent_valid() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_agent_invalid() -> None:
-    with patch("orxt.services._validate.load_agent") as mock_load:
+    with patch("orxtra.services._validate.load_agent") as mock_load:
         mock_load.side_effect = ValueError("missing required field 'name'")
 
         result = await validate_agent(Path("/agents/bad.toml"))
@@ -35,7 +35,7 @@ async def test_validate_agent_invalid() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_agent_missing() -> None:
-    with patch("orxt.services._validate.load_agent") as mock_load:
+    with patch("orxtra.services._validate.load_agent") as mock_load:
         mock_load.side_effect = FileNotFoundError("not found: /agents/gone.toml")
 
         result = await validate_agent(Path("/agents/gone.toml"))
@@ -48,8 +48,8 @@ async def test_validate_agent_missing() -> None:
 async def test_validate_workflow_valid() -> None:
     mock_config = MagicMock()
     with (
-        patch("orxt.services._validate.load_workflow") as mock_load,
-        patch("orxt.services._validate.validate_task_tree") as mock_validate,
+        patch("orxtra.services._validate.load_workflow") as mock_load,
+        patch("orxtra.services._validate.validate_task_tree") as mock_validate,
     ):
         mock_load.return_value = mock_config
         mock_validate.return_value = []
@@ -63,7 +63,7 @@ async def test_validate_workflow_valid() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_workflow_invalid() -> None:
-    with patch("orxt.services._validate.load_workflow") as mock_load:
+    with patch("orxtra.services._validate.load_workflow") as mock_load:
         mock_load.side_effect = ValueError("invalid workflow structure")
 
         result = await validate_workflow(Path("/workflows/broken.toml"))
@@ -76,8 +76,8 @@ async def test_validate_workflow_invalid() -> None:
 async def test_validate_workflow_tree_errors() -> None:
     mock_config = MagicMock()
     with (
-        patch("orxt.services._validate.load_workflow") as mock_load,
-        patch("orxt.services._validate.validate_task_tree") as mock_validate,
+        patch("orxtra.services._validate.load_workflow") as mock_load,
+        patch("orxtra.services._validate.validate_task_tree") as mock_validate,
     ):
         mock_load.return_value = mock_config
         mock_validate.return_value = ["cycle detected", "missing dependency: build"]
@@ -91,7 +91,7 @@ async def test_validate_workflow_tree_errors() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_categories_valid() -> None:
-    with patch("orxt.services._validate.load_categories") as mock_load:
+    with patch("orxtra.services._validate.load_categories") as mock_load:
         mock_load.return_value = MagicMock()
 
         result = await validate_categories(Path("/categories.toml"))
@@ -102,7 +102,7 @@ async def test_validate_categories_valid() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_categories_missing() -> None:
-    with patch("orxt.services._validate.load_categories") as mock_load:
+    with patch("orxtra.services._validate.load_categories") as mock_load:
         mock_load.side_effect = FileNotFoundError("not found: /categories.toml")
 
         result = await validate_categories(Path("/categories.toml"))
@@ -113,7 +113,7 @@ async def test_validate_categories_missing() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_categories_invalid() -> None:
-    with patch("orxt.services._validate.load_categories") as mock_load:
+    with patch("orxtra.services._validate.load_categories") as mock_load:
         mock_load.side_effect = ValueError("duplicate category: backend")
 
         result = await validate_categories(Path("/categories.toml"))

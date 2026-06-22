@@ -4,14 +4,14 @@ import json
 import time
 from typing import TYPE_CHECKING, Any, cast
 
-from orxt.protocols._tool import Tool
-from orxt.write_safety import with_transient_retry
+from orxtra.protocols._tool import Tool
+from orxtra.write_safety import with_transient_retry
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from uuid import UUID
 
-    from orxt.secrets._registry import SecretRegistry
+    from orxtra.secrets._registry import SecretRegistry
 
 FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
     "write", "edit", "delete", "move", "copy", "mkdir", "set_executable", "shell",
@@ -76,7 +76,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
         # 7. Return result.
         return result
 
-    wrapped_execute._raw_execute = getattr(tool.execute, "_raw_execute", tool.execute)  # type: ignore[attr-defined]  # noqa: SLF001  # accessing orxt internal API
+    wrapped_execute._raw_execute = getattr(tool.execute, "_raw_execute", tool.execute)  # type: ignore[attr-defined]  # noqa: SLF001  # accessing orxtra internal API
 
     return Tool(
         name=tool.name,

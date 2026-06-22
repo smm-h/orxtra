@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
-from orxt.protocols._tool import Tool, ToolError
-from orxt.secrets._registry import SecretRegistry
-from orxt.tool._pipeline import compose, wrap_tool_with_pipeline, wrap_tools_for_session
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.secrets._registry import SecretRegistry
+from orxtra.tool._pipeline import compose, wrap_tool_with_pipeline, wrap_tools_for_session
 
 # ---------------------------------------------------------------------------
 # Helpers

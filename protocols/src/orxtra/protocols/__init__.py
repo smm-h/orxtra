@@ -1,21 +1,21 @@
-from orxt.protocols._autonomy import (
+from orxtra.protocols._autonomy import (
     AutonomyLevel,
     is_autonomous,
     requires_approval,
 )
-from orxt.protocols._checks import (
+from orxtra.protocols._checks import (
     CheckAgentContext,
     CheckContext,
     CheckExecutor,
 )
-from orxt.protocols._constraints import (
+from orxtra.protocols._constraints import (
     ALWAYS_ACTIVE_CONSTRAINTS,
     EXPENSIVE_CONSTRAINTS,
     ConstraintKind,
     ConstraintTier,
 )
-from orxt.protocols._errors import ErrorCategory
-from orxt.protocols._events import (
+from orxtra.protocols._errors import ErrorCategory
+from orxtra.protocols._events import (
     BudgetExhausted,
     BudgetThresholdCrossed,
     HealthDegraded,
@@ -27,7 +27,7 @@ from orxt.protocols._events import (
     TaskFailed,
     format_event,
 )
-from orxt.protocols._execution import (
+from orxtra.protocols._execution import (
     SEVERITY_ORDER,
     AgentExecution,
     CheckIssue,
@@ -37,7 +37,7 @@ from orxt.protocols._execution import (
     ScriptExecution,
     Severity,
 )
-from orxt.protocols._task import (
+from orxtra.protocols._task import (
     AttemptSummary,
     BudgetExhaustionPolicy,
     EscalationPayload,
@@ -48,7 +48,7 @@ from orxt.protocols._task import (
     TaskState,
     WorkflowExecution,
 )
-from orxt.protocols._tool import Tool, ToolError
+from orxtra.protocols._tool import Tool, ToolError
 
 __all__ = [
     "ALWAYS_ACTIVE_CONSTRAINTS",

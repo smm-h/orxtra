@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._http_tool import make_http_tool
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._http_tool import make_http_tool
 
 
 def _mock_response(
@@ -60,7 +60,7 @@ class TestGetRequest:
             text="hello",
         )
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
         result: dict[str, Any] = json.loads(raw)
         assert result["status_code"] == 200
@@ -78,7 +78,7 @@ class TestPostRequest:
         tool = make_http_tool("allow_all")
         resp = _mock_response(text="created")
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             await tool.execute({
                 "method": "POST",
                 "url": "http://example.com/api",
@@ -97,7 +97,7 @@ class TestHostAllowlist:
         tool = make_http_tool(["example.com"])
         resp = _mock_response(text="ok")
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
         result = json.loads(raw)
         assert result["status_code"] == 200
@@ -115,7 +115,7 @@ class TestHostAllowlist:
         tool = make_http_tool("allow_all")
         resp = _mock_response(text="ok")
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             raw = await tool.execute({"method": "GET", "url": "http://anything.xyz/"})
         result = json.loads(raw)
         assert result["status_code"] == 200
@@ -133,7 +133,7 @@ class TestTimeout:
         mock.__aenter__ = AsyncMock(return_value=mock)
         mock.__aexit__ = AsyncMock(return_value=None)
         with (
-            patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock),
+            patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock),
             pytest.raises(ToolError, match="timed out"),
         ):
             await tool.execute({"method": "GET", "url": "http://example.com/"})
@@ -144,7 +144,7 @@ class TestTimeout:
         tool = make_http_tool(["example.com"], timeout_ceiling=10)
         resp = _mock_response(text="ok")
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             await tool.execute({
                 "method": "GET",
                 "url": "http://example.com/",
@@ -175,7 +175,7 @@ class TestErrorHandling:
         mock.__aenter__ = AsyncMock(return_value=mock)
         mock.__aexit__ = AsyncMock(return_value=None)
         with (
-            patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock),
+            patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock),
             pytest.raises(ToolError, match="Request failed"),
         ):
             await tool.execute({"method": "GET", "url": "http://example.com/"})
@@ -191,7 +191,7 @@ class TestPreview:
         tool = make_http_tool("allow_all", preview_threshold=10, preview_lines=3)
         resp = _mock_response(text=full_body)
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
         result = json.loads(raw)
         assert result["body"] != full_body
@@ -207,7 +207,7 @@ class TestConsultMode:
         tool = make_http_tool("allow_all", consult_mode=True)
         resp = _mock_response(text="ok")
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
         result = json.loads(raw)
         assert result["status_code"] == 200
@@ -232,7 +232,7 @@ class TestResponseHeaders:
             text="ok",
         )
         mock = _mock_client(resp)
-        with patch("orxt.tool._http_tool.httpx.AsyncClient", return_value=mock):
+        with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
             raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
         result = json.loads(raw)
         assert result["headers"]["x-custom"] == "foobar"

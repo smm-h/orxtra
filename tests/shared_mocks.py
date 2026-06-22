@@ -4,8 +4,8 @@ import re
 from typing import TYPE_CHECKING, Any
 
 import uuid6
-from orxt.protocols._tool import Tool, ToolError
-from orxt.transport import Continuation, Event, Result, StepFinish, ToolUse
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.transport import Continuation, Event, Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     import uuid

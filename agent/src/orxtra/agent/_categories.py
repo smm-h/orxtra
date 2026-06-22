@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxt.agent._types import Agent
+    from orxtra.agent._types import Agent
 
 
 def load_categories(path: Path) -> dict[str, str]:

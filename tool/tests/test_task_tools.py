@@ -5,8 +5,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._task_tools import (
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._task_tools import (
     make_create_task_tool,
     make_create_wait_for_tool,
     make_create_workflow_tool,

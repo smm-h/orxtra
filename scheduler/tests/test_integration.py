@@ -19,16 +19,16 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import uuid6
-from orxt.agent import Agent
-from orxt.notepad import NotepadEntry, format_notepad
-from orxt.protocols._errors import ErrorCategory
-from orxt.protocols._execution import CheckResult, ScriptExecution
-from orxt.protocols._task import TaskSpec, TaskState
-from orxt.protocols._tool import ToolError
-from orxt.protocols._tools import CreateTaskParams
-from orxt.scheduler._executor import Scheduler, classify_error
-from orxt.scheduler._types import WorkflowConfig
-from orxt.transport import Result, StepFinish, ToolUse
+from orxtra.agent import Agent
+from orxtra.notepad import NotepadEntry, format_notepad
+from orxtra.protocols._errors import ErrorCategory
+from orxtra.protocols._execution import CheckResult, ScriptExecution
+from orxtra.protocols._task import TaskSpec, TaskState
+from orxtra.protocols._tool import ToolError
+from orxtra.protocols._tools import CreateTaskParams
+from orxtra.scheduler._executor import Scheduler, classify_error
+from orxtra.scheduler._types import WorkflowConfig
+from orxtra.transport import Result, StepFinish, ToolUse
 
 from tests.conftest import (
     MockTraceWriter,
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxt.transport import Event
+    from orxtra.transport import Event
 
 
 # -- helpers --
@@ -694,7 +694,7 @@ class TestMutationTracking:
                 "asyncio.create_subprocess_exec",
                 return_value=mock_proc,
             ),
-            caplog.at_level(logging.WARNING, logger="orxt.scheduler"),
+            caplog.at_level(logging.WARNING, logger="orxtra.scheduler"),
         ):
             await scheduler._auto_commit(  # noqa: SLF001
                 "sess-b", "msg",
@@ -723,7 +723,7 @@ class TestMutationTracking:
                 "asyncio.create_subprocess_exec",
                 return_value=mock_proc,
             ),
-            caplog.at_level(logging.WARNING, logger="orxt.scheduler"),
+            caplog.at_level(logging.WARNING, logger="orxtra.scheduler"),
         ):
             await scheduler._auto_commit(  # noqa: SLF001
                 "sess-c", "msg",

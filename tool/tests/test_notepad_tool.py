@@ -3,8 +3,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._notepad_tool import make_notepad_tool
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._notepad_tool import make_notepad_tool
 
 
 class TestMakeNotepadTool:

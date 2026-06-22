@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
-from orxt.trace import (
+from orxtra.trace import (
     InboxItem,
     NotepadEntry,
     RunReport,

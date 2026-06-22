@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orxt.knowledge_module._types import (
+from orxtra.knowledge_module._types import (
     Convention,
     DomainConcept,
     FailurePattern,

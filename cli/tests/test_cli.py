@@ -6,21 +6,21 @@ from unittest.mock import MagicMock
 # Mock heavy dependencies before importing _cli.
 _MOCK_MODS = [
     "asyncpg",
-    "orxt.services",
-    "orxt.services._run",
-    "orxt.services._inbox",
-    "orxt.services._trace",
-    "orxt.services._events",
-    "orxt.services._validate",
-    "orxt.services._config",
-    "orxt.trace",
-    "orxt.trace._writer",
+    "orxtra.services",
+    "orxtra.services._run",
+    "orxtra.services._inbox",
+    "orxtra.services._trace",
+    "orxtra.services._events",
+    "orxtra.services._validate",
+    "orxtra.services._config",
+    "orxtra.trace",
+    "orxtra.trace._writer",
 ]
 for _mod in _MOCK_MODS:
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
 
-from orxt.cli._cli import app  # noqa: E402
+from orxtra.cli._cli import app  # noqa: E402
 
 
 def _test(*args: str) -> tuple[str, str, int]:
@@ -61,7 +61,7 @@ def test_quiet_flag_exists() -> None:
 def test_no_command_shows_help() -> None:
     stdout, _, code = _test()
     assert code == 0
-    assert "orxt" in stdout.lower()
+    assert "orxtra" in stdout.lower()
 
 
 # -- Structure: all groups exist --------------------------------------------------

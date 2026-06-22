@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.services._run import (
+from orxtra.services._run import (
     RunConfig,
     abort_run,
     get_run,
@@ -21,17 +21,17 @@ from pydantic import ValidationError
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxt.trace import RunReport, RunSummary
+    from orxtra.trace import RunReport, RunSummary
 
 
 @pytest.mark.asyncio
 async def test_start_run_creates_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer = AsyncMock()
         mock_writer.create_run = AsyncMock(return_value=sample_run_id)
@@ -85,11 +85,11 @@ async def test_start_run_from_file(
         'api_key = "test"\n'
     )
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer = AsyncMock()
         mock_writer.create_run = AsyncMock(return_value=sample_run_id)
@@ -121,7 +121,7 @@ async def test_get_run_delegates(
     mock_pool: AsyncMock, sample_run_report: RunReport
 ) -> None:
     with patch(
-        "orxt.services._run.read_run_report", new_callable=AsyncMock
+        "orxtra.services._run.read_run_report", new_callable=AsyncMock
     ) as mock_read:
         mock_read.return_value = sample_run_report
 
@@ -134,7 +134,7 @@ async def test_get_run_delegates(
 @pytest.mark.asyncio
 async def test_get_run_not_found(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
     with patch(
-        "orxt.services._run.read_run_report", new_callable=AsyncMock
+        "orxtra.services._run.read_run_report", new_callable=AsyncMock
     ) as mock_read:
         mock_read.return_value = None
 
@@ -147,7 +147,7 @@ async def test_get_run_not_found(mock_pool: AsyncMock, sample_run_id: UUID) -> N
 async def test_list_runs_delegates(
     mock_pool: AsyncMock, sample_run_summary: RunSummary
 ) -> None:
-    with patch("orxt.services._run._list_runs", new_callable=AsyncMock) as mock_list:
+    with patch("orxtra.services._run._list_runs", new_callable=AsyncMock) as mock_list:
         mock_list.return_value = [sample_run_summary]
 
         result = await list_runs(mock_pool)
@@ -158,7 +158,7 @@ async def test_list_runs_delegates(
 
 @pytest.mark.asyncio
 async def test_abort_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
-    with patch("orxt.services._run.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls:
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
@@ -169,7 +169,7 @@ async def test_abort_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
 
 @pytest.mark.asyncio
 async def test_pause_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
-    with patch("orxt.services._run.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls:
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
@@ -180,7 +180,7 @@ async def test_pause_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
 
 @pytest.mark.asyncio
 async def test_resume_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
-    with patch("orxt.services._run.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls:
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
@@ -274,11 +274,11 @@ async def test_start_run_constructs_scheduler(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -302,11 +302,11 @@ async def test_start_run_with_transport_registry(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -329,11 +329,11 @@ async def test_start_run_loads_agents(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -355,11 +355,11 @@ async def test_start_run_loads_categories(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -381,11 +381,11 @@ async def test_start_run_loads_workflow(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -406,11 +406,11 @@ async def test_start_run_transitions_to_running(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -432,11 +432,11 @@ async def test_start_run_transitions_to_completed(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -458,11 +458,11 @@ async def test_start_run_transitions_to_failed_on_error(
     mock_pool: AsyncMock, sample_run_id: UUID,
 ) -> None:
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer
@@ -501,11 +501,11 @@ async def test_start_run_from_file_with_workflow_path(
         'api_key = "test"\n'
     )
     with (
-        patch("orxt.services._run.TraceWriter") as mock_writer_cls,
-        patch("orxt.services._run.load_agents") as mock_load_agents,
-        patch("orxt.services._run.load_categories") as mock_load_cats,
-        patch("orxt.services._run.load_workflow") as mock_load_wf,
-        patch("orxt.services._run.Scheduler") as mock_scheduler_cls,
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
     ):
         mock_writer, mock_sched = _make_mocks(sample_run_id)
         mock_writer_cls.return_value = mock_writer

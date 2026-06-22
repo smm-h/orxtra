@@ -1,4 +1,4 @@
-"""HTTP tool constructor for the orxt tool module."""
+"""HTTP tool constructor for the orxtra tool module."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ import urllib.parse
 from typing import Any
 
 import httpx
-from orxt.protocols._tool import Tool, ToolError
-from orxt.tool._preview import check_and_preview
-from orxt.tool._validation import validate_args
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._preview import check_and_preview
+from orxtra.tool._validation import validate_args
 
 
 def make_http_tool(

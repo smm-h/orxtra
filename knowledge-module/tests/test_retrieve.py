@@ -4,7 +4,7 @@ import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.knowledge_module._types import KnowledgeConfig, KnowledgeResult
+from orxtra.knowledge_module._types import KnowledgeConfig, KnowledgeResult
 
 
 def _make_config() -> KnowledgeConfig:
@@ -29,7 +29,7 @@ def mock_cognee() -> MagicMock:
 class TestRetrieveKnowledge:
     @pytest.mark.asyncio
     async def test_none_config_returns_empty(self) -> None:
-        from orxt.knowledge_module._retrieve import retrieve_knowledge  # noqa: PLC0415
+        from orxtra.knowledge_module._retrieve import retrieve_knowledge  # noqa: PLC0415
 
         result = await retrieve_knowledge(config=None, query="test")
         assert result == []
@@ -43,7 +43,7 @@ class TestRetrieveKnowledge:
             ]
         )
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             result = await _retrieve.retrieve_knowledge(
                 config=_make_config(), query="test query",
@@ -57,7 +57,7 @@ class TestRetrieveKnowledge:
     async def test_no_results_returns_empty(self, mock_cognee: MagicMock) -> None:
         mock_cognee.search = AsyncMock(return_value=[])
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             result = await _retrieve.retrieve_knowledge(
                 config=_make_config(), query="nothing",
@@ -68,7 +68,7 @@ class TestRetrieveKnowledge:
     async def test_tags_param_accepted(self, mock_cognee: MagicMock) -> None:
         mock_cognee.search = AsyncMock(return_value=[])
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             result = await _retrieve.retrieve_knowledge(
                 config=_make_config(), query="test", tags=["error-handling"],
@@ -84,7 +84,7 @@ class TestRetrieveKnowledge:
             ]
         )
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             result = await _retrieve.retrieve_knowledge(
                 config=_make_config(), query="test", max_results=3,
@@ -95,7 +95,7 @@ class TestRetrieveKnowledge:
     async def test_cognee_error_propagated(self, mock_cognee: MagicMock) -> None:
         mock_cognee.search = AsyncMock(side_effect=RuntimeError("cognee down"))
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             with pytest.raises(RuntimeError, match="cognee down"):
                 await _retrieve.retrieve_knowledge(

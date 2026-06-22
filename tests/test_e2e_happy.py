@@ -1,4 +1,4 @@
-"""Happy-path end-to-end integration tests for the orxt system.
+"""Happy-path end-to-end integration tests for the orxtra system.
 
 Tests exercise the full workflow execution pipeline: workflow config
 -> scheduler -> transport (mocked) -> lifecycle tools -> state
@@ -13,9 +13,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import uuid6
-from orxt.protocols._execution import CheckResult, ScriptExecution
-from orxt.protocols._task import TaskResult, TaskSpec, TaskState
-from orxt.scheduler._types import WorkflowConfig
+from orxtra.protocols._execution import CheckResult, ScriptExecution
+from orxtra.protocols._task import TaskResult, TaskSpec, TaskState
+from orxtra.scheduler._types import WorkflowConfig
 
 from tests.conftest import (
     AgentTurn,
@@ -67,7 +67,7 @@ def _cleanup_modules(*module_names: str) -> None:
 def _patch_auto_commit() -> Any:  # noqa: ANN401
     """Patch _auto_commit to avoid subprocess calls in tests."""
     return patch(
-        "orxt.scheduler._executor.Scheduler._auto_commit",
+        "orxtra.scheduler._executor.Scheduler._auto_commit",
         new_callable=AsyncMock,
     )
 

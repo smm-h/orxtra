@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 import respx
-from orxt.protocols import Tool, ToolError
-from orxt.transport._events import (
+from orxtra.protocols import Tool, ToolError
+from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,
     Error,
@@ -20,8 +20,8 @@ from orxt.transport._events import (
     ToolUse,
     Usage,
 )
-from orxt.transport._provider import RetryPolicy
-from orxt.transport._transport import Transport
+from orxtra.transport._provider import RetryPolicy
+from orxtra.transport._transport import Transport
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable

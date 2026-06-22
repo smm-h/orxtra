@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
-from orxt.trace import clean_orphaned, reclaim_interrupted, reevaluate_blocked
+from orxtra.trace import clean_orphaned, reclaim_interrupted, reevaluate_blocked
 
 if TYPE_CHECKING:
     from .conftest import MockPool

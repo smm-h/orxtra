@@ -1,13 +1,13 @@
 ---
-title: orxt
-description: Documentation for orxt
+title: orxtra
+description: Documentation for orxtra
 date: 2026-06-16
 ---
 
-# orxt
+# orxtra
 
-Welcome to the orxt documentation.
+Welcome to the orxtra documentation.
 
 ## API Reference
 
-:-: ref path="orxt" lang="python"
+:-: ref path="orxtra" lang="python"

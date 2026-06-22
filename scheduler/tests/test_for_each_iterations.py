@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxt.protocols._task import TaskSpec
+from orxtra.protocols._task import TaskSpec
 
 if TYPE_CHECKING:
-    from orxt.scheduler._executor import Scheduler
+    from orxtra.scheduler._executor import Scheduler
 
     from tests.conftest import MockTraceWriter
 

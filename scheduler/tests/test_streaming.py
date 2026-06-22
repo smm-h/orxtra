@@ -6,11 +6,11 @@ import re
 from typing import TYPE_CHECKING
 
 import uuid6
-from orxt.agent import Agent
-from orxt.protocols import TaskSpec, TaskState
-from orxt.protocols._tool import Tool, ToolError
-from orxt.scheduler._executor import Scheduler
-from orxt.transport import Result, StepFinish, StreamDelta, ToolUse
+from orxtra.agent import Agent
+from orxtra.protocols import TaskSpec, TaskState
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.scheduler._executor import Scheduler
+from orxtra.transport import Result, StepFinish, StreamDelta, ToolUse
 
 from tests.conftest import (
     MockTraceWriter,
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxt.transport import Event
+    from orxtra.transport import Event
 
 
 class StreamingTransport:

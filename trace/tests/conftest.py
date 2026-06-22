@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Self
 
 import pytest
-from orxt.trace import TraceWriter
+from orxtra.trace import TraceWriter
 
 if TYPE_CHECKING:
     from collections.abc import ItemsView, KeysView, ValuesView

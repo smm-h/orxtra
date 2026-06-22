@@ -4,9 +4,9 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from orxt.protocols._execution import AgentExecution, ScriptExecution, Severity
-from orxt.protocols._task import Execution, TaskSpec
-from orxt.scheduler._types import EscalationPolicy, ServiceConfig, WorkflowConfig
+from orxtra.protocols._execution import AgentExecution, ScriptExecution, Severity
+from orxtra.protocols._task import Execution, TaskSpec
+from orxtra.scheduler._types import EscalationPolicy, ServiceConfig, WorkflowConfig
 
 
 def _parse_postchecks(raw: dict[str, Any]) -> list[Execution]:

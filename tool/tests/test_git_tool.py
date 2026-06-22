@@ -5,8 +5,8 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._git_tool import make_git_tool
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._git_tool import make_git_tool
 
 
 def _mock_process(
@@ -60,7 +60,7 @@ class TestSubcommandValidation:
     async def test_allowed_subcommand_proceeds(self) -> None:
         tool = make_git_tool(_ROOT, ["status"])
         proc = _mock_process(stdout="M file.py")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -88,7 +88,7 @@ class TestStatusSubcommand:
     async def test_runs_git_status_porcelain(self) -> None:
         tool = make_git_tool(_ROOT, ["status"])
         proc = _mock_process(stdout="M src/main.py\n?? new.txt")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -108,7 +108,7 @@ class TestStatusSubcommand:
     async def test_empty_status_returns_no_output(self) -> None:
         tool = make_git_tool(_ROOT, ["status"])
         proc = _mock_process(stdout="")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -124,7 +124,7 @@ class TestDiffSubcommand:
     async def test_runs_git_diff(self) -> None:
         tool = make_git_tool(_ROOT, ["diff"])
         proc = _mock_process(stdout="diff --git a/f.py b/f.py")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -143,7 +143,7 @@ class TestDiffSubcommand:
     async def test_diff_with_args(self) -> None:
         tool = make_git_tool(_ROOT, ["diff"])
         proc = _mock_process(stdout="changed content")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -170,7 +170,7 @@ class TestLogSubcommand:
     async def test_default_log_uses_oneline_20(self) -> None:
         tool = make_git_tool(_ROOT, ["log"])
         proc = _mock_process(stdout="abc1234 Initial commit")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -191,7 +191,7 @@ class TestLogSubcommand:
     async def test_log_with_custom_args_overrides_defaults(self) -> None:
         tool = make_git_tool(_ROOT, ["log"])
         proc = _mock_process(stdout="full log output")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -218,7 +218,7 @@ class TestShowSubcommand:
     async def test_runs_git_show_with_args(self) -> None:
         tool = make_git_tool(_ROOT, ["show"])
         proc = _mock_process(stdout="commit abc\nAuthor: test")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -244,7 +244,7 @@ class TestBlameSubcommand:
     async def test_runs_git_blame_with_args(self) -> None:
         tool = make_git_tool(_ROOT, ["blame"])
         proc = _mock_process(stdout="abc1234 (author 2024-01-01) line")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -270,7 +270,7 @@ class TestBranchesSubcommand:
     async def test_runs_git_branch_all(self) -> None:
         tool = make_git_tool(_ROOT, ["branches"])
         proc = _mock_process(stdout="* main\n  feature/x")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -294,7 +294,7 @@ class TestChangedFilesSubcommand:
     async def test_runs_git_diff_name_only_head(self) -> None:
         tool = make_git_tool(_ROOT, ["changed_files"])
         proc = _mock_process(stdout="file1.py\nfile2.py")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -319,7 +319,7 @@ class TestCommitSubcommand:
     async def test_valid_commit_calls_safegit(self) -> None:
         tool = make_git_tool(_ROOT, ["commit"])
         proc = _mock_process(stdout="[main abc1234] Fix bug")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -347,7 +347,7 @@ class TestCommitSubcommand:
     async def test_commit_with_multiple_files(self) -> None:
         tool = make_git_tool(_ROOT, ["commit"])
         proc = _mock_process(stdout="committed")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -381,7 +381,7 @@ class TestCommitSubcommand:
             run_context={"Session-Id": "abc123", "Task-Id": "t42"},
         )
         proc = _mock_process(stdout="committed with trailers")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -431,7 +431,7 @@ class TestCommitSubcommand:
     async def test_commit_nonzero_exit_raises_tool_error(self) -> None:
         tool = make_git_tool(_ROOT, ["commit"])
         proc = _mock_process(stderr="nothing to commit", returncode=1)
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -457,7 +457,7 @@ class TestErrorHandling:
         )
         proc.kill = MagicMock()
         proc.wait = AsyncMock()
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = TimeoutError
@@ -478,7 +478,7 @@ class TestErrorHandling:
     async def test_readonly_nonzero_exit_returns_stderr(self) -> None:
         tool = make_git_tool(_ROOT, ["diff"])
         proc = _mock_process(stderr="fatal: bad revision", returncode=128)
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -495,7 +495,7 @@ class TestErrorHandling:
     ) -> None:
         tool = make_git_tool(_ROOT, ["status"])
         proc = _mock_process(stderr="", returncode=1)
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
@@ -508,7 +508,7 @@ class TestErrorHandling:
         custom_root = Path("/custom/project")
         tool = make_git_tool(custom_root, ["status"])
         proc = _mock_process(stdout="clean")
-        with patch("orxt.tool._git_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._git_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError

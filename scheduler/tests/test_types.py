@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxt.scheduler._types import (
+from orxtra.scheduler._types import (
     AgentExecution,
     AttemptSummary,
     EscalationPayload,

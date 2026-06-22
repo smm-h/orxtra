@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from orxt.notepad import NotepadEntry, format_notepad
+from orxtra.notepad import NotepadEntry, format_notepad
 
 RUN_ID = UUID("01234567-89ab-cdef-0123-456789abcdef")
 NOW = datetime(2025, 6, 1, 12, 0, 0, tzinfo=UTC)

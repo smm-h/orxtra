@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 
-from orxt.protocols._execution import AgentExecution, CheckResult, ScriptExecution
+from orxtra.protocols._execution import AgentExecution, CheckResult, ScriptExecution
 from pydantic import BaseModel, ConfigDict
 
 type Execution = "ScriptExecution | AgentExecution | WorkflowExecution"

@@ -9,8 +9,8 @@ from uuid import UUID
 
 import asyncpg
 import strictcli
-from orxt.cli._formatters import format_output
-from orxt.services import (
+from orxtra.cli._formatters import format_output
+from orxtra.services import (
     abort_run,
     dump_config,
     fire_event,
@@ -34,7 +34,7 @@ from orxt.services import (
     validate_categories,
     validate_workflow,
 )
-from orxt.trace import TraceWriter
+from orxtra.trace import TraceWriter
 
 # -- Helpers --
 
@@ -63,7 +63,7 @@ def _print(data: Any, fmt: str) -> None:  # noqa: ANN401
 # -- App --
 
 app = strictcli.App(
-    name="orxt",
+    name="orxtra",
     help="Autonomous multi-agent AI workflows.",
     flags=[
         strictcli.Flag(

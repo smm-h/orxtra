@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import pytest
-from orxt.protocols._tool import Tool, ToolError
-from orxt.tool._consult_tool import CONSULT_STRIP_TOOLS
-from orxt.tool._pipeline import FILE_MUTATION_TOOLS, wrap_tools_for_session
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS
+from orxtra.tool._pipeline import FILE_MUTATION_TOOLS, wrap_tools_for_session
 
 
 async def _noop(args: dict[str, object]) -> str:

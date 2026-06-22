@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from orxt.knowledge_module._cognee_import import require_cognee
-from orxt.knowledge_module._config import configure_cognee
-from orxt.knowledge_module._types import KnowledgeConfig, KnowledgeResult
+from orxtra.knowledge_module._cognee_import import require_cognee
+from orxtra.knowledge_module._config import configure_cognee
+from orxtra.knowledge_module._types import KnowledgeConfig, KnowledgeResult
 
 
 async def retrieve_knowledge(

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
-from orxt.notepad import NotepadEntry, read_notepad
+from orxtra.notepad import NotepadEntry, read_notepad
 
 if TYPE_CHECKING:
     from .conftest import MockPool

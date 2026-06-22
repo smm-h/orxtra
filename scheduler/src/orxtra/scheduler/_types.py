@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from orxt.protocols._execution import AgentExecution, ScriptExecution
-from orxt.protocols._task import (
+from orxtra.protocols._execution import AgentExecution, ScriptExecution
+from orxtra.protocols._task import (
     AttemptSummary,
     EscalationPayload,
     Execution,

@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxt.protocols._task import TaskSpec, TaskState
+from orxtra.protocols._task import TaskSpec, TaskState
 
 if TYPE_CHECKING:
     import uuid
 
-    from orxt.scheduler._executor import Scheduler
+    from orxtra.scheduler._executor import Scheduler
 
     from tests.conftest import MockTraceWriter
 

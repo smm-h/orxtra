@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxt.protocols._task import TaskSpec
-from orxt.scheduler._executor import Scheduler
+from orxtra.protocols._task import TaskSpec
+from orxtra.scheduler._executor import Scheduler
 
 from tests.conftest import (
     MockTraceWriter,
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
-    from orxt.scheduler._overseer import OverseerEvent
+    from orxtra.scheduler._overseer import OverseerEvent
 
 
 class MockOverseerInterface:

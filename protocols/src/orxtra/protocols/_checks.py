@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Protocol
 if TYPE_CHECKING:
     import uuid
 
-    from orxt.protocols._execution import CheckResult
-    from orxt.protocols._task import Execution
+    from orxtra.protocols._execution import CheckResult
+    from orxtra.protocols._task import Execution
 
 
 @dataclass(frozen=True)

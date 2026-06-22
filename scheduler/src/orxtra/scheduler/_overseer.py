@@ -5,7 +5,7 @@ import logging
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Protocol
 
-from orxt.protocols._events import (
+from orxtra.protocols._events import (
     BudgetExhausted,
     BudgetThresholdCrossed,
     HealthDegraded,
@@ -21,13 +21,13 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from uuid import UUID
 
-    from orxt.overseer._health import HealthMonitor
-    from orxt.overseer._overseer import Overseer
-    from orxt.protocols._autonomy import AutonomyLevel
-    from orxt.protocols._tool import Tool
-    from orxt.session import Session
+    from orxtra.overseer._health import HealthMonitor
+    from orxtra.overseer._overseer import Overseer
+    from orxtra.protocols._autonomy import AutonomyLevel
+    from orxtra.protocols._tool import Tool
+    from orxtra.session import Session
 
-_logger = logging.getLogger("orxt.scheduler")
+_logger = logging.getLogger("orxtra.scheduler")
 
 type OverseerEvent = (
     RunStarted
@@ -208,7 +208,7 @@ class OverseerAdapter:
         proportionality_threshold: float | None = None,
     ) -> None:
         if autonomy_level is None:
-            from orxt.protocols._autonomy import AutonomyLevel  # noqa: PLC0415
+            from orxtra.protocols._autonomy import AutonomyLevel  # noqa: PLC0415
             autonomy_level = AutonomyLevel.MAX
         self._overseer = overseer
         self._health_monitor = health_monitor
@@ -251,8 +251,8 @@ class OverseerAdapter:
 
     def _gate_tool(self, tool: Tool) -> Tool:
         """Wrap a single tool with autonomy gating."""
-        from orxt.protocols._autonomy import is_autonomous  # noqa: PLC0415
-        from orxt.protocols._tool import Tool as ToolCls  # noqa: PLC0415
+        from orxtra.protocols._autonomy import is_autonomous  # noqa: PLC0415
+        from orxtra.protocols._tool import Tool as ToolCls  # noqa: PLC0415
 
         action_type = TOOL_ACTION_TYPES.get(
             tool.name, "scope_change",
@@ -291,8 +291,8 @@ class OverseerAdapter:
         # Capture tool calls by iterating the session
         # stream directly instead of handle_event, so we
         # can inspect tool use events.
-        from orxt.protocols import format_event  # noqa: PLC0415
-        from orxt.transport import ToolUse  # noqa: PLC0415
+        from orxtra.protocols import format_event  # noqa: PLC0415
+        from orxtra.transport import ToolUse  # noqa: PLC0415
 
         message = format_event(event)
         tool_calls: list[dict[str, Any]] = []
@@ -315,7 +315,7 @@ class OverseerAdapter:
     ) -> None:
         """Send a correction message to the Overseer
         session."""
-        from orxt.transport import ToolUse  # noqa: PLC0415
+        from orxtra.transport import ToolUse  # noqa: PLC0415
 
         tool_calls: list[dict[str, Any]] = []
         async for ev in self._overseer.session.send(
@@ -431,9 +431,9 @@ class OverseerAdapter:
 
         # Try to construct a TaskSpec and validate
         try:
-            from orxt.protocols._task import TaskSpec  # noqa: PLC0415
-            from orxt.scheduler._types import WorkflowConfig  # noqa: PLC0415
-            from orxt.scheduler._validator import validate_task_tree  # noqa: PLC0415
+            from orxtra.protocols._task import TaskSpec  # noqa: PLC0415
+            from orxtra.scheduler._types import WorkflowConfig  # noqa: PLC0415
+            from orxtra.scheduler._validator import validate_task_tree  # noqa: PLC0415
 
             task = TaskSpec(**args)
             config = WorkflowConfig(
@@ -616,7 +616,7 @@ class OverseerAdapter:
         The Overseer can read files, consult, etc.
         Returns the refined context text.
         """
-        from orxt.transport import Result  # noqa: PLC0415
+        from orxtra.transport import Result  # noqa: PLC0415
 
         message = (
             f"Refine this agent context for task"

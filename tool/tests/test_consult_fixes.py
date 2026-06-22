@@ -16,8 +16,8 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
-from orxt.protocols._tool import Tool, ToolError
-from orxt.tool._consult_tool import make_consult_tool
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._consult_tool import make_consult_tool
 
 _RUN_ID = UUID("12345678-1234-1234-1234-123456789abc")
 _READ_ROOT = Path("/project")

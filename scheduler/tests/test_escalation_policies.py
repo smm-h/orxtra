@@ -5,12 +5,12 @@ from uuid import UUID
 
 import pytest
 import uuid6
-from orxt.agent import Agent
-from orxt.protocols._task import TaskSpec, TaskState
-from orxt.protocols._tools import CreateWorkflowParams
-from orxt.scheduler._executor import Scheduler
-from orxt.scheduler._services import ServiceInstance
-from orxt.scheduler._types import (
+from orxtra.agent import Agent
+from orxtra.protocols._task import TaskSpec, TaskState
+from orxtra.protocols._tools import CreateWorkflowParams
+from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._services import ServiceInstance
+from orxtra.scheduler._types import (
     EscalationPolicy,
     ServiceConfig,
     WorkflowConfig,
@@ -25,7 +25,7 @@ from tests.conftest import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxt.scheduler._overseer import OverseerEvent
+    from orxtra.scheduler._overseer import OverseerEvent
 
 
 # -- Helpers ---------------------------------------------------------
@@ -363,15 +363,15 @@ async def test_service_start_stop_lifecycle(
         return True
 
     monkeypatch.setattr(
-        "orxt.scheduler._executor.start_service",
+        "orxtra.scheduler._executor.start_service",
         mock_start,
     )
     monkeypatch.setattr(
-        "orxt.scheduler._executor.stop_service",
+        "orxtra.scheduler._executor.stop_service",
         mock_stop,
     )
     monkeypatch.setattr(
-        "orxt.scheduler._executor.check_health",
+        "orxtra.scheduler._executor.check_health",
         mock_check,
     )
 
@@ -430,15 +430,15 @@ async def test_service_stopped_on_failure(
         return True
 
     monkeypatch.setattr(
-        "orxt.scheduler._executor.start_service",
+        "orxtra.scheduler._executor.start_service",
         mock_start,
     )
     monkeypatch.setattr(
-        "orxt.scheduler._executor.stop_service",
+        "orxtra.scheduler._executor.stop_service",
         mock_stop,
     )
     monkeypatch.setattr(
-        "orxt.scheduler._executor.check_health",
+        "orxtra.scheduler._executor.check_health",
         mock_check,
     )
 

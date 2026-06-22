@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from orxt.agent import resolve_includes, resolve_prompt
+from orxtra.agent import resolve_includes, resolve_prompt
 
 
 class TestResolveIncludes:

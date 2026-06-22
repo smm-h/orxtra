@@ -5,18 +5,18 @@ import types
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import TaskContext, TaskResult, TaskSpec
-from orxt.scheduler._graph import (
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import TaskContext, TaskResult, TaskSpec
+from orxtra.scheduler._graph import (
     CycleError,
     build_graph,
     find_parallel_groups,
     topological_sort,
 )
-from orxt.scheduler._types import WorkflowConfig
+from orxtra.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:
-    from orxt.scheduler._executor import Scheduler
+    from orxtra.scheduler._executor import Scheduler
 
     from tests.conftest import MockTraceWriter
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
-from orxt.transport._provider import RetryPolicy
+from orxtra.transport._provider import RetryPolicy
 
 
 class TestRetryPolicy:

@@ -6,15 +6,15 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxt.protocols._checks import CheckContext
-from orxt.protocols._execution import (
+from orxtra.protocols._checks import CheckContext
+from orxtra.protocols._execution import (
     AgentExecution,
     ScriptExecution,
     Severity,
 )
-from orxt.protocols._task import TaskSpec, WorkflowExecution
-from orxt.scheduler._executor import Scheduler
-from orxt.transport import Result, StepFinish
+from orxtra.protocols._task import TaskSpec, WorkflowExecution
+from orxtra.scheduler._executor import Scheduler
+from orxtra.transport import Result, StepFinish
 
 from tests.conftest import (
     MockTraceWriter,
@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxt.protocols._tool import Tool
-    from orxt.transport import Event
+    from orxtra.protocols._tool import Tool
+    from orxtra.transport import Event
 
 
 class TestRunConsult:
@@ -157,7 +157,7 @@ class TestRunConsult:
 
     async def test_missing_category_raises(self, tmp_path: Path) -> None:
         """run_consult raises ValueError when the agent's category is missing."""
-        from orxt.agent import Agent  # noqa: PLC0415
+        from orxtra.agent import Agent  # noqa: PLC0415
 
         agent = Agent(
             name="special-agent",
@@ -327,7 +327,7 @@ class TestCheckExecutorIntegration:
         self, scheduler: Scheduler,
     ) -> None:
         """AgentExecution postcheck with invalid JSON returns passed=False."""
-        from orxt.verify._execution import _run_agent  # noqa: PLC0415
+        from orxtra.verify._execution import _run_agent  # noqa: PLC0415
 
         agent_exec = AgentExecution(
             agent="test-agent",
@@ -356,7 +356,7 @@ class TestCheckExecutorIntegration:
 
     async def test_agent_execution_valid_verdict(self, tmp_path: Path) -> None:
         """AgentExecution postcheck with valid verdict JSON returns passed=True."""
-        from orxt.verify._execution import _run_agent  # noqa: PLC0415
+        from orxtra.verify._execution import _run_agent  # noqa: PLC0415
 
         verdict_json = json.dumps({
             "verdict": "pass",

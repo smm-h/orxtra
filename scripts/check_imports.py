@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Check that orxt sub-project imports respect layer boundaries.
+"""Check that orxtra sub-project imports respect layer boundaries.
 
-Walks all .py files under */src/orxt/*/ and verifies that no module
+Walks all .py files under */src/orxtra/*/ and verifies that no module
 imports from a higher layer at runtime (TYPE_CHECKING imports are OK).
 """
 
@@ -68,18 +68,18 @@ _MIN_MODULE_PARTS = 2
 
 
 def _extract_target_module(node: ast.Import | ast.ImportFrom) -> str | None:
-    """Extract the orxt sub-module name from an import node.
+    """Extract the orxtra sub-module name from an import node.
 
-    Returns None if not an orxt import.
+    Returns None if not an orxtra import.
     """
     if isinstance(node, ast.ImportFrom):
-        if node.module and node.module.startswith("orxt."):
+        if node.module and node.module.startswith("orxtra."):
             parts = node.module.split(".")
             if len(parts) >= _MIN_MODULE_PARTS:
                 return parts[1]
     elif isinstance(node, ast.Import):
         for alias in node.names:
-            if alias.name.startswith("orxt."):
+            if alias.name.startswith("orxtra."):
                 parts = alias.name.split(".")
                 if len(parts) >= _MIN_MODULE_PARTS:
                     return parts[1]
@@ -89,7 +89,7 @@ def _extract_target_module(node: ast.Import | ast.ImportFrom) -> str | None:
 def _collect_runtime_imports(  # noqa: C901
     tree: ast.Module,
 ) -> list[tuple[int, str]]:
-    """Collect all runtime orxt imports as (line_number, target_module) pairs.
+    """Collect all runtime orxtra imports as (line_number, target_module) pairs.
 
     Skips imports inside TYPE_CHECKING blocks.
     """
@@ -139,19 +139,19 @@ def _is_import_allowed(source_layer: str, target_layer: str) -> bool:
 
 
 def _module_name_from_path(py_file: Path) -> str | None:
-    """Extract the orxt sub-module name from a file path.
+    """Extract the orxtra sub-module name from a file path.
 
-    E.g. .../scheduler/src/orxt/scheduler/_executor.py -> 'scheduler'
-         .../write-safety/src/orxt/write_safety/queue.py -> 'write_safety'
+    E.g. .../scheduler/src/orxtra/scheduler/_executor.py -> 'scheduler'
+         .../write-safety/src/orxtra/write_safety/queue.py -> 'write_safety'
     """
     parts = py_file.parts
     try:
-        # Find 'orxt' in the path after 'src'
+        # Find 'orxtra' in the path after 'src'
         for i, part in enumerate(parts):
             if (
                 part == "src"
                 and i + 1 < len(parts)
-                and parts[i + 1] == "orxt"
+                and parts[i + 1] == "orxtra"
                 and i + 2 < len(parts)
             ):
                 return parts[i + 2]
@@ -164,10 +164,10 @@ def main() -> int:  # noqa: C901
     repo_root = Path()
     violations: list[str] = []
 
-    # Find all .py files under */src/orxt/*/
-    py_files = sorted(repo_root.glob("*/src/orxt/*/**/*.py"))
-    # Also include files directly in */src/orxt/*/ (like __init__.py)
-    py_files += sorted(repo_root.glob("*/src/orxt/*/*.py"))
+    # Find all .py files under */src/orxtra/*/
+    py_files = sorted(repo_root.glob("*/src/orxtra/*/**/*.py"))
+    # Also include files directly in */src/orxtra/*/ (like __init__.py)
+    py_files += sorted(repo_root.glob("*/src/orxtra/*/*.py"))
     # Deduplicate while preserving order
     seen: set[Path] = set()
     unique_files: list[Path] = []
@@ -200,7 +200,7 @@ def main() -> int:  # noqa: C901
                 continue
             target_layer = MODULE_TO_LAYER.get(target_module)
             if target_layer is None:
-                # Not an orxt module we track
+                # Not an orxtra module we track
                 continue
             if not _is_import_allowed(source_layer, target_layer):
                 msg = (

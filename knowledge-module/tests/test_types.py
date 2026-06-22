@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxt.knowledge_module._types import KnowledgeConfig, KnowledgeResult
+from orxtra.knowledge_module._types import KnowledgeConfig, KnowledgeResult
 from pydantic import ValidationError
 
 

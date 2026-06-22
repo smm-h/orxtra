@@ -6,9 +6,9 @@ import json
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.transport._events import StreamDelta, StreamToolUse, Thinking
-from orxt.transport.providers._anthropic import AnthropicProvider
-from orxt.transport.providers._openai import OpenAIProvider
+from orxtra.transport._events import StreamDelta, StreamToolUse, Thinking
+from orxtra.transport.providers._anthropic import AnthropicProvider
+from orxtra.transport.providers._openai import OpenAIProvider
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

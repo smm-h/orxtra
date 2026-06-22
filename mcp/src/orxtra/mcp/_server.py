@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from orxt.mcp._tools import get_tool_definitions
-from orxt.services import (
+from orxtra.mcp._tools import get_tool_definitions
+from orxtra.services import (
     abort_run,
     dump_config,
     fire_event,
@@ -35,7 +35,7 @@ from orxt.services import (
     skip_inbox_item,
     start_run_from_file,
 )
-from orxt.trace import TraceWriter
+from orxtra.trace import TraceWriter
 from pydantic import BaseModel
 
 _PARSE_ERROR = -32700
@@ -248,7 +248,7 @@ class MCPServer:
         return {
             "protocolVersion": "2024-11-05",
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": "orxt-mcp", "version": "0.0.0"},
+            "serverInfo": {"name": "orxtra-mcp", "version": "0.0.0"},
         }
 
     async def _handle_tools_list(self, _request: dict[str, Any]) -> dict[str, Any]:
@@ -317,7 +317,7 @@ class MCPServer:
                         task.add_done_callback(drain_tasks.discard)
 
                     await conn.add_listener(
-                        "orxt_events", _on_notification,
+                        "orxtra_events", _on_notification,
                     )
 
                     # Block forever until connection drops

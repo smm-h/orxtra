@@ -7,8 +7,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._exec_tool import make_exec_tool
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._exec_tool import make_exec_tool
 
 
 def _mock_process(
@@ -77,7 +77,7 @@ class TestSuccessfulExecution:
         """Run with stdout, verify JSON result."""
         proc = _mock_process(stdout="hello world")
         tool = _make()
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -92,7 +92,7 @@ class TestSuccessfulExecution:
         """Non-zero exit code is returned as data, not raised."""
         proc = _mock_process(returncode=1)
         tool = _make()
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -105,7 +105,7 @@ class TestSuccessfulExecution:
         """The mock receives the correct arguments."""
         proc = _mock_process()
         tool = _make(executable="grep")
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -119,7 +119,7 @@ class TestSuccessfulExecution:
         proc = _mock_process()
         root = Path("/my/project")
         tool = _make(read_root=root)
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -132,7 +132,7 @@ class TestSuccessfulExecution:
         """No args passed, executable runs alone."""
         proc = _mock_process()
         tool = _make(executable="ls")
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -145,7 +145,7 @@ class TestSuccessfulExecution:
         """stderr content appears in result."""
         proc = _mock_process(stderr="warning: something")
         tool = _make()
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -158,7 +158,7 @@ class TestSuccessfulExecution:
         """duration_ms > 0."""
         proc = _mock_process()
         tool = _make()
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -190,7 +190,7 @@ class TestTimeout:
             return await coro  # type: ignore[misc]
 
         tool = _make(timeout_ceiling=10)
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = fake_wait_for
@@ -219,7 +219,7 @@ class TestTimeout:
             raise TimeoutError
 
         tool = _make(timeout_ceiling=10)
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = fake_wait_for
@@ -246,7 +246,7 @@ class TestTimeout:
             captured_timeout = timeout
             return await real_wait_for(coro, timeout=timeout)  # type: ignore[arg-type]
 
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = tracking_wait_for
@@ -263,7 +263,7 @@ class TestPreview:
         large_output = "\n".join(f"line {i}" for i in range(500))
         proc = _mock_process(stdout=large_output)
         tool = _make(preview_threshold=100, preview_lines=3)
-        with patch("orxt.tool._exec_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from orxt.trace import NotepadEntry, TaskAttempt, TaskSummary
-from orxt.trace import list_tasks as _list_tasks
-from orxt.trace import read_notepad as _read_notepad
-from orxt.trace import read_transcript as _read_transcript
-from orxt.trace import search_transcript as _search_transcript
+from orxtra.trace import NotepadEntry, TaskAttempt, TaskSummary
+from orxtra.trace import list_tasks as _list_tasks
+from orxtra.trace import read_notepad as _read_notepad
+from orxtra.trace import read_transcript as _read_transcript
+from orxtra.trace import search_transcript as _search_transcript
 
 if TYPE_CHECKING:
     from datetime import datetime

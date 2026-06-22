@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 import uuid6
-from orxt.scheduler._events import EventRegistry
+from orxtra.scheduler._events import EventRegistry
 
 
 class TestEventRegistry:

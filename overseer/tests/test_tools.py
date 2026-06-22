@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 import uuid6
 from conftest import MockTraceWriter
-from orxt.overseer._tools import (
+from orxtra.overseer._tools import (
     make_add_constraint_tool,
     make_create_inbox_item_tool,
     make_record_assumption_tool,
@@ -14,7 +14,7 @@ from orxt.overseer._tools import (
     make_update_workflow_status_tool,
     make_write_lesson_tool,
 )
-from orxt.protocols._tool import ToolError
+from orxtra.protocols._tool import ToolError
 
 if TYPE_CHECKING:
     from uuid import UUID

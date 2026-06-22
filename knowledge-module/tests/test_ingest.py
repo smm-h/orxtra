@@ -5,7 +5,7 @@ import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.knowledge_module._types import KnowledgeConfig
+from orxtra.knowledge_module._types import KnowledgeConfig
 
 
 def _make_config() -> KnowledgeConfig:
@@ -42,7 +42,7 @@ def mock_cognee() -> MagicMock:
 
 @pytest.fixture(autouse=True)
 def _reset_ingest_cache() -> None:
-    from orxt.knowledge_module import _ingest  # noqa: PLC0415
+    from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
     _ingest._cache = None  # noqa: SLF001
 
@@ -53,7 +53,7 @@ class TestIngestLessons:
         pool = _make_pool(fetchval_return=None)
         lessons = [{"id": "1", "content": "lesson one"}]
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _ingest  # noqa: PLC0415
+            from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
             count = await _ingest.ingest_lessons(_make_config(), lessons, pool)
         assert count == 1
@@ -64,7 +64,7 @@ class TestIngestLessons:
     async def test_empty_lessons_returns_zero(self, mock_cognee: MagicMock) -> None:
         pool = _make_pool()
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _ingest  # noqa: PLC0415
+            from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
             count = await _ingest.ingest_lessons(_make_config(), [], pool)
         assert count == 0
@@ -76,7 +76,7 @@ class TestIngestLessons:
         mock_cognee.cognify = AsyncMock(side_effect=RuntimeError("cognee failed"))
         lessons = [{"id": "1", "content": "lesson one"}]
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _ingest  # noqa: PLC0415
+            from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
             with pytest.raises(RuntimeError, match="cognee failed"):
                 await _ingest.ingest_lessons(_make_config(), lessons, pool)
@@ -86,7 +86,7 @@ class TestIngestLessons:
         pool = _make_pool(fetchval_return=None)
         lessons = [{"id": "1", "content": "same content"}]
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _ingest  # noqa: PLC0415
+            from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
             count1 = await _ingest.ingest_lessons(_make_config(), lessons, pool)
             assert count1 == 1
@@ -114,7 +114,7 @@ class TestIngestFromPool:
         mock_pool.execute = AsyncMock()
 
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _ingest  # noqa: PLC0415
+            from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
             count = await _ingest.ingest_from_pool(_make_config(), mock_pool)
         assert count == 1

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from orxt.knowledge_module._cognee_import import require_cognee
-from orxt.knowledge_module._config import configure_cognee
-from orxt.knowledge_module._freshness import ContentHashCache
+from orxtra.knowledge_module._cognee_import import require_cognee
+from orxtra.knowledge_module._config import configure_cognee
+from orxtra.knowledge_module._freshness import ContentHashCache
 
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxt.knowledge_module._types import KnowledgeConfig
+    from orxtra.knowledge_module._types import KnowledgeConfig
 
 _cache: ContentHashCache | None = None
 

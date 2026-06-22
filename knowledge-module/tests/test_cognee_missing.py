@@ -4,7 +4,7 @@ import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.knowledge_module._types import KnowledgeConfig
+from orxtra.knowledge_module._types import KnowledgeConfig
 
 
 def _make_config() -> KnowledgeConfig:
@@ -29,7 +29,7 @@ _ERROR_MATCH = "cognee is required for the knowledge module"
 
 @pytest.fixture(autouse=True)
 def _reset_ingest_cache() -> None:
-    from orxt.knowledge_module import _ingest  # noqa: PLC0415
+    from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
     _ingest._cache = None  # noqa: SLF001
 
@@ -37,7 +37,7 @@ def _reset_ingest_cache() -> None:
 class TestCogneeMissing:
     def test_configure_cognee_without_cognee_raises(self) -> None:
         with patch.dict(sys.modules, _COGNEE_MISSING):
-            from orxt.knowledge_module._config import configure_cognee  # noqa: PLC0415
+            from orxtra.knowledge_module._config import configure_cognee  # noqa: PLC0415
 
             with pytest.raises(RuntimeError, match=_ERROR_MATCH):
                 configure_cognee(_make_config())
@@ -47,7 +47,7 @@ class TestCogneeMissing:
         pool = _make_pool()
         lessons = [{"id": "1", "content": "lesson one"}]
         with patch.dict(sys.modules, _COGNEE_MISSING):
-            from orxt.knowledge_module import _ingest  # noqa: PLC0415
+            from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
             with pytest.raises(RuntimeError, match=_ERROR_MATCH):
                 await _ingest.ingest_lessons(_make_config(), lessons, pool)
@@ -56,7 +56,7 @@ class TestCogneeMissing:
     async def test_ingest_empty_without_cognee_returns_zero(self) -> None:
         pool = _make_pool()
         with patch.dict(sys.modules, _COGNEE_MISSING):
-            from orxt.knowledge_module import _ingest  # noqa: PLC0415
+            from orxtra.knowledge_module import _ingest  # noqa: PLC0415
 
             count = await _ingest.ingest_lessons(_make_config(), [], pool)
         assert count == 0
@@ -64,7 +64,7 @@ class TestCogneeMissing:
     @pytest.mark.asyncio
     async def test_retrieve_without_cognee_raises(self) -> None:
         with patch.dict(sys.modules, _COGNEE_MISSING):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             with pytest.raises(RuntimeError, match=_ERROR_MATCH):
                 await _retrieve.retrieve_knowledge(
@@ -74,7 +74,7 @@ class TestCogneeMissing:
     @pytest.mark.asyncio
     async def test_retrieve_none_config_without_cognee_returns_empty(self) -> None:
         with patch.dict(sys.modules, _COGNEE_MISSING):
-            from orxt.knowledge_module._retrieve import (  # noqa: PLC0415
+            from orxtra.knowledge_module._retrieve import (  # noqa: PLC0415
                 retrieve_knowledge,
             )
 

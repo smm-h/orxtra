@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from orxt.trace import NotepadEntry
+from orxtra.trace import NotepadEntry
 
 __all__ = ["NotepadEntry"]

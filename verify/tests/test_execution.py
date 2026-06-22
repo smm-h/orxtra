@@ -14,17 +14,17 @@ from conftest import (
     make_mixed_verdict,
     make_passing_verdict,
 )
-from orxt.protocols._execution import (
+from orxtra.protocols._execution import (
     AgentExecution,
     CheckResult,
     ScriptExecution,
     Severity,
 )
-from orxt.protocols._task import WorkflowExecution
-from orxt.verify._execution import execute_check
+from orxtra.protocols._task import WorkflowExecution
+from orxtra.verify._execution import execute_check
 
 if TYPE_CHECKING:
-    from orxt.protocols._checks import CheckContext
+    from orxtra.protocols._checks import CheckContext
 
 
 class TestScriptChecks:
@@ -249,7 +249,7 @@ class TestAgentChecks:
         self, ctx: CheckContext,
     ) -> None:
         custom_ctx = make_check_context(
-            variables={"project": "orxt", "lang": "python"},
+            variables={"project": "orxtra", "lang": "python"},
         )
         executor = MockCheckExecutor(
             consult_response=make_passing_verdict(),
@@ -261,7 +261,7 @@ class TestAgentChecks:
         )
         await execute_check(execution, custom_ctx, executor)
         call = executor.consult_calls[0]
-        assert call["variable_values"]["var_project"] == "orxt"
+        assert call["variable_values"]["var_project"] == "orxtra"
         assert call["variable_values"]["var_lang"] == "python"
 
     async def test_mechanical_results_formatted(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxt.agent import Agent, ExecToolConfig, ShellConfig
+from orxtra.agent import Agent, ExecToolConfig, ShellConfig
 from pydantic import ValidationError
 
 

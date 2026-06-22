@@ -4,7 +4,7 @@ import json
 from typing import TYPE_CHECKING
 
 import uuid6
-from orxt.trace._lock import _lock_key
+from orxtra.trace._lock import _lock_key
 
 if TYPE_CHECKING:
     from uuid import UUID

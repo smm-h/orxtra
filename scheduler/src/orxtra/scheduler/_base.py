@@ -17,10 +17,10 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-    from orxt.agent import Agent
-    from orxt.notepad import NotepadEntry
-    from orxt.protocols._execution import CheckResult
-    from orxt.protocols._task import (
+    from orxtra.agent import Agent
+    from orxtra.notepad import NotepadEntry
+    from orxtra.protocols._execution import CheckResult
+    from orxtra.protocols._task import (
         BudgetExhaustionPolicy,
         Execution,
         TaskContext,
@@ -28,15 +28,15 @@ if TYPE_CHECKING:
         TaskSpec,
         TaskState,
     )
-    from orxt.scheduler._events import EventRegistry
-    from orxt.scheduler._locks import FileLockRegistry
-    from orxt.scheduler._overseer import OverseerEvent, OverseerInterface
-    from orxt.scheduler._services import ServiceInstance
-    from orxt.secrets._registry import SecretRegistry
-    from orxt.session import Session
-    from orxt.trace import TraceWriter
-    from orxt.transport import Transport, Usage
-    from orxt.write_safety import StaleWriteTracker, WriteQueue
+    from orxtra.scheduler._events import EventRegistry
+    from orxtra.scheduler._locks import FileLockRegistry
+    from orxtra.scheduler._overseer import OverseerEvent, OverseerInterface
+    from orxtra.scheduler._services import ServiceInstance
+    from orxtra.secrets._registry import SecretRegistry
+    from orxtra.session import Session
+    from orxtra.trace import TraceWriter
+    from orxtra.transport import Transport, Usage
+    from orxtra.write_safety import StaleWriteTracker, WriteQueue
 
 
 class SchedulerBase(ABC):

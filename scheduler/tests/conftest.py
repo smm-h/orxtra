@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 import uuid6
-from orxt.agent import Agent
-from orxt.scheduler._executor import Scheduler
+from orxtra.agent import Agent
+from orxtra.scheduler._executor import Scheduler
 
 if TYPE_CHECKING:
     import uuid

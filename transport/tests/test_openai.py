@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.transport._events import StreamDelta
-from orxt.transport.providers._openai import OpenAIProvider
+from orxtra.transport._events import StreamDelta
+from orxtra.transport.providers._openai import OpenAIProvider
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING, Any
 import pytest
 import uuid6
 from conftest import MockTraceWriter
-from orxt.overseer._autonomy import AutonomyLevel
-from orxt.overseer._health import HealthMonitor
-from orxt.overseer._overseer import Overseer, load_overseer_prompt
-from orxt.protocols._tool import Tool
+from orxtra.overseer._autonomy import AutonomyLevel
+from orxtra.overseer._health import HealthMonitor
+from orxtra.overseer._overseer import Overseer, load_overseer_prompt
+from orxtra.protocols._tool import Tool
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

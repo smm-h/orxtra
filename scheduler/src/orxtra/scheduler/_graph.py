@@ -4,7 +4,7 @@ from collections import deque
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from orxt.protocols._task import TaskSpec
+    from orxtra.protocols._task import TaskSpec
 
 
 class CycleError(Exception):

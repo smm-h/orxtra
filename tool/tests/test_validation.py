@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._validation import validate_args
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._validation import validate_args
 
 
 class TestValidateArgs:

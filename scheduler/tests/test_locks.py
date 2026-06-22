@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 import uuid6
-from orxt.scheduler._locks import FileLockRegistry
+from orxtra.scheduler._locks import FileLockRegistry
 
 
 class TestFileLockRegistry:

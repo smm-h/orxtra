@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orxt.overseer._autonomy import (
+from orxtra.overseer._autonomy import (
     AUTONOMY_RULES,
     AutonomyLevel,
     is_autonomous,

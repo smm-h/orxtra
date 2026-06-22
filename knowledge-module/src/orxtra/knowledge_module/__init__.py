@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from orxt.knowledge_module._freshness import ContentHashCache
-from orxt.knowledge_module._ingest import ingest_from_pool, ingest_lessons
-from orxt.knowledge_module._retrieve import retrieve_knowledge
-from orxt.knowledge_module._types import (
+from orxtra.knowledge_module._freshness import ContentHashCache
+from orxtra.knowledge_module._ingest import ingest_from_pool, ingest_lessons
+from orxtra.knowledge_module._retrieve import retrieve_knowledge
+from orxtra.knowledge_module._types import (
     Convention,
     DomainConcept,
     FailurePattern,

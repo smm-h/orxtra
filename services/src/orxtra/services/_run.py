@@ -5,11 +5,11 @@ from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from orxt.agent import load_agents, load_categories
-from orxt.protocols._task import BudgetExhaustionPolicy
-from orxt.scheduler import Scheduler, load_workflow
-from orxt.trace import RunReport, RunSummary, TraceWriter, read_run_report
-from orxt.trace import list_runs as _list_runs
+from orxtra.agent import load_agents, load_categories
+from orxtra.protocols._task import BudgetExhaustionPolicy
+from orxtra.scheduler import Scheduler, load_workflow
+from orxtra.trace import RunReport, RunSummary, TraceWriter, read_run_report
+from orxtra.trace import list_runs as _list_runs
 from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:

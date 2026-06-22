@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-from orxt.transport._events import ContentBlock, StreamDelta, StreamToolUse, Usage
+from orxtra.transport._events import ContentBlock, StreamDelta, StreamToolUse, Usage
 
 if TYPE_CHECKING:
-    from orxt.transport._events import Event
+    from orxtra.transport._events import Event
 
 
 @dataclass(frozen=True)

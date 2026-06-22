@@ -5,7 +5,7 @@ block or allow tool execution based on the current
 AutonomyLevel and the tool's action type from
 TOOL_ACTION_TYPES.
 
-The scheduler does not depend on orxt.overseer at
+The scheduler does not depend on orxtra.overseer at
 runtime (TYPE_CHECKING only). The _gate_tool method
 imports is_autonomous locally. We inject the autonomy
 module into sys.modules so the local import resolves
@@ -19,7 +19,7 @@ import types
 from enum import StrEnum
 from typing import Any
 
-# Inject a minimal orxt.overseer._autonomy module so
+# Inject a minimal orxtra.overseer._autonomy module so
 # that _gate_tool's local import resolves. Must happen
 # before importing OverseerAdapter.
 _ALL_SENTINEL = "__all__"
@@ -64,18 +64,18 @@ def _is_autonomous(
     return action_type in allowed
 
 
-_mod = types.ModuleType("orxt.overseer._autonomy")
+_mod = types.ModuleType("orxtra.overseer._autonomy")
 _mod.AutonomyLevel = AutonomyLevel  # type: ignore[attr-defined]
 _mod.is_autonomous = _is_autonomous  # type: ignore[attr-defined]
 
 # Ensure parent packages exist in sys.modules
-if "orxt.overseer" not in sys.modules:
-    _parent = types.ModuleType("orxt.overseer")
-    sys.modules["orxt.overseer"] = _parent
-sys.modules["orxt.overseer._autonomy"] = _mod
+if "orxtra.overseer" not in sys.modules:
+    _parent = types.ModuleType("orxtra.overseer")
+    sys.modules["orxtra.overseer"] = _parent
+sys.modules["orxtra.overseer._autonomy"] = _mod
 
-from orxt.protocols._tool import Tool  # noqa: E402
-from orxt.scheduler._overseer import (  # noqa: E402
+from orxtra.protocols._tool import Tool  # noqa: E402
+from orxtra.scheduler._overseer import (  # noqa: E402
     OverseerAdapter,
 )
 

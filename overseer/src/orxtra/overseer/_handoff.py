@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxt.session import Session
-    from orxt.trace import TraceWriter
+    from orxtra.session import Session
+    from orxtra.trace import TraceWriter
 
 
 async def check_handoff_needed(
@@ -22,8 +22,8 @@ async def perform_handoff(
     trace_writer: TraceWriter,
     run_id: UUID,
 ) -> Session:
-    from orxt.session import create_session  # noqa: PLC0415
-    from orxt.transport import Result  # noqa: PLC0415
+    from orxtra.session import create_session  # noqa: PLC0415
+    from orxtra.transport import Result  # noqa: PLC0415
 
     summary_parts: list[str] = []
     async for event in session.send(

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from orxt.session._session import Session
-from orxt.transport import (
+from orxtra.session._session import Session
+from orxtra.transport import (
     Continuation,
     Result,
     SessionSuspended,

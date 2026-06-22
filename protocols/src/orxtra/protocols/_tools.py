@@ -4,8 +4,8 @@ import uuid
 from decimal import Decimal
 from typing import Any
 
-from orxt.protocols._constraints import ConstraintTier
-from orxt.protocols._task import Execution
+from orxtra.protocols._constraints import ConstraintTier
+from orxtra.protocols._task import Execution
 from pydantic import BaseModel, ConfigDict
 
 

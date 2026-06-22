@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxt.secrets import SecretRegistry
+from orxtra.secrets import SecretRegistry
 
 
 class TestValidation:

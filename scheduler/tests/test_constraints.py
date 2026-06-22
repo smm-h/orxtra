@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import uuid6
-from orxt.protocols._constraints import ConstraintKind
-from orxt.scheduler._executor import Scheduler
+from orxtra.protocols._constraints import ConstraintKind
+from orxtra.scheduler._executor import Scheduler
 
 from tests.conftest import (
     MockTraceWriter,

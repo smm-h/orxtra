@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import uuid6
-from orxt.protocols._events import (
+from orxtra.protocols._events import (
     BudgetThresholdCrossed,
     HealthDegraded,
     InboxAnswered,
@@ -23,19 +23,19 @@ from orxt.protocols._events import (
     StructuralAdvisory,
     TaskFailed,
 )
-from orxt.protocols._task import (
+from orxtra.protocols._task import (
     EscalationPayload,
     TaskContext,
     TaskSpec,
 )
-from orxt.scheduler._executor import Scheduler
-from orxt.scheduler._overseer import (
+from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._overseer import (
     _DEFAULT_FALLBACK,
     FALLBACK_BEHAVIORS,
     OverseerAdapter,
 )
-from orxt.scheduler._types import WorkflowConfig
-from orxt.transport import Result
+from orxtra.scheduler._types import WorkflowConfig
+from orxtra.transport import Result
 
 from tests.conftest import (
     MockTraceWriter,
@@ -182,7 +182,7 @@ class MockHealthMonitor:
 # -- Helpers ----------------------------------------------
 
 # _check_session_handoff does a local import of
-# orxt.overseer which is not installed in the
+# orxtra.overseer which is not installed in the
 # scheduler test environment. Patch it to a no-op
 # for tests that exercise _send_overseer_event.
 _PATCH_HANDOFF = patch.object(
@@ -520,7 +520,7 @@ class TestVerifyThenAcceptLoop:
             _PATCH_HANDOFF,
             caplog.at_level(
                 logging.WARNING,
-                logger="orxt.scheduler",
+                logger="orxtra.scheduler",
             ),
         ):
             await scheduler._send_overseer_event(  # noqa: SLF001
@@ -596,7 +596,7 @@ class TestDegradedMode:
 
         with caplog.at_level(
             logging.WARNING,
-            logger="orxt.scheduler",
+            logger="orxtra.scheduler",
         ):
             await scheduler._send_overseer_event(  # noqa: SLF001
                 _task_failed_event(),
@@ -647,7 +647,7 @@ class TestDegradedMode:
         )
         with caplog.at_level(
             logging.WARNING,
-            logger="orxt.scheduler",
+            logger="orxtra.scheduler",
         ):
             await scheduler._send_overseer_event(  # noqa: SLF001
                 event,

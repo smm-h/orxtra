@@ -4,7 +4,7 @@ import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.knowledge_module._types import KnowledgeConfig
+from orxtra.knowledge_module._types import KnowledgeConfig
 
 
 def _make_config(max_retrieval_results: int = 10) -> KnowledgeConfig:
@@ -49,7 +49,7 @@ class TestTagFiltering:
             ]
         )
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             result = await _retrieve.retrieve_knowledge(
                 config=_make_config(), query="test", tags=["tag1"],
@@ -67,7 +67,7 @@ class TestTagFiltering:
             ]
         )
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             result = await _retrieve.retrieve_knowledge(
                 config=_make_config(max_retrieval_results=2), query="test",
@@ -85,7 +85,7 @@ class TestTagFiltering:
             ]
         )
         with patch.dict(sys.modules, {"cognee": mock_cognee}):
-            from orxt.knowledge_module import _retrieve  # noqa: PLC0415
+            from orxtra.knowledge_module import _retrieve  # noqa: PLC0415
 
             result = await _retrieve.retrieve_knowledge(
                 config=_make_config(max_retrieval_results=10),
