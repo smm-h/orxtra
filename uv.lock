@@ -2165,7 +2165,7 @@ dev = [
 
 [[package]]
 name = "orxt-agent"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "agent" }
 dependencies = [
     { name = "pydantic" },
@@ -2184,7 +2184,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxt-cli"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "cli" }
 dependencies = [
     { name = "orxt-services" },
@@ -2201,7 +2201,7 @@ requires-dist = [
 
 [[package]]
 name = "orxt-knowledge-module"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "knowledge-module" }
 dependencies = [
     { name = "cognee" },
@@ -2216,7 +2216,7 @@ requires-dist = [
 
 [[package]]
 name = "orxt-mcp"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "mcp" }
 dependencies = [
     { name = "orxt-services" },
@@ -2239,7 +2239,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxt-notepad"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "notepad" }
 dependencies = [
     { name = "orxt-trace" },
@@ -2262,7 +2262,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxt-overseer"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "overseer" }
 dependencies = [
     { name = "orxt-protocols" },
@@ -2299,7 +2299,7 @@ dev = [
 
 [[package]]
 name = "orxt-protocols"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "protocols" }
 dependencies = [
     { name = "pydantic" },
@@ -2310,7 +2310,7 @@ requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 
 [[package]]
 name = "orxt-scheduler"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "scheduler" }
 dependencies = [
     { name = "jsonschema" },
@@ -2347,7 +2347,7 @@ requires-dist = [
 
 [[package]]
 name = "orxt-secrets"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "secrets" }
 
 [package.dev-dependencies]
@@ -2362,7 +2362,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxt-services"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "services" }
 dependencies = [
     { name = "asyncpg" },
@@ -2389,7 +2389,7 @@ requires-dist = [
 
 [[package]]
 name = "orxt-session"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "session" }
 dependencies = [
     { name = "orxt-protocols" },
@@ -2408,7 +2408,7 @@ requires-dist = [
 
 [[package]]
 name = "orxt-tool"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "tool" }
 dependencies = [
     { name = "httpx" },
@@ -2441,7 +2441,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxt-trace"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "trace" }
 dependencies = [
     { name = "asyncpg" },
@@ -2458,7 +2458,7 @@ requires-dist = [
 
 [[package]]
 name = "orxt-transport"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "transport" }
 dependencies = [
     { name = "httpx" },
@@ -2489,7 +2489,7 @@ dev = [
 
 [[package]]
 name = "orxt-verify"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "verify" }
 dependencies = [
     { name = "orxt-protocols" },
@@ -2512,7 +2512,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxt-write-safety"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "write-safety" }
 
 [package.dev-dependencies]
