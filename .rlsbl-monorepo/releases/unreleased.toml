@@ -1,0 +1,6 @@
+[releasables.orxt]
+bump = "patch"
+description = "Fix package build to include prompt files."
+context = ""
+include = ["pypi"]
+exclude = []
