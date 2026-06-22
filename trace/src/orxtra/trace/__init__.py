@@ -14,6 +14,7 @@ from orxtra.trace._lock import (
     release_run_lock,
     update_heartbeat,
 )
+from orxtra.trace._memory_backend import InMemoryBackend, InMemoryEventBus
 from orxtra.trace._pg_backend import PgBackend
 from orxtra.trace._pg_event_bus import PgEventBus
 from orxtra.trace._protocols import (
@@ -80,6 +81,8 @@ __all__ = [
     "__version__",
     "EventBus",
     "EventStorage",
+    "InMemoryBackend",
+    "InMemoryEventBus",
     "InboxItem",
     "InboxStorage",
     "InvalidTransitionError",
