@@ -12,6 +12,9 @@ from orxtra.transport._events import (
     Result,
     SessionSuspended,
     StepStart,
+    StreamDelta,
+    StreamToolUse,
+    StreamUsage,
     ToolUse,
     Usage,
 )
@@ -55,8 +58,26 @@ class MockProvider:
     async def parse_stream(  # type: ignore[override]
         self, byte_stream: AsyncIterator[bytes],
     ) -> AsyncIterator[Event]:
-        return  # type: ignore[return-value]
-        yield  # makes this a valid async generator
+        # Drain the byte stream (required by httpx)
+        async for _ in byte_stream:
+            pass
+        # Yield streaming events from configured response blocks
+        if self._call_index < len(self._responses):
+            blocks, usage = self._responses[self._call_index]
+            self._call_index += 1
+            for block in blocks:
+                if block.type == "text" and block.text is not None:
+                    yield StreamDelta(text=block.text)
+                elif block.type == "thinking" and block.text is not None:
+                    from orxtra.transport._events import Thinking  # noqa: PLC0415
+                    yield Thinking(text=block.text)
+                elif block.type == "tool_use":
+                    yield StreamToolUse(
+                        tool_use_id=block.tool_use_id or "",
+                        tool_name=block.tool_name or "",
+                        tool_input=block.tool_input or {},
+                    )
+            yield StreamUsage(usage=usage)
 
     def extract_usage(self, response: dict[str, Any]) -> Usage:
         _, usage = self._responses[self._call_index]
