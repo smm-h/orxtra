@@ -24,6 +24,7 @@ from orxtra.tool._preview import (
     PreviewResult,
     check_and_preview,
 )
+from orxtra.tool._renderers import JsonRenderer, TableRenderer, TextRenderer
 from orxtra.tool._read_tools import (
     make_diff_tool,
     make_glob_tool,
@@ -59,6 +60,9 @@ __all__ = [
     "CONSULT_STRIP_TOOLS",
     "FILE_MUTATION_TOOLS",
     "FullRetrievalGuard",
+    "JsonRenderer",
+    "TableRenderer",
+    "TextRenderer",
     "PathError",
     "PreviewResult",
     "TaskSchedulerRef",
