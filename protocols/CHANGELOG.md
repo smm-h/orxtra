@@ -2,9 +2,22 @@
 
 # Changelog
 
-## 0.1.1
+## 0.1.2
 
-Fix CI publish workflow for workspace builds.
+Single-package distribution and npm publish workflow.
+
+<details>
+<summary>Context</summary>
+
+orxt is now published as a single package on PyPI instead of 16 separate packages. npm publish workflow triggers independently.
+
+</details>
+
+### Breaking
+
+- **Single-package distribution.** orxt is now published as a single `orxt` package on PyPI instead of 16 separate `orxt-*` packages. All sub-modules are included in one wheel.
+
+## 0.1.1
 
 ### Fixes
 
