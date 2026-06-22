@@ -1091,3 +1091,69 @@ class TestProportionalityCheck:
         assert not any(
             "Proportionality" in e for e in errors
         )
+
+
+class TestRunStartedEmission:
+    """RunStarted event is emitted at the beginning
+    of execute_workflow."""
+
+    async def test_run_started_emitted_during_workflow(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        adapter = MockOverseerAdapter()
+        scheduler = _make_scheduler(
+            read_root=tmp_path,
+            overseer=adapter,
+        )
+        config = _simple_workflow()
+
+        with _PATCH_HANDOFF:
+            await scheduler.execute_workflow(config)
+
+        # Filter RunStarted events
+        run_started = [
+            e for e in adapter.events
+            if isinstance(e, RunStarted)
+        ]
+        assert len(run_started) == 1
+        event = run_started[0]
+        assert event.intent == config.description
+        assert event.config_snapshot["name"] == (
+            config.name
+        )
+        assert event.config_snapshot["task_count"] == (
+            len(config.tasks)
+        )
+        assert event.config_snapshot["task_names"] == (
+            [t.name for t in config.tasks]
+        )
+
+    async def test_run_started_is_first_event(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        adapter = MockOverseerAdapter()
+        scheduler = _make_scheduler(
+            read_root=tmp_path,
+            overseer=adapter,
+        )
+        config = _simple_workflow()
+
+        with _PATCH_HANDOFF:
+            await scheduler.execute_workflow(config)
+
+        # RunStarted should be the first event sent
+        assert len(adapter.events) >= 1
+        assert isinstance(adapter.events[0], RunStarted)
+
+    async def test_run_started_not_sent_without_overseer(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        scheduler = _make_scheduler(
+            read_root=tmp_path, overseer=None,
+        )
+        config = _simple_workflow()
+        # Should not raise
+        await scheduler.execute_workflow(config)
