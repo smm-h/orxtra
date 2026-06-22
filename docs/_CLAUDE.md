@@ -96,7 +96,6 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **httpx** for all LLM API communication (no official SDKs).
 - **asyncpg** for PostgreSQL.
 
-
 ### Our tools
 
 The following are all projects under `~/Projects/`, maintained by us. Any feature gap, bug, or shortcoming identified during orxtra development can be filed as a todo in the respective project's `todo/` directory and will be addressed -- these are not external dependencies we're stuck with, they're internal tools that evolve with our needs.
