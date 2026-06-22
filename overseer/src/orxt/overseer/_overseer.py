@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from orxt.session import Session
     from orxt.trace import TraceWriter
 
-_PROMPTS_DIR = _Path(__file__).resolve().parent.parent.parent.parent / "prompts"
+_PROMPTS_DIR = _Path(__file__).resolve().parent / "prompts"
 
 
 def load_overseer_prompt() -> str:

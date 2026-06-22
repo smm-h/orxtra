@@ -61,6 +61,7 @@ include = [
 "session/src/orxt/session" = "orxt/session"
 "scheduler/src/orxt/scheduler" = "orxt/scheduler"
 "overseer/src/orxt/overseer" = "orxt/overseer"
+"overseer/prompts" = "orxt/overseer/prompts"
 "knowledge-module/src/orxt/knowledge_module" = "orxt/knowledge_module"
 "services/src/orxt/services" = "orxt/services"
 "cli/src/orxt/cli" = "orxt/cli"
