@@ -91,11 +91,6 @@ description = "Persistent LLM with action tools, PG memory, session handoff"
 depends_on = ["protocols", "trace", "session", "tool", "transport"]
 releasable = "orxtra"
 
-[[projects]]
-path = "knowledge-module"
-description = "Experimental semantic enrichment via cognee"
-releasable = "orxtra"
-
 # --- Interface layer ---
 
 [[projects]]
@@ -132,5 +127,5 @@ order = ["foundation", "orchestration", "intelligence", "interfaces"]
 [layers.assignments]
 foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
 orchestration = ["scheduler"]
-intelligence = ["overseer", "knowledge-module"]
+intelligence = ["overseer"]
 interfaces = ["services", "cli", "mcp"]

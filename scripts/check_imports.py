@@ -23,7 +23,7 @@ LAYERS = {
         "session",
     },
     "orchestration": {"scheduler"},
-    "intelligence": {"overseer", "knowledge_module"},
+    "intelligence": {"overseer"},
     "interfaces": {"services", "cli", "mcp"},
 }
 
