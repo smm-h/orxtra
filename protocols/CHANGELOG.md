@@ -2,9 +2,22 @@
 
 # Changelog
 
-## 0.1.3
+## 0.2.0
 
-Fix package build to include prompt files.
+Renamed from orxt to orxtra.
+
+<details>
+<summary>Context</summary>
+
+Full rename: PyPI package, Python imports, npm package, GitHub repo. All orxt.* imports are now orxtra.*.
+
+</details>
+
+### Breaking
+
+- **Breaking.** Renamed from orxt to orxtra across all packages, imports, and distribution.
+
+## 0.1.3
 
 ### Fixes
 
