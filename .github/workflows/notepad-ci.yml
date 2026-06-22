@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # requires-python: >= 3.12
+        # requires-python: >= {{pypi.minRequiredPython}}
         python-version: ['3.12', '3.13', '3.14']
     steps:
     - uses: actions/checkout@v6
