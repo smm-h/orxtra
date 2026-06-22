@@ -2,7 +2,7 @@
   "schema_version": 1,
   "name": "orxt",
   "slug": "orxt",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": null,
   "language": "python",
   "base_url": "https://orxt.smmh.dev",
