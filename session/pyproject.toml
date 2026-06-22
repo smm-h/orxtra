@@ -1,14 +1,14 @@
 [project]
-name = "orxt-session"
+name = "orxtra-session"
 version = "0.1.1"
 license = "BUSL-1.1"
 description = "Session lifecycle, token tracking, cross-restart resumption via PG transcripts."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
-    "orxt-protocols",
-    "orxt-transport",
-    "orxt-trace",
+    "orxtra-protocols",
+    "orxtra-transport",
+    "orxtra-trace",
 ]
 keywords = ["rlsbl"]
 
@@ -17,9 +17,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/orxt"]
+packages = ["src/orxtra"]
 
 [tool.uv.sources]
-orxt-protocols = { workspace = true }
-orxt-transport = { workspace = true }
-orxt-trace = { workspace = true }
+orxtra-protocols = { workspace = true }
+orxtra-transport = { workspace = true }
+orxtra-trace = { workspace = true }

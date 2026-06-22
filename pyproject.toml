@@ -1,9 +1,9 @@
-# orxt -- single publishable package
+# orxtra -- single publishable package
 # Sub-projects remain as workspace members for development but are never published separately.
 # hatch force-include maps all 16 sub-project source dirs into the wheel.
 
 [project]
-name = "orxt"
+name = "orxtra"
 version = "0.1.0"
 license = "BUSL-1.1"
 description = "Autonomous multi-agent AI workflows"
@@ -21,7 +21,7 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [project.scripts]
-orxt = "orxt.cli._cli:main"
+orxtra = "orxtra.cli._cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -50,23 +50,23 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
-"protocols/src/orxt/protocols" = "orxt/protocols"
-"secrets/src/orxt/secrets" = "orxt/secrets"
-"write-safety/src/orxt/write_safety" = "orxt/write_safety"
-"transport/src/orxt/transport" = "orxt/transport"
-"agent/src/orxt/agent" = "orxt/agent"
-"tool/src/orxt/tool" = "orxt/tool"
-"verify/src/orxt/verify" = "orxt/verify"
-"trace/src/orxt/trace" = "orxt/trace"
-"notepad/src/orxt/notepad" = "orxt/notepad"
-"session/src/orxt/session" = "orxt/session"
-"scheduler/src/orxt/scheduler" = "orxt/scheduler"
-"overseer/src/orxt/overseer" = "orxt/overseer"
-"overseer/prompts" = "orxt/overseer/prompts"
-"knowledge-module/src/orxt/knowledge_module" = "orxt/knowledge_module"
-"services/src/orxt/services" = "orxt/services"
-"cli/src/orxt/cli" = "orxt/cli"
-"mcp/src/orxt/mcp" = "orxt/mcp"
+"protocols/src/orxtra/protocols" = "orxtra/protocols"
+"secrets/src/orxtra/secrets" = "orxtra/secrets"
+"write-safety/src/orxtra/write_safety" = "orxtra/write_safety"
+"transport/src/orxtra/transport" = "orxtra/transport"
+"agent/src/orxtra/agent" = "orxtra/agent"
+"tool/src/orxtra/tool" = "orxtra/tool"
+"verify/src/orxtra/verify" = "orxtra/verify"
+"trace/src/orxtra/trace" = "orxtra/trace"
+"notepad/src/orxtra/notepad" = "orxtra/notepad"
+"session/src/orxtra/session" = "orxtra/session"
+"scheduler/src/orxtra/scheduler" = "orxtra/scheduler"
+"overseer/src/orxtra/overseer" = "orxtra/overseer"
+"overseer/prompts" = "orxtra/overseer/prompts"
+"knowledge-module/src/orxtra/knowledge_module" = "orxtra/knowledge_module"
+"services/src/orxtra/services" = "orxtra/services"
+"cli/src/orxtra/cli" = "orxtra/cli"
+"mcp/src/orxtra/mcp" = "orxtra/mcp"
 
 [tool.uv.workspace]
 members = [
@@ -89,22 +89,22 @@ members = [
 ]
 
 [tool.uv.sources]
-orxt-protocols = { workspace = true }
-orxt-secrets = { workspace = true }
-orxt-write-safety = { workspace = true }
-orxt-transport = { workspace = true }
-orxt-agent = { workspace = true }
-orxt-tool = { workspace = true }
-orxt-verify = { workspace = true }
-orxt-trace = { workspace = true }
-orxt-notepad = { workspace = true }
-orxt-session = { workspace = true }
-orxt-scheduler = { workspace = true }
-orxt-overseer = { workspace = true }
-orxt-knowledge-module = { workspace = true }
-orxt-services = { workspace = true }
-orxt-cli = { workspace = true }
-orxt-mcp = { workspace = true }
+orxtra-protocols = { workspace = true }
+orxtra-secrets = { workspace = true }
+orxtra-write-safety = { workspace = true }
+orxtra-transport = { workspace = true }
+orxtra-agent = { workspace = true }
+orxtra-tool = { workspace = true }
+orxtra-verify = { workspace = true }
+orxtra-trace = { workspace = true }
+orxtra-notepad = { workspace = true }
+orxtra-session = { workspace = true }
+orxtra-scheduler = { workspace = true }
+orxtra-overseer = { workspace = true }
+orxtra-knowledge-module = { workspace = true }
+orxtra-services = { workspace = true }
+orxtra-cli = { workspace = true }
+orxtra-mcp = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -183,7 +183,7 @@ module = "testcontainers.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "orxt.cli._cli"
+module = "orxtra.cli._cli"
 disallow_untyped_decorators = false
 
 [tool.pydantic-mypy]
