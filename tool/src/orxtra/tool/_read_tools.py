@@ -11,6 +11,17 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import pathspec
+from orxtra.protocols._results import (
+    Confirmation,
+    DiffResult,
+    DirEntry,
+    DirListing,
+    FileContent,
+    FileStat,
+    GrepMatch,
+    GrepResult,
+    ToolOutput,
+)
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._path import PathError, resolve_and_check
 from orxtra.tool._preview import FullRetrievalGuard, check_and_preview
@@ -307,16 +318,22 @@ def make_read_tool(
     _ = previewer  # Reserved for future use
     guard = FullRetrievalGuard()
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[FileContent]:
         validate_args(args, _READ_SCHEMA)
         resolved = _resolve_path(args["path"], read_root)
         _require_file(resolved, args["path"])
 
         if _is_binary(resolved):
-            return "Binary file, cannot display"
+            text = "Binary file, cannot display"
+            return ToolOutput(
+                data=FileContent(content=text, is_preview=False, total_lines=0, total_bytes=0),
+                text=text,
+            )
 
-        text = _read_text_file(resolved)
-        all_lines = text.splitlines()
+        raw_text = _read_text_file(resolved)
+        all_lines = raw_text.splitlines()
+        total_bytes = len(raw_text.encode("utf-8"))
+        total_lines = len(all_lines)
         offset = args.get("offset", 1)
         limit = args.get("limit")
         full = args.get("full", False)
@@ -332,19 +349,34 @@ def make_read_tool(
 
         if full:
             if not guard.check_full_allowed(session_id, path_str):
-                return (
+                msg = (
                     "Cannot retrieve full content: no preview was "
                     "previously returned for this file. Read the file "
                     "first without full=true."
                 )
-            return _format_with_line_numbers(selected, start_lineno)
+                return ToolOutput(
+                    data=FileContent(content=msg, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+                    text=msg,
+                )
+            formatted = _format_with_line_numbers(selected, start_lineno)
+            return ToolOutput(
+                data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+                text=formatted,
+            )
 
         result = check_and_preview(content, preview_threshold, preview_lines)
         if result.is_preview:
             guard.record_preview(session_id, path_str)
-            return result.content
+            return ToolOutput(
+                data=FileContent(content=content, is_preview=True, total_lines=total_lines, total_bytes=total_bytes),
+                text=result.content,
+            )
 
-        return _format_with_line_numbers(selected, start_lineno)
+        formatted = _format_with_line_numbers(selected, start_lineno)
+        return ToolOutput(
+            data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+            text=formatted,
+        )
 
     return Tool(
         name="read",
@@ -439,7 +471,7 @@ def make_list_dir_tool(read_root: Path) -> Tool:
         read_root: Root directory for path containment.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[DirListing]:
         validate_args(args, _LIST_DIR_SCHEMA)
         resolved = _resolve_path(args["path"], read_root)
         _require_dir(resolved, args["path"])
@@ -450,20 +482,32 @@ def make_list_dir_tool(read_root: Path) -> Tool:
 
         gitignore = _load_gitignore(read_root)
         if recursive:
-            entries = _list_recursive(resolved, pattern, gitignore)
+            raw_entries = _list_recursive(resolved, pattern, gitignore)
         else:
-            entries = _list_immediate(resolved, pattern, gitignore)
+            raw_entries = _list_immediate(resolved, pattern, gitignore)
 
-        entries.sort(key=lambda e: e[2])
+        raw_entries.sort(key=lambda e: e[2])
 
-        truncated = len(entries) > max_results
-        entries = entries[:max_results]
+        truncated = len(raw_entries) > max_results
+        raw_entries = raw_entries[:max_results]
 
-        lines = [f"{etype}\t{esize}\t{epath}" for etype, esize, epath in entries]
+        dir_entries = [
+            DirEntry(
+                type=etype,
+                size=int(esize) if esize != "-" and esize != "?" else None,
+                path=epath,
+            )
+            for etype, esize, epath in raw_entries
+        ]
+
+        lines = [f"{etype}\t{esize}\t{epath}" for etype, esize, epath in raw_entries]
         if truncated:
             lines.append(f"(truncated at {max_results} results)")
 
-        return "\n".join(lines)
+        return ToolOutput(
+            data=DirListing(entries=dir_entries, truncated=truncated),
+            text="\n".join(lines),
+        )
 
     return Tool(
         name="list_dir",
@@ -480,7 +524,7 @@ def make_glob_tool(read_root: Path) -> Tool:
         read_root: Root directory for path containment.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[DirListing]:
         validate_args(args, _GLOB_SCHEMA)
 
         base_path_str = args.get("path")
@@ -508,14 +552,25 @@ def make_glob_tool(read_root: Path) -> Tool:
         truncated = len(results) > max_results
         results = results[:max_results]
 
+        dir_entries = [
+            DirEntry(type="file", size=None, path=rel)
+            for rel in results
+        ]
+
         lines = results.copy()
         if truncated:
             lines.append(f"(truncated at {max_results} results)")
 
         if not lines:
-            return "No matches found."
+            return ToolOutput(
+                data=DirListing(entries=[], truncated=False),
+                text="No matches found.",
+            )
 
-        return "\n".join(lines)
+        return ToolOutput(
+            data=DirListing(entries=dir_entries, truncated=truncated),
+            text="\n".join(lines),
+        )
 
     return Tool(
         name="glob",
@@ -648,7 +703,7 @@ def make_grep_tool(
         preview_lines: Number of head/tail lines in a preview.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[GrepResult]:
         validate_args(args, _GREP_SCHEMA)
 
         case_sensitive = args.get("case_sensitive", True)
@@ -669,6 +724,7 @@ def make_grep_tool(
         output_lines: list[str] = []
         total_match_count = 0
         matched_files: list[str] = []
+        grep_matches: list[GrepMatch] = []
         hit_limit = False
 
         files = _grep_iter_files(search_path, read_root, include)
@@ -696,13 +752,19 @@ def make_grep_tool(
                     hit_limit = True
                     break
             elif mode == "content":
+                for line_str in file_out:
+                    parts = line_str.split(":", 2)
+                    if len(parts) >= 3:  # noqa: PLR2004
+                        grep_matches.append(GrepMatch(
+                            file=parts[0], line_number=int(parts[1]), line=parts[2],
+                        ))
                 output_lines.extend(file_out)
                 if len(output_lines) >= max_results:
                     hit_limit = True
                     output_lines = output_lines[:max_results]
                     break
 
-        return _grep_format_results(
+        text = _grep_format_results(
             mode,
             output_lines,
             matched_files,
@@ -711,6 +773,14 @@ def make_grep_tool(
             hit_limit,
             preview_threshold,
             preview_lines,
+        )
+        return ToolOutput(
+            data=GrepResult(
+                matches=grep_matches,
+                mode=mode,
+                count=total_match_count if mode == "count" else None,
+            ),
+            text=text,
         )
 
     return Tool(
@@ -728,7 +798,7 @@ def make_stat_tool(read_root: Path) -> Tool:
         read_root: Root directory for path containment.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[FileStat | list[FileStat]]:
         validate_args(args, _STAT_SCHEMA)
         raw_path = args["path"]
 
@@ -739,11 +809,24 @@ def make_stat_tool(read_root: Path) -> Tool:
             base = _resolve_path(".", read_root)
             matches = _glob_within_root(base, raw_path, root_resolved)
             results = [_stat_single(m, root_resolved) for m in matches]
-            return json.dumps(results, indent=2)
+            stats = [
+                FileStat(
+                    path=r["path"], exists=r["exists"], byte_size=r["byte_size"],
+                    line_count=r["line_count"], language=r["language"],
+                    mtime=r["mtime"], binary=r.get("binary", False),
+                )
+                for r in results
+            ]
+            return ToolOutput(data=stats, text=json.dumps(results, indent=2))
 
         resolved = _resolve_path(raw_path, read_root)
         info = _stat_single(resolved, root_resolved)
-        return json.dumps(info, indent=2)
+        stat_data = FileStat(
+            path=info["path"], exists=info["exists"], byte_size=info["byte_size"],
+            line_count=info["line_count"], language=info["language"],
+            mtime=info["mtime"], binary=info.get("binary", False),
+        )
+        return ToolOutput(data=stat_data, text=json.dumps(info, indent=2))
 
     return Tool(
         name="stat",
@@ -809,7 +892,7 @@ def make_diff_tool(read_root: Path) -> Tool:
         read_root: Root directory for path containment.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[DiffResult]:
         validate_args(args, _DIFF_SCHEMA)
 
         resolved_a = _resolve_path(args["path_a"], read_root)
@@ -839,11 +922,17 @@ def make_diff_tool(read_root: Path) -> Tool:
             tofile=label_b,
         )
 
-        result = "".join(diff)
-        if not result:
-            return "Files are identical."
+        diff_text = "".join(diff)
+        identical = not diff_text
+        if identical:
+            display_text = "Files are identical."
+        else:
+            display_text = diff_text
 
-        return result
+        return ToolOutput(
+            data=DiffResult(diff=diff_text, identical=identical),
+            text=display_text,
+        )
 
     return Tool(
         name="diff",

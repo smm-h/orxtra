@@ -50,7 +50,7 @@ class TestMakeReadTool:
         """Reading an existing file returns content with cat -n line numbers."""
         _write(tmp_path / "hello.txt", "alpha\nbeta\ngamma\n")
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"path": "hello.txt"})
+        result = (await tool.execute({"path": "hello.txt"})).text
         assert "1\talpha" in result
         assert "2\tbeta" in result
         assert "3\tgamma" in result
@@ -61,7 +61,7 @@ class TestMakeReadTool:
         lines = "\n".join(f"line{i}" for i in range(1, 11))
         _write(tmp_path / "ten.txt", lines)
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"path": "ten.txt", "offset": 3, "limit": 2})
+        result = (await tool.execute({"path": "ten.txt", "offset": 3, "limit": 2})).text
         assert "line3" in result
         assert "line4" in result
         assert "line2" not in result
@@ -79,7 +79,7 @@ class TestMakeReadTool:
         """Reading a binary file returns the binary rejection message."""
         _write_binary(tmp_path / "bin.dat", b"\x00\x01\x02\xff")
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"path": "bin.dat"})
+        result = (await tool.execute({"path": "bin.dat"})).text
         assert result == "Binary file, cannot display"
 
     @pytest.mark.asyncio
@@ -96,7 +96,7 @@ class TestMakeReadTool:
         _write(tmp_path / "large.txt", content)
         # Low threshold so even small content triggers preview
         tool = make_read_tool(tmp_path, preview_threshold=10, preview_lines=3)
-        result = await tool.execute({"path": "large.txt"})
+        result = (await tool.execute({"path": "large.txt"})).text
         assert "omitted" in result
         assert "total lines" in result
 
@@ -107,10 +107,10 @@ class TestMakeReadTool:
         _write(tmp_path / "big.txt", content)
         tool = make_read_tool(tmp_path, preview_threshold=10, preview_lines=3)
         # First call triggers preview
-        first = await tool.execute({"path": "big.txt"})
+        first = (await tool.execute({"path": "big.txt"})).text
         assert "omitted" in first
         # Second call with full=true returns all content
-        second = await tool.execute({"path": "big.txt", "full": True})
+        second = (await tool.execute({"path": "big.txt", "full": True})).text
         assert "omitted" not in second
         assert "line-1" in second
         assert "line-20" in second
@@ -126,7 +126,7 @@ class TestMakeReadTool:
         _write(tmp_path / "nope.txt", content)
         tool = make_read_tool(tmp_path, preview_threshold=10, preview_lines=3)
         # Call with full=true directly (no preview first)
-        result = await tool.execute({"path": "nope.txt", "full": True})
+        result = (await tool.execute({"path": "nope.txt", "full": True})).text
         # Returns an error string, not an exception
         assert "Cannot retrieve full content" in result
         assert "no preview was previously returned" in result
@@ -136,7 +136,7 @@ class TestMakeReadTool:
         """Reading an empty file returns empty string."""
         _write(tmp_path / "empty.txt", "")
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"path": "empty.txt"})
+        result = (await tool.execute({"path": "empty.txt"})).text
         assert result == ""
 
     @pytest.mark.asyncio
@@ -144,7 +144,7 @@ class TestMakeReadTool:
         """Reading a file with unicode characters works correctly."""
         _write(tmp_path / "unicode.txt", "cafe\nresidue\nnaiive")
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"path": "unicode.txt"})
+        result = (await tool.execute({"path": "unicode.txt"})).text
         assert "cafe" in result
         assert "naiive" in result
 
@@ -153,7 +153,7 @@ class TestMakeReadTool:
         """Offset beyond file length returns empty content."""
         _write(tmp_path / "short.txt", "one\ntwo\nthree")
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"path": "short.txt", "offset": 100})
+        result = (await tool.execute({"path": "short.txt", "offset": 100})).text
         assert result == ""
 
     @pytest.mark.asyncio
@@ -162,7 +162,7 @@ class TestMakeReadTool:
         lines = "\n".join(f"x{i}" for i in range(1, 12))
         _write(tmp_path / "aligned.txt", lines)
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=20)
-        result = await tool.execute({"path": "aligned.txt"})
+        result = (await tool.execute({"path": "aligned.txt"})).text
         # Lines 1-9 should be right-aligned to width of "11"
         result_lines = result.split("\n")
         # First line: " 1\tx1" (space-padded to width 2)
@@ -175,7 +175,7 @@ class TestMakeReadTool:
         """Reading a file in a subdirectory works."""
         _write(tmp_path / "sub" / "deep.txt", "nested content")
         tool = make_read_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"path": "sub/deep.txt"})
+        result = (await tool.execute({"path": "sub/deep.txt"})).text
         assert "nested content" in result
 
 
@@ -193,7 +193,7 @@ class TestMakeListDirTool:
         _write(tmp_path / "file.txt", "hello")
         (tmp_path / "subdir").mkdir()
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         assert "file\t5\tfile.txt" in result
         assert "dir\t-\tsubdir" in result
 
@@ -203,7 +203,7 @@ class TestMakeListDirTool:
         (tmp_path / "a").mkdir()
         _write(tmp_path / "a" / "nested.txt", "data")
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": ".", "recursive": True})
+        result = (await tool.execute({"path": ".", "recursive": True})).text
         assert "a" in result
         assert "nested.txt" in result
 
@@ -213,7 +213,7 @@ class TestMakeListDirTool:
         _write(tmp_path / "yes.py", "code")
         _write(tmp_path / "no.txt", "text")
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": ".", "pattern": "*.py"})
+        result = (await tool.execute({"path": ".", "pattern": "*.py"})).text
         assert "yes.py" in result
         assert "no.txt" not in result
 
@@ -223,7 +223,7 @@ class TestMakeListDirTool:
         for i in range(10):
             _write(tmp_path / f"f{i}.txt", "x")
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": ".", "max_results": 3})
+        result = (await tool.execute({"path": ".", "max_results": 3})).text
         assert "(truncated at 3 results)" in result
 
     @pytest.mark.asyncio
@@ -231,7 +231,7 @@ class TestMakeListDirTool:
         """Empty directory returns empty result."""
         (tmp_path / "empty").mkdir()
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "empty"})
+        result = (await tool.execute({"path": "empty"})).text
         assert result == ""
 
     @pytest.mark.asyncio
@@ -256,7 +256,7 @@ class TestMakeListDirTool:
         _write(tmp_path / "a.txt", "x")
         _write(tmp_path / "b.txt", "x")
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         lines = result.strip().split("\n")
         paths = [line.split("\t")[2] for line in lines]
         assert paths == sorted(paths)
@@ -277,7 +277,7 @@ class TestMakeGlobTool:
         _write(tmp_path / "b.py", "code")
         _write(tmp_path / "c.txt", "text")
         tool = make_glob_tool(tmp_path)
-        result = await tool.execute({"pattern": "*.py"})
+        result = (await tool.execute({"pattern": "*.py"})).text
         assert "a.py" in result
         assert "b.py" in result
         assert "c.txt" not in result
@@ -288,7 +288,7 @@ class TestMakeGlobTool:
         _write(tmp_path / "top.py", "x")
         _write(tmp_path / "sub" / "deep.py", "x")
         tool = make_glob_tool(tmp_path)
-        result = await tool.execute({"pattern": "**/*.py"})
+        result = (await tool.execute({"pattern": "**/*.py"})).text
         assert "top.py" in result
         assert "deep.py" in result
 
@@ -296,7 +296,7 @@ class TestMakeGlobTool:
     async def test_no_matches(self, tmp_path: Path) -> None:
         """No matches returns 'No matches found.'."""
         tool = make_glob_tool(tmp_path)
-        result = await tool.execute({"pattern": "*.xyz"})
+        result = (await tool.execute({"pattern": "*.xyz"})).text
         assert result == "No matches found."
 
     @pytest.mark.asyncio
@@ -305,7 +305,7 @@ class TestMakeGlobTool:
         for i in range(10):
             _write(tmp_path / f"f{i}.txt", "x")
         tool = make_glob_tool(tmp_path)
-        result = await tool.execute({"pattern": "*.txt", "max_results": 3})
+        result = (await tool.execute({"pattern": "*.txt", "max_results": 3})).text
         lines = [x for x in result.strip().split("\n") if not x.startswith("(")]
         assert len(lines) == 3
 
@@ -316,7 +316,7 @@ class TestMakeGlobTool:
         _write(tmp_path / "a.txt", "x")
         _write(tmp_path / "b.txt", "x")
         tool = make_glob_tool(tmp_path)
-        result = await tool.execute({"pattern": "*.txt"})
+        result = (await tool.execute({"pattern": "*.txt"})).text
         lines = result.strip().split("\n")
         assert lines == sorted(lines)
 
@@ -326,7 +326,7 @@ class TestMakeGlobTool:
         _write(tmp_path / "sub" / "found.txt", "x")
         _write(tmp_path / "other.txt", "x")
         tool = make_glob_tool(tmp_path)
-        result = await tool.execute({"pattern": "*.txt", "path": "sub"})
+        result = (await tool.execute({"pattern": "*.txt", "path": "sub"})).text
         assert "found.txt" in result
         assert "other.txt" not in result
 
@@ -344,7 +344,7 @@ class TestMakeGrepTool:
         """Simple pattern match returns file:line:content format."""
         _write(tmp_path / "code.py", "def foo():\n    return 42\n")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"pattern": "foo"})
+        result = (await tool.execute({"pattern": "foo"})).text
         assert "code.py:1:def foo():" in result
 
     @pytest.mark.asyncio
@@ -352,9 +352,9 @@ class TestMakeGrepTool:
         """Case insensitive search finds matches regardless of case."""
         _write(tmp_path / "text.txt", "Hello World\ngoodbye world\n")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute(
+        result = (await tool.execute(
             {"pattern": "hello", "case_sensitive": False}
-        )
+        )).text
         assert "Hello World" in result
 
     @pytest.mark.asyncio
@@ -363,9 +363,9 @@ class TestMakeGrepTool:
         lines = "before1\nbefore2\nMATCH\nafter1\nafter2"
         _write(tmp_path / "ctx.txt", lines)
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute(
+        result = (await tool.execute(
             {"pattern": "MATCH", "context_lines": 1}
-        )
+        )).text
         assert "before2" in result
         assert "after1" in result
 
@@ -375,9 +375,9 @@ class TestMakeGrepTool:
         _write(tmp_path / "a.txt", "needle here")
         _write(tmp_path / "b.txt", "nothing here")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute(
+        result = (await tool.execute(
             {"pattern": "needle", "mode": "files_only"}
-        )
+        )).text
         assert "a.txt" in result
         # files_only should not contain line numbers or content
         assert ":" not in result
@@ -387,7 +387,7 @@ class TestMakeGrepTool:
         """count mode returns the total match count number."""
         _write(tmp_path / "rep.txt", "aaa\naaa\nbbb\naaa\n")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"pattern": "aaa", "mode": "count"})
+        result = (await tool.execute({"pattern": "aaa", "mode": "count"})).text
         assert result == "3"
 
     @pytest.mark.asyncio
@@ -396,7 +396,7 @@ class TestMakeGrepTool:
         _write(tmp_path / "search.py", "target line")
         _write(tmp_path / "search.txt", "target line")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"pattern": "target", "include": "*.py"})
+        result = (await tool.execute({"pattern": "target", "include": "*.py"})).text
         assert "search.py" in result
         assert "search.txt" not in result
 
@@ -405,7 +405,7 @@ class TestMakeGrepTool:
         """No matches returns 'No matches found.'."""
         _write(tmp_path / "empty.txt", "nothing relevant here\n")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"pattern": "zzzzzzz"})
+        result = (await tool.execute({"pattern": "zzzzzzz"})).text
         assert result == "No matches found."
 
     @pytest.mark.asyncio
@@ -421,7 +421,7 @@ class TestMakeGrepTool:
         _write(tmp_path / ".hidden" / "secret.txt", "findme")
         _write(tmp_path / "visible" / "public.txt", "findme")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"pattern": "findme"})
+        result = (await tool.execute({"pattern": "findme"})).text
         assert "visible" in result
         assert ".hidden" not in result
 
@@ -431,7 +431,7 @@ class TestMakeGrepTool:
         _write_binary(tmp_path / "bin.dat", b"\x00findme\xff")
         _write(tmp_path / "text.txt", "findme here")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"pattern": "findme"})
+        result = (await tool.execute({"pattern": "findme"})).text
         assert "text.txt" in result
         assert "bin.dat" not in result
 
@@ -440,7 +440,7 @@ class TestMakeGrepTool:
         """Default case_sensitive=true does not match different case."""
         _write(tmp_path / "case.txt", "UPPER\nlower\n")
         tool = make_grep_tool(tmp_path, preview_threshold=10000, preview_lines=5)
-        result = await tool.execute({"pattern": "upper"})
+        result = (await tool.execute({"pattern": "upper"})).text
         assert result == "No matches found."
 
 
@@ -457,7 +457,7 @@ class TestMakeStatTool:
         """File stat returns all expected metadata fields."""
         _write(tmp_path / "info.py", "x = 1\ny = 2\n")
         tool = make_stat_tool(tmp_path)
-        result = await tool.execute({"path": "info.py"})
+        result = (await tool.execute({"path": "info.py"})).text
         info = json.loads(result)
         assert info["exists"] is True
         assert info["byte_size"] > 0
@@ -470,7 +470,7 @@ class TestMakeStatTool:
     async def test_nonexistent_file_stat(self, tmp_path: Path) -> None:
         """Non-existent file returns exists=false with null fields."""
         tool = make_stat_tool(tmp_path)
-        result = await tool.execute({"path": "ghost.txt"})
+        result = (await tool.execute({"path": "ghost.txt"})).text
         info = json.loads(result)
         assert info["exists"] is False
         assert info["byte_size"] is None
@@ -485,7 +485,7 @@ class TestMakeStatTool:
         _write(tmp_path / "a.py", "x")
         _write(tmp_path / "b.py", "y")
         tool = make_stat_tool(tmp_path)
-        result = await tool.execute({"path": "*.py"})
+        result = (await tool.execute({"path": "*.py"})).text
         info = json.loads(result)
         assert isinstance(info, list)
         assert len(info) == 2
@@ -498,7 +498,7 @@ class TestMakeStatTool:
         """Binary file is detected in stat output."""
         _write_binary(tmp_path / "bin.dat", b"\x00\x01\x02\xff")
         tool = make_stat_tool(tmp_path)
-        result = await tool.execute({"path": "bin.dat"})
+        result = (await tool.execute({"path": "bin.dat"})).text
         info = json.loads(result)
         assert info["binary"] is True
         assert info["line_count"] is None
@@ -508,7 +508,7 @@ class TestMakeStatTool:
         """Language is detected from file extension."""
         _write(tmp_path / "style.css", "body {}")
         tool = make_stat_tool(tmp_path)
-        result = await tool.execute({"path": "style.css"})
+        result = (await tool.execute({"path": "style.css"})).text
         info = json.loads(result)
         assert info["language"] == "css"
 
@@ -517,7 +517,7 @@ class TestMakeStatTool:
         """Unknown extension returns null language."""
         _write(tmp_path / "data.zzz", "stuff")
         tool = make_stat_tool(tmp_path)
-        result = await tool.execute({"path": "data.zzz"})
+        result = (await tool.execute({"path": "data.zzz"})).text
         info = json.loads(result)
         assert info["language"] is None
 
@@ -536,7 +536,7 @@ class TestMakeDiffTool:
         _write(tmp_path / "a.txt", "line1\nline2\nline3\n")
         _write(tmp_path / "b.txt", "line1\nchanged\nline3\n")
         tool = make_diff_tool(tmp_path)
-        result = await tool.execute({"path_a": "a.txt", "path_b": "b.txt"})
+        result = (await tool.execute({"path_a": "a.txt", "path_b": "b.txt"})).text
         assert "---" in result
         assert "+++" in result
         assert "-line2" in result
@@ -548,7 +548,7 @@ class TestMakeDiffTool:
         _write(tmp_path / "same1.txt", "identical content\n")
         _write(tmp_path / "same2.txt", "identical content\n")
         tool = make_diff_tool(tmp_path)
-        result = await tool.execute({"path_a": "same1.txt", "path_b": "same2.txt"})
+        result = (await tool.execute({"path_a": "same1.txt", "path_b": "same2.txt"})).text
         assert result == "Files are identical."
 
     @pytest.mark.asyncio
@@ -574,9 +574,9 @@ class TestMakeDiffTool:
         _write(tmp_path / "sub" / "orig.txt", "old\n")
         _write(tmp_path / "sub" / "new.txt", "new\n")
         tool = make_diff_tool(tmp_path)
-        result = await tool.execute(
+        result = (await tool.execute(
             {"path_a": "sub/orig.txt", "path_b": "sub/new.txt"}
-        )
+        )).text
         # Labels in unified diff header should be relative
         assert "sub/orig.txt" in result
         assert "sub/new.txt" in result

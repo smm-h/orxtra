@@ -50,7 +50,7 @@ class TestStartTaskTool:
     async def test_returns_scheduler_response(self) -> None:
         scheduler = _mock_scheduler(return_value="Task started")
         tool = make_start_task_tool(scheduler, _SESSION_ID)
-        result = await tool.execute({"task_id": "t1"})
+        result = (await tool.execute({"task_id": "t1"})).text
         assert result == "Task started"
 
     @pytest.mark.asyncio
@@ -85,7 +85,7 @@ class TestEndTaskTool:
     async def test_returns_scheduler_response(self) -> None:
         scheduler = _mock_scheduler(return_value="Task ended")
         tool = make_end_task_tool(scheduler, _SESSION_ID)
-        result = await tool.execute({"message": "Done"})
+        result = (await tool.execute({"message": "Done"})).text
         assert result == "Task ended"
 
     @pytest.mark.asyncio
@@ -165,7 +165,7 @@ class TestCreateTaskTool:
             "timeout": 600,
             "context_refinement": True,
         }
-        result = await tool.execute(args)
+        result = (await tool.execute(args)).text
         assert result == "task-abc"
 
     def test_tool_name_is_create_task(self) -> None:
@@ -243,7 +243,7 @@ class TestCreateWorkflowTool:
             "description": "A test workflow",
             "goals": ["goal-1"],
         }
-        result = await tool.execute(args)
+        result = (await tool.execute(args)).text
         assert result == "wf-1"
 
     def test_tool_name_is_create_workflow(self) -> None:
@@ -309,7 +309,7 @@ class TestCreateWaitForTool:
             "event_name": "signal",
             "timeout": 30,
         }
-        result = await tool.execute(args)
+        result = (await tool.execute(args)).text
         assert result == "task-w1"
 
     def test_tool_name_is_create_wait_for(self) -> None:

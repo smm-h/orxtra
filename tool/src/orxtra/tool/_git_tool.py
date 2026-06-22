@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
+from orxtra.protocols._results import GitOutput, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._validation import validate_args
 
@@ -185,7 +186,7 @@ def make_git_tool(
 
     allowed = set(allowed_subcommands)
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[GitOutput]:
         validate_args(arguments, _PARAMETERS)
 
         subcommand: str = arguments["subcommand"]
@@ -197,11 +198,18 @@ def make_git_tool(
 
         if subcommand in _READ_HANDLERS:
             handler = _READ_HANDLERS[subcommand]
-            result: str = await handler(args, read_root)
-            return result
+            result_text: str = await handler(args, read_root)
+            return ToolOutput(
+                data=GitOutput(output=result_text, subcommand=subcommand, exit_code=0),
+                text=result_text,
+            )
 
         if subcommand == "commit":
-            return await _handle_commit(args, read_root, run_context)
+            result_text = await _handle_commit(args, read_root, run_context)
+            return ToolOutput(
+                data=GitOutput(output=result_text, subcommand=subcommand, exit_code=0),
+                text=result_text,
+            )
 
         # Should be unreachable due to the allowed check above
         msg = f"No handler for subcommand '{subcommand}'"

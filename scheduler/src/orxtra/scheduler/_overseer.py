@@ -262,6 +262,7 @@ class OverseerAdapter:
     def _gate_tool(self, tool: Tool) -> Tool:
         """Wrap a single tool with autonomy gating."""
         from orxtra.protocols._autonomy import is_autonomous  # noqa: PLC0415
+        from orxtra.protocols._results import Confirmation, ToolOutput  # noqa: PLC0415
         from orxtra.protocols._tool import Tool as ToolCls  # noqa: PLC0415
 
         action_type = TOOL_ACTION_TYPES.get(
@@ -276,14 +277,18 @@ class OverseerAdapter:
 
         async def _gated_execute(
             args: dict[str, Any],
-        ) -> str:
+        ) -> ToolOutput[Confirmation]:
             _ = args
-            return (
+            msg = (
                 f"Action blocked: tool"
                 f" '{tool.name}' requires"
                 f" '{action_type}' autonomy"
                 f" (current level:"
                 f" '{level_value}')."
+            )
+            return ToolOutput(
+                data=Confirmation(message=msg),
+                text=msg,
             )
 
         return ToolCls(

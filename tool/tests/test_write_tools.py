@@ -53,7 +53,7 @@ class TestWriteTool:
         """Writing a new file creates it with the correct content."""
         tool = make_write_tool(tmp_path, None, queue, tracker, "s1")
         target = tmp_path / "new.txt"
-        result = await tool.execute({"path": str(target), "content": "hello"})
+        result = (await tool.execute({"path": str(target), "content": "hello"})).text
         assert target.read_text() == "hello"
         assert str(target) in result
 
@@ -197,11 +197,11 @@ class TestEditTool:
         target.write_text("hello world")
 
         tool = make_edit_tool(tmp_path, None, queue, tracker, "s1")
-        result = await tool.execute({
+        result = (await tool.execute({
             "path": str(target),
             "old_string": "world",
             "new_string": "earth",
-        })
+        })).text
         assert target.read_text() == "hello earth"
         assert result == f"Edited {target}"
 
@@ -255,12 +255,12 @@ class TestEditTool:
         target.write_text("aaa bbb aaa")
 
         tool = make_edit_tool(tmp_path, None, queue, tracker, "s1")
-        result = await tool.execute({
+        result = (await tool.execute({
             "path": str(target),
             "old_string": "aaa",
             "new_string": "ccc",
             "replace_all": True,
-        })
+        })).text
         assert target.read_text() == "ccc bbb ccc"
         assert "2 replacements" in result
 
@@ -371,7 +371,7 @@ class TestMkdirTool:
         """Creates a new directory."""
         tool = make_mkdir_tool(tmp_path, None)
         target = tmp_path / "newdir"
-        result = await tool.execute({"path": str(target)})
+        result = (await tool.execute({"path": str(target)})).text
         assert target.is_dir()
         assert str(target) in result
 
@@ -389,7 +389,7 @@ class TestMkdirTool:
         tool = make_mkdir_tool(tmp_path, None)
         target = tmp_path / "existing"
         target.mkdir()
-        result = await tool.execute({"path": str(target)})
+        result = (await tool.execute({"path": str(target)})).text
         assert target.is_dir()
         assert str(target) in result
 
@@ -425,10 +425,10 @@ class TestMoveTool:
         dst = tmp_path / "dst.txt"
 
         tool = make_move_tool(tmp_path, None, queue, tracker, "s1")
-        result = await tool.execute({
+        result = (await tool.execute({
             "source": str(src),
             "destination": str(dst),
-        })
+        })).text
         assert not src.exists()
         assert dst.read_text() == "content"
         assert str(src) in result
@@ -534,10 +534,10 @@ class TestCopyTool:
         dst = tmp_path / "dst.txt"
 
         tool = make_copy_tool(tmp_path, None, queue, tracker, "s1")
-        result = await tool.execute({
+        result = (await tool.execute({
             "source": str(src),
             "destination": str(dst),
-        })
+        })).text
         assert src.read_text() == "content"
         assert dst.read_text() == "content"
         assert str(src) in result
@@ -643,11 +643,11 @@ class TestDeleteTool:
         with patch(
             "asyncio.create_subprocess_exec", return_value=mock_proc,
         ) as mock_exec:
-            result = await tool.execute({
+            result = (await tool.execute({
                 "path": str(target),
                 "description": "test deletion",
                 "recursive": False,
-            })
+            })).text
 
         mock_exec.assert_called_once()
         call_args = mock_exec.call_args[0]
@@ -777,7 +777,7 @@ class TestSetExecutableTool:
         target.chmod(0o644)
 
         tool = make_set_executable_tool(tmp_path, None)
-        result = await tool.execute({"path": str(target)})
+        result = (await tool.execute({"path": str(target)})).text
         mode = target.stat().st_mode
         assert mode & stat.S_IXUSR
         assert mode & stat.S_IXGRP
@@ -792,7 +792,7 @@ class TestSetExecutableTool:
         target.chmod(0o755)
 
         tool = make_set_executable_tool(tmp_path, None)
-        result = await tool.execute({"path": str(target)})
+        result = (await tool.execute({"path": str(target)})).text
         mode = target.stat().st_mode
         assert mode & stat.S_IXUSR
         assert str(target) in result

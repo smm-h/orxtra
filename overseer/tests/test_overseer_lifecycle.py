@@ -53,8 +53,9 @@ class MockSession:
         return "test-session-id"
 
 
-async def _noop_execute(args: dict[str, Any]) -> str:
-    return "ok"
+async def _noop_execute(args: dict[str, Any]) -> Any:
+    from orxtra.protocols._results import Confirmation, ToolOutput
+    return ToolOutput(data=Confirmation(message="ok"), text="ok")
 
 
 def _make_tool(name: str) -> Tool:

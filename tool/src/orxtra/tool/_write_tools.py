@@ -6,6 +6,7 @@ import asyncio
 import shutil
 from typing import TYPE_CHECKING, Any
 
+from orxtra.protocols._results import Confirmation, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._path import PathError, check_write_scope, resolve_and_check
 from orxtra.tool._validation import validate_args
@@ -137,7 +138,7 @@ def make_write_tool(
         session_id: The session performing writes.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(args, _WRITE_SCHEMA)
         resolved = _resolve_path(args["path"], read_root)
         _check_scope(resolved, write_scope, read_root)
@@ -155,7 +156,8 @@ def make_write_tool(
             session_id,
             is_new_file=is_new_file,
         )
-        return f"Wrote {resolved}"
+        msg = f"Wrote {resolved}"
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="write",
@@ -182,7 +184,7 @@ def make_edit_tool(
         session_id: The session performing writes.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(args, _EDIT_SCHEMA)
         resolved = _resolve_path(args["path"], read_root)
         _check_scope(resolved, write_scope, read_root)
@@ -220,8 +222,10 @@ def make_edit_tool(
         )
 
         if replace_all:
-            return f"Edited {resolved} ({count} replacements)"
-        return f"Edited {resolved}"
+            msg = f"Edited {resolved} ({count} replacements)"
+        else:
+            msg = f"Edited {resolved}"
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="edit",
@@ -242,13 +246,14 @@ def make_mkdir_tool(
         write_scope: Allowed write paths, or None for unrestricted.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(args, _MKDIR_SCHEMA)
         resolved = _resolve_path(args["path"], read_root)
         _check_scope(resolved, write_scope, read_root)
 
         resolved.mkdir(parents=True, exist_ok=True)
-        return f"Created {resolved}"
+        msg = f"Created {resolved}"
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="mkdir",
@@ -278,7 +283,7 @@ def make_move_tool(
     # are captured for future write-safety integration on move operations.
     _ = queue, tracker, session_id
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(args, _MOVE_SCHEMA)
         resolved_src = _resolve_path(args["source"], read_root)
         resolved_dst = _resolve_path(args["destination"], read_root)
@@ -290,7 +295,8 @@ def make_move_tool(
             raise ToolError(msg)
 
         resolved_src.rename(resolved_dst)
-        return f"Moved {resolved_src} -> {resolved_dst}"
+        msg = f"Moved {resolved_src} -> {resolved_dst}"
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="move",
@@ -320,7 +326,7 @@ def make_copy_tool(
     # are captured for future write-safety integration on copy operations.
     _ = queue, tracker, session_id
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(args, _COPY_SCHEMA)
         resolved_src = _resolve_path(args["source"], read_root)
         resolved_dst = _resolve_path(args["destination"], read_root)
@@ -336,7 +342,8 @@ def make_copy_tool(
             raise ToolError(msg)
 
         shutil.copy2(resolved_src, resolved_dst)
-        return f"Copied {resolved_src} -> {resolved_dst}"
+        msg = f"Copied {resolved_src} -> {resolved_dst}"
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="copy",
@@ -357,7 +364,7 @@ def make_delete_tool(
         write_scope: Allowed write paths, or None for unrestricted.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(args, _DELETE_SCHEMA)
         resolved = _resolve_path(args["path"], read_root)
         _check_scope(resolved, write_scope, read_root)
@@ -389,7 +396,8 @@ def make_delete_tool(
             msg = f"saferm failed (exit {proc.returncode}): {stderr}"
             raise ToolError(msg)
 
-        return f"Deleted {resolved}"
+        msg = f"Deleted {resolved}"
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="delete",
@@ -410,7 +418,7 @@ def make_set_executable_tool(
         write_scope: Allowed write paths, or None for unrestricted.
     """
 
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(args, _SET_EXECUTABLE_SCHEMA)
         resolved = _resolve_path(args["path"], read_root)
         _check_scope(resolved, write_scope, read_root)
@@ -423,7 +431,8 @@ def make_set_executable_tool(
             raise ToolError(msg)
 
         resolved.chmod(resolved.stat().st_mode | 0o111)
-        return f"Set executable: {resolved}"
+        msg = f"Set executable: {resolved}"
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="set_executable",

@@ -372,9 +372,10 @@ class MockTransport:
 
             if "start_task" in tool_map:
                 try:
-                    start_result = await tool_map[
+                    start_output = await tool_map[
                         "start_task"
                     ].execute({"task_id": task_id_str})
+                    start_result = start_output.text
                 except ToolError as e:
                     start_result = f"Error: {e}"
                 yield ToolUse(
@@ -386,11 +387,12 @@ class MockTransport:
 
             if "end_task" in tool_map:
                 try:
-                    end_result = await tool_map[
+                    end_output = await tool_map[
                         "end_task"
                     ].execute(
                         {"message": self._response_text},
                     )
+                    end_result = end_output.text
                 except ToolError as e:
                     end_result = f"Error: {e}"
                 yield ToolUse(

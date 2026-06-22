@@ -65,7 +65,7 @@ class TestSubcommandValidation:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "status"})
+            result = (await tool.execute({"subcommand": "status"})).text
         assert result == "M file.py"
 
     @pytest.mark.asyncio
@@ -93,7 +93,7 @@ class TestStatusSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "status"})
+            result = (await tool.execute({"subcommand": "status"})).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "status",
@@ -113,7 +113,7 @@ class TestStatusSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "status"})
+            result = (await tool.execute({"subcommand": "status"})).text
         assert result == "(no output)"
 
 
@@ -129,7 +129,7 @@ class TestDiffSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "diff"})
+            result = (await tool.execute({"subcommand": "diff"})).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "diff",
@@ -148,9 +148,9 @@ class TestDiffSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {"subcommand": "diff", "args": ["--cached", "file.py"]}
-            )
+            )).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "diff",
@@ -175,7 +175,7 @@ class TestLogSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "log"})
+            result = (await tool.execute({"subcommand": "log"})).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "log",
@@ -196,9 +196,9 @@ class TestLogSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {"subcommand": "log", "args": ["--graph", "-5"]}
-            )
+            )).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "log",
@@ -223,9 +223,9 @@ class TestShowSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {"subcommand": "show", "args": ["HEAD"]}
-            )
+            )).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "show",
@@ -249,9 +249,9 @@ class TestBlameSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {"subcommand": "blame", "args": ["src/main.py"]}
-            )
+            )).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "blame",
@@ -275,7 +275,7 @@ class TestBranchesSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "branches"})
+            result = (await tool.execute({"subcommand": "branches"})).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "branch",
@@ -299,7 +299,7 @@ class TestChangedFilesSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "changed_files"})
+            result = (await tool.execute({"subcommand": "changed_files"})).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "git",
             "diff",
@@ -324,12 +324,12 @@ class TestCommitSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {
                     "subcommand": "commit",
                     "args": ["Fix bug", "src/main.py"],
                 }
-            )
+            )).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "safegit",
             "commit",
@@ -352,12 +352,12 @@ class TestCommitSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {
                     "subcommand": "commit",
                     "args": ["Add feature", "a.py", "b.py", "c.py"],
                 }
-            )
+            )).text
         mock_asyncio.create_subprocess_exec.assert_called_once_with(
             "safegit",
             "commit",
@@ -386,12 +386,12 @@ class TestCommitSubcommand:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {
                     "subcommand": "commit",
                     "args": ["Fix thing", "file.py"],
                 }
-            )
+            )).text
         call_args = mock_asyncio.create_subprocess_exec.call_args
         cmd = call_args[0]
         assert cmd[0] == "safegit"
@@ -483,9 +483,9 @@ class TestErrorHandling:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute(
+            result = (await tool.execute(
                 {"subcommand": "diff", "args": ["nonexistent"]}
-            )
+            )).text
         # Read-only commands return stderr on failure, no exception
         assert result == "fatal: bad revision"
 
@@ -500,7 +500,7 @@ class TestErrorHandling:
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.TimeoutError = asyncio.TimeoutError
             mock_asyncio.wait_for = asyncio.wait_for
-            result = await tool.execute({"subcommand": "status"})
+            result = (await tool.execute({"subcommand": "status"})).text
         assert result == "(exit code 1)"
 
     @pytest.mark.asyncio

@@ -133,7 +133,7 @@ class TestConsultExecution:
     async def test_valid_consult_returns_response(self) -> None:
         """Consult returns the transport's text response."""
         tool, _ = _make_tool(transport_text="The answer is 42")
-        result = await tool.execute({"agent": "helper", "question": "What is 6*7?"})
+        result = (await tool.execute({"agent": "helper", "question": "What is 6*7?"})).text
         assert result == "The answer is 42"
 
     @pytest.mark.asyncio

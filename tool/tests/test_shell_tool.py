@@ -54,7 +54,7 @@ class TestValidCommand:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({"command": "uv sync"})
+            raw = (await tool.execute({"command": "uv sync"})).text
         result = json.loads(raw)
         assert result["stdout"] == "Resolved 42 packages"
         assert result["exit_code"] == 0
@@ -159,7 +159,7 @@ class TestTimeout:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = fake_wait_for
-            raw = await tool.execute({"command": "uv sync"})
+            raw = (await tool.execute({"command": "uv sync"})).text
         result = json.loads(raw)
         assert result["timed_out"] is True
         proc.terminate.assert_called_once()
@@ -183,7 +183,7 @@ class TestPreview:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({"command": "uv sync"})
+            raw = (await tool.execute({"command": "uv sync"})).text
         result = json.loads(raw)
         assert len(result["stdout"]) < len(large_output)
         assert "omitted" in result["stdout"]
@@ -201,7 +201,7 @@ class TestExitCode:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
-            raw = await tool.execute({"command": "uv sync"})
+            raw = (await tool.execute({"command": "uv sync"})).text
         result = json.loads(raw)
         assert result["exit_code"] == 1
 

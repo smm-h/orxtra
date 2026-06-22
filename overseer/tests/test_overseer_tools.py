@@ -147,7 +147,7 @@ async def test_read_root_used_by_file_tools(
     )
     tools = ov.get_tools()
     read_tool = next(t for t in tools if t.name == "read")
-    result = await read_tool.execute({"path": "hello.txt"})
+    result = (await read_tool.execute({"path": "hello.txt"})).text
     assert "hello world" in result
 
 

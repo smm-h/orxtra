@@ -61,7 +61,7 @@ class TestGetRequest:
         )
         mock = _mock_client(resp)
         with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
+            raw = (await tool.execute({"method": "GET", "url": "http://example.com/"})).text
         result: dict[str, Any] = json.loads(raw)
         assert result["status_code"] == 200
         assert result["body"] == "hello"
@@ -98,7 +98,7 @@ class TestHostAllowlist:
         resp = _mock_response(text="ok")
         mock = _mock_client(resp)
         with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
+            raw = (await tool.execute({"method": "GET", "url": "http://example.com/"})).text
         result = json.loads(raw)
         assert result["status_code"] == 200
 
@@ -116,7 +116,7 @@ class TestHostAllowlist:
         resp = _mock_response(text="ok")
         mock = _mock_client(resp)
         with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            raw = await tool.execute({"method": "GET", "url": "http://anything.xyz/"})
+            raw = (await tool.execute({"method": "GET", "url": "http://anything.xyz/"})).text
         result = json.loads(raw)
         assert result["status_code"] == 200
 
@@ -192,7 +192,7 @@ class TestPreview:
         resp = _mock_response(text=full_body)
         mock = _mock_client(resp)
         with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
+            raw = (await tool.execute({"method": "GET", "url": "http://example.com/"})).text
         result = json.loads(raw)
         assert result["body"] != full_body
         assert "omitted" in result["body"]
@@ -208,7 +208,7 @@ class TestConsultMode:
         resp = _mock_response(text="ok")
         mock = _mock_client(resp)
         with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
+            raw = (await tool.execute({"method": "GET", "url": "http://example.com/"})).text
         result = json.loads(raw)
         assert result["status_code"] == 200
 
@@ -233,7 +233,7 @@ class TestResponseHeaders:
         )
         mock = _mock_client(resp)
         with patch("orxtra.tool._http_tool.httpx.AsyncClient", return_value=mock):
-            raw = await tool.execute({"method": "GET", "url": "http://example.com/"})
+            raw = (await tool.execute({"method": "GET", "url": "http://example.com/"})).text
         result = json.loads(raw)
         assert result["headers"]["x-custom"] == "foobar"
         assert result["headers"]["x-request-id"] == "abc123"

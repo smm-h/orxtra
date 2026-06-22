@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from orxtra.protocols._constraints import ConstraintTier
+from orxtra.protocols._results import Confirmation, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.protocols._tools import (
     AddConstraintParams,
@@ -32,7 +33,7 @@ def _validation_error(e: Exception) -> str:
 def make_record_decision_tool(
     trace_writer: TraceWriter, run_id: UUID,
 ) -> Tool:
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[RecordDecisionResult]:
         try:
             params = RecordDecisionParams.model_validate(args)
         except ValidationError as e:
@@ -43,7 +44,8 @@ def make_record_decision_tool(
             choice=json.dumps(params.choice),
             rationale=params.rationale,
         )
-        return RecordDecisionResult(decision_id=decision_id).model_dump_json()
+        result = RecordDecisionResult(decision_id=decision_id)
+        return ToolOutput(data=result, text=result.model_dump_json())
 
     return Tool(
         name="record_decision",
@@ -56,7 +58,7 @@ def make_record_decision_tool(
 def make_add_constraint_tool(
     trace_writer: TraceWriter, run_id: UUID,
 ) -> Tool:
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[AddConstraintResult]:
         try:
             coerced = {**args}
             if "tier" in coerced and isinstance(coerced["tier"], str):
@@ -71,7 +73,8 @@ def make_add_constraint_tool(
             kind=params.kind,
             args=params.args,
         )
-        return AddConstraintResult(constraint_id=constraint_id).model_dump_json()
+        result = AddConstraintResult(constraint_id=constraint_id)
+        return ToolOutput(data=result, text=result.model_dump_json())
 
     return Tool(
         name="add_constraint",
@@ -84,7 +87,7 @@ def make_add_constraint_tool(
 def make_record_assumption_tool(
     trace_writer: TraceWriter, run_id: UUID,
 ) -> Tool:
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[RecordAssumptionResult]:
         try:
             params = RecordAssumptionParams.model_validate(args)
         except ValidationError as e:
@@ -113,10 +116,11 @@ def make_record_assumption_tool(
             scope=params.scope,
             inbox_item_id=inbox_item_id,
         )
-        return RecordAssumptionResult(
+        result = RecordAssumptionResult(
             assumption_id=assumption_id,
             inbox_item_id=inbox_item_id,
-        ).model_dump_json()
+        )
+        return ToolOutput(data=result, text=result.model_dump_json())
 
     return Tool(
         name="record_assumption",
@@ -132,7 +136,7 @@ def make_record_assumption_tool(
 def make_create_inbox_item_tool(
     trace_writer: TraceWriter, run_id: UUID,
 ) -> Tool:
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[CreateInboxItemResult]:
         try:
             params = CreateInboxItemParams.model_validate(args)
         except ValidationError as e:
@@ -149,7 +153,8 @@ def make_create_inbox_item_tool(
             deadline=None,
             answer_event=params.answer_event,
         )
-        return CreateInboxItemResult(item_id=item_id).model_dump_json()
+        result = CreateInboxItemResult(item_id=item_id)
+        return ToolOutput(data=result, text=result.model_dump_json())
 
     return Tool(
         name="create_inbox_item",
@@ -162,7 +167,7 @@ def make_create_inbox_item_tool(
 def make_write_lesson_tool(
     trace_writer: TraceWriter, run_id: UUID,
 ) -> Tool:
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[WriteLessonResult]:
         try:
             params = WriteLessonParams.model_validate(args)
         except ValidationError as e:
@@ -174,7 +179,8 @@ def make_write_lesson_tool(
             permanent=params.permanent,
             source_files=params.source_files or None,
         )
-        return WriteLessonResult(lesson_id=lesson_id).model_dump_json()
+        result = WriteLessonResult(lesson_id=lesson_id)
+        return ToolOutput(data=result, text=result.model_dump_json())
 
     return Tool(
         name="write_lesson",
@@ -187,7 +193,7 @@ def make_write_lesson_tool(
 def make_update_workflow_status_tool(
     trace_writer: TraceWriter,
 ) -> Tool:
-    async def execute(args: dict[str, Any]) -> str:
+    async def execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
         try:
             params = UpdateWorkflowStatusParams.model_validate(args)
         except ValidationError as e:
@@ -197,7 +203,8 @@ def make_update_workflow_status_tool(
             current_step=params.current_step or "",
             health=params.health,
         )
-        return json.dumps({"status": "updated"})
+        text = json.dumps({"status": "updated"})
+        return ToolOutput(data=Confirmation(message="updated"), text=text)
 
     return Tool(
         name="update_workflow_status",

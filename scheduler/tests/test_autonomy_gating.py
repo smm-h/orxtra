@@ -84,9 +84,10 @@ from orxtra.scheduler._overseer import (  # noqa: E402
 
 async def _dummy_execute(
     args: dict[str, Any],
-) -> str:
+) -> Any:  # noqa: ANN401
+    from orxtra.protocols._results import Confirmation, ToolOutput  # noqa: PLC0415
     _ = args
-    return "executed"
+    return ToolOutput(data=Confirmation(message="executed"), text="executed")
 
 
 def _make_tool(name: str) -> Tool:
@@ -163,8 +164,7 @@ class TestAutonomyGating:
         tool = _make_tool("create_workflow")
         [gated] = adapter.gate_tools([tool])
 
-        result = await gated.execute({})
-
+        result = (await gated.execute({})).text
         assert "blocked" in result.lower()
         assert "scope_change" in result
 
@@ -184,8 +184,7 @@ class TestAutonomyGating:
         tool = _make_tool("create_task")
         [gated] = adapter.gate_tools([tool])
 
-        result = await gated.execute({})
-
+        result = (await gated.execute({})).text
         assert "blocked" in result.lower()
         assert "scope_change" in result
 
@@ -198,7 +197,7 @@ class TestAutonomyGating:
 
         # start_task is "retry" action, allowed at MEDIUM
         assert gated.execute is tool.execute
-        result = await gated.execute({})
+        result = (await gated.execute({})).text
         assert result == "executed"
 
 
@@ -239,16 +238,16 @@ class TestSessionToolsGating:
             "create_task",
             "create_wait_for",
         ):
-            result = await tool_map[name].execute({})
+            result = (await tool_map[name].execute({})).text
             assert "blocked" in result.lower(), (
                 f"{name} should be blocked at LOW"
             )
             assert "scope_change" in result
 
         # Verify read tool is not gated
-        read_result = await tool_map["read"].execute(
+        read_result = (await tool_map["read"].execute(
             {},
-        )
+        )).text
         assert read_result == "executed"
 
     async def test_max_autonomy_does_not_gate_session(
@@ -298,5 +297,6 @@ class TestSessionToolsGating:
         adapter.update_session(new_session)  # type: ignore[arg-type]
 
         [tool] = new_session.tools
-        result = await tool.execute({})
+        result = (await tool.execute({})).text
         assert "blocked" in result.lower()
+

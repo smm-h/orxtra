@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from orxtra.protocols._results import Confirmation, ToolOutput
 from orxtra.protocols._tool import Tool
 from orxtra.tool._validation import validate_args
 
@@ -49,14 +50,15 @@ def make_notepad_tool(
         A Tool instance for notepad operations.
     """
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[Confirmation]:
         validate_args(arguments, _PARAMETERS)
         entry_type: str = arguments["type"]
         text: str = arguments["text"]
         await trace_writer.write_notepad_entry(
             run_id, task_name, agent_name, entry_type, text
         )
-        return f"Notepad entry recorded (type={entry_type})."
+        msg = f"Notepad entry recorded (type={entry_type})."
+        return ToolOutput(data=Confirmation(message=msg), text=msg)
 
     return Tool(
         name="notepad",

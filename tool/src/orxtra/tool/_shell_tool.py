@@ -6,6 +6,7 @@ import shlex
 import time
 from typing import TYPE_CHECKING, Any
 
+from orxtra.protocols._results import ExecResult, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._preview import check_and_preview
 from orxtra.tool._validation import validate_args
@@ -67,7 +68,7 @@ def make_shell_tool(  # noqa: PLR0913
         "additionalProperties": False,
     }
 
-    async def execute(arguments: dict[str, Any]) -> str:
+    async def execute(arguments: dict[str, Any]) -> ToolOutput[ExecResult]:
         validate_args(arguments, schema)
 
         command: str = arguments["command"]
@@ -130,14 +131,22 @@ def make_shell_tool(  # noqa: PLR0913
         stdout_preview = check_and_preview(stdout, preview_threshold, preview_lines)
         stderr_preview = check_and_preview(stderr, preview_threshold, preview_lines)
 
-        result: dict[str, Any] = {
+        exit_code = process.returncode or 0
+        result_dict: dict[str, Any] = {
             "stdout": stdout_preview.content,
             "stderr": stderr_preview.content,
-            "exit_code": process.returncode or 0,
+            "exit_code": exit_code,
             "timed_out": timed_out,
             "duration_ms": duration_ms,
         }
-        return json.dumps(result)
+        return ToolOutput(
+            data=ExecResult(
+                stdout=stdout, stderr=stderr,
+                exit_code=exit_code, timed_out=timed_out,
+                duration_ms=duration_ms,
+            ),
+            text=json.dumps(result_dict),
+        )
 
     return Tool(
         name="shell",

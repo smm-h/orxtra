@@ -58,7 +58,7 @@ class TestNotepadExecution:
         trace_writer = MagicMock()
         trace_writer.write_notepad_entry = AsyncMock()
         tool = make_notepad_tool(trace_writer, "run-1", "task-1", "agent-1")
-        result = await tool.execute({"type": "learning", "text": "Something"})
+        result = (await tool.execute({"type": "learning", "text": "Something"})).text
         assert result == "Notepad entry recorded (type=learning)."
 
     @pytest.mark.asyncio

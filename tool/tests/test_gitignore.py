@@ -25,7 +25,7 @@ class TestGitignoreFiltering:
         _write(tmp_path / "main.py", "print('hello')")
 
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         assert "__pycache__" not in result
         assert "main.py" in result
 
@@ -37,7 +37,7 @@ class TestGitignoreFiltering:
         _write(tmp_path / "main.py", "print('hello')")
 
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         assert "mod.pyc" not in result
         assert "main.py" in result
 
@@ -49,7 +49,7 @@ class TestGitignoreFiltering:
         (tmp_path / "__pycache__").mkdir()
 
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         assert "a.py" in result
         assert "b.pyc" in result
         assert "__pycache__" in result
@@ -65,7 +65,7 @@ class TestGitignoreFiltering:
         _write(tmp_path / "src" / "__pycache__" / "x.pyc", "bc")
 
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": ".", "recursive": True})
+        result = (await tool.execute({"path": ".", "recursive": True})).text
         assert "main.py" in result
         assert "main.pyc" not in result
         assert "__pycache__" not in result
@@ -79,7 +79,7 @@ class TestGitignoreFiltering:
         _write(tmp_path / "main.py", "code")
 
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         assert "mod.pyc" not in result
         assert "important.pyc" in result
         assert "main.py" in result
@@ -95,7 +95,7 @@ class TestGitignoreFiltering:
         _write(tmp_path / "main.py", "code")
 
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         assert "app.log" not in result
         assert "main.py" in result
 
@@ -106,5 +106,5 @@ class TestGitignoreFiltering:
         _write(tmp_path / "main.py", "code")
 
         tool = make_list_dir_tool(tmp_path)
-        result = await tool.execute({"path": "."})
+        result = (await tool.execute({"path": "."})).text
         assert ".gitignore" in result

@@ -16,6 +16,7 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
+from orxtra.protocols._results import Confirmation, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._consult_tool import make_consult_tool
 
@@ -27,8 +28,8 @@ _CATEGORIES = {"default": "anthropic/claude-3-sonnet"}
 def _dummy_tool(name: str) -> Tool:
     """Create a no-op tool for registry population."""
 
-    async def _noop(args: dict[str, Any]) -> str:
-        return "ok"
+    async def _noop(args: dict[str, Any]) -> ToolOutput[Confirmation]:
+        return ToolOutput(data=Confirmation(message="ok"), text="ok")
 
     return Tool(name=name, description=f"Tool {name}", parameters={}, execute=_noop)
 
@@ -109,8 +110,8 @@ class TestUsesAllowNotTools:
         tool, _ = _build(agents={"helper": agent})
         # If the code mistakenly accessed .tools, this would raise
         # AttributeError.  With the fix it accesses .allow and succeeds.
-        result = await tool.execute({"agent": "helper", "question": "hi"})
-        assert isinstance(result, str)
+        result = (await tool.execute({"agent": "helper", "question": "hi"})).text
+        assert isinstance(result, str)  # .text already extracted
 
     @pytest.mark.asyncio
     async def test_allow_list_controls_http_reconstruction(self) -> None:
@@ -144,7 +145,7 @@ class TestEventStreamIteration:
             Result(text="the answer"),
         ]
         tool, _ = _build(events=events)
-        result = await tool.execute({"agent": "helper", "question": "q"})
+        result = (await tool.execute({"agent": "helper", "question": "q"})).text
         assert result == "the answer"
 
     @pytest.mark.asyncio
@@ -155,14 +156,14 @@ class TestEventStreamIteration:
             Result(text="second"),
         ]
         tool, _ = _build(events=events)
-        result = await tool.execute({"agent": "helper", "question": "q"})
+        result = (await tool.execute({"agent": "helper", "question": "q"})).text
         assert result == "second"
 
     @pytest.mark.asyncio
     async def test_empty_stream_returns_empty_string(self) -> None:
         """A stream with no Result events returns empty string."""
         tool, _ = _build(events=[])
-        result = await tool.execute({"agent": "helper", "question": "q"})
+        result = (await tool.execute({"agent": "helper", "question": "q"})).text
         assert result == ""
 
 
