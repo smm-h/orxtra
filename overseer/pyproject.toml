@@ -1,6 +1,6 @@
 [project]
 name = "orxt-overseer"
-version = "0.0.0"
+version = "0.1.0"
 license = "BUSL-1.1"
 description = "Persistent LLM with action tools, PG memory, health monitoring, session handoff."
 requires-python = ">=3.12"

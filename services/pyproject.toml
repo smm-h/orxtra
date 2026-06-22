@@ -1,6 +1,6 @@
 [project]
 name = "orxt-services"
-version = "0.0.0"
+version = "0.1.0"
 license = "BUSL-1.1"
 description = "Shared business logic for all frontends. Run, inbox, trace queries, validation, config."
 requires-python = ">=3.12"
