@@ -1,0 +1,1 @@
+{"commits":["62629bde1f5ca59a1d3d1d6ad311193f37f68e83"],"user_facing":true,"description":"**Fix.** CI publish workflow uses `--out-dir dist` for correct dist placement in workspace builds.","type":"fix","packages":["agent","cli","knowledge-module","mcp","notepad","overseer","protocols","scheduler","secrets","services","session","tool","trace","transport","verify","write-safety"]}
