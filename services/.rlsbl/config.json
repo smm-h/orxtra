@@ -1,14 +1,7 @@
 {
-  "targets": [
-    "pypi"
-  ],
+  "targets": [],
   "private": false,
-  "pipelines": {
-    "pypi": {
-      "type": "pypi",
-      "local": false
-    }
-  },
+  "pipelines": {},
   "batch_limits": {
     "exclusions": [
       {
