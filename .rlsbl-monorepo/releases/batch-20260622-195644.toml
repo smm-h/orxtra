@@ -1,4 +1,4 @@
-[releasables.orxt]
+[releasables.orxtra]
 bump = "patch"
 description = "Fix package build to include prompt files."
 context = ""

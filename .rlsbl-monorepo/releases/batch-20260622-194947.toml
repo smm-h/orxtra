@@ -1,6 +1,6 @@
-[releasables.orxt]
+[releasables.orxtra]
 bump = "patch"
 description = "Single-package distribution and npm publish workflow."
-context = "orxt is now published as a single package on PyPI instead of 16 separate packages. npm publish workflow triggers independently."
+context = "orxtra is now published as a single package on PyPI instead of 16 separate packages. npm publish workflow triggers independently."
 include = ["pypi"]
 exclude = []
