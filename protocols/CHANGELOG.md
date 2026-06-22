@@ -14,7 +14,7 @@ Fix package build to include prompt files.
 
 ### Breaking
 
-- **Single-package distribution.** orxt is now published as a single `orxt` package on PyPI instead of 16 separate `orxt-*` packages. All sub-modules are included in one wheel.
+- **Single-package distribution.** orxtra is now published as a single `orxtra` package on PyPI instead of 16 separate `orxtra-*` packages. All sub-modules are included in one wheel.
 
 ## 0.1.1
 
@@ -26,7 +26,7 @@ Fix package build to include prompt files.
 
 ### Breaking
 
-- **Breaking.** Standardized all package names to orxt-* prefix for PyPI publication.
+- **Breaking.** Standardized all package names to orxtra-* prefix for PyPI publication.
 
 ### Features
 

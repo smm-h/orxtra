@@ -3,14 +3,14 @@
 
 const { spawnSync } = require("child_process");
 
-const result = spawnSync("orxt", process.argv.slice(2), {
+const result = spawnSync("orxtra", process.argv.slice(2), {
   stdio: "inherit",
 });
 
 if (result.error) {
   if (result.error.code === "ENOENT") {
-    console.error("Error: orxt Python CLI not found.");
-    console.error("Install it with: uv tool install orxt-cli");
+    console.error("Error: orxtra Python CLI not found.");
+    console.error("Install it with: uv tool install orxtra-cli");
     console.error("Requires Python >= 3.12 and uv (https://docs.astral.sh/uv/)");
     process.exit(1);
   }

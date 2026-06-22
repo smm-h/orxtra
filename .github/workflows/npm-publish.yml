@@ -7,7 +7,7 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.release.tag_name, 'orxt@v')
+    if: startsWith(github.event.release.tag_name, 'orxtra@v')
     steps:
     - uses: actions/checkout@v6
     - uses: actions/setup-node@v4
@@ -16,7 +16,7 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
     - name: Extract version from tag
       id: version
-      run: echo "version=${GITHUB_REF_NAME#orxt@v}" >> "$GITHUB_OUTPUT"
+      run: echo "version=${GITHUB_REF_NAME#orxtra@v}" >> "$GITHUB_OUTPUT"
     - name: Stamp version into package.json
       run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
       working-directory: npm

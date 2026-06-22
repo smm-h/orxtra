@@ -16,7 +16,7 @@ jobs:
     - uses: astral-sh/setup-uv@v7
     - run: uv python install ${{ matrix.python-version }}
     - run: uv sync
-    - run: uv run python -c "import orxt"
+    - run: uv run python -c "import orxtra"
     defaults:
       run:
         working-directory: verify

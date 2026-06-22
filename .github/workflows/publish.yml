@@ -7,13 +7,13 @@ on:
 jobs:
   no-op:
     runs-on: ubuntu-latest
-    if: "!startsWith(github.event.release.tag_name, 'orxt@v')"
+    if: "!startsWith(github.event.release.tag_name, 'orxtra@v')"
     permissions: {}
     steps:
     - run: echo 'No publish target for this release tag'
   publish:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.release.tag_name, 'orxt@v')
+    if: startsWith(github.event.release.tag_name, 'orxtra@v')
     permissions:
       contents: read
       id-token: write
