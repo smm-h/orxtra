@@ -2101,24 +2101,16 @@ wheels = [
 [[package]]
 name = "orxt"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
-    { name = "orxt-agent" },
-    { name = "orxt-cli" },
-    { name = "orxt-knowledge-module" },
-    { name = "orxt-mcp" },
-    { name = "orxt-notepad" },
-    { name = "orxt-overseer" },
-    { name = "orxt-protocols" },
-    { name = "orxt-scheduler" },
-    { name = "orxt-secrets" },
-    { name = "orxt-services" },
-    { name = "orxt-session" },
-    { name = "orxt-tool" },
-    { name = "orxt-trace" },
-    { name = "orxt-transport" },
-    { name = "orxt-verify" },
-    { name = "orxt-write-safety" },
+    { name = "asyncpg" },
+    { name = "cognee" },
+    { name = "httpx" },
+    { name = "jsonschema" },
+    { name = "pathspec" },
+    { name = "pydantic" },
+    { name = "strictcli" },
+    { name = "uuid6" },
 ]
 
 [package.dev-dependencies]
@@ -2134,22 +2126,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "orxt-agent", editable = "agent" },
-    { name = "orxt-cli", editable = "cli" },
-    { name = "orxt-knowledge-module", editable = "knowledge-module" },
-    { name = "orxt-mcp", editable = "mcp" },
-    { name = "orxt-notepad", editable = "notepad" },
-    { name = "orxt-overseer", editable = "overseer" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-scheduler", editable = "scheduler" },
-    { name = "orxt-secrets", editable = "secrets" },
-    { name = "orxt-services", editable = "services" },
-    { name = "orxt-session", editable = "session" },
-    { name = "orxt-tool", editable = "tool" },
-    { name = "orxt-trace", editable = "trace" },
-    { name = "orxt-transport", editable = "transport" },
-    { name = "orxt-verify", editable = "verify" },
-    { name = "orxt-write-safety", editable = "write-safety" },
+    { name = "asyncpg" },
+    { name = "cognee" },
+    { name = "httpx" },
+    { name = "jsonschema" },
+    { name = "pathspec" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "strictcli" },
+    { name = "uuid6" },
 ]
 
 [package.metadata.requires-dev]
