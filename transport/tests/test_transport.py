@@ -16,6 +16,8 @@ from orxtra.transport._events import (
     StepFinish,
     StepStart,
     StreamDelta,
+    StreamToolUse,
+    StreamUsage,
     Text,
     Thinking,
     ToolUse,
@@ -63,15 +65,22 @@ class MockProvider:
         # Drain the byte stream (required by httpx)
         async for _ in byte_stream:
             pass
-        # Yield StreamDelta/Thinking events from configured response blocks
+        # Yield streaming events from configured response blocks
         if self._call_index < len(self._responses):
-            blocks, _ = self._responses[self._call_index]
+            blocks, usage = self._responses[self._call_index]
             self._call_index += 1
             for block in blocks:
                 if block.type == "text" and block.text is not None:
                     yield StreamDelta(text=block.text)
                 elif block.type == "thinking" and block.text is not None:
                     yield Thinking(text=block.text)
+                elif block.type == "tool_use":
+                    yield StreamToolUse(
+                        tool_use_id=block.tool_use_id or "",
+                        tool_name=block.tool_name or "",
+                        tool_input=block.tool_input or {},
+                    )
+            yield StreamUsage(usage=usage)
 
     def extract_usage(self, response: dict[str, Any]) -> Usage:
         _, usage = self._responses[self._call_index]
@@ -219,16 +228,26 @@ class TestSimpleTextResponse:
         events = await _collect(transport, "Hi", **_default_send_kwargs())
 
         assert isinstance(events[0], StepStart)
-        assert isinstance(events[1], Text)
+        # Streaming always on: StreamDelta comes first, then StreamUsage,
+        # then reconstructed Text
+        assert isinstance(events[1], StreamDelta)
         assert events[1].text == "Hello world"
-        assert isinstance(events[2], StepFinish)
-        assert events[2].input_tokens == 10
-        assert events[2].output_tokens == 5
-        assert isinstance(events[3], Result)
-        assert events[3].text == "Hello world"
-        assert events[3].total_input_tokens == 10
-        assert events[3].total_output_tokens == 5
-        assert len(events) == 4
+        assert isinstance(events[2], StreamUsage)
+
+        text_events = [e for e in events if isinstance(e, Text)]
+        assert len(text_events) == 1
+        assert text_events[0].text == "Hello world"
+
+        finish_events = [e for e in events if isinstance(e, StepFinish)]
+        assert len(finish_events) == 1
+        assert finish_events[0].input_tokens == 10
+        assert finish_events[0].output_tokens == 5
+
+        result_events = [e for e in events if isinstance(e, Result)]
+        assert len(result_events) == 1
+        assert result_events[0].text == "Hello world"
+        assert result_events[0].total_input_tokens == 10
+        assert result_events[0].total_output_tokens == 5
 
 
 class TestToolCallLoop:
@@ -657,9 +676,9 @@ class TestNonTransientError400:
         assert "400" in error_events[0].message
 
 
-class TestStreamDeltas:
+class TestStreamingAlwaysOn:
     @respx.mock
-    async def test_stream_deltas_emitted(self) -> None:
+    async def test_stream_deltas_always_emitted(self) -> None:
         respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
 
         provider = MockProvider(
@@ -674,7 +693,7 @@ class TestStreamDeltas:
         events = await _collect(
             transport,
             "Hi",
-            **_default_send_kwargs(stream_deltas=True),
+            **_default_send_kwargs(),
         )
 
         stream_deltas = [e for e in events if isinstance(e, StreamDelta)]
@@ -683,27 +702,6 @@ class TestStreamDeltas:
         assert stream_deltas[0].text == "chunk one"
         assert len(text_events) == 1
         assert text_events[0].text == "chunk one"
-
-    @respx.mock
-    async def test_no_stream_deltas_by_default(self) -> None:
-        respx.post(_MOCK_URL).mock(return_value=_OK_RESPONSE)
-
-        provider = MockProvider(
-            responses=[
-                (
-                    [ContentBlock(type="text", text="no delta")],
-                    Usage(),
-                ),
-            ],
-        )
-        transport = Transport(provider=provider, retry_policy=_retry_policy())
-        events = await _collect(transport, "Hi", **_default_send_kwargs())
-
-        stream_deltas = [e for e in events if isinstance(e, StreamDelta)]
-        assert len(stream_deltas) == 0
-
-        text_events = [e for e in events if isinstance(e, Text)]
-        assert len(text_events) == 1
 
 
 class TestToolUseDurationMs:
@@ -862,12 +860,17 @@ class TestEmptyToolsList:
         events = await _collect(transport, "Hi", **_default_send_kwargs(tools=[]))
 
         assert isinstance(events[0], StepStart)
-        assert isinstance(events[1], Text)
+        # Streaming always on: StreamDelta before Text
+        assert isinstance(events[1], StreamDelta)
         assert events[1].text == "Just text"
-        assert isinstance(events[2], StepFinish)
-        assert isinstance(events[3], Result)
-        assert events[3].text == "Just text"
-        assert events[3].tool_calls == 0
+
+        text_events = [e for e in events if isinstance(e, Text)]
+        assert len(text_events) == 1
+        assert text_events[0].text == "Just text"
+
+        result = next(e for e in events if isinstance(e, Result))
+        assert result.text == "Just text"
+        assert result.tool_calls == 0
 
 
 class TestUnknownToolName:

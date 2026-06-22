@@ -338,7 +338,6 @@ class MockTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
         self.calls.append({
             "message": message,
@@ -346,7 +345,6 @@ class MockTransport:
             "system_prompt": system_prompt,
             "tools": tools,
             "session_id": session_id,
-            "stream_deltas": stream_deltas,
         })
         self._call_count += 1
 
@@ -444,7 +442,7 @@ class MockTransport:
             tool_calls=0,
         )
 
-    async def resume(  # noqa: PLR0913
+    async def resume(
         self,
         continuation: Continuation,
         await_result: str,
@@ -452,7 +450,6 @@ class MockTransport:
         model: str,
         system_prompt: str,
         tools: list[Tool],
-        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
         self.resume_calls.append({
             "continuation": continuation,
@@ -460,7 +457,6 @@ class MockTransport:
             "model": model,
             "system_prompt": system_prompt,
             "tools": tools,
-            "stream_deltas": stream_deltas,
         })
         events = (
             self._resume_event_sequences.pop(0)

@@ -61,7 +61,6 @@ class _StepContext:
     model: str
     system_prompt: str
     session_id: str
-    stream_deltas: bool
     total_input: int = 0
     total_output: int = 0
     total_reasoning: int = 0
@@ -90,7 +89,6 @@ class Transport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
         if session_id is None:
             session_id = str(uuid6.uuid7())
@@ -113,7 +111,6 @@ class Transport:
             model=model,
             system_prompt=system_prompt,
             session_id=session_id,
-            stream_deltas=stream_deltas,
         )
 
         state = TransportState.CALLING_API
@@ -141,7 +138,6 @@ class Transport:
         model: str,
         system_prompt: str,
         tools: list[Tool],
-        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
         """Resume from suspension.
 
@@ -169,7 +165,6 @@ class Transport:
             model=model,
             system_prompt=system_prompt,
             session_id=session_id,
-            stream_deltas=stream_deltas,
         )
 
         # Build combined tool results: pre-suspend results + remaining tools' results
@@ -355,71 +350,6 @@ class Transport:
         ]
 
     async def _step_calling_api(
-        self,
-        ctx: _StepContext,
-    ) -> tuple[TransportState, list[Event]]:
-        if ctx.stream_deltas:
-            return await self._step_calling_api_streaming(ctx)
-        return await self._step_calling_api_non_streaming(ctx)
-
-    async def _step_calling_api_non_streaming(
-        self,
-        ctx: _StepContext,
-    ) -> tuple[TransportState, list[Event]]:
-        events: list[Event] = []
-
-        request = self._provider.build_request(
-            messages=ctx.history,
-            tools=ctx.tool_specs,
-            system=ctx.system_prompt,
-            model=ctx.model,
-        )
-
-        json_body = request["json_body"]
-        json_body["stream"] = False
-
-        response, retry_events = await self._send_with_retry(
-            url=request["url"],
-            headers=request["headers"],
-            json_body=json_body,
-        )
-        events.extend(retry_events)
-        if response is None:
-            return (TransportState.DONE, events)
-
-        response_data = response.json()
-        blocks = self._provider.parse_response(response_data)
-        usage = self._provider.extract_usage(response_data)
-
-        self._accumulate_usage(ctx, usage)
-
-        text_blocks, thinking_blocks, tool_use_blocks = (
-            self._categorize_blocks(blocks)
-        )
-
-        events.extend(
-            Thinking(text=block.text)
-            for block in thinking_blocks
-            if block.text is not None
-        )
-
-        events.extend(
-            Text(text=block.text)
-            for block in text_blocks
-            if block.text is not None
-        )
-
-        if tool_use_blocks:
-            ctx.history.append(self._provider.format_assistant_message(blocks))
-            ctx.pending_tool_blocks = tool_use_blocks
-            return (TransportState.EXECUTING_TOOLS, events)
-
-        # Text-only response: finish
-        ctx.history.append(self._provider.format_assistant_message(blocks))
-        events.extend(self._build_finish_events(ctx, usage, text_blocks))
-        return (TransportState.DONE, events)
-
-    async def _step_calling_api_streaming(
         self,
         ctx: _StepContext,
     ) -> tuple[TransportState, list[Event]]:
@@ -645,93 +575,6 @@ class Transport:
         ctx.history.extend(self._provider.wrap_tool_results(tool_results))
         ctx.pending_tool_blocks = []
         return (TransportState.CALLING_API, events)
-
-    async def _send_with_retry(
-        self,
-        *,
-        url: str,
-        headers: dict[str, str],
-        json_body: dict[str, Any],
-    ) -> tuple[httpx.Response | None, list[Event]]:
-        events: list[Event] = []
-        last_error: str = ""
-        last_status: int = 0
-
-        for attempt in range(self._retry.max_retries + 1):
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(
-                        url,
-                        headers=headers,
-                        json=json_body,
-                        timeout=120.0,
-                    )
-
-                if response.status_code == 200:  # noqa: PLR2004
-                    return response, events
-
-                last_status = response.status_code
-                last_error = response.text
-
-                if response.status_code not in _TRANSIENT_STATUS_CODES:
-                    events.append(
-                        Error(
-                            name="api_error",
-                            message=f"HTTP {response.status_code}: {response.text}",
-                            metadata={"status_code": response.status_code},
-                        )
-                    )
-                    return None, events
-
-                if attempt < self._retry.max_retries:
-                    delay = min(
-                        self._retry.backoff_base_seconds * (2**attempt),
-                        self._retry.backoff_max_seconds,
-                    )
-                    if self._retry.jitter:
-                        delay *= random.random()  # noqa: S311
-                    events.append(
-                        ApiRetry(
-                            attempt=attempt + 1,
-                            max_retries=self._retry.max_retries,
-                            delay_ms=int(delay * 1000),
-                            status_code=response.status_code,
-                            error=response.text,
-                        )
-                    )
-                    await asyncio.sleep(delay)
-
-            except httpx.HTTPError as e:
-                last_error = str(e)
-                last_status = 0
-                if attempt < self._retry.max_retries:
-                    delay = min(
-                        self._retry.backoff_base_seconds * (2**attempt),
-                        self._retry.backoff_max_seconds,
-                    )
-                    if self._retry.jitter:
-                        delay *= random.random()  # noqa: S311
-                    events.append(
-                        ApiRetry(
-                            attempt=attempt + 1,
-                            max_retries=self._retry.max_retries,
-                            delay_ms=int(delay * 1000),
-                            status_code=0,
-                            error=str(e),
-                        )
-                    )
-                    await asyncio.sleep(delay)
-
-        events.append(
-            Error(
-                name="max_retries_exceeded",
-                message=(
-                    f"Failed after {self._retry.max_retries + 1} attempts: {last_error}"
-                ),
-                metadata={"status_code": last_status},
-            )
-        )
-        return None, events
 
     async def _send_streaming_with_retry(
         self,

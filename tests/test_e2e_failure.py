@@ -248,9 +248,8 @@ class TestTimeoutCancelsTask:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 import uuid6  # noqa: PLC0415
 
                 sid = session_id or str(uuid6.uuid7())
@@ -505,9 +504,8 @@ class TestExceptionDuringSession:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 nonlocal send_count
                 send_count += 1
                 import uuid6  # noqa: PLC0415

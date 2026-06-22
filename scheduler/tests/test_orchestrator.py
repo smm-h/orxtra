@@ -227,9 +227,8 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
 
@@ -293,10 +292,8 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
-                _ = continuation, model, system_prompt
-                _ = stream_deltas, tools
+                _ = continuation, model, system_prompt, tools
                 self._resumed = True
                 sid = session_id or str(uuid6.uuid7())
 
@@ -349,7 +346,6 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
                 self._send_count += 1
                 if self._send_count == 1:
@@ -360,7 +356,6 @@ class TestOrchestratorSuspension:
                         system_prompt=system_prompt,
                         tools=tools,
                         session_id=session_id,
-                        stream_deltas=stream_deltas,
                     ):
                         yield ev
                 else:
@@ -425,7 +420,6 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
                 self._resumed = True
                 async for ev in self._suspending.resume(
@@ -435,7 +429,6 @@ class TestOrchestratorSuspension:
                     system_prompt=system_prompt,
                     tools=tools,
                     session_id=session_id,
-                    stream_deltas=stream_deltas,
                 ):
                     yield ev
 
@@ -521,9 +514,8 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 self._send_count += 1
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
@@ -642,9 +634,8 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 _ = continuation
                 self._resume_count += 1
                 sid = session_id or str(uuid6.uuid7())
@@ -895,9 +886,8 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 self._send_count += 1
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
@@ -971,12 +961,10 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
                 _ = (
                     continuation, model,
                     system_prompt, tools,
-                    stream_deltas,
                 )
                 sid = session_id or str(uuid6.uuid7())
                 yield StepFinish(
@@ -1066,9 +1054,8 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 self._send_count += 1
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
@@ -1190,9 +1177,8 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> Any:  # noqa: ANN401
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 _ = continuation
                 self._resume_count += 1
                 sid = session_id or str(uuid6.uuid7())

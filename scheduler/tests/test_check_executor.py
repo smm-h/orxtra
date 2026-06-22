@@ -71,9 +71,8 @@ class TestRunConsult:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
-                _ = model, system_prompt, tools, stream_deltas
+                _ = model, system_prompt, tools
                 self.received_message = message
                 sid = session_id or str(uuid6.uuid7())
                 yield StepFinish(
@@ -126,10 +125,8 @@ class TestRunConsult:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
                 _ = message, model, system_prompt
-                _ = stream_deltas
                 self.received_tools = tools
                 sid = session_id or str(uuid6.uuid7())
                 yield StepFinish(
@@ -217,9 +214,8 @@ class TestRunConsult:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
-                _ = message, model, tools, stream_deltas
+                _ = message, model, tools
                 self.received_system_prompt = system_prompt
                 sid = session_id or str(uuid6.uuid7())
                 yield StepFinish(
@@ -380,10 +376,8 @@ class TestCheckExecutorIntegration:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
                 _ = message, model, system_prompt, tools
-                _ = stream_deltas
                 sid = session_id or str(uuid6.uuid7())
                 yield StepFinish(
                     reason="end_turn",

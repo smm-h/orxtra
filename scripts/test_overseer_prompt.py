@@ -293,7 +293,6 @@ async def main() -> None:
         model=MODEL,
         system_prompt=system_prompt,
         tools=tools,
-        stream_deltas=True,
     ):
         if isinstance(event, StepStart):
             print(f"[StepStart] session_id={event.session_id}")
