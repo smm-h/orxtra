@@ -70,8 +70,7 @@ class TestSchemaCreation:
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
         )
         actual = {row["tablename"] for row in rows}
-        # TABLE_NAMES covers 15 tables; run_heartbeats is the 16th
-        expected = set(TABLE_NAMES.values()) | {"run_heartbeats"}
+        expected = set(TABLE_NAMES.values())
         missing = expected - actual
         assert not missing, f"Missing tables: {missing}"
 
