@@ -85,6 +85,7 @@ def scheduler(  # noqa: PLR0913
         categories=categories,
         run_id=run_id,
         read_root=tmp_path,
+        autonomy_level="max",
     )
 
 
@@ -107,6 +108,7 @@ def make_scheduler(  # noqa: PLR0913
             "categories": categories,
             "run_id": run_id,
             "read_root": tmp_path,
+            "autonomy_level": "max",
         }
         defaults.update(kwargs)
         return Scheduler(**defaults)  # type: ignore[arg-type]

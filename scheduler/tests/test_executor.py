@@ -245,6 +245,7 @@ class TestAgentToolCallPath:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
 
@@ -380,6 +381,7 @@ class TestAgentToolCallPath:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
 
@@ -859,6 +861,7 @@ class TestRetry:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
 
@@ -970,6 +973,7 @@ class TestRetry:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
 
@@ -1075,6 +1079,7 @@ class TestRetry:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             result = await sched.execute_task(
                 task, None,
@@ -1130,6 +1135,7 @@ class TestTaskTimeout:
             categories=make_categories(),
             run_id=run_id,
             read_root=tmp_path,
+            autonomy_level="max",
         )
         await sched.execute_workflow(config)
 
@@ -1269,6 +1275,7 @@ class TestAccumulateCostError:
             categories={"default": "mock-provider/nonexistent-model"},
             run_id=run_id,
             read_root=tmp_path,
+            autonomy_level="max",
         )
         with pytest.raises(
             ValueError, match="Unknown model",
@@ -1345,6 +1352,7 @@ class TestForEach:
             categories=make_categories(),
             run_id=run_id,
             read_root=tmp_path,
+            autonomy_level="max",
         )
         result = await sched.execute_task(
             task, None, variables={"items": ["a", "b", "c"]},
@@ -1433,6 +1441,7 @@ class TestForEach:
             categories=make_categories(),
             run_id=run_id,
             read_root=tmp_path,
+            autonomy_level="max",
         )
         result = await sched.execute_task(
             task,
@@ -1520,6 +1529,7 @@ class TestForEach:
             categories=make_categories(),
             run_id=run_id,
             read_root=tmp_path,
+            autonomy_level="max",
         )
         await sched.execute_task(
             task,
@@ -1610,6 +1620,7 @@ class TestForEach:
             categories=make_categories(),
             run_id=run_id,
             read_root=tmp_path,
+            autonomy_level="max",
         )
         await sched.execute_task(
             task,
@@ -1723,6 +1734,7 @@ class TestTaskOutputPropagation:
             categories=make_categories(),
             run_id=run_id,
             read_root=tmp_path,
+            autonomy_level="max",
         )
         await sched.execute_workflow(config)
 
@@ -1864,6 +1876,7 @@ class TestOnSuccessCallback:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
             assert callback_called
@@ -1998,6 +2011,7 @@ class TestPreRetryCallback:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
             assert pre_retry_called
@@ -2121,6 +2135,7 @@ class TestPreRetryCallback:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_task(
                 task, None,
@@ -2249,6 +2264,7 @@ class TestRetryResume:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
 
@@ -2371,6 +2387,7 @@ class TestRetryInjectFailure:
                 categories=make_categories(),
                 run_id=run_id,
                 read_root=tmp_path,
+                autonomy_level="max",
             )
             await sched.execute_workflow(config)
 

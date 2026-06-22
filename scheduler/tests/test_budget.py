@@ -60,6 +60,7 @@ def _make_scheduler(  # noqa: PLR0913
             budget_exhaustion_policy
         ),
         overseer_interface=overseer_interface,
+        autonomy_level="max",
     )
 
 

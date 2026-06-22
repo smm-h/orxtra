@@ -139,7 +139,7 @@ class Scheduler(
         ),
         budget_limit: Decimal | None = None,
         proportionality_threshold: float | None = None,
-        autonomy_level: str = "max",
+        autonomy_level: str,
         secret_registry: SecretRegistry | None = None,
         constraint_checkers: (
             dict[str, Callable[..., Awaitable[CheckResult]]] | None

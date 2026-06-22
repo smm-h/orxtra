@@ -64,6 +64,7 @@ def _make_scheduler(
         categories=make_categories(),
         run_id=uuid6.uuid7(),
         read_root=tmp_path,
+        autonomy_level="max",
     )
 
 

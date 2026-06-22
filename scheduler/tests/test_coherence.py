@@ -143,6 +143,7 @@ def _make_scheduler(
         run_id=run_id,
         read_root=read_root,
         overseer_interface=overseer,  # type: ignore[arg-type]
+        autonomy_level="max",
     )
 
 

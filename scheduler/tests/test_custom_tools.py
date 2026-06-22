@@ -67,6 +67,7 @@ def _make_scheduler(
         run_id=uuid6.uuid7(),
         read_root=tmp_path,
         custom_tools=custom_tools,  # type: ignore[arg-type]
+        autonomy_level="max",
     )
 
 

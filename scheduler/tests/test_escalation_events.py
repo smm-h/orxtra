@@ -66,6 +66,7 @@ def _make_scheduler(
         run_id=run_id,
         read_root=read_root,
         overseer_interface=overseer,
+        autonomy_level="max",
     )
 
 
@@ -106,6 +107,7 @@ async def test_escalated_task_sends_event(
         run_id=run_id,
         read_root=tmp_path,
         overseer_interface=mock_overseer,
+        autonomy_level="max",
     )
 
     task = TaskSpec(
@@ -146,6 +148,7 @@ async def test_escalation_payload_content(
         run_id=run_id,
         read_root=tmp_path,
         overseer_interface=mock_overseer,
+        autonomy_level="max",
     )
 
     task = TaskSpec(
@@ -183,6 +186,7 @@ async def test_no_overseer_escalation_noop(
         categories=make_categories(),
         run_id=run_id,
         read_root=tmp_path,
+        autonomy_level="max",
         # No overseer_interface
     )
 
