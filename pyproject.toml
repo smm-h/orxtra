@@ -42,6 +42,7 @@ include = [
     "session/src/",
     "scheduler/src/",
     "overseer/src/",
+    "overseer/prompts/",
     "knowledge-module/src/",
     "services/src/",
     "cli/src/",
