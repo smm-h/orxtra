@@ -2,16 +2,15 @@
 
 # Changelog
 
+## 0.1.3
+
+Fix package build to include prompt files.
+
+### Fixes
+
+- **Fix.** Package build includes overseer prompt files.
+
 ## 0.1.2
-
-Single-package distribution and npm publish workflow.
-
-<details>
-<summary>Context</summary>
-
-orxt is now published as a single package on PyPI instead of 16 separate packages. npm publish workflow triggers independently.
-
-</details>
 
 ### Breaking
 
