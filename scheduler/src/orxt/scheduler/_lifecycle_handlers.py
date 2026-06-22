@@ -154,7 +154,7 @@ class LifecycleHandlersMixin(SchedulerBase):
                             1, [], None,
                         ),
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _logger.exception("on_success callback failed")
             return f"Task {task_id} completed"
 
