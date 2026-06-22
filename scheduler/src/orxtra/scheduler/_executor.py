@@ -554,7 +554,10 @@ class Scheduler(
         config: WorkflowConfig,
     ) -> dict[str, UUID]:
         """Validate config and register all workflow tasks."""
-        errors = validate_task_tree(config)
+        errors = validate_task_tree(
+            config,
+            headless=self._overseer_interface is None,
+        )
         if errors:
             msg = (
                 "Workflow validation failed: "
@@ -879,12 +882,41 @@ class Scheduler(
         # Both TraceWriter and InMemoryBackend have _event_callback
         setattr(writer, "_event_callback", _bridged_callback)  # noqa: B010
 
+    async def _handle_headless_event(
+        self, event: OverseerEvent,
+    ) -> None:
+        """Dispatch a headless fallback for an event
+        when no Overseer is configured.
+
+        Uses the same FALLBACK_BEHAVIORS/FALLBACK_HANDLERS
+        tables as degraded mode.
+        """
+        from orxtra.scheduler._overseer import (  # noqa: PLC0415
+            _DEFAULT_FALLBACK,
+            FALLBACK_BEHAVIORS,
+            FALLBACK_HANDLERS,
+        )
+
+        event_type = type(event).__name__
+        behavior = FALLBACK_BEHAVIORS.get(
+            event_type, _DEFAULT_FALLBACK,
+        )
+        handler = FALLBACK_HANDLERS.get(behavior)
+        if handler is not None:
+            await handler(
+                event,
+                _logger,
+                trace_writer=self._trace_writer,
+                run_id=self._run_id,
+            )
+
     async def _send_overseer_event(
         self, event: OverseerEvent,
     ) -> None:
         """Send an event to the Overseer with a
         verify-then-accept retry loop."""
         if self._overseer_interface is None:
+            await self._handle_headless_event(event)
             return
 
         event_type = type(event).__name__
@@ -965,8 +997,16 @@ class Scheduler(
 
     async def _write_coherence_summary(self) -> None:
         """Ask the Overseer for a coherence summary
-        and persist it."""
+        and persist it.
+
+        Requires an Overseer session -- skipped in
+        headless mode (no meaningful fallback).
+        """
         if self._overseer_interface is None:
+            _logger.debug(
+                "Skipping coherence summary"
+                " (headless mode)",
+            )
             return
 
         parts: list[str] = []
@@ -994,7 +1034,11 @@ class Scheduler(
 
     async def _check_session_handoff(self) -> None:
         """Check if the Overseer session needs
-        handoff due to token usage."""
+        handoff due to token usage.
+
+        Requires an Overseer session -- no-op in
+        headless mode.
+        """
         if self._overseer_interface is None:
             return
         if not hasattr(
@@ -1026,9 +1070,7 @@ class Scheduler(
 
     async def _send_pending_advisories(self) -> None:
         """Send stored structural advisories to the
-        Overseer."""
-        if self._overseer_interface is None:
-            return
+        Overseer (or headless fallback handler)."""
         import uuid as _uuid  # noqa: PLC0415
 
         for advisory in self._pending_advisories:

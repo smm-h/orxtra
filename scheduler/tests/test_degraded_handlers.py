@@ -24,7 +24,9 @@ from orxtra.scheduler._overseer import (
     FALLBACK_HANDLERS,
     _escalate_to_human_inbox,
     _fixed_escalation_ladder,
+    _log_only,
     _maintain_current_allocations,
+    _write_to_trace,
 )
 
 from tests.conftest import MockTraceWriter
@@ -180,7 +182,15 @@ async def test_fallback_handlers_dispatch_correctly() -> None:
         FALLBACK_HANDLERS["escalate_to_human_inbox"]
         is _escalate_to_human_inbox
     )
-    assert len(FALLBACK_HANDLERS) == 3
+    assert (
+        FALLBACK_HANDLERS["write_to_trace"]
+        is _write_to_trace
+    )
+    assert (
+        FALLBACK_HANDLERS["log_only"]
+        is _log_only
+    )
+    assert len(FALLBACK_HANDLERS) == 5
 
 
 async def test_escalate_with_conftest_mock_trace_writer() -> None:

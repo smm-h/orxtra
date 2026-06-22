@@ -165,11 +165,11 @@ class TestSingleTask:
         ]
         assert len(completed) == 1
 
-    async def test_context_refinement_true_stored_on_taskspec(
+    async def test_context_refinement_true_rejected_in_headless(
         self, run_id: uuid.UUID,
     ) -> None:
-        """When context_refinement=True, the flag is stored on TaskSpec."""
-        # context_refinement=True is stored but not yet acted upon by the scheduler
+        """context_refinement=True is rejected at validation
+        time when no Overseer is configured (headless mode)."""
         trace_writer = MockTraceWriter()
         turn = AgentTurn(
             tool_calls=[
@@ -183,19 +183,14 @@ class TestSingleTask:
         config = simple_workflow(tasks=[task])
         scheduler = make_scheduler(trace_writer, transport, run_id)
 
-        with _patch_auto_commit():
+        with (
+            _patch_auto_commit(),
+            pytest.raises(
+                ValueError,
+                match="context_refinement=True",
+            ),
+        ):
             await scheduler.execute_workflow(config)
-
-        # Workflow completed successfully despite context_refinement=True
-        completed = [
-            tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
-            if s == TaskState.COMPLETED
-        ]
-        assert len(completed) == 1
-
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
-        assert outputs.get("t1") == "done"
 
 
 # ---------------------------------------------------------------------------
