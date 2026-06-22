@@ -17,12 +17,24 @@ from orxtra.trace import (
     list_iterations,
     list_runs,
     list_tasks,
+    query_events,
+    query_lessons,
+    query_relevant_lessons,
+    read_assumptions,
+    read_constraints,
+    read_decisions,
     read_inbox,
+    read_inbox_item,
     read_latest_attempt,
     read_notepad,
+    read_run_config,
     read_run_report,
+    read_session_token_counts,
+    read_session_turn_count,
     read_task_attempt,
+    read_task_attempts,
     read_transcript,
+    read_workflow_status,
     search_transcript,
 )
 
@@ -426,3 +438,409 @@ class TestListIterations:
         task_id = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
         results = await list_iterations(mock_pool, task_id)  # type: ignore[arg-type]
         assert results == []
+
+
+WORKFLOW_ID = UUID("99999999-8888-7777-6666-555555555555")
+DECISION_ID = UUID("dddddddd-cccc-bbbb-aaaa-999999999999")
+CONSTRAINT_ID = UUID("cccccccc-dddd-eeee-ffff-000000000000")
+ASSUMPTION_ID = UUID("bbbbbbbb-aaaa-9999-8888-777777777777")
+LESSON_ID = UUID("aaaaaaaa-9999-8888-7777-666666666666")
+
+
+class TestReadTaskAttempts:
+    @pytest.mark.asyncio
+    async def test_read_task_attempts(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {
+                "id": ATTEMPT_ID,
+                "task_id": TASK_ID,
+                "attempt": 1,
+                "status": "completed",
+                "agent_output": "done",
+                "structured_output": None,
+                "check_result": None,
+                "check_verdict": None,
+                "session_id": SESSION_ID,
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "reasoning_tokens": 10,
+                "cache_read_tokens": 5,
+                "cache_write_tokens": 3,
+                "cost_usd": Decimal("0.001"),
+                "duration_seconds": 1.5,
+            },
+        ])
+
+        result = await read_task_attempts(mock_pool, TASK_ID)  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert isinstance(result[0], TaskAttempt)
+        assert result[0].id == ATTEMPT_ID
+        assert result[0].attempt == 1
+
+    @pytest.mark.asyncio
+    async def test_read_task_attempts_empty(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await read_task_attempts(mock_pool, TASK_ID)  # type: ignore[arg-type]
+
+        assert result == []
+
+
+class TestQueryEvents:
+    @pytest.mark.asyncio
+    async def test_query_events_no_filters(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {
+                "id": RUN_ID,
+                "run_id": RUN_ID,
+                "task_id": None,
+                "event_type": "run_transition",
+                "data": {"old_status": "pending", "new_status": "running"},
+                "created_at": NOW,
+            },
+        ])
+
+        result = await query_events(mock_pool, RUN_ID)  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert result[0]["event_type"] == "run_transition"
+
+    @pytest.mark.asyncio
+    async def test_query_events_with_type_filter(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await query_events(  # type: ignore[arg-type]
+            mock_pool, RUN_ID, event_type="task_transition"
+        )
+
+        assert result == []
+        _sql, args = mock_pool.conn.executed[-1]
+        assert "task_transition" in args
+
+    @pytest.mark.asyncio
+    async def test_query_events_with_since_filter(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await query_events(  # type: ignore[arg-type]
+            mock_pool, RUN_ID, since=NOW
+        )
+
+        assert result == []
+        _sql, args = mock_pool.conn.executed[-1]
+        assert NOW in args
+
+
+class TestReadInboxItem:
+    @pytest.mark.asyncio
+    async def test_read_inbox_item(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchrow({
+            "id": INBOX_ID,
+            "run_id": RUN_ID,
+            "status": "pending",
+            "decision_type": "approval",
+            "question": "Proceed?",
+            "options": [],
+            "assumed_option": None,
+            "work_proceeding": None,
+            "contradiction_impact": None,
+            "tags": [],
+            "deadline": None,
+            "answer": None,
+            "answer_event": None,
+            "rejection_reason": None,
+            "answered_at": None,
+            "created_at": NOW,
+        })
+
+        result = await read_inbox_item(mock_pool, INBOX_ID)  # type: ignore[arg-type]
+
+        assert result is not None
+        assert isinstance(result, InboxItem)
+        assert result.id == INBOX_ID
+
+    @pytest.mark.asyncio
+    async def test_read_inbox_item_not_found(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchrow(None)
+
+        result = await read_inbox_item(mock_pool, INBOX_ID)  # type: ignore[arg-type]
+
+        assert result is None
+
+
+class TestReadRunConfig:
+    @pytest.mark.asyncio
+    async def test_read_run_config(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchrow({
+            "config_snapshot": {"model": "claude-3", "budget": 10.0},
+        })
+
+        result = await read_run_config(mock_pool, RUN_ID)  # type: ignore[arg-type]
+
+        assert result is not None
+        assert result["model"] == "claude-3"
+        assert result["budget"] == 10.0
+
+    @pytest.mark.asyncio
+    async def test_read_run_config_string_json(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchrow({
+            "config_snapshot": '{"model": "claude-3"}',
+        })
+
+        result = await read_run_config(mock_pool, RUN_ID)  # type: ignore[arg-type]
+
+        assert result is not None
+        assert result["model"] == "claude-3"
+
+    @pytest.mark.asyncio
+    async def test_read_run_config_not_found(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchrow(None)
+
+        result = await read_run_config(mock_pool, RUN_ID)  # type: ignore[arg-type]
+
+        assert result is None
+
+
+class TestReadSessionTokenCounts:
+    @pytest.mark.asyncio
+    async def test_read_session_token_counts(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {"tokens": {"input_tokens": 100, "output_tokens": 50}},
+            {"tokens": {"input_tokens": 200, "output_tokens": 100}},
+        ])
+
+        result = await read_session_token_counts(mock_pool, SESSION_ID)  # type: ignore[arg-type]
+
+        assert len(result) == 2
+        assert result[0]["tokens"]["input_tokens"] == 100
+        assert result[1]["tokens"]["input_tokens"] == 200
+
+    @pytest.mark.asyncio
+    async def test_read_session_token_counts_empty(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await read_session_token_counts(mock_pool, SESSION_ID)  # type: ignore[arg-type]
+
+        assert result == []
+
+
+class TestReadSessionTurnCount:
+    @pytest.mark.asyncio
+    async def test_read_session_turn_count(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchval(5)
+
+        result = await read_session_turn_count(mock_pool, SESSION_ID)  # type: ignore[arg-type]
+
+        assert result == 5
+
+    @pytest.mark.asyncio
+    async def test_read_session_turn_count_zero(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchval(0)
+
+        result = await read_session_turn_count(mock_pool, SESSION_ID)  # type: ignore[arg-type]
+
+        assert result == 0
+
+    @pytest.mark.asyncio
+    async def test_read_session_turn_count_none(self, mock_pool: MockPool) -> None:
+        result = await read_session_turn_count(mock_pool, SESSION_ID)  # type: ignore[arg-type]
+
+        assert result == 0
+
+
+class TestQueryRelevantLessons:
+    @pytest.mark.asyncio
+    async def test_query_relevant_lessons(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {
+                "id": LESSON_ID,
+                "text": "Always use type hints",
+                "relevance_tags": ["python", "typing"],
+                "permanent": True,
+                "source_file": "main.py",
+                "created_at": NOW,
+            },
+        ])
+
+        result = await query_relevant_lessons(mock_pool, ["python"])  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert result[0]["id"] == LESSON_ID
+        assert result[0]["text"] == "Always use type hints"
+
+    @pytest.mark.asyncio
+    async def test_query_relevant_lessons_empty(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await query_relevant_lessons(mock_pool, ["nonexistent"])  # type: ignore[arg-type]
+
+        assert result == []
+
+
+class TestReadDecisions:
+    @pytest.mark.asyncio
+    async def test_read_decisions(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {
+                "id": DECISION_ID,
+                "decision_type": "architecture",
+                "choice": "microservices",
+                "rationale": "better scaling",
+                "created_at": NOW,
+            },
+        ])
+
+        result = await read_decisions(mock_pool, RUN_ID)  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert result[0]["id"] == DECISION_ID
+        assert result[0]["decision_type"] == "architecture"
+
+    @pytest.mark.asyncio
+    async def test_read_decisions_with_limit(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await read_decisions(mock_pool, RUN_ID, limit=5)  # type: ignore[arg-type]
+
+        assert result == []
+        _sql, args = mock_pool.conn.executed[-1]
+        assert 5 in args
+
+
+class TestReadConstraints:
+    @pytest.mark.asyncio
+    async def test_read_constraints_active_only(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {
+                "id": CONSTRAINT_ID,
+                "text": "Must use HTTPS",
+                "tier": "hard",
+                "active": True,
+                "created_at": NOW,
+            },
+        ])
+
+        result = await read_constraints(mock_pool, RUN_ID, active_only=True)  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert result[0]["id"] == CONSTRAINT_ID
+        _sql, _args = mock_pool.conn.executed[-1]
+        assert "active = true" in _sql
+
+    @pytest.mark.asyncio
+    async def test_read_constraints_all(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await read_constraints(mock_pool, RUN_ID, active_only=False)  # type: ignore[arg-type]
+
+        assert result == []
+        _sql, _args = mock_pool.conn.executed[-1]
+        assert "active = true" not in _sql
+
+
+class TestReadAssumptions:
+    @pytest.mark.asyncio
+    async def test_read_assumptions_no_filter(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {
+                "id": ASSUMPTION_ID,
+                "text": "User prefers dark mode",
+                "status": "active",
+                "scope": "global",
+                "inbox_item_id": None,
+                "created_at": NOW,
+            },
+        ])
+
+        result = await read_assumptions(mock_pool, RUN_ID)  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert result[0]["id"] == ASSUMPTION_ID
+
+    @pytest.mark.asyncio
+    async def test_read_assumptions_with_status(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await read_assumptions(  # type: ignore[arg-type]
+            mock_pool, RUN_ID, status="active"
+        )
+
+        assert result == []
+        _sql, args = mock_pool.conn.executed[-1]
+        assert "active" in args
+
+
+class TestQueryLessons:
+    @pytest.mark.asyncio
+    async def test_query_lessons_no_filters(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([
+            {
+                "id": LESSON_ID,
+                "text": "Use async/await",
+                "relevance_tags": ["python"],
+                "permanent": False,
+                "source_file": None,
+                "created_at": NOW,
+            },
+        ])
+
+        result = await query_lessons(mock_pool)  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert result[0]["id"] == LESSON_ID
+
+    @pytest.mark.asyncio
+    async def test_query_lessons_with_run_id(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await query_lessons(mock_pool, run_id=RUN_ID)  # type: ignore[arg-type]
+
+        assert result == []
+        _sql, args = mock_pool.conn.executed[-1]
+        assert RUN_ID in args
+
+    @pytest.mark.asyncio
+    async def test_query_lessons_permanent_only(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await query_lessons(mock_pool, permanent_only=True)  # type: ignore[arg-type]
+
+        assert result == []
+        _sql, _args = mock_pool.conn.executed[-1]
+        assert "permanent = true" in _sql
+
+    @pytest.mark.asyncio
+    async def test_query_lessons_with_tags(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetch([])
+
+        result = await query_lessons(mock_pool, tags=["python"])  # type: ignore[arg-type]
+
+        assert result == []
+        _sql, args = mock_pool.conn.executed[-1]
+        assert ["python"] in args
+
+
+class TestReadWorkflowStatus:
+    @pytest.mark.asyncio
+    async def test_read_workflow_status(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchrow({
+            "workflow_id": WORKFLOW_ID,
+            "current_step": "deploy",
+            "health": "healthy",
+            "updated_at": NOW,
+        })
+
+        result = await read_workflow_status(mock_pool, WORKFLOW_ID)  # type: ignore[arg-type]
+
+        assert result is not None
+        assert result["workflow_id"] == WORKFLOW_ID
+        assert result["current_step"] == "deploy"
+        assert result["health"] == "healthy"
+
+    @pytest.mark.asyncio
+    async def test_read_workflow_status_not_found(self, mock_pool: MockPool) -> None:
+        mock_pool.conn.queue_fetchrow(None)
+
+        result = await read_workflow_status(mock_pool, WORKFLOW_ID)  # type: ignore[arg-type]
+
+        assert result is None

@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING, Any
 
 from orxtra.trace import NotepadEntry, TaskAttempt, TaskSummary
 from orxtra.trace import list_tasks as _list_tasks
+from orxtra.trace import query_events as _query_events
 from orxtra.trace import read_notepad as _read_notepad
+from orxtra.trace import read_task_attempts as _read_task_attempts
 from orxtra.trace import read_transcript as _read_transcript
 from orxtra.trace import search_transcript as _search_transcript
 
@@ -24,17 +26,7 @@ async def list_tasks(
 async def get_task_attempts(
     pool: asyncpg.Pool, task_id: UUID
 ) -> list[TaskAttempt]:
-    rows = await pool.fetch(
-        "SELECT id, task_id, attempt, status, agent_output,"
-        " structured_output, check_result, check_verdict,"
-        " session_id, input_tokens, output_tokens,"
-        " reasoning_tokens, cache_read_tokens,"
-        " cache_write_tokens, cost_usd, duration_seconds"
-        " FROM task_attempts WHERE task_id = $1"
-        " ORDER BY attempt",
-        task_id,
-    )
-    return [TaskAttempt.model_validate(dict(row)) for row in rows]
+    return await _read_task_attempts(pool, task_id)
 
 
 async def get_transcript(
@@ -56,29 +48,7 @@ async def query_events(
     since: datetime | None = None,
     limit: int = 100,
 ) -> list[dict[str, Any]]:
-    conditions = ["run_id = $1"]
-    params: list[Any] = [run_id]
-    idx = 2
-
-    if event_type is not None:
-        conditions.append(f"event_type = ${idx}")
-        params.append(event_type)
-        idx += 1
-
-    if since is not None:
-        conditions.append(f"created_at >= ${idx}")
-        params.append(since)
-        idx += 1
-
-    params.append(limit)
-    query = (
-        "SELECT id, run_id, task_id, event_type, data, created_at"  # noqa: S608
-        " FROM events"
-        f" WHERE {' AND '.join(conditions)}"
-        f" ORDER BY created_at LIMIT ${idx}"
-    )
-    rows = await pool.fetch(query, *params)
-    return [dict(row) for row in rows]
+    return await _query_events(pool, run_id, event_type, since, limit)
 
 
 async def get_notepad(

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any
 
 from orxtra.session._pricing import PRICING_TABLE
+from orxtra.trace import read_run_config as _read_run_config
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -14,15 +14,7 @@ if TYPE_CHECKING:
 async def dump_config(
     pool: asyncpg.Pool, run_id: UUID
 ) -> dict[str, Any] | None:
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT config_snapshot FROM runs WHERE id = $1", run_id
-        )
-    if row is None:
-        return None
-    raw: Any = row["config_snapshot"]
-    result: dict[str, Any] = json.loads(raw) if isinstance(raw, str) else dict(raw)
-    return result
+    return await _read_run_config(pool, run_id)
 
 
 async def show_pricing() -> dict[str, dict[str, str]]:
