@@ -6,6 +6,7 @@ description = "MCP server exposing the orxt API. Human interface via dashboard o
 requires-python = ">=3.12"
 dependencies = [
     "orxt-services",
+    "orxt-trace",
 ]
 keywords = ["rlsbl"]
 
@@ -18,6 +19,7 @@ packages = ["src/orxt"]
 
 [tool.uv.sources]
 orxt-services = { workspace = true }
+orxt-trace = { workspace = true }
 
 [dependency-groups]
 dev = [
