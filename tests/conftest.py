@@ -76,9 +76,7 @@ class IntegrationMockTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
-        _ = stream_deltas
         self.send_calls.append({
             "message": message,
             "model": model,
@@ -237,9 +235,7 @@ class MultiAgentMockTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
-        _ = stream_deltas
         self.send_calls.append({
             "message": message,
             "model": model,

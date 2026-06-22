@@ -112,7 +112,7 @@ class Session:
         return captured
 
     async def send(
-        self, message: str, *, stream_deltas: bool = False,
+        self, message: str,
     ) -> AsyncIterator[Event]:
         self.turn_count += 1
         current_turn = self.turn_count
@@ -128,7 +128,6 @@ class Session:
             system_prompt=self._system_prompt,
             tools=self._tools,
             session_id=self._session_id,
-            stream_deltas=stream_deltas,
         )
 
         async for event in stream:

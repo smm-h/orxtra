@@ -1,4 +1,4 @@
-"""Tests for stream_deltas plumbing from TaskSpec to transport."""
+"""Tests for always-on streaming behavior."""
 
 from __future__ import annotations
 
@@ -25,10 +25,10 @@ if TYPE_CHECKING:
 
 
 class StreamingTransport:
-    """Transport that emits StreamDelta events when stream_deltas=True."""
+    """Transport that always emits StreamDelta events."""
 
     def __init__(self) -> None:
-        self.last_stream_deltas: bool | None = None
+        self.send_called: bool = False
 
     async def send(  # noqa: PLR0913
         self,
@@ -38,10 +38,9 @@ class StreamingTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-        stream_deltas: bool = False,
     ) -> AsyncIterator[Event]:
         _ = model, system_prompt
-        self.last_stream_deltas = stream_deltas
+        self.send_called = True
         sid = session_id or str(uuid6.uuid7())
         tool_map = {t.name: t for t in tools}
 
@@ -68,10 +67,9 @@ class StreamingTransport:
                 status="success",
             )
 
-        # Emit StreamDelta events if streaming is enabled
-        if stream_deltas:
-            yield StreamDelta(text="chunk1")
-            yield StreamDelta(text="chunk2")
+        # Always emit StreamDelta events (streaming is always on)
+        yield StreamDelta(text="chunk1")
+        yield StreamDelta(text="chunk2")
 
         if "end_task" in tool_map:
             try:
@@ -132,10 +130,10 @@ def _make_scheduler(
     )
 
 
-class TestStreamDeltasFlag:
-    """TaskSpec.stream_deltas is passed through to transport."""
+class TestStreamingAlwaysOn:
+    """Streaming is always on -- no stream_deltas flag needed."""
 
-    async def test_stream_deltas_true_reaches_transport(
+    async def test_streaming_always_active(
         self, tmp_path: Path,
     ) -> None:
         transport = StreamingTransport()
@@ -147,7 +145,6 @@ class TestStreamDeltasFlag:
             task_prompt="do it",
             timeout=60,
             context_refinement=False,
-            stream_deltas=True,
         )
         task_id = await sched._trace_writer.create_task(  # noqa: SLF001
             run_id=sched._run_id,  # noqa: SLF001
@@ -161,35 +158,7 @@ class TestStreamDeltasFlag:
             task, None, task_id=task_id,
         )
 
-        assert transport.last_stream_deltas is True
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
-
-    async def test_stream_deltas_false_by_default(
-        self, tmp_path: Path,
-    ) -> None:
-        transport = StreamingTransport()
-        sched = _make_scheduler(transport, tmp_path)
-
-        task = TaskSpec(
-            name="normal-task",
-            agent="test-agent",
-            task_prompt="do it",
-            timeout=60,
-            context_refinement=False,
-        )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
-            parent_task_id=None,
-            name=task.name,
-            task_type="agent",
-        )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
-
-        _result = await sched.execute_task(
-            task, None, task_id=task_id,
-        )
-
-        assert transport.last_stream_deltas is False
+        assert transport.send_called is True
         assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
 
 
@@ -213,9 +182,8 @@ class TestOrchestratorIgnoresDeltas:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-                stream_deltas: bool = False,
             ) -> AsyncIterator[Event]:
-                _ = model, system_prompt, stream_deltas
+                _ = model, system_prompt
                 sid = session_id or str(uuid6.uuid7())
 
                 # Emit deltas that should be ignored
