@@ -225,6 +225,15 @@ class OverseerAdapter:
         self._current_tool_calls: list[
             dict[str, Any]
         ] = []
+        self._gate_session_tools()
+
+    def _gate_session_tools(self) -> None:
+        """Replace the Overseer session's tools with
+        autonomy-gated versions."""
+        session = self._overseer.session
+        session._tools = self.gate_tools(  # noqa: SLF001
+            session._tools,  # noqa: SLF001
+        )
 
     @property
     def session(self) -> Session:
@@ -236,6 +245,7 @@ class OverseerAdapter:
     ) -> None:
         """Update the overseer's session after handoff."""
         self._overseer.session = new_session
+        self._gate_session_tools()
 
     def gate_tools(
         self, tools: list[Tool],

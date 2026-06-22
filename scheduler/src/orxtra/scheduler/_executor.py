@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from orxtra.notepad import NotepadEntry, format_notepad
 from orxtra.protocols._errors import ErrorCategory
-from orxtra.protocols._events import StructuralAdvisory
+from orxtra.protocols._events import RunStarted, StructuralAdvisory
 from orxtra.protocols._execution import CheckResult
 from orxtra.protocols._task import (
     AttemptSummary,
@@ -366,6 +366,21 @@ class Scheduler(
                 svc_config, self._read_root,
             )
             self._service_instances.append(instance)
+
+        # Notify the Overseer that the run has started
+        await self._send_overseer_event(
+            RunStarted(
+                intent=config.description,
+                config_snapshot={
+                    "name": config.name,
+                    "description": config.description,
+                    "task_count": len(config.tasks),
+                    "task_names": [
+                        t.name for t in config.tasks
+                    ],
+                },
+            ),
+        )
 
         try:
             task_id_map = await self._register_workflow_tasks(
