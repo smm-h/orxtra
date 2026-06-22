@@ -9,6 +9,7 @@ from orxtra.agent import load_agents, load_categories
 from orxtra.overseer._knowledge import load_knowledge_files
 from orxtra.protocols._task import BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, load_workflow
+from orxtra.services._providers import build_transport_registry
 from orxtra.trace import RunReport, RunSummary, TraceWriter, read_run_report
 from orxtra.trace import list_runs as _list_runs
 from pydantic import BaseModel, ConfigDict
@@ -61,7 +62,12 @@ async def start_run(
         await writer.transition_run(run_id, "running")
         agents = load_agents(config.agents_dir)
         categories = load_categories(config.categories_path)
-        registry = transport_registry if transport_registry is not None else {}
+        if transport_registry is not None:
+            registry = transport_registry
+        elif config.provider_configs:
+            registry = build_transport_registry(config.provider_configs)
+        else:
+            registry = {}
         scheduler = Scheduler(
             trace_writer=writer,
             transport_registry=registry,
