@@ -61,3 +61,13 @@ jobs:
       - run: uv python install 3.13
       - run: uv sync
       - run: uv run python scripts/check_imports.py
+
+  schema-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv python install 3.13
+      - run: uv sync
+      - run: uv tool install pgdesign
+      - run: uv run python scripts/check_schema_sync.py
