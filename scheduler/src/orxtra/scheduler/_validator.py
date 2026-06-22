@@ -85,7 +85,11 @@ def _validate_conditional_fields(
 
 
 def _validate_task(
-    task: TaskSpec, errors: list[str], seen_names: set[str]
+    task: TaskSpec,
+    errors: list[str],
+    seen_names: set[str],
+    *,
+    headless: bool = False,
 ) -> None:
     """Validate a single task, recursing into subtasks."""
     mode_count = _count_execution_modes(task)
@@ -100,6 +104,20 @@ def _validate_task(
     _validate_agent_fields(task, errors)
     _validate_conditional_fields(task, errors)
 
+    # Headless mode restrictions
+    if headless:
+        if task.context_refinement:
+            errors.append(
+                f"Task '{task.name}' has"
+                " context_refinement=True but no"
+                " Overseer is configured"
+            )
+        if task.decision_point:
+            errors.append(
+                f"Task '{task.name}' is a decision"
+                " point but no Overseer is configured"
+            )
+
     if task.name in seen_names:
         errors.append(f"Duplicate task name '{task.name}'")
     seen_names.add(task.name)
@@ -107,7 +125,10 @@ def _validate_task(
     if task.subtasks is not None:
         sub_names: set[str] = set()
         for sub in task.subtasks:
-            _validate_task(sub, errors, sub_names)
+            _validate_task(
+                sub, errors, sub_names,
+                headless=headless,
+            )
 
 
 def _validate_dependencies(
@@ -159,16 +180,25 @@ def _validate_variable_collisions(
     )
 
 
-def validate_task_tree(config: WorkflowConfig) -> list[str]:
+def validate_task_tree(
+    config: WorkflowConfig,
+    *,
+    headless: bool = False,
+) -> list[str]:
     """Validate a workflow config.
 
     Returns list of error messages (empty = valid).
+    When headless=True, rejects tasks that require an
+    Overseer (context_refinement, decision_point).
     """
     errors: list[str] = []
 
     seen_names: set[str] = set()
     for task in config.tasks:
-        _validate_task(task, errors, seen_names)
+        _validate_task(
+            task, errors, seen_names,
+            headless=headless,
+        )
 
     _validate_dependencies(config, errors)
     _validate_variable_collisions(config, errors)

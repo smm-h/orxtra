@@ -175,7 +175,7 @@ async def test_no_overseer_escalation_noop(
     run_id: UUID,
     tmp_path: Path,
 ) -> None:
-    """No Overseer: escalation event is no-op."""
+    """No Overseer: escalation uses headless fallback."""
     bad_transport = MockTransport()
     scheduler = Scheduler(
         trace_writer=trace_writer,

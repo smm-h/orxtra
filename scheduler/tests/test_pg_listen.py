@@ -5,11 +5,12 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
 import uuid6
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import TaskResult, TaskSpec
 from orxtra.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:
@@ -52,15 +53,30 @@ def _patch_recovery() -> Iterator[None]:
         yield
 
 
-def _decision_point_task(name: str = "dp1") -> TaskSpec:
-    return TaskSpec(name=name, decision_point=True)
+async def _noop_callable(
+    context: Any,  # noqa: ANN401, ARG001
+) -> TaskResult:
+    return TaskResult(
+        output="noop",
+        structured_output=None,
+        check_results=[
+            CheckResult(passed=True, message="ok"),
+        ],
+    )
 
 
-def _decision_point_workflow(
+def _noop_task(name: str = "dp1") -> TaskSpec:
+    return TaskSpec(
+        name=name,
+        callable=f"{__name__}:_noop_callable",
+    )
+
+
+def _noop_workflow(
     tasks: list[TaskSpec] | None = None,
 ) -> WorkflowConfig:
     if tasks is None:
-        tasks = [_decision_point_task()]
+        tasks = [_noop_task()]
     return WorkflowConfig(
         name="test-workflow",
         description="PG listen test",
@@ -100,7 +116,7 @@ class TestPgListener:
         mock_conn.add_listener = capture_add_listener
         mock_conn.remove_listener = AsyncMock()
 
-        config = _decision_point_workflow()
+        config = _noop_workflow()
         # Run execute_workflow — it should set up the PG listener
         with _patch_recovery():
             await scheduler.execute_workflow(config)
@@ -147,7 +163,7 @@ class TestPgListener:
         mock_conn.add_listener = capture_add_listener
         mock_conn.remove_listener = AsyncMock()
 
-        config = _decision_point_workflow()
+        config = _noop_workflow()
         with _patch_recovery():
             await scheduler.execute_workflow(config)
         assert captured_callback is not None
@@ -184,7 +200,7 @@ class TestPgListener:
         """When pool is None, no PG listener is started.
         execute_workflow completes normally."""
         assert scheduler._pool is None  # noqa: SLF001
-        config = _decision_point_workflow()
+        config = _noop_workflow()
         # Should complete without errors
         await scheduler.execute_workflow(config)
 
@@ -221,7 +237,7 @@ class TestPgListener:
         mock_conn.add_listener = capture_add_listener
         mock_conn.remove_listener = AsyncMock()
 
-        config = _decision_point_workflow()
+        config = _noop_workflow()
         with _patch_recovery():
             await scheduler.execute_workflow(config)
 
@@ -256,7 +272,7 @@ class TestPgListener:
         mock_conn.add_listener = capture_add_listener
         mock_conn.remove_listener = AsyncMock()
 
-        config = _decision_point_workflow()
+        config = _noop_workflow()
         with _patch_recovery():
             await scheduler.execute_workflow(config)
         assert captured_callback is not None

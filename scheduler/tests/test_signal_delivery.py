@@ -10,7 +10,8 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 import uuid6
-from orxtra.protocols._task import TaskSpec, TaskState
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import TaskResult, TaskSpec, TaskState
 from orxtra.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:
@@ -21,15 +22,30 @@ if TYPE_CHECKING:
     from tests.conftest import MockTraceWriter
 
 
-def _decision_point_task(name: str = "dp1") -> TaskSpec:
-    return TaskSpec(name=name, decision_point=True)
+async def _noop_callable(
+    context: Any,  # noqa: ANN401, ARG001
+) -> TaskResult:
+    return TaskResult(
+        output="noop",
+        structured_output=None,
+        check_results=[
+            CheckResult(passed=True, message="ok"),
+        ],
+    )
 
 
-def _decision_point_workflow(
+def _noop_task(name: str = "dp1") -> TaskSpec:
+    return TaskSpec(
+        name=name,
+        callable=f"{__name__}:_noop_callable",
+    )
+
+
+def _noop_workflow(
     tasks: list[TaskSpec] | None = None,
 ) -> WorkflowConfig:
     if tasks is None:
-        tasks = [_decision_point_task()]
+        tasks = [_noop_task()]
     return WorkflowConfig(
         name="test-workflow",
         description="Signal delivery test",
@@ -368,7 +384,7 @@ class TestSignalDelivery:
     ) -> None:
         """execute_workflow subscribes at start and unsubscribes
         at end."""
-        config = _decision_point_workflow()
+        config = _noop_workflow()
 
         await scheduler.execute_workflow(config)
 
@@ -397,7 +413,7 @@ class TestSignalDelivery:
         integration level with a real PG connection. Here we
         verify ordering via the mock call log.
         """
-        config = _decision_point_workflow()
+        config = _noop_workflow()
         await scheduler.execute_workflow(config)
 
         # Find the indices of subscribe and first create_task

@@ -46,11 +46,14 @@ type OverseerEvent = (
 # descriptions of what the scheduler does instead of
 # consulting the Overseer.
 FALLBACK_BEHAVIORS: dict[str, str] = {
-    "TaskFailed": "fixed_escalation_ladder",
-    "TaskEscalated": "fixed_escalation_ladder",
+    "TaskFailed": "write_to_trace",
+    "TaskEscalated": "write_to_trace",
     "BudgetThresholdCrossed": (
         "maintain_current_allocations"
     ),
+    "BudgetExhausted": "maintain_current_allocations",
+    "RunStarted": "log_only",
+    "StructuralAdvisory": "write_to_trace",
 }
 _DEFAULT_FALLBACK = "escalate_to_human_inbox"
 
@@ -123,6 +126,83 @@ async def _escalate_to_human_inbox(
         )
 
 
+async def _write_to_trace(
+    event: OverseerEvent,
+    logger: logging.Logger,
+    *,
+    trace_writer: Any = None,  # noqa: ANN401
+    run_id: UUID | None = None,
+) -> None:
+    """Write the event to trace as a headless fallback
+    record. For TaskFailed/TaskEscalated, also creates
+    an inbox item for human review."""
+    event_type = type(event).__name__
+    logger.warning(
+        "Headless fallback: writing %s to trace",
+        event_type,
+    )
+    if trace_writer is not None and run_id is not None:
+        import dataclasses  # noqa: PLC0415
+
+        data: dict[str, Any] = {
+            "event_type": event_type,
+            "headless_fallback": True,
+        }
+        if (
+            dataclasses.is_dataclass(event)
+            and not isinstance(event, type)
+        ):
+            for f in dataclasses.fields(event):
+                val = getattr(event, f.name)
+                data[f.name] = str(val)
+        await trace_writer.write_event(
+            run_id=run_id,
+            event_type=f"headless_{event_type}",
+            data=data,
+        )
+        # For failure/escalation events, create an
+        # inbox item for human review
+        if event_type in (
+            "TaskFailed", "TaskEscalated",
+        ):
+            task_name = getattr(
+                event, "task_name", "unknown",
+            )
+            await trace_writer.create_inbox_item(
+                run_id=run_id,
+                decision_type="headless_escalation",
+                question=(
+                    f"Task '{task_name}' escalated in"
+                    f" headless mode. Human review"
+                    f" required."
+                ),
+                options=[
+                    {
+                        "label": "acknowledge",
+                        "description": (
+                            "Acknowledge and continue"
+                        ),
+                    },
+                ],
+            )
+
+
+async def _log_only(
+    event: OverseerEvent,
+    logger: logging.Logger,
+    *,
+    trace_writer: Any = None,  # noqa: ANN401
+    run_id: UUID | None = None,
+) -> None:
+    """Log the event, no other action needed."""
+    _ = trace_writer, run_id
+    event_type = type(event).__name__
+    logger.info(
+        "Headless mode: %s (no action needed)",
+        event_type,
+    )
+
+
 FALLBACK_HANDLERS: dict[
     str,
     Callable[..., Awaitable[None]],
@@ -136,6 +216,8 @@ FALLBACK_HANDLERS: dict[
     "escalate_to_human_inbox": (
         _escalate_to_human_inbox
     ),
+    "write_to_trace": _write_to_trace,
+    "log_only": _log_only,
 }
 
 # Maps Overseer tool names to autonomy action types.

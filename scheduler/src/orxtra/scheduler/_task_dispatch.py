@@ -62,26 +62,25 @@ class TaskDispatchMixin(SchedulerBase):
             task_id=task_id,
         )
 
-        # Send to Overseer if available
-        if self._overseer_interface is not None:
-            from orxtra.protocols._events import (  # noqa: PLC0415
-                StructuralAdvisory,
-            )
-            await self._send_overseer_event(
-                StructuralAdvisory(
-                    task_id=task_id,
-                    observation=(
-                        f"Decision point reached:"
-                        f" {task.name}"
-                    ),
-                    suggestion=(
-                        "Review context and decide how"
-                        " to proceed. You may create"
-                        " tasks, add constraints, or"
-                        " take other actions."
-                    ),
+        # Send to Overseer (or headless fallback)
+        from orxtra.protocols._events import (  # noqa: PLC0415
+            StructuralAdvisory,
+        )
+        await self._send_overseer_event(
+            StructuralAdvisory(
+                task_id=task_id,
+                observation=(
+                    f"Decision point reached:"
+                    f" {task.name}"
                 ),
-            )
+                suggestion=(
+                    "Review context and decide how"
+                    " to proceed. You may create"
+                    " tasks, add constraints, or"
+                    " take other actions."
+                ),
+            ),
+        )
 
         self._complete_task(task_id, task.name, None)
         await self._trace_writer.transition_task(
