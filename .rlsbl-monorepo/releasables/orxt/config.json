@@ -2,144 +2,124 @@
   "batch_limits": {
     "exclusions": [
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 1
-          }
-        ]
+        "version": "unreleased",
+        "line": 4,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 4
-          }
-        ]
+        "version": "unreleased",
+        "line": 7,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 7
-          }
-        ]
+        "version": "unreleased",
+        "line": 9,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 9
-          }
-        ]
+        "version": "unreleased",
+        "line": 12,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 12
-          }
-        ]
+        "version": "unreleased",
+        "line": 14,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 14
-          }
-        ]
+        "version": "unreleased",
+        "line": 16,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 16
-          }
-        ]
+        "version": "unreleased",
+        "line": 21,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 21
-          }
-        ]
+        "version": "unreleased",
+        "line": 23,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 23
-          }
-        ]
+        "version": "unreleased",
+        "line": 25,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 25
-          }
-        ]
+        "version": "unreleased",
+        "line": 29,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 29
-          }
-        ]
+        "version": "unreleased",
+        "line": 31,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 31
-          }
-        ]
+        "version": "unreleased",
+        "line": 33,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 33
-          }
-        ]
+        "version": "unreleased",
+        "line": 35,
+        "reason": "consolidated initial implementation entry"
       },
       {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 35
-          }
-        ]
-      },
-      {
-        "reason": "auto-created during changelog consolidation",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 37
-          }
-        ]
+        "version": "unreleased",
+        "line": 37,
+        "reason": "consolidated initial implementation entry"
       },
       {
         "version": "unreleased",
         "line": 49,
-        "reason": "bulk coverage for root-level commits during first release"
+        "reason": "consolidated initial implementation entry"
+      },
+      {
+        "version": "unreleased",
+        "commit": "0225eb3e5f8f5005fa048a13a73beac70cde9f8c",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "23dcf0d24f8690a2900c005cdbba44590123bae4",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "2f983ea8dd4b954d32612c0b1a14c8ac74c77488",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "55c90e37bd4b0cd2744722ffbfb5f9b7a1410a9f",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "60b3665a70487a20426e9c9775adacf8ff5bcd4c",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "7c675fa132cf3b8699bb8476048737f7cd2cb5ff",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "8afaf99f5af8ad64ab262a15f3fe44c57bedbf3c",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "e9eceaf755b1ca928dc529c309b6cac3d70d5d72",
+        "reason": "cross-package commit from initial implementation"
+      },
+      {
+        "version": "unreleased",
+        "commit": "ebaaf70cae2fae657dd4879d3aca2c2264a03b42",
+        "reason": "cross-package commit from initial implementation"
       }
     ]
   }
