@@ -1,3 +1,10 @@
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("orxtra-protocols")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
+
 from orxtra.protocols._autonomy import (
     AutonomyLevel,
     is_autonomous,
@@ -51,6 +58,7 @@ from orxtra.protocols._task import (
 from orxtra.protocols._tool import Tool, ToolError
 
 __all__ = [
+    "__version__",
     "ALWAYS_ACTIVE_CONSTRAINTS",
     "EXPENSIVE_CONSTRAINTS",
     "SEVERITY_ORDER",

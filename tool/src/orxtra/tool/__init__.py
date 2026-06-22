@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("orxtra-tool")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
+
 from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
 from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool
@@ -48,6 +55,7 @@ from orxtra.tool._write_tools import (
 )
 
 __all__ = [
+    "__version__",
     "CONSULT_STRIP_TOOLS",
     "FILE_MUTATION_TOOLS",
     "FullRetrievalGuard",
