@@ -1,0 +1,13 @@
+{
+  "targets": [
+    "pypi",
+    "pgdesign"
+  ],
+  "private": false,
+  "pipelines": {
+    "pypi": {
+      "type": "pypi",
+      "local": false
+    }
+  }
+}
