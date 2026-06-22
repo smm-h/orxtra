@@ -1,0 +1,47 @@
+name: npm Publish
+on:
+  workflow_run:
+    workflows: ["Publish Router"]
+    types: [completed]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'orxt@v')
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.workflow_run.head_branch }}"
+          VERSION="${TAG#orxt@v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version into package.json and postinstall
+        working-directory: npm
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${VERSION}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          sed -i "s/const VERSION = \".*\"/const VERSION = \"${VERSION}\"/" scripts/postinstall.js
+
+      - name: Publish to npm
+        working-directory: npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
