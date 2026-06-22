@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-22T10:53:53Z",
+  "generated_at": "2026-06-22T12:58:41Z",
   "package_count": 17,
   "packages": {
     "protocols": {
@@ -7,7 +7,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Shared types: Execution, task lifecycle, event descriptors, action tool schemas",
       "deps": [],
       "rdeps": [
@@ -29,7 +29,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Secret registry, substitution, and scrubbing",
       "deps": [],
       "rdeps": [
@@ -46,7 +46,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Write queue, stale-write detection, atomic replace, transient replay",
       "deps": [],
       "rdeps": [
@@ -63,7 +63,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Typed LLM client via Provider protocol",
       "deps": [
         "protocols"
@@ -83,7 +83,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Agent definition loader (TOML + composable .md prompts)",
       "deps": [],
       "rdeps": [
@@ -100,7 +100,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Tool registry with granular constructors",
       "deps": [
         "protocols",
@@ -121,7 +121,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Check runner (pre/post-check Execution dispatch)",
       "deps": [
         "protocols"
@@ -139,7 +139,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "PG schema owner (events, task results, transcripts, inbox, state machines)",
       "deps": [],
       "rdeps": [
@@ -161,7 +161,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Append-only cross-agent context sharing",
       "deps": [
         "trace"
@@ -179,7 +179,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Session lifecycle, token tracking, cross-restart resumption",
       "deps": [
         "protocols",
@@ -201,7 +201,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Task executor (recursive hierarchy, budgets, constraints)",
       "deps": [
         "protocols",
@@ -228,7 +228,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Persistent LLM with action tools, PG memory, session handoff",
       "deps": [
         "protocols",
@@ -250,7 +250,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Experimental semantic enrichment via cognee",
       "deps": [],
       "rdeps": [],
@@ -264,7 +264,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Shared business logic for all frontends",
       "deps": [
         "agent",
@@ -288,7 +288,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "strictcli CLI frontend (agents are the primary users)",
       "deps": [
         "services",
@@ -305,7 +305,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "MCP server (human interface via dashboard/AI client)",
       "deps": [
         "services",
