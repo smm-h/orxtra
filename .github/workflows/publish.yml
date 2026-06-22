@@ -25,7 +25,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'protocols@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: protocols
@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'secrets@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: secrets
@@ -59,7 +59,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'write-safety@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: write-safety
@@ -76,7 +76,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'transport@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: transport
@@ -93,7 +93,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'agent@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: agent
@@ -110,7 +110,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'tool@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: tool
@@ -127,7 +127,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'verify@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: verify
@@ -144,7 +144,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'trace@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: trace
@@ -161,7 +161,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'notepad@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: notepad
@@ -178,7 +178,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'session@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: session
@@ -195,7 +195,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'scheduler@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: scheduler
@@ -212,7 +212,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'overseer@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: overseer
@@ -229,7 +229,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'knowledge-module@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: knowledge-module
@@ -246,7 +246,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'services@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: services
@@ -263,7 +263,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'cli@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: cli
@@ -280,7 +280,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    if: startsWith(github.event.release.tag_name, 'mcp@v')
+    if: startsWith(github.event.release.tag_name, 'orxt@v')
     defaults:
       run:
         working-directory: mcp
