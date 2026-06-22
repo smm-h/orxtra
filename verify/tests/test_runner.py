@@ -8,11 +8,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from conftest import MockCheckExecutor, make_check_context, make_passing_verdict
-from orxt.protocols._execution import AgentExecution, ScriptExecution, Severity
-from orxt.verify._runner import run_checks
+from orxtra.protocols._execution import AgentExecution, ScriptExecution, Severity
+from orxtra.verify._runner import run_checks
 
 if TYPE_CHECKING:
-    from orxt.protocols._checks import CheckContext
+    from orxtra.protocols._checks import CheckContext
 
 
 class TestRunChecks:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.agent import load_agent, load_agents
+from orxtra.agent import load_agent, load_agents
 from pydantic import ValidationError
 
 if TYPE_CHECKING:

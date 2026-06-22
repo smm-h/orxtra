@@ -3,8 +3,8 @@ from __future__ import annotations
 import importlib
 import traceback
 
-from orxt.protocols._checks import CheckContext, CheckExecutor
-from orxt.protocols._execution import (
+from orxtra.protocols._checks import CheckContext, CheckExecutor
+from orxtra.protocols._execution import (
     SEVERITY_ORDER,
     AgentExecution,
     CheckIssue,
@@ -12,7 +12,7 @@ from orxt.protocols._execution import (
     CheckVerdict,
     ScriptExecution,
 )
-from orxt.protocols._task import Execution, WorkflowExecution
+from orxtra.protocols._task import Execution, WorkflowExecution
 
 
 def _format_mechanical_results(results: list[CheckResult] | None) -> str:

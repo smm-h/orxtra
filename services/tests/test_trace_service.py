@@ -7,7 +7,7 @@ from uuid import UUID
 
 import pytest
 from conftest import FakeRecord
-from orxt.services._trace import (
+from orxtra.services._trace import (
     get_notepad,
     get_task_attempts,
     get_transcript,
@@ -15,7 +15,7 @@ from orxt.services._trace import (
     query_events,
     search_transcript,
 )
-from orxt.trace import NotepadEntry, TaskAttempt, TaskSummary
+from orxtra.trace import NotepadEntry, TaskAttempt, TaskSummary
 
 
 @pytest.mark.asyncio
@@ -23,7 +23,7 @@ async def test_list_tasks(
     mock_pool: AsyncMock, sample_run_id: UUID, sample_task_summary: TaskSummary
 ) -> None:
     with patch(
-        "orxt.services._trace._list_tasks", new_callable=AsyncMock
+        "orxtra.services._trace._list_tasks", new_callable=AsyncMock
     ) as mock_list:
         mock_list.return_value = [sample_task_summary]
 
@@ -71,7 +71,7 @@ async def test_get_transcript(
 ) -> None:
     transcript_data = [{"role": "user", "content": "hello"}]
     with patch(
-        "orxt.services._trace._read_transcript", new_callable=AsyncMock
+        "orxtra.services._trace._read_transcript", new_callable=AsyncMock
     ) as mock_read:
         mock_read.return_value = transcript_data
 
@@ -87,7 +87,7 @@ async def test_search_transcript(
 ) -> None:
     search_data = [{"role": "assistant", "content": "matched"}]
     with patch(
-        "orxt.services._trace._search_transcript", new_callable=AsyncMock
+        "orxtra.services._trace._search_transcript", new_callable=AsyncMock
     ) as mock_search:
         mock_search.return_value = search_data
 
@@ -140,7 +140,7 @@ async def test_get_notepad(
     mock_pool: AsyncMock, sample_run_id: UUID, sample_notepad_entry: NotepadEntry
 ) -> None:
     with patch(
-        "orxt.services._trace._read_notepad", new_callable=AsyncMock
+        "orxtra.services._trace._read_notepad", new_callable=AsyncMock
     ) as mock_read:
         mock_read.return_value = [sample_notepad_entry]
 

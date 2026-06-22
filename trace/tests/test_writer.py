@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 from uuid import UUID
 
 import pytest
-from orxt.trace import InvalidTransitionError, TraceWriter
+from orxtra.trace import InvalidTransitionError, TraceWriter
 
 if TYPE_CHECKING:
     from .conftest import MockPool
@@ -30,7 +30,7 @@ class TestCreateRun:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.create_run(
@@ -56,7 +56,7 @@ class TestTransitionRun:
         mock_pool.conn.queue_fetchrow({"status": "created"})
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer.transition_run(RUN_ID, "running")
@@ -77,7 +77,7 @@ class TestTransitionRun:
         mock_pool.conn.queue_fetchrow({"status": "created"})
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ), pytest.raises(InvalidTransitionError):
             await writer.transition_run(RUN_ID, "completed")
@@ -93,7 +93,7 @@ class TestTransitionRun:
         mock_pool.conn.queue_fetchrow({"status": "created"})
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer.transition_run(RUN_ID, "running")
@@ -110,7 +110,7 @@ class TestTransitionRun:
         mock_pool.conn.queue_fetchrow(None)
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ), pytest.raises(ValueError, match="not found"):
             await writer.transition_run(RUN_ID, "running")
@@ -121,7 +121,7 @@ class TestCreateTask:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.create_task(
@@ -140,7 +140,7 @@ class TestCreateTask:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.create_task(
@@ -161,7 +161,7 @@ class TestCreateTask:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.create_task(
@@ -186,7 +186,7 @@ class TestTransitionTask:
         )
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer.transition_task(TASK_ID, "prechecking")
@@ -210,7 +210,7 @@ class TestTransitionTask:
         )
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer.transition_task(TASK_ID, "prechecking")
@@ -229,7 +229,7 @@ class TestTransitionTask:
         )
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ), pytest.raises(InvalidTransitionError):
             await writer.transition_task(TASK_ID, "completed")
@@ -240,7 +240,7 @@ class TestTaskAttempt:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.create_task_attempt(TASK_ID, 1)
@@ -326,7 +326,7 @@ class TestWriteEvent:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.write_event(
@@ -345,7 +345,7 @@ class TestWriteEvent:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.write_event(
@@ -371,7 +371,7 @@ class TestWriteEvent:
         )
 
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer_with_cb.write_event(
@@ -388,7 +388,7 @@ class TestTranscript:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer.write_transcript_entry(
@@ -420,7 +420,7 @@ class TestNotepad:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer.write_notepad_entry(
@@ -448,7 +448,7 @@ class TestInbox:
             2026, 6, 14, 12, 0, 0, tzinfo=UTC,
         )
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.create_inbox_item(
@@ -565,7 +565,7 @@ class TestContextDiff:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             await writer.write_context_diff(
@@ -585,7 +585,7 @@ class TestOverseerMemory:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.write_decision(
@@ -607,7 +607,7 @@ class TestOverseerMemory:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.write_constraint(
@@ -629,7 +629,7 @@ class TestOverseerMemory:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.write_assumption(
@@ -650,7 +650,7 @@ class TestOverseerMemory:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.write_assumption(
@@ -672,7 +672,7 @@ class TestOverseerMemory:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.write_lesson(
@@ -724,7 +724,7 @@ class TestIterations:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         with patch(
-            "orxt.trace._writer.uuid6.uuid7",
+            "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
             result = await writer.create_iteration(

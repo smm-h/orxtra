@@ -4,16 +4,16 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from orxt.protocols._task import TaskSpec
-from orxt.scheduler._executor import Scheduler
-from orxt.scheduler._types import WorkflowConfig
-from orxt.trace import RunLockError
+from orxtra.protocols._task import TaskSpec
+from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._types import WorkflowConfig
+from orxtra.trace import RunLockError
 
 if TYPE_CHECKING:
     import uuid
     from pathlib import Path
 
-    from orxt.agent import Agent
+    from orxtra.agent import Agent
 
     from tests.conftest import (
         MockTraceWriter,
@@ -77,22 +77,22 @@ async def test_recovery_called_at_startup(  # noqa: PLR0913
 
     with (
         patch(
-            "orxt.trace.reclaim_interrupted",
+            "orxtra.trace.reclaim_interrupted",
             new_callable=AsyncMock,
             return_value=0,
         ) as mock_reclaim,
         patch(
-            "orxt.trace.reevaluate_blocked",
+            "orxtra.trace.reevaluate_blocked",
             new_callable=AsyncMock,
             return_value=[],
         ) as mock_reeval,
         patch(
-            "orxt.trace.clean_orphaned",
+            "orxtra.trace.clean_orphaned",
             new_callable=AsyncMock,
             return_value=0,
         ) as mock_clean,
         patch(
-            "orxt.trace.acquire_run_lock",
+            "orxtra.trace.acquire_run_lock",
             new_callable=AsyncMock,
         ) as mock_lock,
     ):
@@ -124,22 +124,22 @@ async def test_advisory_lock_acquired(  # noqa: PLR0913
 
     with (
         patch(
-            "orxt.trace.reclaim_interrupted",
+            "orxtra.trace.reclaim_interrupted",
             new_callable=AsyncMock,
             return_value=0,
         ),
         patch(
-            "orxt.trace.reevaluate_blocked",
+            "orxtra.trace.reevaluate_blocked",
             new_callable=AsyncMock,
             return_value=[],
         ),
         patch(
-            "orxt.trace.clean_orphaned",
+            "orxtra.trace.clean_orphaned",
             new_callable=AsyncMock,
             return_value=0,
         ),
         patch(
-            "orxt.trace.acquire_run_lock",
+            "orxtra.trace.acquire_run_lock",
             new_callable=AsyncMock,
         ) as mock_lock,
     ):
@@ -167,19 +167,19 @@ async def test_recovery_skipped_without_pool(  # noqa: PLR0913
 
     with (
         patch(
-            "orxt.trace.reclaim_interrupted",
+            "orxtra.trace.reclaim_interrupted",
             new_callable=AsyncMock,
         ) as mock_reclaim,
         patch(
-            "orxt.trace.reevaluate_blocked",
+            "orxtra.trace.reevaluate_blocked",
             new_callable=AsyncMock,
         ) as mock_reeval,
         patch(
-            "orxt.trace.clean_orphaned",
+            "orxtra.trace.clean_orphaned",
             new_callable=AsyncMock,
         ) as mock_clean,
         patch(
-            "orxt.trace.acquire_run_lock",
+            "orxtra.trace.acquire_run_lock",
             new_callable=AsyncMock,
         ) as mock_lock,
     ):
@@ -209,22 +209,22 @@ async def test_lock_error_propagates(  # noqa: PLR0913
 
     with (
         patch(
-            "orxt.trace.reclaim_interrupted",
+            "orxtra.trace.reclaim_interrupted",
             new_callable=AsyncMock,
             return_value=0,
         ),
         patch(
-            "orxt.trace.reevaluate_blocked",
+            "orxtra.trace.reevaluate_blocked",
             new_callable=AsyncMock,
             return_value=[],
         ),
         patch(
-            "orxt.trace.clean_orphaned",
+            "orxtra.trace.clean_orphaned",
             new_callable=AsyncMock,
             return_value=0,
         ),
         patch(
-            "orxt.trace.acquire_run_lock",
+            "orxtra.trace.acquire_run_lock",
             new_callable=AsyncMock,
             side_effect=RunLockError(
                 f"run {run_id} is already locked",
@@ -274,19 +274,19 @@ async def test_recovery_order(  # noqa: PLR0913
 
     with (
         patch(
-            "orxt.trace.reclaim_interrupted",
+            "orxtra.trace.reclaim_interrupted",
             side_effect=track_reclaim,
         ),
         patch(
-            "orxt.trace.reevaluate_blocked",
+            "orxtra.trace.reevaluate_blocked",
             side_effect=track_reeval,
         ),
         patch(
-            "orxt.trace.clean_orphaned",
+            "orxtra.trace.clean_orphaned",
             side_effect=track_clean,
         ),
         patch(
-            "orxt.trace.acquire_run_lock",
+            "orxtra.trace.acquire_run_lock",
             side_effect=track_lock,
         ),
     ):
@@ -353,19 +353,19 @@ async def test_recovery_before_knowledge_loading(  # noqa: PLR0913
 
     with (
         patch(
-            "orxt.trace.reclaim_interrupted",
+            "orxtra.trace.reclaim_interrupted",
             side_effect=track_reclaim,
         ),
         patch(
-            "orxt.trace.reevaluate_blocked",
+            "orxtra.trace.reevaluate_blocked",
             side_effect=track_reeval,
         ),
         patch(
-            "orxt.trace.clean_orphaned",
+            "orxtra.trace.clean_orphaned",
             side_effect=track_clean,
         ),
         patch(
-            "orxt.trace.acquire_run_lock",
+            "orxtra.trace.acquire_run_lock",
             side_effect=track_lock,
         ),
     ):

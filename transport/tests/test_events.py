@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
-from orxt.transport._events import (
+from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,
     Error,

@@ -7,9 +7,9 @@ import logging
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from orxt.notepad import format_notepad
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import (
+from orxtra.notepad import format_notepad
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import (
     TaskContext,
     TaskResult,
     TaskSpec,
@@ -19,14 +19,14 @@ from orxt.protocols._task import (
 if TYPE_CHECKING:
     from uuid import UUID
 
-from orxt.scheduler._base import SchedulerBase
-from orxt.scheduler._graph import (
+from orxtra.scheduler._base import SchedulerBase
+from orxtra.scheduler._graph import (
     build_graph,
     find_parallel_groups,
     topological_sort,
 )
 
-_logger = logging.getLogger("orxt.scheduler")
+_logger = logging.getLogger("orxtra.scheduler")
 
 
 class TaskDispatchMixin(SchedulerBase):
@@ -60,7 +60,7 @@ class TaskDispatchMixin(SchedulerBase):
 
         # Send to Overseer if available
         if self._overseer_interface is not None:
-            from orxt.protocols._events import (  # noqa: PLC0415
+            from orxtra.protocols._events import (  # noqa: PLC0415
                 StructuralAdvisory,
             )
             await self._send_overseer_event(

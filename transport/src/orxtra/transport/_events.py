@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from orxt.transport._state_machine import Continuation
+    from orxtra.transport._state_machine import Continuation
 
 
 @dataclass(frozen=True)

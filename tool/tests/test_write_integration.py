@@ -4,8 +4,8 @@ import asyncio
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.tool._write_integration import safe_read_for_write, safe_write
-from orxt.write_safety import StaleWriteError, StaleWriteTracker, WriteQueue
+from orxtra.tool._write_integration import safe_read_for_write, safe_write
+from orxtra.write_safety import StaleWriteError, StaleWriteTracker, WriteQueue
 
 if TYPE_CHECKING:
     from pathlib import Path

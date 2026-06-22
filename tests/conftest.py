@@ -8,18 +8,18 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 import uuid6
-from orxt.agent import Agent
-from orxt.protocols._task import TaskSpec
-from orxt.protocols._tool import Tool, ToolError
-from orxt.scheduler._executor import Scheduler
-from orxt.scheduler._types import WorkflowConfig
-from orxt.transport import Result, StepFinish, ToolUse
+from orxtra.agent import Agent
+from orxtra.protocols._task import TaskSpec
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._types import WorkflowConfig
+from orxtra.transport import Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     import uuid
     from collections.abc import AsyncIterator
 
-    from orxt.transport import Event
+    from orxtra.transport import Event
 
 
 from tests.shared_mocks import MockTraceWriter

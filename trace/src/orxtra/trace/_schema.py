@@ -262,9 +262,9 @@ REVOKE UPDATE, DELETE ON notepad_entries FROM PUBLIC;
 # ---------------------------------------------------------------------------
 
 CREATE_NOTIFY_FUNCTION = """\
-CREATE OR REPLACE FUNCTION notify_orxt_event() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION notify_orxtra_event() RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('orxt_events', json_build_object(
+    PERFORM pg_notify('orxtra_events', json_build_object(
         'event_id', NEW.id,
         'run_id', NEW.run_id,
         'event_type', NEW.event_type
@@ -277,7 +277,7 @@ $$ LANGUAGE plpgsql;
 CREATE_NOTIFY_TRIGGER = """\
 CREATE TRIGGER trg_notify_event
     AFTER INSERT ON events
-    FOR EACH ROW EXECUTE FUNCTION notify_orxt_event();
+    FOR EACH ROW EXECUTE FUNCTION notify_orxtra_event();
 """
 
 # ---------------------------------------------------------------------------

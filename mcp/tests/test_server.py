@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 import pytest
-from orxt.mcp._server import MCPServer, _serialize
+from orxtra.mcp._server import MCPServer, _serialize
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -54,7 +54,7 @@ async def test_initialize_returns_server_info(server: MCPServer) -> None:
     result = resp["result"]
     assert result["protocolVersion"] == "2024-11-05"
     assert result["capabilities"]["tools"] == {}
-    assert result["serverInfo"]["name"] == "orxt-mcp"
+    assert result["serverInfo"]["name"] == "orxtra-mcp"
     assert result["serverInfo"]["version"] == "0.0.0"
     assert resp["jsonrpc"] == "2.0"
     assert "error" not in resp
@@ -79,7 +79,7 @@ async def test_tools_list_returns_all_tools(server: MCPServer) -> None:
 # ------------------------------------------------------------------
 
 
-@patch("orxt.mcp._server.list_runs", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.list_runs", new_callable=AsyncMock)
 async def test_tools_call_list_runs(
     mock_fn: AsyncMock, server: MCPServer
 ) -> None:
@@ -95,7 +95,7 @@ async def test_tools_call_list_runs(
     assert "error" not in resp
 
 
-@patch("orxt.mcp._server.get_run", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.get_run", new_callable=AsyncMock)
 async def test_tools_call_get_run(
     mock_fn: AsyncMock, server: MCPServer
 ) -> None:
@@ -109,7 +109,7 @@ async def test_tools_call_get_run(
     assert "error" not in resp
 
 
-@patch("orxt.mcp._server.abort_run", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.abort_run", new_callable=AsyncMock)
 async def test_tools_call_abort_run(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -122,7 +122,7 @@ async def test_tools_call_abort_run(
     mock_fn.assert_awaited_once_with(mock_pool, run_id=UUID(run_id))
 
 
-@patch("orxt.mcp._server.pause_run", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.pause_run", new_callable=AsyncMock)
 async def test_tools_call_pause_run(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -135,7 +135,7 @@ async def test_tools_call_pause_run(
     mock_fn.assert_awaited_once_with(mock_pool, run_id=UUID(run_id))
 
 
-@patch("orxt.mcp._server.resume_run", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.resume_run", new_callable=AsyncMock)
 async def test_tools_call_resume_run(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -148,7 +148,7 @@ async def test_tools_call_resume_run(
     mock_fn.assert_awaited_once_with(mock_pool, run_id=UUID(run_id))
 
 
-@patch("orxt.mcp._server.list_inbox", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.list_inbox", new_callable=AsyncMock)
 async def test_tools_call_list_inbox(
     mock_fn: AsyncMock, server: MCPServer
 ) -> None:
@@ -161,7 +161,7 @@ async def test_tools_call_list_inbox(
     assert "error" not in resp
 
 
-@patch("orxt.mcp._server.get_inbox_item", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.get_inbox_item", new_callable=AsyncMock)
 async def test_tools_call_get_inbox_item(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -177,7 +177,7 @@ async def test_tools_call_get_inbox_item(
     mock_fn.assert_awaited_once_with(mock_pool, item_id=UUID(item_id))
 
 
-@patch("orxt.mcp._server.respond_to_inbox", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.respond_to_inbox", new_callable=AsyncMock)
 async def test_tools_call_respond_to_inbox(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -198,7 +198,7 @@ async def test_tools_call_respond_to_inbox(
     )
 
 
-@patch("orxt.mcp._server.skip_inbox_item", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.skip_inbox_item", new_callable=AsyncMock)
 async def test_tools_call_skip_inbox_item(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -214,7 +214,7 @@ async def test_tools_call_skip_inbox_item(
     mock_fn.assert_awaited_once_with(mock_pool, item_id=UUID(item_id))
 
 
-@patch("orxt.mcp._server.reject_inbox_item", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.reject_inbox_item", new_callable=AsyncMock)
 async def test_tools_call_reject_inbox_item(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -235,8 +235,8 @@ async def test_tools_call_reject_inbox_item(
     )
 
 
-@patch("orxt.mcp._server.TraceWriter")
-@patch("orxt.mcp._server.fire_event", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.TraceWriter")
+@patch("orxtra.mcp._server.fire_event", new_callable=AsyncMock)
 async def test_tools_call_fire_event(
     mock_fn: AsyncMock, mock_writer_cls: Any, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -264,7 +264,7 @@ async def test_tools_call_fire_event(
     )
 
 
-@patch("orxt.mcp._server.show_pricing", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.show_pricing", new_callable=AsyncMock)
 async def test_tools_call_show_pricing(
     mock_fn: AsyncMock, server: MCPServer
 ) -> None:
@@ -278,7 +278,7 @@ async def test_tools_call_show_pricing(
     assert "error" not in resp
 
 
-@patch("orxt.mcp._server.dump_config", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.dump_config", new_callable=AsyncMock)
 async def test_tools_call_show_config(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -296,7 +296,7 @@ async def test_tools_call_show_config(
     mock_fn.assert_awaited_once_with(mock_pool, run_id=UUID(run_id))
 
 
-@patch("orxt.mcp._server.query_events", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.query_events", new_callable=AsyncMock)
 async def test_tools_call_query_events(
     mock_fn: AsyncMock, server: MCPServer
 ) -> None:
@@ -312,7 +312,7 @@ async def test_tools_call_query_events(
     assert "error" not in resp
 
 
-@patch("orxt.mcp._server.get_transcript", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.get_transcript", new_callable=AsyncMock)
 async def test_tools_call_get_transcript(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -328,7 +328,7 @@ async def test_tools_call_get_transcript(
     mock_fn.assert_awaited_once_with(mock_pool, session_id=UUID(session_id))
 
 
-@patch("orxt.mcp._server.search_transcript", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.search_transcript", new_callable=AsyncMock)
 async def test_tools_call_search_transcript(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -349,7 +349,7 @@ async def test_tools_call_search_transcript(
     )
 
 
-@patch("orxt.mcp._server.list_tasks", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.list_tasks", new_callable=AsyncMock)
 async def test_tools_call_list_tasks(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -365,7 +365,7 @@ async def test_tools_call_list_tasks(
     mock_fn.assert_awaited_once_with(mock_pool, run_id=UUID(run_id))
 
 
-@patch("orxt.mcp._server.get_task_attempts", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.get_task_attempts", new_callable=AsyncMock)
 async def test_tools_call_get_task_attempts(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -381,7 +381,7 @@ async def test_tools_call_get_task_attempts(
     mock_fn.assert_awaited_once_with(mock_pool, task_id=UUID(task_id))
 
 
-@patch("orxt.mcp._server.get_notepad", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.get_notepad", new_callable=AsyncMock)
 async def test_tools_call_get_notepad(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -397,7 +397,7 @@ async def test_tools_call_get_notepad(
     mock_fn.assert_awaited_once_with(mock_pool, run_id=UUID(run_id))
 
 
-@patch("orxt.mcp._server.start_run_from_file", new_callable=AsyncMock)
+@patch("orxtra.mcp._server.start_run_from_file", new_callable=AsyncMock)
 async def test_tools_call_start_run(
     mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
@@ -410,7 +410,7 @@ async def test_tools_call_start_run(
                 "name": "start_run",
                 "arguments": {
                     "intent": "deploy staging",
-                    "config_path": "/etc/orxt/run.toml",
+                    "config_path": "/etc/orxtra/run.toml",
                 },
             },
         )
@@ -419,7 +419,7 @@ async def test_tools_call_start_run(
     parsed = json.loads(resp["result"]["content"][0]["text"])
     assert parsed == str(expected_id)
     mock_fn.assert_awaited_once_with(
-        mock_pool, intent="deploy staging", config_path=Path("/etc/orxt/run.toml")
+        mock_pool, intent="deploy staging", config_path=Path("/etc/orxtra/run.toml")
     )
 
 
@@ -592,11 +592,11 @@ async def test_pg_listener_forwards_notifications() -> None:
 
     # Verify callback was registered
     assert len(callbacks) == 1
-    assert callbacks[0][0] == "orxt_events"
+    assert callbacks[0][0] == "orxtra_events"
 
     # Simulate a notification
     callback_fn = callbacks[0][1]
-    callback_fn(None, 0, "orxt_events", '{"event_type": "task_completed"}')
+    callback_fn(None, 0, "orxtra_events", '{"event_type": "task_completed"}')
 
     # Give drain time to complete
     await asyncio.sleep(0.05)

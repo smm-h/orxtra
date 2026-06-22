@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from orxt.scheduler._services import ServiceInstance
-from orxt.scheduler._types import ServiceConfig
+from orxtra.scheduler._services import ServiceInstance
+from orxtra.scheduler._types import ServiceConfig
 
 
 class TestServiceInstance:

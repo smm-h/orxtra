@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from orxt.protocols._tool import Tool, ToolError
-from orxt.tool._validation import validate_args
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._validation import validate_args
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -70,7 +70,7 @@ def make_consult_tool(  # noqa: PLR0913
         # Reconstruct http tool in consult_mode if the agent is allowed http
         agent_tools: list[str] = agent_def.allow
         if "http" in agent_tools and "http" in tool_registry:
-            from orxt.tool._http_tool import make_http_tool  # noqa: PLC0415
+            from orxtra.tool._http_tool import make_http_tool  # noqa: PLC0415
 
             filtered_tools["http"] = make_http_tool(
                 allowed_hosts="allow_all", consult_mode=True,
@@ -78,7 +78,7 @@ def make_consult_tool(  # noqa: PLR0913
 
         # Reconstruct git tool in consult mode with read-only subcommands
         if "git" in agent_tools and "git" in tool_registry:
-            from orxt.tool._git_tool import make_git_tool  # noqa: PLC0415
+            from orxtra.tool._git_tool import make_git_tool  # noqa: PLC0415
 
             filtered_tools["git"] = make_git_tool(
                 read_root=read_root,

@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxt.protocols._task import BudgetExhaustionPolicy, TaskSpec, TaskState
-from orxt.protocols._tool import ToolError
-from orxt.scheduler._executor import Scheduler
-from orxt.transport import Usage
+from orxtra.protocols._task import BudgetExhaustionPolicy, TaskSpec, TaskState
+from orxtra.protocols._tool import ToolError
+from orxtra.scheduler._executor import Scheduler
+from orxtra.transport import Usage
 
 from tests.conftest import (
     MockTraceWriter,
@@ -21,7 +21,7 @@ from tests.conftest import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxt.scheduler._overseer import OverseerEvent
+    from orxtra.scheduler._overseer import OverseerEvent
 
 
 @pytest.fixture

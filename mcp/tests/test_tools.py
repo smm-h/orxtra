@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxt.mcp._tools import get_tool_definitions
+from orxtra.mcp._tools import get_tool_definitions
 
 EXPECTED_TOOL_NAMES: set[str] = {
     "start_run",

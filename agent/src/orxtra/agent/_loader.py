@@ -3,8 +3,8 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING, Any
 
-from orxt.agent._prompt import resolve_includes
-from orxt.agent._types import Agent
+from orxtra.agent._prompt import resolve_includes
+from orxtra.agent._types import Agent
 
 if TYPE_CHECKING:
     from pathlib import Path

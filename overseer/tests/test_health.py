@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orxt.overseer._health import HealthMonitor
+from orxtra.overseer._health import HealthMonitor
 
 
 def test_fresh_monitor_not_degraded() -> None:

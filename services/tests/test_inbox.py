@@ -6,14 +6,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from conftest import FakeRecord
-from orxt.services._inbox import (
+from orxtra.services._inbox import (
     get_inbox_item,
     list_inbox,
     reject_inbox_item,
     respond_to_inbox,
     skip_inbox_item,
 )
-from orxt.trace import InboxItem
+from orxtra.trace import InboxItem
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -46,7 +46,7 @@ def _make_inbox_record(
 async def test_list_inbox_no_filter(
     mock_pool: AsyncMock, sample_run_id: UUID, sample_inbox_item: InboxItem
 ) -> None:
-    with patch("orxt.services._inbox._read_inbox", new_callable=AsyncMock) as mock_read:
+    with patch("orxtra.services._inbox._read_inbox", new_callable=AsyncMock) as mock_read:
         mock_read.return_value = [sample_inbox_item]
 
         result = await list_inbox(mock_pool, sample_run_id)
@@ -59,7 +59,7 @@ async def test_list_inbox_no_filter(
 async def test_list_inbox_with_status(
     mock_pool: AsyncMock, sample_run_id: UUID, sample_inbox_item: InboxItem
 ) -> None:
-    with patch("orxt.services._inbox._read_inbox", new_callable=AsyncMock) as mock_read:
+    with patch("orxtra.services._inbox._read_inbox", new_callable=AsyncMock) as mock_read:
         mock_read.return_value = [sample_inbox_item]
 
         result = await list_inbox(mock_pool, sample_run_id, status="pending")
@@ -89,7 +89,7 @@ async def test_respond_to_inbox(
     record = _make_inbox_record(sample_item_id, sample_run_id, status="answered")
     mock_pool.fetchrow = AsyncMock(return_value=record)
 
-    with patch("orxt.services._inbox.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._inbox.TraceWriter") as mock_writer_cls:
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
@@ -106,7 +106,7 @@ async def test_skip_inbox_item_service(
     record = _make_inbox_record(sample_item_id, sample_run_id, status="skipped")
     mock_pool.fetchrow = AsyncMock(return_value=record)
 
-    with patch("orxt.services._inbox.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._inbox.TraceWriter") as mock_writer_cls:
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
@@ -123,7 +123,7 @@ async def test_reject_inbox_item_service(
     record = _make_inbox_record(sample_item_id, sample_run_id, status="rejected")
     mock_pool.fetchrow = AsyncMock(return_value=record)
 
-    with patch("orxt.services._inbox.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._inbox.TraceWriter") as mock_writer_cls:
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
@@ -139,7 +139,7 @@ async def test_reject_inbox_item_service(
 async def test_list_inbox_empty(
     mock_pool: AsyncMock, sample_run_id: UUID
 ) -> None:
-    with patch("orxt.services._inbox._read_inbox", new_callable=AsyncMock) as mock_read:
+    with patch("orxtra.services._inbox._read_inbox", new_callable=AsyncMock) as mock_read:
         mock_read.return_value = []
 
         result = await list_inbox(mock_pool, sample_run_id)

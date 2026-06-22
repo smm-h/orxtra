@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxt.write_safety import (
+from orxtra.write_safety import (
     StaleWriteTracker,
     WriteQueue,
     atomic_write,

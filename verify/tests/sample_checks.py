@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxt.protocols._execution import CheckResult
+from orxtra.protocols._execution import CheckResult
 
 if TYPE_CHECKING:
-    from orxt.protocols._checks import CheckContext
+    from orxtra.protocols._checks import CheckContext
 
 
 async def always_pass(ctx: CheckContext) -> CheckResult:

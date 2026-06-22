@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from orxt.tool._preview import FullRetrievalGuard, PreviewResult, check_and_preview
+from orxtra.tool._preview import FullRetrievalGuard, PreviewResult, check_and_preview
 
 
 class TestCheckAndPreview:

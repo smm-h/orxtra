@@ -3,8 +3,8 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING
 
-from orxt.agent import load_agent, load_categories
-from orxt.scheduler import load_workflow, validate_task_tree
+from orxtra.agent import load_agent, load_categories
+from orxtra.scheduler import load_workflow, validate_task_tree
 
 if TYPE_CHECKING:
     from pathlib import Path

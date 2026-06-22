@@ -5,16 +5,16 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from orxt.protocols._task import TaskSpec, TaskState
-from orxt.protocols._tool import ToolError
-from orxt.protocols._tools import (
+from orxtra.protocols._task import TaskSpec, TaskState
+from orxtra.protocols._tool import ToolError
+from orxtra.protocols._tools import (
     CreateTaskParams,
     CreateWaitForParams,
     CreateWorkflowParams,
 )
-from orxt.scheduler._base import SchedulerBase
+from orxtra.scheduler._base import SchedulerBase
 
-_logger = logging.getLogger("orxt.scheduler")
+_logger = logging.getLogger("orxtra.scheduler")
 
 
 class LifecycleHandlersMixin(SchedulerBase):

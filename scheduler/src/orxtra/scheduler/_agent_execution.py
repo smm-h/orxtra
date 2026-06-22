@@ -7,22 +7,22 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from orxt.notepad import format_notepad
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import (
+from orxtra.notepad import format_notepad
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import (
     EscalationPayload,
     TaskResult,
     TaskSpec,
     TaskState,
 )
-from orxt.session import Session, create_session
-from orxt.tool._consult_tool import make_consult_tool
-from orxt.tool._exec_tool import make_exec_tool
-from orxt.tool._git_tool import make_git_tool
-from orxt.tool._http_tool import make_http_tool
-from orxt.tool._notepad_tool import make_notepad_tool
-from orxt.tool._pipeline import wrap_tools_for_session
-from orxt.tool._read_tools import (
+from orxtra.session import Session, create_session
+from orxtra.tool._consult_tool import make_consult_tool
+from orxtra.tool._exec_tool import make_exec_tool
+from orxtra.tool._git_tool import make_git_tool
+from orxtra.tool._http_tool import make_http_tool
+from orxtra.tool._notepad_tool import make_notepad_tool
+from orxtra.tool._pipeline import wrap_tools_for_session
+from orxtra.tool._read_tools import (
     make_diff_tool,
     make_glob_tool,
     make_grep_tool,
@@ -30,8 +30,8 @@ from orxt.tool._read_tools import (
     make_read_tool,
     make_stat_tool,
 )
-from orxt.tool._shell_tool import make_shell_tool
-from orxt.tool._task_tools import (
+from orxtra.tool._shell_tool import make_shell_tool
+from orxtra.tool._task_tools import (
     make_await_task_tool,
     make_create_task_tool,
     make_create_wait_for_tool,
@@ -39,7 +39,7 @@ from orxt.tool._task_tools import (
     make_end_task_tool,
     make_start_task_tool,
 )
-from orxt.tool._write_tools import (
+from orxtra.tool._write_tools import (
     make_copy_tool,
     make_delete_tool,
     make_edit_tool,
@@ -48,15 +48,15 @@ from orxt.tool._write_tools import (
     make_set_executable_tool,
     make_write_tool,
 )
-from orxt.transport import Result, Usage
+from orxtra.transport import Result, Usage
 
 if TYPE_CHECKING:
-    from orxt.agent import Agent
-    from orxt.protocols._tool import Tool
+    from orxtra.agent import Agent
+    from orxtra.protocols._tool import Tool
 
-from orxt.scheduler._base import SchedulerBase
+from orxtra.scheduler._base import SchedulerBase
 
-_logger = logging.getLogger("orxt.scheduler")
+_logger = logging.getLogger("orxtra.scheduler")
 
 
 class AgentExecutionMixin(SchedulerBase):
@@ -70,7 +70,7 @@ class AgentExecutionMixin(SchedulerBase):
         variables: dict[str, Any] | None = None,
     ) -> TaskResult:
         """Execute an orchestrator task with multi-turn suspension support."""
-        from orxt.transport import SessionSuspended  # noqa: PLC0415
+        from orxtra.transport import SessionSuspended  # noqa: PLC0415
 
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
@@ -175,7 +175,7 @@ class AgentExecutionMixin(SchedulerBase):
                     TaskState.ESCALATED.value,
                 )
 
-                from orxt.protocols._events import (  # noqa: PLC0415
+                from orxtra.protocols._events import (  # noqa: PLC0415
                     TaskEscalated,
                 )
 
@@ -370,7 +370,7 @@ class AgentExecutionMixin(SchedulerBase):
                     ],
                 )
             except Exception as exc:  # noqa: BLE001
-                from orxt.scheduler._executor import classify_error  # noqa: PLC0415
+                from orxtra.scheduler._executor import classify_error  # noqa: PLC0415
                 category = classify_error(exc)
                 await self._trace_writer.write_event(
                     run_id=self._run_id,
@@ -592,7 +592,7 @@ class AgentExecutionMixin(SchedulerBase):
             async for _ in parent_session.send(escalation_msg):
                 pass
         else:
-            from orxt.protocols._events import (  # noqa: PLC0415
+            from orxtra.protocols._events import (  # noqa: PLC0415
                 TaskEscalated,
             )
             await self._send_overseer_event(

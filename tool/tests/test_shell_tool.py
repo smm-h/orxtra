@@ -7,8 +7,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._shell_tool import make_shell_tool
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._shell_tool import make_shell_tool
 
 
 def _mock_process(
@@ -50,7 +50,7 @@ class TestValidCommand:
         """command='uv sync' with allowed_binaries=['uv'] executes ok."""
         proc = _mock_process(stdout="Resolved 42 packages")
         tool = _make(allowed_binaries=["uv"])
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -87,7 +87,7 @@ class TestCommandParsing:
         """command='pytest -v tests/' passes correct args."""
         proc = _mock_process()
         tool = _make(allowed_binaries=["pytest"])
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -100,7 +100,7 @@ class TestCommandParsing:
         """command='grep "hello world" file.txt' preserves quoted args."""
         proc = _mock_process()
         tool = _make(allowed_binaries=["grep"])
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -128,7 +128,7 @@ class TestTimeout:
             captured_timeout = timeout
             return await real_wait_for(coro, timeout=timeout)  # type: ignore[arg-type]
 
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = tracking_wait_for
@@ -155,7 +155,7 @@ class TestTimeout:
             raise TimeoutError
 
         tool = _make(timeout_ceiling=10, allowed_binaries=["uv"])
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = fake_wait_for
@@ -179,7 +179,7 @@ class TestPreview:
             preview_lines=3,
             allowed_binaries=["uv"],
         )
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -197,7 +197,7 @@ class TestExitCode:
         """returncode=1 is returned as data in JSON, not raised."""
         proc = _mock_process(returncode=1)
         tool = _make(allowed_binaries=["uv"])
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -215,7 +215,7 @@ class TestEnvironment:
         proc = _mock_process()
         env = {"PATH": "/usr/bin"}
         tool = _make(allowed_binaries=["uv"], env_filter=env)
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -228,7 +228,7 @@ class TestEnvironment:
         """env_filter=None means no 'env' kwarg is passed."""
         proc = _mock_process()
         tool = _make(allowed_binaries=["uv"], env_filter=None)
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -246,7 +246,7 @@ class TestWorkingDirectory:
         proc = _mock_process()
         root = Path("/my/project")
         tool = _make(read_root=root, allowed_binaries=["uv"])
-        with patch("orxt.tool._shell_tool.asyncio") as mock_asyncio:
+        with patch("orxtra.tool._shell_tool.asyncio") as mock_asyncio:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
             mock_asyncio.subprocess = asyncio.subprocess
             mock_asyncio.wait_for = asyncio.wait_for
@@ -260,7 +260,7 @@ class TestPipeline:
 
     def test_shell_in_file_mutation_tools(self) -> None:
         """'shell' is in FILE_MUTATION_TOOLS."""
-        from orxt.tool._pipeline import FILE_MUTATION_TOOLS  # noqa: PLC0415
+        from orxtra.tool._pipeline import FILE_MUTATION_TOOLS  # noqa: PLC0415
 
         assert "shell" in FILE_MUTATION_TOOLS
 

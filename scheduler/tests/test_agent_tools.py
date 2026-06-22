@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import uuid6
-from orxt.agent import Agent, ExecToolConfig, ShellConfig
-from orxt.protocols._task import TaskSpec
-from orxt.scheduler._executor import Scheduler
+from orxtra.agent import Agent, ExecToolConfig, ShellConfig
+from orxtra.protocols._task import TaskSpec
+from orxtra.scheduler._executor import Scheduler
 
 from tests.conftest import (
     MockTraceWriter,
@@ -20,7 +20,7 @@ from tests.conftest import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxt.protocols._tool import Tool
+    from orxtra.protocols._tool import Tool
 
 LIFECYCLE_TOOLS = frozenset({
     "start_task",
@@ -76,7 +76,7 @@ async def _extract_tool_names(
     task_id = uuid6.uuid7()
 
     with patch(
-        "orxt.scheduler._agent_execution.create_session",
+        "orxtra.scheduler._agent_execution.create_session",
         new_callable=AsyncMock,
     ) as mock_create:
         mock_session = MagicMock()
@@ -180,7 +180,7 @@ class TestWriteToolsReceiveWriteQueue:
 
         original_wrap = (
             __import__(
-                "orxt.tool._pipeline",
+                "orxtra.tool._pipeline",
                 fromlist=["wrap_tools_for_session"],
             ).wrap_tools_for_session
         )
@@ -193,13 +193,13 @@ class TestWriteToolsReceiveWriteQueue:
 
         with (
             patch(
-                "orxt.scheduler._agent_execution"
+                "orxtra.scheduler._agent_execution"
                 ".create_session",
                 new_callable=AsyncMock,
                 return_value=MagicMock(),
             ),
             patch(
-                "orxt.scheduler._agent_execution"
+                "orxtra.scheduler._agent_execution"
                 ".wrap_tools_for_session",
                 side_effect=capturing_wrap,
             ),
@@ -302,7 +302,7 @@ class TestGitSubcommandsDependOnWriteAccess:
         captured_subcommands: list[list[str]] = []
         original_make = (
             __import__(
-                "orxt.tool._git_tool",
+                "orxtra.tool._git_tool",
                 fromlist=["make_git_tool"],
             ).make_git_tool
         )
@@ -322,13 +322,13 @@ class TestGitSubcommandsDependOnWriteAccess:
 
         with (
             patch(
-                "orxt.scheduler._agent_execution"
+                "orxtra.scheduler._agent_execution"
                 ".create_session",
                 new_callable=AsyncMock,
                 return_value=MagicMock(),
             ),
             patch(
-                "orxt.scheduler._agent_execution"
+                "orxtra.scheduler._agent_execution"
                 ".make_git_tool",
                 side_effect=capturing_make,
             ),
@@ -351,7 +351,7 @@ class TestGitSubcommandsDependOnWriteAccess:
         captured_subcommands: list[list[str]] = []
         original_make = (
             __import__(
-                "orxt.tool._git_tool",
+                "orxtra.tool._git_tool",
                 fromlist=["make_git_tool"],
             ).make_git_tool
         )
@@ -371,13 +371,13 @@ class TestGitSubcommandsDependOnWriteAccess:
 
         with (
             patch(
-                "orxt.scheduler._agent_execution"
+                "orxtra.scheduler._agent_execution"
                 ".create_session",
                 new_callable=AsyncMock,
                 return_value=MagicMock(),
             ),
             patch(
-                "orxt.scheduler._agent_execution"
+                "orxtra.scheduler._agent_execution"
                 ".make_git_tool",
                 side_effect=capturing_make,
             ),

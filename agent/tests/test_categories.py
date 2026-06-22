@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.agent import Agent, load_categories, resolve_category
+from orxtra.agent import Agent, load_categories, resolve_category
 
 if TYPE_CHECKING:
     from pathlib import Path

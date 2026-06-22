@@ -1,4 +1,4 @@
-# orxt
+# orxtra
 
 Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
 
@@ -29,17 +29,17 @@ Every piece of work is a task with explicit boundaries, entry conditions, and ex
 
 A typed LLM client with streaming and tools:
 ```
-pip install orxt-transport
+pip install orxtra-transport
 ```
 
 Deterministic task execution (no AI brain, consumer provides task trees):
 ```
-pip install orxt-scheduler
+pip install orxtra-scheduler
 ```
 
 Full autonomous system with Overseer, verification, and human inbox:
 ```
-pip install orxt-cli
+pip install orxtra-cli
 ```
 
 ## Design principles

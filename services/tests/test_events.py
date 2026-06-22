@@ -6,8 +6,8 @@ from uuid import uuid4
 
 import asyncpg  # type: ignore[import-untyped]
 import pytest
-from orxt.services._events import fire_event
-from orxt.trace import TraceWriter
+from orxtra.services._events import fire_event
+from orxtra.trace import TraceWriter
 
 if TYPE_CHECKING:
     from uuid import UUID

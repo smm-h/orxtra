@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.protocols._execution import AgentExecution, ScriptExecution
-from orxt.scheduler._loader import load_workflow
+from orxtra.protocols._execution import AgentExecution, ScriptExecution
+from orxtra.scheduler._loader import load_workflow
 
 if TYPE_CHECKING:
     from pathlib import Path

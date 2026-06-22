@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orxt.transport._events import (
+from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,
     Error,
@@ -17,9 +17,9 @@ from orxt.transport._events import (
     ToolUse,
     Usage,
 )
-from orxt.transport._provider import Provider, RetryPolicy
-from orxt.transport._state_machine import Continuation, TransportState
-from orxt.transport._transport import Transport
+from orxtra.transport._provider import Provider, RetryPolicy
+from orxtra.transport._state_machine import Continuation, TransportState
+from orxtra.transport._transport import Transport
 
 __all__ = [
     "ApiRetry",

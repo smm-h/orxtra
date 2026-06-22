@@ -11,28 +11,28 @@ from unittest.mock import patch
 
 import pytest
 import uuid6
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import (
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import (
     TaskContext,
     TaskResult,
     TaskSpec,
     TaskState,
 )
-from orxt.protocols._tool import ToolError
-from orxt.protocols._tools import (
+from orxtra.protocols._tool import ToolError
+from orxtra.protocols._tools import (
     CreateTaskParams,
     CreateWaitForParams,
     CreateWorkflowParams,
 )
-from orxt.scheduler._executor import Scheduler
-from orxt.scheduler._types import WorkflowConfig
-from orxt.transport import Result, StepFinish, ToolUse
+from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._types import WorkflowConfig
+from orxtra.transport import Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxt.transport import Event
+    from orxtra.transport import Event
 
 from tests.conftest import (
     MockTraceWriter,

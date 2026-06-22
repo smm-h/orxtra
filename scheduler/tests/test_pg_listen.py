@@ -9,14 +9,14 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import uuid6
-from orxt.protocols._task import TaskSpec
-from orxt.scheduler._types import WorkflowConfig
+from orxtra.protocols._task import TaskSpec
+from orxtra.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:
     import uuid
     from collections.abc import Callable, Iterator
 
-    from orxt.scheduler._executor import Scheduler
+    from orxtra.scheduler._executor import Scheduler
 
     from tests.conftest import MockTraceWriter
 
@@ -30,22 +30,22 @@ def _patch_recovery() -> Iterator[None]:
     tests skip real PG calls."""
     with (
         patch(
-            "orxt.trace.reclaim_interrupted",
+            "orxtra.trace.reclaim_interrupted",
             new_callable=AsyncMock,
             return_value=0,
         ),
         patch(
-            "orxt.trace.reevaluate_blocked",
+            "orxtra.trace.reevaluate_blocked",
             new_callable=AsyncMock,
             return_value=[],
         ),
         patch(
-            "orxt.trace.clean_orphaned",
+            "orxtra.trace.clean_orphaned",
             new_callable=AsyncMock,
             return_value=0,
         ),
         patch(
-            "orxt.trace.acquire_run_lock",
+            "orxtra.trace.acquire_run_lock",
             new_callable=AsyncMock,
         ),
     ):
@@ -114,7 +114,7 @@ class TestPgListener:
             "run_id": str(run_id),
             "new_status": "paused",
         })
-        captured_callback(mock_conn, 0, "orxt_events", payload)
+        captured_callback(mock_conn, 0, "orxtra_events", payload)
 
         # Give the scheduled task time to execute
         await asyncio.sleep(0.05)
@@ -170,7 +170,7 @@ class TestPgListener:
             "run_id": str(uuid6.uuid7()),  # different run
             "data": {"key": "value"},
         })
-        captured_callback(mock_conn, 0, "orxt_events", payload)
+        captured_callback(mock_conn, 0, "orxtra_events", payload)
 
         await asyncio.sleep(0.05)
         await waiter
@@ -228,7 +228,7 @@ class TestPgListener:
         # Verify cleanup happened
         mock_conn.remove_listener.assert_awaited_once()
         remove_args = mock_conn.remove_listener.call_args
-        assert remove_args[0][0] == "orxt_events"
+        assert remove_args[0][0] == "orxtra_events"
         mock_pool.release.assert_awaited_once_with(mock_conn)
 
     async def test_invalid_json_payload_ignored(
@@ -263,7 +263,7 @@ class TestPgListener:
 
         # Send invalid JSON — should not raise
         captured_callback(
-            mock_conn, 0, "orxt_events", "not-json!!!",
+            mock_conn, 0, "orxtra_events", "not-json!!!",
         )
         await asyncio.sleep(0.01)
 

@@ -1,5 +1,5 @@
-# Minimal agent definition for orxt.
-# Load with: orxt.agent.load_agent("examples/basic_agent.toml")
+# Minimal agent definition for orxtra.
+# Load with: orxtra.agent.load_agent("examples/basic_agent.toml")
 
 name = "basic-agent"
 description = "A minimal agent that reads and writes files."

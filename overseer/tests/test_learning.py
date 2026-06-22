@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from orxt.overseer._learning import check_staleness, filter_stale_lessons
+from orxtra.overseer._learning import check_staleness, filter_stale_lessons
 
 TS_INITIAL = "2020-01-01T00:00:00+00:00"
 TS_LESSON = "2022-01-01T00:00:00+00:00"

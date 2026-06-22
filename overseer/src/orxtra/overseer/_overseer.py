@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path as _Path
 from typing import TYPE_CHECKING
 
-from orxt.overseer._tools import (
+from orxtra.overseer._tools import (
     make_add_constraint_tool,
     make_create_inbox_item_tool,
     make_record_assumption_tool,
@@ -11,8 +11,8 @@ from orxt.overseer._tools import (
     make_update_workflow_status_tool,
     make_write_lesson_tool,
 )
-from orxt.protocols import format_event
-from orxt.protocols._events import (
+from orxtra.protocols import format_event
+from orxtra.protocols._events import (
     BudgetExhausted,
     BudgetThresholdCrossed,
     HealthDegraded,
@@ -23,8 +23,8 @@ from orxt.protocols._events import (
     TaskEscalated,
     TaskFailed,
 )
-from orxt.tool._notepad_tool import make_notepad_tool
-from orxt.tool._read_tools import (
+from orxtra.tool._notepad_tool import make_notepad_tool
+from orxtra.tool._read_tools import (
     make_diff_tool,
     make_glob_tool,
     make_grep_tool,
@@ -37,11 +37,11 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
-    from orxt.overseer._autonomy import AutonomyLevel
-    from orxt.overseer._health import HealthMonitor
-    from orxt.protocols._tool import Tool
-    from orxt.session import Session
-    from orxt.trace import TraceWriter
+    from orxtra.overseer._autonomy import AutonomyLevel
+    from orxtra.overseer._health import HealthMonitor
+    from orxtra.protocols._tool import Tool
+    from orxtra.session import Session
+    from orxtra.trace import TraceWriter
 
 _PROMPTS_DIR = _Path(__file__).resolve().parent / "prompts"
 

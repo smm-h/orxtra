@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.tool._read_tools import make_list_dir_tool
+from orxtra.tool._read_tools import make_list_dir_tool
 
 if TYPE_CHECKING:
     from pathlib import Path

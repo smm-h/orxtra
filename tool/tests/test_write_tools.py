@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._write_integration import safe_read_for_write
-from orxt.tool._write_tools import (
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._write_integration import safe_read_for_write
+from orxtra.tool._write_tools import (
     make_copy_tool,
     make_delete_tool,
     make_edit_tool,
@@ -19,7 +19,7 @@ from orxt.tool._write_tools import (
     make_set_executable_tool,
     make_write_tool,
 )
-from orxt.write_safety import StaleWriteError, StaleWriteTracker, WriteQueue
+from orxtra.write_safety import StaleWriteError, StaleWriteTracker, WriteQueue
 
 if TYPE_CHECKING:
     from pathlib import Path

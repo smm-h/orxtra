@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import asyncpg
-    from orxt.protocols import Tool
-    from orxt.trace import TraceWriter
-    from orxt.transport import Transport
+    from orxtra.protocols import Tool
+    from orxtra.trace import TraceWriter
+    from orxtra.transport import Transport
 
-from orxt.session._session import Session
+from orxtra.session._session import Session
 
 
 async def create_session(  # noqa: PLR0913

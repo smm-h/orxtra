@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
-from orxt.trace import (
+from orxtra.trace import (
     InboxItem,
     IterationResult,
     NotepadEntry,

@@ -1,4 +1,4 @@
-"""File write tool constructors for the orxt tool module."""
+"""File write tool constructors for the orxtra tool module."""
 
 from __future__ import annotations
 
@@ -6,15 +6,15 @@ import asyncio
 import shutil
 from typing import TYPE_CHECKING, Any
 
-from orxt.protocols._tool import Tool, ToolError
-from orxt.tool._path import PathError, check_write_scope, resolve_and_check
-from orxt.tool._validation import validate_args
-from orxt.tool._write_integration import safe_read_for_write, safe_write
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._path import PathError, check_write_scope, resolve_and_check
+from orxtra.tool._validation import validate_args
+from orxtra.tool._write_integration import safe_read_for_write, safe_write
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxt.write_safety import StaleWriteTracker, WriteQueue
+    from orxtra.write_safety import StaleWriteTracker, WriteQueue
 
 
 def _path_error_to_tool_error(exc: PathError) -> ToolError:

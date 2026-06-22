@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
     from ._provider import Provider, RetryPolicy
 
-from orxt.protocols import Tool, ToolError
+from orxtra.protocols import Tool, ToolError
 
 _TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503})
 

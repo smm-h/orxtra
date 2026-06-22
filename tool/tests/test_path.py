@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 import pytest
-from orxt.tool._path import PathError, check_write_scope, resolve_and_check
+from orxtra.tool._path import PathError, check_write_scope, resolve_and_check
 
 
 class TestResolveAndCheck:

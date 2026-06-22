@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxt.knowledge_module._cognee_import import require_cognee
+from orxtra.knowledge_module._cognee_import import require_cognee
 
 if TYPE_CHECKING:
-    from orxt.knowledge_module._types import KnowledgeConfig
+    from orxtra.knowledge_module._types import KnowledgeConfig
 
 
 def configure_cognee(config: KnowledgeConfig) -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from orxt.write_safety import (
+from orxtra.write_safety import (
     StaleWriteError,
     StaleWriteTracker,
     WriteQueue,

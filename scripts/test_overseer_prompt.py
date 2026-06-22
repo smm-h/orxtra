@@ -4,7 +4,7 @@ Sends the Overseer system prompt + a RunStarted event to gpt-4o-mini
 and prints the full response, including any tool calls the model makes.
 
 Usage:
-    cd /path/to/orxt && uv run python scripts/test_overseer_prompt.py
+    cd /path/to/orxtra && uv run python scripts/test_overseer_prompt.py
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from orxt.protocols import Tool
-from orxt.transport import (
+from orxtra.protocols import Tool
+from orxtra.transport import (
     ApiRetry,
     Error,
     Result,
@@ -29,7 +29,7 @@ from orxt.transport import (
     ToolUse,
     Transport,
 )
-from orxt.transport.providers._openai import OpenAIProvider
+from orxtra.transport.providers._openai import OpenAIProvider
 
 ROOT = Path(__file__).resolve().parent.parent
 

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import pytest
-from orxt.trace import (
+from orxtra.trace import (
     InvalidTransitionError,
     validate_run_transition,
     validate_task_transition,
 )
-from orxt.trace._transitions import (
+from orxtra.trace._transitions import (
     RUN_TRANSITIONS,
     TASK_TERMINAL_STATES,
     TASK_TRANSITIONS,

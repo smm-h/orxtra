@@ -1,4 +1,4 @@
-"""Concurrency-focused end-to-end integration tests for the orxt system.
+"""Concurrency-focused end-to-end integration tests for the orxtra system.
 
 Tests exercise parallel task grouping, for_each with max_concurrency,
 diamond dependency ordering, and parallel group computation on complex
@@ -14,14 +14,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import uuid6
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import TaskResult, TaskSpec, TaskState
-from orxt.scheduler._graph import (
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import TaskResult, TaskSpec, TaskState
+from orxtra.scheduler._graph import (
     build_graph,
     find_parallel_groups,
     topological_sort,
 )
-from orxt.scheduler._types import WorkflowConfig
+from orxtra.scheduler._types import WorkflowConfig
 
 from tests.conftest import (
     AgentTurn,
@@ -72,7 +72,7 @@ def _cleanup_modules(*module_names: str) -> None:
 def _patch_auto_commit() -> Any:  # noqa: ANN401
     """Patch _auto_commit to avoid subprocess calls in tests."""
     return patch(
-        "orxt.scheduler._executor.Scheduler._auto_commit",
+        "orxtra.scheduler._executor.Scheduler._auto_commit",
         new_callable=AsyncMock,
     )
 

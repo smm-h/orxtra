@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from orxt.trace._types import (
+from orxtra.trace._types import (
     InboxItem,
     IterationResult,
     NotepadEntry,

@@ -1,4 +1,4 @@
-"""End-to-end failure path integration tests for the orxt scheduler.
+"""End-to-end failure path integration tests for the orxtra scheduler.
 
 Tests cover: postcheck failure with retry, retry exhaustion leading to
 escalation, timeout cancellation, missing start_task, missing end_task,
@@ -12,11 +12,11 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
-from orxt.protocols._errors import ErrorCategory
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import TaskState
-from orxt.scheduler._executor import Scheduler, classify_error
-from orxt.transport import Result, StepFinish, ToolUse
+from orxtra.protocols._errors import ErrorCategory
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import TaskState
+from orxtra.scheduler._executor import Scheduler, classify_error
+from orxtra.transport import Result, StepFinish, ToolUse
 
 from tests.conftest import (
     AgentTurn,
@@ -31,8 +31,8 @@ if TYPE_CHECKING:
     import uuid
     from collections.abc import AsyncIterator
 
-    from orxt.protocols._tool import Tool
-    from orxt.transport import Event
+    from orxtra.protocols._tool import Tool
+    from orxtra.transport import Event
 
 
 def _extract_task_id(message: str) -> str | None:

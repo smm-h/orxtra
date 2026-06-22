@@ -6,7 +6,7 @@ from decimal import Decimal
 from uuid import UUID
 
 import pytest
-from orxt.cli._formatters import format_json, format_output, format_table
+from orxtra.cli._formatters import format_json, format_output, format_table
 
 
 class _FakeModel:

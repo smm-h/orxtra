@@ -1,26 +1,26 @@
 from __future__ import annotations
 
-from orxt.scheduler._events import EventRegistry
-from orxt.scheduler._executor import Scheduler
-from orxt.scheduler._graph import (
+from orxtra.scheduler._events import EventRegistry
+from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._graph import (
     CycleError,
     build_graph,
     find_parallel_groups,
     topological_sort,
 )
-from orxt.scheduler._loader import load_workflow
-from orxt.scheduler._locks import FileLockRegistry
-from orxt.scheduler._overseer import (
+from orxtra.scheduler._loader import load_workflow
+from orxtra.scheduler._locks import FileLockRegistry
+from orxtra.scheduler._overseer import (
     OverseerAdapter,
     OverseerInterface,
 )
-from orxt.scheduler._services import (
+from orxtra.scheduler._services import (
     ServiceInstance,
     check_health,
     start_service,
     stop_service,
 )
-from orxt.scheduler._types import (
+from orxtra.scheduler._types import (
     AgentExecution,
     AttemptSummary,
     EscalationPayload,
@@ -34,7 +34,7 @@ from orxt.scheduler._types import (
     TaskState,
     WorkflowConfig,
 )
-from orxt.scheduler._validator import validate_task_tree
+from orxtra.scheduler._validator import validate_task_tree
 
 __all__ = [
     "AgentExecution",

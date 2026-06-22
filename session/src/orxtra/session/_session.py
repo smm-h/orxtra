@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING, Any, Self
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from orxt.protocols import Tool
-    from orxt.trace import TraceWriter
-    from orxt.transport import Event, Transport
+    from orxtra.protocols import Tool
+    from orxtra.trace import TraceWriter
+    from orxtra.transport import Event, Transport
 
-from orxt.transport import Continuation, Result, SessionSuspended, StepFinish, ToolUse
+from orxtra.transport import Continuation, Result, SessionSuspended, StepFinish, ToolUse
 
 
 class Session:

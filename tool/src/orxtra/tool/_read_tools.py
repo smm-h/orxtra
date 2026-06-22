@@ -1,4 +1,4 @@
-"""File read tool constructors for the orxt tool module."""
+"""File read tool constructors for the orxtra tool module."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import pathspec
-from orxt.protocols._tool import Tool, ToolError
-from orxt.tool._path import PathError, resolve_and_check
-from orxt.tool._preview import FullRetrievalGuard, check_and_preview
-from orxt.tool._validation import validate_args
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._path import PathError, resolve_and_check
+from orxtra.tool._preview import FullRetrievalGuard, check_and_preview
+from orxtra.tool._validation import validate_args
 
 if TYPE_CHECKING:
     from collections.abc import Callable

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxt.session._factory import create_session
-from orxt.session._session import Session
+from orxtra.session._factory import create_session
+from orxtra.session._session import Session
 
 if TYPE_CHECKING:
     import uuid

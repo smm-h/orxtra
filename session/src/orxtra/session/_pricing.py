@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from orxt.transport import Usage
+    from orxtra.transport import Usage
 
 
 @dataclass(frozen=True)

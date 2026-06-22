@@ -10,7 +10,7 @@ from uuid import UUID
 if TYPE_CHECKING:
     import uuid
 
-    from orxt.protocols._task import EscalationPayload
+    from orxtra.protocols._task import EscalationPayload
 
 
 @dataclass(frozen=True)

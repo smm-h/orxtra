@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     import asyncpg
 
-from orxt.trace._transitions import (
+from orxtra.trace._transitions import (
     InvalidTransitionError,
     validate_run_transition,
     validate_task_transition,

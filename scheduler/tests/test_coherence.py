@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import uuid6
-from orxt.scheduler._executor import Scheduler
-from orxt.transport import Result
+from orxtra.scheduler._executor import Scheduler
+from orxtra.transport import Result
 
 from tests.conftest import (
     MockTraceWriter,

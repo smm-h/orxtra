@@ -4,7 +4,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from orxt.mcp._server import MCPServer
+from orxtra.mcp._server import MCPServer
 
 
 @pytest.fixture

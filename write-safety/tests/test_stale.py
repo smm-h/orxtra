@@ -4,7 +4,7 @@ import hashlib
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.write_safety import StaleWriteError, StaleWriteTracker, compute_hash
+from orxtra.write_safety import StaleWriteError, StaleWriteTracker, compute_hash
 
 if TYPE_CHECKING:
     from pathlib import Path

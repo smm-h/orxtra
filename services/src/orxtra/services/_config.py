@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from orxt.session._pricing import PRICING_TABLE
+from orxtra.session._pricing import PRICING_TABLE
 
 if TYPE_CHECKING:
     from uuid import UUID

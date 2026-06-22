@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxt.trace import read_notepad as _trace_read_notepad
+from orxtra.trace import read_notepad as _trace_read_notepad
 
 if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-    from orxt.notepad._types import NotepadEntry
+    from orxtra.notepad._types import NotepadEntry
 
 _ENTRY_TYPES = ("learning", "decision", "issue")
 _TYPE_HEADERS = {

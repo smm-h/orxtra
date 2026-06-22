@@ -1,3 +1,3 @@
-from orxt.secrets._registry import SecretRegistry
+from orxtra.secrets._registry import SecretRegistry
 
 __all__ = ["SecretRegistry"]

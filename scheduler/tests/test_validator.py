@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from orxt.protocols._task import TaskSpec
-from orxt.scheduler._types import WorkflowConfig
-from orxt.scheduler._validator import validate_task_tree
+from orxtra.protocols._task import TaskSpec
+from orxtra.scheduler._types import WorkflowConfig
+from orxtra.scheduler._validator import validate_task_tree
 
 
 def _agent_task(name: str, **kwargs: object) -> TaskSpec:

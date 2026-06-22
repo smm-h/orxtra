@@ -4,7 +4,7 @@ import errno
 from unittest.mock import AsyncMock, call, patch
 
 import pytest
-from orxt.write_safety import is_transient_error, with_transient_retry
+from orxtra.write_safety import is_transient_error, with_transient_retry
 
 
 def test_transient_eio() -> None:
@@ -93,7 +93,7 @@ async def test_non_oserror_no_retry() -> None:
     assert calls == 1
 
 
-@patch("orxt.write_safety._replay.asyncio.sleep", new_callable=AsyncMock)
+@patch("orxtra.write_safety._replay.asyncio.sleep", new_callable=AsyncMock)
 async def test_retry_backoff_timing(mock_sleep: AsyncMock) -> None:
     calls = 0
 

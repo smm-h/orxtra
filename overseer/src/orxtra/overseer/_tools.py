@@ -4,9 +4,9 @@ import json
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from orxt.protocols._constraints import ConstraintTier
-from orxt.protocols._tool import Tool, ToolError
-from orxt.protocols._tools import (
+from orxtra.protocols._constraints import ConstraintTier
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols._tools import (
     AddConstraintParams,
     AddConstraintResult,
     CreateInboxItemParams,
@@ -22,7 +22,7 @@ from orxt.protocols._tools import (
 from pydantic import ValidationError
 
 if TYPE_CHECKING:
-    from orxt.trace import TraceWriter
+    from orxtra.trace import TraceWriter
 
 
 def _validation_error(e: Exception) -> str:

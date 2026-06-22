@@ -4,8 +4,8 @@ from dataclasses import FrozenInstanceError
 from decimal import Decimal
 
 import pytest
-from orxt.session._pricing import PRICING_TABLE, TokenRates, compute_cost_usd
-from orxt.transport import Usage
+from orxtra.session._pricing import PRICING_TABLE, TokenRates, compute_cost_usd
+from orxtra.transport import Usage
 
 
 class TestComputeCostUsd:

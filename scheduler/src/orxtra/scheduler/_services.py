@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxt.scheduler._types import ServiceConfig
+    from orxtra.scheduler._types import ServiceConfig
 
 
 @dataclass

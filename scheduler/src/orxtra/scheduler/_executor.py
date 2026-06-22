@@ -9,11 +9,11 @@ import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from orxt.notepad import NotepadEntry, format_notepad
-from orxt.protocols._errors import ErrorCategory
-from orxt.protocols._events import StructuralAdvisory
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import (
+from orxtra.notepad import NotepadEntry, format_notepad
+from orxtra.protocols._errors import ErrorCategory
+from orxtra.protocols._events import StructuralAdvisory
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import (
     AttemptSummary,
     BudgetExhaustionPolicy,
     TaskContext,
@@ -21,26 +21,26 @@ from orxt.protocols._task import (
     TaskSpec,
     TaskState,
 )
-from orxt.scheduler._agent_execution import AgentExecutionMixin
-from orxt.scheduler._enforcement import EnforcementMixin
-from orxt.scheduler._events import EventRegistry
-from orxt.scheduler._graph import (
+from orxtra.scheduler._agent_execution import AgentExecutionMixin
+from orxtra.scheduler._enforcement import EnforcementMixin
+from orxtra.scheduler._events import EventRegistry
+from orxtra.scheduler._graph import (
     build_graph,
     find_parallel_groups,
     topological_sort,
 )
-from orxt.scheduler._lifecycle_handlers import LifecycleHandlersMixin
-from orxt.scheduler._locks import FileLockRegistry
-from orxt.scheduler._services import (
+from orxtra.scheduler._lifecycle_handlers import LifecycleHandlersMixin
+from orxtra.scheduler._locks import FileLockRegistry
+from orxtra.scheduler._services import (
     ServiceInstance,
     check_health,
     start_service,
     stop_service,
 )
-from orxt.scheduler._task_dispatch import TaskDispatchMixin
-from orxt.scheduler._validator import validate_task_tree
-from orxt.transport import Result
-from orxt.write_safety import StaleWriteTracker, WriteQueue
+from orxtra.scheduler._task_dispatch import TaskDispatchMixin
+from orxtra.scheduler._validator import validate_task_tree
+from orxtra.transport import Result
+from orxtra.write_safety import StaleWriteTracker, WriteQueue
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -48,19 +48,19 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-    from orxt.agent import Agent
-    from orxt.protocols._task import Execution
-    from orxt.scheduler._overseer import (
+    from orxtra.agent import Agent
+    from orxtra.protocols._task import Execution
+    from orxtra.scheduler._overseer import (
         OverseerEvent,
         OverseerInterface,
     )
-    from orxt.scheduler._types import WorkflowConfig
-    from orxt.secrets._registry import SecretRegistry
-    from orxt.session import Session
-    from orxt.trace import TraceWriter
-    from orxt.transport import Transport
+    from orxtra.scheduler._types import WorkflowConfig
+    from orxtra.secrets._registry import SecretRegistry
+    from orxtra.session import Session
+    from orxtra.trace import TraceWriter
+    from orxtra.transport import Transport
 
-_logger = logging.getLogger("orxt.scheduler")
+_logger = logging.getLogger("orxtra.scheduler")
 
 _ACTIVE_STATES = frozenset({
     TaskState.ACTIVE,
@@ -266,7 +266,7 @@ class Scheduler(
         self,
         execution: Execution,
     ) -> CheckResult:
-        from orxt.protocols._task import (  # noqa: PLC0415
+        from orxtra.protocols._task import (  # noqa: PLC0415
             WorkflowExecution,
         )
 
@@ -409,7 +409,7 @@ class Scheduler(
         """Three-pass idempotent crash recovery startup."""
         if self._pool is None:
             return
-        from orxt.trace import (  # noqa: PLC0415
+        from orxtra.trace import (  # noqa: PLC0415
             acquire_run_lock,
             clean_orphaned,
             reclaim_interrupted,
@@ -485,7 +485,7 @@ class Scheduler(
                 )
 
         await pg_listener_conn.add_listener(
-            "orxt_events", _on_notification,
+            "orxtra_events", _on_notification,
         )
 
         async def _listen_forever() -> None:
@@ -510,7 +510,7 @@ class Scheduler(
                 await pg_listener_task
         if pg_listener_conn is not None and self._pool is not None:
             await pg_listener_conn.remove_listener(
-                "orxt_events", on_notification,
+                "orxtra_events", on_notification,
             )
             await self._pool.release(pg_listener_conn)
 
@@ -620,7 +620,7 @@ class Scheduler(
                 if self._task_states.get(task_id_map[name]) == TaskState.ESCALATED
             ]
             if escalated_in_group:
-                from orxt.scheduler._types import EscalationPolicy  # noqa: PLC0415
+                from orxtra.scheduler._types import EscalationPolicy  # noqa: PLC0415
 
                 policy = config.escalation_policy
                 if policy == EscalationPolicy.HALT:
@@ -856,7 +856,7 @@ class Scheduler(
         if self._overseer_interface.is_degraded(
             event_type,
         ):
-            from orxt.scheduler._overseer import (  # noqa: PLC0415
+            from orxtra.scheduler._overseer import (  # noqa: PLC0415
                 _DEFAULT_FALLBACK,
                 FALLBACK_BEHAVIORS,
                 FALLBACK_HANDLERS,

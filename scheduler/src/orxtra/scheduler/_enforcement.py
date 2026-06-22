@@ -9,26 +9,26 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 import jsonschema
-from orxt.protocols._checks import CheckContext
-from orxt.protocols._constraints import (
+from orxtra.protocols._checks import CheckContext
+from orxtra.protocols._constraints import (
     EXPENSIVE_CONSTRAINTS,
     ConstraintKind,
 )
-from orxt.protocols._execution import CheckResult
-from orxt.protocols._task import BudgetExhaustionPolicy
-from orxt.session import compute_cost_usd
-from orxt.verify import run_checks
+from orxtra.protocols._execution import CheckResult
+from orxtra.protocols._task import BudgetExhaustionPolicy
+from orxtra.session import compute_cost_usd
+from orxtra.verify import run_checks
 
 if TYPE_CHECKING:
     from typing import Any
     from uuid import UUID
 
-    from orxt.protocols._task import TaskSpec
-    from orxt.transport import Usage
+    from orxtra.protocols._task import TaskSpec
+    from orxtra.transport import Usage
 
-from orxt.scheduler._base import SchedulerBase
+from orxtra.scheduler._base import SchedulerBase
 
-_logger = logging.getLogger("orxt.scheduler")
+_logger = logging.getLogger("orxtra.scheduler")
 
 
 class EnforcementMixin(SchedulerBase):
@@ -107,7 +107,7 @@ class EnforcementMixin(SchedulerBase):
             self._budget_threshold_events
         ):
             if tid == task_id:
-                from orxt.protocols._events import (  # noqa: PLC0415
+                from orxtra.protocols._events import (  # noqa: PLC0415
                     BudgetThresholdCrossed,
                 )
 
@@ -129,7 +129,7 @@ class EnforcementMixin(SchedulerBase):
             self._budget_exhausted_events
         ):
             if tid == task_id:
-                from orxt.protocols._events import (  # noqa: PLC0415
+                from orxtra.protocols._events import (  # noqa: PLC0415
                     BudgetExhausted,
                 )
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from orxt.transport._events import StreamDelta, Thinking
-from orxt.transport.providers._anthropic import AnthropicProvider
+from orxtra.transport._events import StreamDelta, Thinking
+from orxtra.transport.providers._anthropic import AnthropicProvider
 
 
 @pytest.fixture

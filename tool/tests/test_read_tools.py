@@ -6,8 +6,8 @@ import json
 from typing import TYPE_CHECKING
 
 import pytest
-from orxt.protocols._tool import ToolError
-from orxt.tool._read_tools import (
+from orxtra.protocols._tool import ToolError
+from orxtra.tool._read_tools import (
     make_diff_tool,
     make_glob_tool,
     make_grep_tool,

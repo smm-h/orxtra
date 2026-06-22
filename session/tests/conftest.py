@@ -5,8 +5,8 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from orxt.session._session import Session
-from orxt.transport import Event, Result, StepFinish, StepStart
+from orxtra.session._session import Session
+from orxtra.transport import Event, Result, StepFinish, StepStart
 
 import importlib.util as _ilu
 from pathlib import Path

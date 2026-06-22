@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
-from orxt.trace import (
+from orxtra.trace import (
     RunLockError,
     acquire_run_lock,
     is_lock_stale,

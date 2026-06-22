@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxt.trace import TraceWriter
+    from orxtra.trace import TraceWriter
 
 
 async def fire_event(

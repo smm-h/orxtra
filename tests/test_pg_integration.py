@@ -10,7 +10,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from orxt.trace import (
+from orxtra.trace import (
     InvalidTransitionError,
     TraceWriter,
     acquire_run_lock,
@@ -64,7 +64,7 @@ class TestSchemaCreation:
 
     async def test_all_tables_created(self, pg_pool: asyncpg.Pool) -> None:
         """All expected tables exist after schema creation."""
-        from orxt.trace._schema import TABLE_NAMES  # noqa: PLC0415
+        from orxtra.trace._schema import TABLE_NAMES  # noqa: PLC0415
 
         rows = await pg_pool.fetch(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
@@ -176,7 +176,7 @@ class TestListenNotify:
     async def test_write_event_fires_notify(
         self, pg_pool: asyncpg.Pool
     ) -> None:
-        """Inserting an event fires LISTEN/NOTIFY on 'orxt_events'."""
+        """Inserting an event fires LISTEN/NOTIFY on 'orxtra_events'."""
         writer = TraceWriter(pg_pool)
         run_id = await _create_run(writer)
 
@@ -190,7 +190,7 @@ class TestListenNotify:
         # Set up LISTEN on a dedicated connection
         listen_conn = await pg_pool.acquire()
         try:
-            await listen_conn.add_listener("orxt_events", _on_notify)
+            await listen_conn.add_listener("orxtra_events", _on_notify)
 
             # Write an event (on a different connection via the pool)
             await writer.write_event(
@@ -207,7 +207,7 @@ class TestListenNotify:
             assert payload["event_type"] == "notify_test"
             assert payload["run_id"] == str(run_id)
         finally:
-            await listen_conn.remove_listener("orxt_events", _on_notify)
+            await listen_conn.remove_listener("orxtra_events", _on_notify)
             await pg_pool.release(listen_conn)
 
 
@@ -237,7 +237,7 @@ class TestAdvisoryLocks:
         writer = TraceWriter(pg_pool)
         run_id = await _create_run(writer)
 
-        from orxt.trace._lock import _lock_key  # noqa: PLC0415
+        from orxtra.trace._lock import _lock_key  # noqa: PLC0415
 
         key = _lock_key(run_id)
 

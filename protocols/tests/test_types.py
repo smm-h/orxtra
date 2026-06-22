@@ -5,7 +5,7 @@ import uuid
 from decimal import Decimal
 
 import pytest
-from orxt.protocols import (
+from orxtra.protocols import (
     SEVERITY_ORDER,
     BudgetExhausted,
     BudgetExhaustionPolicy,

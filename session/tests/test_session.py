@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from orxt.session._session import Session
-from orxt.transport import Error, Result, StepFinish, StepStart, Text, ToolUse
+from orxtra.session._session import Session
+from orxtra.transport import Error, Result, StepFinish, StepStart, Text, ToolUse
 
 from .conftest import MockTraceWriter, MockTransport, make_standard_events
 

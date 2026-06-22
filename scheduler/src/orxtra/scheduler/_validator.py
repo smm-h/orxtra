@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxt.scheduler._graph import CycleError, build_graph, topological_sort
+from orxtra.scheduler._graph import CycleError, build_graph, topological_sort
 
 if TYPE_CHECKING:
-    from orxt.protocols._task import TaskSpec
-    from orxt.scheduler._types import WorkflowConfig
+    from orxtra.protocols._task import TaskSpec
+    from orxtra.scheduler._types import WorkflowConfig
 
 _OUTPUT_SUFFIXES = ("_output", "_text", "_result")
 

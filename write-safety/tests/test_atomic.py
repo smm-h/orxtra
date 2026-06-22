@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from orxt.write_safety import atomic_write
+from orxtra.write_safety import atomic_write
 
 if TYPE_CHECKING:
     from pathlib import Path

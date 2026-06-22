@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from orxt.protocols._tool import Tool
-from orxt.tool._validation import validate_args
+from orxtra.protocols._tool import Tool
+from orxtra.tool._validation import validate_args
 
 
 class TaskSchedulerRef(Protocol):
