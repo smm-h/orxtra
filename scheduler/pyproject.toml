@@ -1,5 +1,5 @@
 [project]
-name = "orxt-scheduler"
+name = "orxtra-scheduler"
 version = "0.1.1"
 license = "BUSL-1.1"
 description = "Task executor. Recursive task hierarchy, dependency graphs, budgets, constraints, crash recovery."
@@ -7,17 +7,17 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "jsonschema",
-    "orxt-protocols",
-    "orxt-write-safety",
-    "orxt-agent",
-    "orxt-tool",
-    "orxt-session",
-    "orxt-trace",
-    "orxt-verify",
-    "orxt-notepad",
-    "orxt-overseer",
-    "orxt-secrets",
-    "orxt-transport",
+    "orxtra-protocols",
+    "orxtra-write-safety",
+    "orxtra-agent",
+    "orxtra-tool",
+    "orxtra-session",
+    "orxtra-trace",
+    "orxtra-verify",
+    "orxtra-notepad",
+    "orxtra-overseer",
+    "orxtra-secrets",
+    "orxtra-transport",
 ]
 keywords = ["rlsbl"]
 
@@ -26,17 +26,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/orxt"]
+packages = ["src/orxtra"]
 
 [tool.uv.sources]
-orxt-protocols = { workspace = true }
-orxt-write-safety = { workspace = true }
-orxt-agent = { workspace = true }
-orxt-tool = { workspace = true }
-orxt-session = { workspace = true }
-orxt-trace = { workspace = true }
-orxt-verify = { workspace = true }
-orxt-notepad = { workspace = true }
-orxt-overseer = { workspace = true }
-orxt-secrets = { workspace = true }
-orxt-transport = { workspace = true }
+orxtra-protocols = { workspace = true }
+orxtra-write-safety = { workspace = true }
+orxtra-agent = { workspace = true }
+orxtra-tool = { workspace = true }
+orxtra-session = { workspace = true }
+orxtra-trace = { workspace = true }
+orxtra-verify = { workspace = true }
+orxtra-notepad = { workspace = true }
+orxtra-overseer = { workspace = true }
+orxtra-secrets = { workspace = true }
+orxtra-transport = { workspace = true }

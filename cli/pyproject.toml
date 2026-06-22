@@ -1,26 +1,26 @@
 [project]
-name = "orxt-cli"
+name = "orxtra-cli"
 version = "0.1.1"
 license = "BUSL-1.1"
 description = "strictcli CLI frontend. Agents are the primary users."
 requires-python = ">=3.12"
 dependencies = [
     "strictcli",
-    "orxt-services",
-    "orxt-trace",
+    "orxtra-services",
+    "orxtra-trace",
 ]
 keywords = ["rlsbl"]
 
 [project.scripts]
-orxt = "orxt.cli._cli:main"
+orxtra = "orxtra.cli._cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/orxt"]
+packages = ["src/orxtra"]
 
 [tool.uv.sources]
-orxt-services = { workspace = true }
-orxt-trace = { workspace = true }
+orxtra-services = { workspace = true }
+orxtra-trace = { workspace = true }

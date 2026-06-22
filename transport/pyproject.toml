@@ -1,5 +1,5 @@
 [project]
-name = "orxt-transport"
+name = "orxtra-transport"
 version = "0.1.1"
 license = "BUSL-1.1"
 description = "Typed LLM client via Provider protocol. Raw httpx, streaming events, tool-call loop, auto-retry."
@@ -8,12 +8,12 @@ dependencies = [
     "pydantic>=2",
     "httpx",
     "uuid6",
-    "orxt-protocols",
+    "orxtra-protocols",
 ]
 keywords = ["rlsbl"]
 
 [tool.uv.sources]
-orxt-protocols = { workspace = true }
+orxtra-protocols = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -26,4 +26,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/orxt"]
+packages = ["src/orxtra"]
