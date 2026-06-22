@@ -171,6 +171,7 @@ class TestRunConsult:
             categories={"default": "anthropic/claude-sonnet-4-6"},
             run_id=uuid6.uuid7(),
             read_root=tmp_path,
+            autonomy_level="max",
         )
 
         with pytest.raises(
@@ -189,6 +190,7 @@ class TestRunConsult:
             categories={"default": "anthropic/claude-sonnet-4-6"},
             run_id=uuid6.uuid7(),
             read_root=tmp_path,
+            autonomy_level="max",
         )
 
         with pytest.raises(
@@ -406,6 +408,7 @@ class TestCheckExecutorIntegration:
             categories=make_categories(),
             run_id=uuid6.uuid7(),
             read_root=tmp_path,
+            autonomy_level="max",
         )
 
         agent_exec = AgentExecution(

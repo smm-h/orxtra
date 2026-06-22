@@ -34,6 +34,7 @@ def _make_scheduler(
         categories=make_categories(),
         run_id=run_id,
         read_root=read_root,
+        autonomy_level="max",
     )
 
 
@@ -226,6 +227,7 @@ async def test_no_removed_exports_detects_removal(
         categories=make_categories(),
         run_id=run_id,
         read_root=tmp_path,
+        autonomy_level="max",
     )
 
     # Create a Python file with exports
@@ -268,6 +270,7 @@ async def test_no_removed_exports_passes_when_unchanged(
         categories=make_categories(),
         run_id=run_id,
         read_root=tmp_path,
+        autonomy_level="max",
     )
 
     src = tmp_path / "module.py"
@@ -301,6 +304,7 @@ async def test_no_changed_signatures_detects_change(
         categories=make_categories(),
         run_id=run_id,
         read_root=tmp_path,
+        autonomy_level="max",
     )
 
     src = tmp_path / "module.py"
@@ -337,6 +341,7 @@ async def test_no_changed_signatures_passes_when_unchanged(
         categories=make_categories(),
         run_id=run_id,
         read_root=tmp_path,
+        autonomy_level="max",
     )
 
     src = tmp_path / "module.py"

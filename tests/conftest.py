@@ -437,6 +437,7 @@ def make_scheduler(  # noqa: PLR0913
         categories=categories,
         run_id=run_id,
         read_root=read_root,
+        autonomy_level="max",
     )
 
 

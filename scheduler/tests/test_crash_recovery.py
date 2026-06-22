@@ -56,6 +56,7 @@ def _make_scheduler(  # noqa: PLR0913
         run_id=run_id,
         read_root=read_root,
         pool=pool,  # type: ignore[arg-type]
+        autonomy_level="max",
     )
 
 

@@ -218,6 +218,7 @@ def _make_scheduler(  # noqa: PLR0913
         model_context_limit=model_context_limit,
         handoff_checker=handoff_checker,  # type: ignore[arg-type]
         handoff_performer=handoff_performer,  # type: ignore[arg-type]
+        autonomy_level="max",
     )
 
 

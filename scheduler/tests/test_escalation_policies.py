@@ -119,6 +119,7 @@ def _make_mixed_scheduler(
         run_id=run_id,
         read_root=read_root,
         overseer_interface=overseer,
+        autonomy_level="max",
     )
 
 
@@ -298,6 +299,7 @@ async def test_parent_escalation_delivers_message(
         run_id=run_id,
         read_root=tmp_path,
         overseer_interface=mock_overseer,
+        autonomy_level="max",
     )
 
     # Set up a fake parent task that is ACTIVE with a session
@@ -491,6 +493,7 @@ async def test_create_workflow_wires_params(
         categories={"default": "anthropic/claude-sonnet-4-6"},
         run_id=run_id,
         read_root=tmp_path,
+        autonomy_level="max",
     )
 
     # Set up a fake active task so check_active_task succeeds

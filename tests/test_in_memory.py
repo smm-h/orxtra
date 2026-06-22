@@ -69,6 +69,7 @@ class TestInMemoryWorkflow:
             run_id=run_id,
             read_root=Path(tempfile.mkdtemp()),
             backend=backend,
+            autonomy_level="max",
         )
 
         # Execute the workflow
@@ -116,6 +117,7 @@ class TestInMemoryWorkflow:
             run_id=run_id,
             read_root=Path(tempfile.mkdtemp()),
             backend=backend,
+            autonomy_level="max",
         )
 
         await scheduler.execute_workflow(workflow)
@@ -156,6 +158,7 @@ class TestInMemoryWorkflow:
             run_id=run_id,
             read_root=Path(tempfile.mkdtemp()),
             backend=backend,
+            autonomy_level="max",
         )
 
         await scheduler.execute_workflow(workflow)
@@ -191,6 +194,7 @@ class TestInMemoryWorkflow:
             run_id=run_id,
             read_root=Path(tempfile.mkdtemp()),
             backend=backend,
+            autonomy_level="max",
         )
 
         await scheduler.execute_workflow(workflow)
@@ -227,6 +231,7 @@ class TestInMemoryWorkflow:
             run_id=run_id,
             read_root=Path(tempfile.mkdtemp()),
             backend=backend,
+            autonomy_level="max",
             # No pool -- recovery must go through backend
         )
 
