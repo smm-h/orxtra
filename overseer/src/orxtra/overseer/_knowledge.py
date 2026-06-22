@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxtra.trace import TraceWriter
+    from orxtra.trace import StorageBackend, TraceWriter
 
 _loaded_hashes: dict[str, str] = {}
 
@@ -19,7 +19,7 @@ def _file_hash(path: Path) -> str:
 
 async def load_knowledge_files(
     knowledge_dir: Path,
-    trace_writer: TraceWriter,
+    trace_writer: TraceWriter | StorageBackend,
     run_id: UUID,
 ) -> None:
     if not knowledge_dir.is_dir():  # noqa: ASYNC240
@@ -33,7 +33,7 @@ async def load_knowledge_files(
 
 
 async def _load_markdown(
-    path: Path, trace_writer: TraceWriter, run_id: UUID,
+    path: Path, trace_writer: TraceWriter | StorageBackend, run_id: UUID,
 ) -> None:
     file_hash = _file_hash(path)
     cache_key = str(path)
@@ -51,7 +51,7 @@ async def _load_markdown(
 
 
 async def _load_toml(
-    path: Path, trace_writer: TraceWriter, run_id: UUID,
+    path: Path, trace_writer: TraceWriter | StorageBackend, run_id: UUID,
 ) -> None:
     file_hash = _file_hash(path)
     cache_key = str(path)

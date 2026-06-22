@@ -787,7 +787,8 @@ class InMemoryBackend:
             return None
         config = run["config_snapshot"]
         if isinstance(config, str):
-            return json.loads(config)
+            result: dict[str, Any] = json.loads(config)
+            return result
         return dict(config)
 
     async def read_session_token_counts(

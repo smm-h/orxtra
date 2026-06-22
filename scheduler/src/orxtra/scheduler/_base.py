@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from orxtra.scheduler._services import ServiceInstance
     from orxtra.secrets._registry import SecretRegistry
     from orxtra.session import Session
-    from orxtra.trace import TraceWriter
+    from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport, Usage
     from orxtra.write_safety import StaleWriteTracker, WriteQueue
 
@@ -50,7 +50,8 @@ class SchedulerBase(ABC):
     # ------------------------------------------------------------------
     # Attributes (type-only declarations, no defaults)
     # ------------------------------------------------------------------
-    _trace_writer: TraceWriter
+    _trace_writer: TraceWriter | StorageBackend
+    _backend: StorageBackend | None
     _pool: asyncpg.Pool | None
     _transport_registry: dict[str, Transport]
     _agents: dict[str, Agent]

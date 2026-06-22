@@ -43,6 +43,10 @@ class TaskDispatchMixin(SchedulerBase):
         Sends an event to the Overseer, which may create
         tasks, modify constraints, etc. in response.
         """
+        self._task_states[task_id] = TaskState.PRECHECKING
+        await self._trace_writer.transition_task(
+            task_id, TaskState.PRECHECKING.value,
+        )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
@@ -109,6 +113,10 @@ class TaskDispatchMixin(SchedulerBase):
             await self._trace_writer.create_task_attempt(
                 task_id, 1,
             )
+        )
+        self._task_states[task_id] = TaskState.PRECHECKING
+        await self._trace_writer.transition_task(
+            task_id, TaskState.PRECHECKING.value,
         )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
@@ -306,6 +314,10 @@ class TaskDispatchMixin(SchedulerBase):
             msg = "Wait-for task requires wait_for"
             raise ValueError(msg)
 
+        self._task_states[task_id] = TaskState.PRECHECKING
+        await self._trace_writer.transition_task(
+            task_id, TaskState.PRECHECKING.value,
+        )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
@@ -374,6 +386,10 @@ class TaskDispatchMixin(SchedulerBase):
             )
             raise TypeError(msg)
 
+        self._task_states[task_id] = TaskState.PRECHECKING
+        await self._trace_writer.transition_task(
+            task_id, TaskState.PRECHECKING.value,
+        )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,

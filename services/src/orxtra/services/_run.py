@@ -10,7 +10,7 @@ from orxtra.overseer._knowledge import load_knowledge_files
 from orxtra.protocols._task import BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, load_workflow
 from orxtra.services._providers import build_transport_registry
-from orxtra.trace import RunReport, RunSummary, TraceWriter, read_run_report
+from orxtra.trace import RunReport, RunSummary, StorageBackend, TraceWriter, read_run_report
 from orxtra.trace import list_runs as _list_runs
 from pydantic import BaseModel, ConfigDict
 
@@ -47,14 +47,24 @@ def _serialize_config(config: RunConfig) -> dict[str, Any]:
 
 
 async def start_run(
-    pool: asyncpg.Pool,
+    pool: asyncpg.Pool | None,
     intent: str,
     config: RunConfig,
     *,
     transport_registry: dict[str, Any] | None = None,
     overseer: Any | None = None,  # noqa: ANN401
+    backend: StorageBackend | None = None,
 ) -> UUID:
-    writer = TraceWriter(pool)
+    # When a StorageBackend is provided, use it for all operations.
+    # Otherwise, create a TraceWriter from the pool (backward compat).
+    writer: TraceWriter | StorageBackend
+    if backend is not None:
+        writer = backend
+    else:
+        if pool is None:
+            msg = "Either pool or backend must be provided"
+            raise ValueError(msg)
+        writer = TraceWriter(pool)
     run_id = await writer.create_run(
         intent, _serialize_config(config), config.autonomy_level
     )
@@ -76,6 +86,7 @@ async def start_run(
             run_id=run_id,
             read_root=config.read_root,
             pool=pool,
+            backend=backend,
             overseer_interface=overseer,
             budget_exhaustion_policy=config.budget_exhaustion_policy,
             budget_limit=config.budget,

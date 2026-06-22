@@ -726,6 +726,7 @@ class AgentExecutionMixin(SchedulerBase):
             run_id=self._run_id,
             session_id=previous_session_id,
             pool=self._pool,
+            backend=self._backend,
         )
         return session, session_id
 

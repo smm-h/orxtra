@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from orxtra.protocols import Tool
-    from orxtra.trace import TraceWriter
+    from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Event, Transport
 
 from orxtra.transport import Continuation, Result, SessionSuspended, StepFinish, ToolUse
@@ -20,7 +20,7 @@ class Session:
         model: str,
         system_prompt: str,
         tools: list[Tool],
-        trace_writer: TraceWriter,
+        trace_writer: TraceWriter | StorageBackend,
         run_id: uuid.UUID,
         session_id: str | None = None,
     ) -> None:
