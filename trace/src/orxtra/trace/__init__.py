@@ -14,6 +14,22 @@ from orxtra.trace._lock import (
     release_run_lock,
     update_heartbeat,
 )
+from orxtra.trace._pg_backend import PgBackend
+from orxtra.trace._pg_event_bus import PgEventBus
+from orxtra.trace._protocols import (
+    EventBus,
+    EventStorage,
+    InboxStorage,
+    NotepadStorage,
+    OverseerStorage,
+    RecoveryOperations,
+    RunControlStorage,
+    RunStorage,
+    StorageBackend,
+    StorageLock,
+    StorageReader,
+    TaskStorage,
+)
 from orxtra.trace._reader import (
     list_iterations,
     list_runs,
@@ -62,14 +78,28 @@ from orxtra.trace._writer import TraceWriter
 
 __all__ = [
     "__version__",
+    "EventBus",
+    "EventStorage",
     "InboxItem",
+    "InboxStorage",
     "InvalidTransitionError",
     "IterationResult",
     "NotepadEntry",
+    "NotepadStorage",
+    "OverseerStorage",
+    "PgBackend",
+    "PgEventBus",
+    "RecoveryOperations",
+    "RunControlStorage",
     "RunLockError",
     "RunReport",
+    "RunStorage",
     "RunSummary",
+    "StorageBackend",
+    "StorageLock",
+    "StorageReader",
     "TaskAttempt",
+    "TaskStorage",
     "TaskSummary",
     "TraceWriter",
     "acquire_run_lock",
