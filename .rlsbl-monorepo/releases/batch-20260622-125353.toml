@@ -1,0 +1,9 @@
+[releasables.orxt]
+# Version bump type: patch, minor, or major
+bump = "minor"
+# Short description of this release (required)
+description = "First public release of orxt."
+# Optional context explaining why these changes were made
+context = "Initial release of all 16 sub-projects as orxt-* packages on PyPI, with BSL 1.1 license and npm CLI wrapper."
+include = ["pypi"]
+exclude = []
