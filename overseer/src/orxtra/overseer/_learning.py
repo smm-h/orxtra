@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from orxtra.trace import query_relevant_lessons as _query_relevant_lessons
+
 if TYPE_CHECKING:
     from uuid import UUID
 
@@ -14,14 +16,7 @@ async def query_relevant_lessons(
     run_id: UUID,  # noqa: ARG001
     tags: list[str],
 ) -> list[dict[str, Any]]:
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT id, text, relevance_tags, permanent, source_file, created_at"
-            " FROM lessons"
-            " WHERE relevance_tags::jsonb ?| $1::text[]"
-            " ORDER BY created_at DESC",
-            tags,
-        )
+    rows = await _query_relevant_lessons(pool, tags)
     return [
         {
             "id": str(row["id"]),

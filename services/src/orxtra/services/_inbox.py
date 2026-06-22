@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from orxtra.trace import InboxItem, TraceWriter
 from orxtra.trace import read_inbox as _read_inbox
+from orxtra.trace import read_inbox_item as _read_inbox_item
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -18,13 +19,11 @@ async def list_inbox(
 
 
 async def get_inbox_item(pool: asyncpg.Pool, item_id: UUID) -> InboxItem:
-    row = await pool.fetchrow(
-        "SELECT * FROM inbox_items WHERE id = $1", item_id
-    )
-    if row is None:
+    result = await _read_inbox_item(pool, item_id)
+    if result is None:
         msg = f"inbox item {item_id} not found"
         raise ValueError(msg)
-    return InboxItem.model_validate(dict(row))
+    return result
 
 
 async def respond_to_inbox(

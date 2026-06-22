@@ -14,6 +14,7 @@ from orxtra.trace._types import (
 )
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from uuid import UUID
 
     import asyncpg
@@ -221,3 +222,227 @@ async def read_active_constraints(
         run_id,
     )
     return [_record_to_dict(row) for row in rows]
+
+
+async def read_task_attempts(
+    pool: asyncpg.Pool, task_id: UUID
+) -> list[TaskAttempt]:
+    """Read all attempts for a task, ordered by attempt number."""
+    rows: list[asyncpg.Record] = await pool.fetch(
+        "SELECT id, task_id, attempt, status, agent_output,"
+        " structured_output, check_result, check_verdict,"
+        " session_id, input_tokens, output_tokens,"
+        " reasoning_tokens, cache_read_tokens,"
+        " cache_write_tokens, cost_usd, duration_seconds"
+        " FROM task_attempts WHERE task_id = $1"
+        " ORDER BY attempt",
+        task_id,
+    )
+    return [TaskAttempt.model_validate(_record_to_dict(row)) for row in rows]
+
+
+async def query_events(
+    pool: asyncpg.Pool,
+    run_id: UUID,
+    event_type: str | None = None,
+    since: datetime | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """Query events for a run with optional filters."""
+    conditions = ["run_id = $1"]
+    params: list[Any] = [run_id]
+    idx = 2
+
+    if event_type is not None:
+        conditions.append(f"event_type = ${idx}")
+        params.append(event_type)
+        idx += 1
+
+    if since is not None:
+        conditions.append(f"created_at >= ${idx}")
+        params.append(since)
+        idx += 1
+
+    params.append(limit)
+    query = (
+        "SELECT id, run_id, task_id, event_type, data, created_at"  # noqa: S608
+        " FROM events"
+        f" WHERE {' AND '.join(conditions)}"
+        f" ORDER BY created_at LIMIT ${idx}"
+    )
+    rows: list[asyncpg.Record] = await pool.fetch(query, *params)
+    return [_record_to_dict(row) for row in rows]
+
+
+async def read_inbox_item(
+    pool: asyncpg.Pool, item_id: UUID
+) -> InboxItem | None:
+    """Read a single inbox item by ID."""
+    row: asyncpg.Record | None = await pool.fetchrow(
+        "SELECT * FROM inbox_items WHERE id = $1", item_id
+    )
+    if row is None:
+        return None
+    return InboxItem.model_validate(_record_to_dict(row))
+
+
+async def read_run_config(
+    pool: asyncpg.Pool, run_id: UUID
+) -> dict[str, Any] | None:
+    """Read the config snapshot for a run."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT config_snapshot FROM runs WHERE id = $1", run_id
+        )
+    if row is None:
+        return None
+    raw: Any = row["config_snapshot"]
+    result: dict[str, Any] = json.loads(raw) if isinstance(raw, str) else dict(raw)
+    return result
+
+
+async def read_session_token_counts(
+    pool: asyncpg.Pool, session_id: UUID
+) -> list[dict[str, Any]]:
+    """Read token counts from transcripts for a session."""
+    rows: list[asyncpg.Record] = await pool.fetch(
+        "SELECT tokens FROM transcripts"
+        " WHERE session_id = $1 AND tokens IS NOT NULL",
+        session_id,
+    )
+    return [_record_to_dict(row) for row in rows]
+
+
+async def read_session_turn_count(
+    pool: asyncpg.Pool, session_id: UUID
+) -> int:
+    """Read the number of transcript turns for a session."""
+    count: Any = await pool.fetchval(
+        "SELECT COUNT(*) FROM transcripts WHERE session_id = $1",
+        session_id,
+    )
+    return count or 0
+
+
+async def query_relevant_lessons(
+    pool: asyncpg.Pool, tags: list[str]
+) -> list[dict[str, Any]]:
+    """Query lessons matching any of the given relevance tags."""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id, text, relevance_tags, permanent, source_file, created_at"
+            " FROM lessons"
+            " WHERE relevance_tags::jsonb ?| $1::text[]"
+            " ORDER BY created_at DESC",
+            tags,
+        )
+    return [_record_to_dict(row) for row in rows]
+
+
+async def read_decisions(
+    pool: asyncpg.Pool, run_id: UUID, limit: int = 10
+) -> list[dict[str, Any]]:
+    """Read decisions for a run, newest first."""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id, decision_type, choice, rationale, created_at"
+            " FROM decisions WHERE run_id = $1"
+            " ORDER BY created_at DESC LIMIT $2",
+            run_id,
+            limit,
+        )
+    return [_record_to_dict(row) for row in rows]
+
+
+async def read_constraints(
+    pool: asyncpg.Pool, run_id: UUID, active_only: bool = True
+) -> list[dict[str, Any]]:
+    """Read constraints for a run, optionally filtered to active only."""
+    if active_only:
+        query = (
+            "SELECT id, text, tier, active, created_at"
+            " FROM constraints WHERE run_id = $1 AND active = true"
+            " ORDER BY created_at DESC"
+        )
+    else:
+        query = (
+            "SELECT id, text, tier, active, created_at"
+            " FROM constraints WHERE run_id = $1"
+            " ORDER BY created_at DESC"
+        )
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(query, run_id)
+    return [_record_to_dict(row) for row in rows]
+
+
+async def read_assumptions(
+    pool: asyncpg.Pool, run_id: UUID, status: str | None = None
+) -> list[dict[str, Any]]:
+    """Read assumptions for a run, optionally filtered by status."""
+    if status is not None:
+        query = (
+            "SELECT id, text, status, scope, inbox_item_id, created_at"
+            " FROM assumptions WHERE run_id = $1 AND status = $2"
+            " ORDER BY created_at DESC"
+        )
+        args: tuple[Any, ...] = (run_id, status)
+    else:
+        query = (
+            "SELECT id, text, status, scope, inbox_item_id, created_at"
+            " FROM assumptions WHERE run_id = $1"
+            " ORDER BY created_at DESC"
+        )
+        args = (run_id,)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(query, *args)
+    return [_record_to_dict(row) for row in rows]
+
+
+async def query_lessons(
+    pool: asyncpg.Pool,
+    run_id: UUID | None = None,
+    tags: list[str] | None = None,
+    permanent_only: bool = False,
+) -> list[dict[str, Any]]:
+    """Query lessons with optional filters."""
+    conditions: list[str] = []
+    params: list[Any] = []
+    idx = 1
+
+    if run_id is not None:
+        conditions.append(f"run_id = ${idx}")
+        params.append(run_id)
+        idx += 1
+
+    if permanent_only:
+        conditions.append("permanent = true")
+
+    if tags is not None:
+        conditions.append(f"relevance_tags::jsonb ?| ${idx}::text[]")
+        params.append(tags)
+        idx += 1
+
+    where = " AND ".join(conditions) if conditions else "true"
+    query = (
+        "SELECT id, text, relevance_tags, permanent, source_file, created_at"  # noqa: S608
+        f" FROM lessons WHERE {where}"
+        " ORDER BY created_at DESC"
+    )
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(query, *params)
+    return [_record_to_dict(row) for row in rows]
+
+
+async def read_workflow_status(
+    pool: asyncpg.Pool, workflow_id: UUID
+) -> dict[str, Any] | None:
+    """Read overseer workflow status for a workflow."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT workflow_id, current_step, health, updated_at"
+            " FROM overseer_workflow_status WHERE workflow_id = $1",
+            workflow_id,
+        )
+    if row is None:
+        return None
+    return _record_to_dict(row)

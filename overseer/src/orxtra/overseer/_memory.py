@@ -3,6 +3,14 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
+from orxtra.trace import (
+    query_lessons as _query_lessons,
+    read_assumptions as _read_assumptions,
+    read_constraints as _read_constraints,
+    read_decisions as _read_decisions,
+    read_workflow_status as _read_workflow_status,
+)
+
 if TYPE_CHECKING:
     from uuid import UUID
 
@@ -12,14 +20,7 @@ async def query_decisions(
     run_id: UUID,
     limit: int = 10,
 ) -> list[dict[str, Any]]:
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT id, decision_type, choice, rationale, created_at"
-            " FROM decisions WHERE run_id = $1"
-            " ORDER BY created_at DESC LIMIT $2",
-            run_id,
-            limit,
-        )
+    rows = await _read_decisions(pool, run_id, limit)
     return [
         {
             "id": str(row["id"]),
@@ -37,20 +38,7 @@ async def query_constraints(
     run_id: UUID,
     active_only: bool = True,
 ) -> list[dict[str, Any]]:
-    if active_only:
-        query = (
-            "SELECT id, text, tier, active, created_at"
-            " FROM constraints WHERE run_id = $1 AND active = true"
-            " ORDER BY created_at DESC"
-        )
-    else:
-        query = (
-            "SELECT id, text, tier, active, created_at"
-            " FROM constraints WHERE run_id = $1"
-            " ORDER BY created_at DESC"
-        )
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(query, run_id)
+    rows = await _read_constraints(pool, run_id, active_only)
     return [
         {
             "id": str(row["id"]),
@@ -68,22 +56,7 @@ async def query_assumptions(
     run_id: UUID,
     status: str | None = None,
 ) -> list[dict[str, Any]]:
-    if status is not None:
-        query = (
-            "SELECT id, text, status, scope, inbox_item_id, created_at"
-            " FROM assumptions WHERE run_id = $1 AND status = $2"
-            " ORDER BY created_at DESC"
-        )
-        args: tuple[Any, ...] = (run_id, status)
-    else:
-        query = (
-            "SELECT id, text, status, scope, inbox_item_id, created_at"
-            " FROM assumptions WHERE run_id = $1"
-            " ORDER BY created_at DESC"
-        )
-        args = (run_id,)
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(query, *args)
+    rows = await _read_assumptions(pool, run_id, status)
     return [
         {
             "id": str(row["id"]),
@@ -107,31 +80,7 @@ async def query_lessons(
     tags: list[str] | None = None,
     permanent_only: bool = False,
 ) -> list[dict[str, Any]]:
-    conditions: list[str] = []
-    params: list[Any] = []
-    idx = 1
-
-    if run_id is not None:
-        conditions.append(f"run_id = ${idx}")
-        params.append(run_id)
-        idx += 1
-
-    if permanent_only:
-        conditions.append("permanent = true")
-
-    if tags is not None:
-        conditions.append(f"relevance_tags::jsonb ?| ${idx}::text[]")
-        params.append(tags)
-        idx += 1
-
-    where = " AND ".join(conditions) if conditions else "true"
-    query = (
-        f"SELECT id, text, relevance_tags, permanent, source_file, created_at"  # noqa: S608
-        f" FROM lessons WHERE {where}"
-        f" ORDER BY created_at DESC"
-    )
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(query, *params)
+    rows = await _query_lessons(pool, run_id, tags, permanent_only)
     return [
         {
             "id": str(row["id"]),
@@ -153,12 +102,7 @@ async def query_workflow_status(
     pool: Any,  # noqa: ANN401
     workflow_id: UUID,
 ) -> dict[str, Any] | None:
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT workflow_id, current_step, health, updated_at"
-            " FROM overseer_workflow_status WHERE workflow_id = $1",
-            workflow_id,
-        )
+    row = await _read_workflow_status(pool, workflow_id)
     if row is None:
         return None
     return {

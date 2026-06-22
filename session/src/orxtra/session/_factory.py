@@ -33,12 +33,10 @@ async def create_session(  # noqa: PLR0913
     )
 
     if session_id is not None and pool is not None:
+        from orxtra.trace import read_session_token_counts, read_session_turn_count
+
         sid = uuid.UUID(session_id) if isinstance(session_id, str) else session_id
-        rows = await pool.fetch(
-            "SELECT tokens FROM transcripts"
-            " WHERE session_id = $1 AND tokens IS NOT NULL",
-            sid,
-        )
+        rows = await read_session_token_counts(pool, sid)
         for row in rows:
             tokens = row["tokens"]
             if tokens:
@@ -47,10 +45,6 @@ async def create_session(  # noqa: PLR0913
                 session.total_reasoning_tokens += tokens.get("reasoning_tokens", 0)
                 session.total_cache_read_tokens += tokens.get("cache_read_tokens", 0)
                 session.total_cache_write_tokens += tokens.get("cache_write_tokens", 0)
-        turn_count = await pool.fetchval(
-            "SELECT COUNT(*) FROM transcripts WHERE session_id = $1",
-            sid,
-        )
-        session.turn_count = turn_count or 0
+        session.turn_count = await read_session_turn_count(pool, sid)
 
     return session
