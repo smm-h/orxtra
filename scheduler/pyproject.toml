@@ -1,5 +1,5 @@
 [project]
-name = "scheduler"
+name = "orxt-scheduler"
 version = "0.0.0"
 description = "Task executor. Recursive task hierarchy, dependency graphs, budgets, constraints, crash recovery."
 requires-python = ">=3.12"
@@ -8,12 +8,12 @@ dependencies = [
     "jsonschema",
     "orxt-protocols",
     "orxt-write-safety",
-    "agent",
-    "tool",
-    "session",
-    "trace",
-    "verify",
-    "notepad",
+    "orxt-agent",
+    "orxt-tool",
+    "orxt-session",
+    "orxt-trace",
+    "orxt-verify",
+    "orxt-notepad",
 ]
 keywords = ["rlsbl"]
 
@@ -27,9 +27,9 @@ packages = ["src/orxt"]
 [tool.uv.sources]
 orxt-protocols = { workspace = true }
 orxt-write-safety = { workspace = true }
-agent = { workspace = true }
-tool = { workspace = true }
-session = { workspace = true }
-trace = { workspace = true }
-verify = { workspace = true }
-notepad = { workspace = true }
+orxt-agent = { workspace = true }
+orxt-tool = { workspace = true }
+orxt-session = { workspace = true }
+orxt-trace = { workspace = true }
+orxt-verify = { workspace = true }
+orxt-notepad = { workspace = true }

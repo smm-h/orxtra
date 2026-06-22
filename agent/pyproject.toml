@@ -1,5 +1,5 @@
 [project]
-name = "agent"
+name = "orxt-agent"
 version = "0.0.0"
 description = "Agent definition loader. TOML + composable .md prompts, strict validation, category resolution."
 requires-python = ">=3.12"

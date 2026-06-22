@@ -9,43 +9,24 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "agent",
-    "cli",
-    "knowledge-module",
-    "mcp",
-    "notepad",
     "orxt",
+    "orxt-agent",
+    "orxt-cli",
+    "orxt-knowledge-module",
+    "orxt-mcp",
+    "orxt-notepad",
+    "orxt-overseer",
     "orxt-protocols",
+    "orxt-scheduler",
     "orxt-secrets",
+    "orxt-services",
+    "orxt-session",
+    "orxt-tool",
+    "orxt-trace",
+    "orxt-transport",
+    "orxt-verify",
     "orxt-write-safety",
-    "overseer",
-    "scheduler",
-    "services",
-    "session",
-    "tool",
-    "trace",
-    "transport",
-    "verify",
 ]
-
-[[package]]
-name = "agent"
-version = "0.0.0"
-source = { editable = "agent" }
-dependencies = [
-    { name = "pydantic" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2" }]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "aiofiles"
@@ -670,21 +651,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7a/1d/29d32e0fb40864b1f878c7f5a0b343ae676c6e2b271a2d55cc3a152391da/charset_normalizer-3.4.7-cp314-cp314t-win_amd64.whl", hash = "sha256:03853ed82eeebbce3c2abfdbc98c96dc205f32a79627688ac9a27370ea61a49c", size = 174168, upload-time = "2026-04-02T09:27:49.795Z" },
     { url = "https://files.pythonhosted.org/packages/de/32/d92444ad05c7a6e41fb2036749777c163baf7a0301a040cb672d6b2b1ae9/charset_normalizer-3.4.7-cp314-cp314t-win_arm64.whl", hash = "sha256:c35abb8bfff0185efac5878da64c45dafd2b37fb0383add1be155a763c1f083d", size = 153018, upload-time = "2026-04-02T09:27:51.116Z" },
     { url = "https://files.pythonhosted.org/packages/db/8f/61959034484a4a7c527811f4721e75d02d653a35afb0b6054474d8185d4c/charset_normalizer-3.4.7-py3-none-any.whl", hash = "sha256:3dce51d0f5e7951f8bb4900c257dad282f49190fdbebecd4ba99bcc41fef404d", size = 61958, upload-time = "2026-04-02T09:28:37.794Z" },
-]
-
-[[package]]
-name = "cli"
-version = "0.0.0"
-source = { editable = "cli" }
-dependencies = [
-    { name = "services" },
-    { name = "strictcli" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "services", editable = "services" },
-    { name = "strictcli" },
 ]
 
 [[package]]
@@ -1528,23 +1494,6 @@ wheels = [
 ]
 
 [[package]]
-name = "knowledge-module"
-version = "0.0.0"
-source = { editable = "knowledge-module" }
-dependencies = [
-    { name = "cognee" },
-    { name = "pydantic" },
-    { name = "trace" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cognee" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "trace", editable = "trace" },
-]
-
-[[package]]
 name = "ladybug"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1876,25 +1825,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp"
-version = "0.0.0"
-source = { editable = "mcp" }
-dependencies = [
-    { name = "services" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "services", editable = "services" }]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
-
-[[package]]
 name = "mdurl"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2089,29 +2019,6 @@ wheels = [
 ]
 
 [[package]]
-name = "notepad"
-version = "0.0.0"
-source = { editable = "notepad" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "trace" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2" },
-    { name = "trace", editable = "trace" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
-
-[[package]]
 name = "numpy"
 version = "2.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2196,22 +2103,22 @@ name = "orxt"
 version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "agent" },
-    { name = "cli" },
-    { name = "knowledge-module" },
-    { name = "mcp" },
-    { name = "notepad" },
+    { name = "orxt-agent" },
+    { name = "orxt-cli" },
+    { name = "orxt-knowledge-module" },
+    { name = "orxt-mcp" },
+    { name = "orxt-notepad" },
+    { name = "orxt-overseer" },
     { name = "orxt-protocols" },
+    { name = "orxt-scheduler" },
     { name = "orxt-secrets" },
+    { name = "orxt-services" },
+    { name = "orxt-session" },
+    { name = "orxt-tool" },
+    { name = "orxt-trace" },
+    { name = "orxt-transport" },
+    { name = "orxt-verify" },
     { name = "orxt-write-safety" },
-    { name = "overseer" },
-    { name = "scheduler" },
-    { name = "services" },
-    { name = "session" },
-    { name = "tool" },
-    { name = "trace" },
-    { name = "transport" },
-    { name = "verify" },
 ]
 
 [package.dev-dependencies]
@@ -2227,22 +2134,22 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent", editable = "agent" },
-    { name = "cli", editable = "cli" },
-    { name = "knowledge-module", editable = "knowledge-module" },
-    { name = "mcp", editable = "mcp" },
-    { name = "notepad", editable = "notepad" },
+    { name = "orxt-agent", editable = "agent" },
+    { name = "orxt-cli", editable = "cli" },
+    { name = "orxt-knowledge-module", editable = "knowledge-module" },
+    { name = "orxt-mcp", editable = "mcp" },
+    { name = "orxt-notepad", editable = "notepad" },
+    { name = "orxt-overseer", editable = "overseer" },
     { name = "orxt-protocols", editable = "protocols" },
+    { name = "orxt-scheduler", editable = "scheduler" },
     { name = "orxt-secrets", editable = "secrets" },
+    { name = "orxt-services", editable = "services" },
+    { name = "orxt-session", editable = "session" },
+    { name = "orxt-tool", editable = "tool" },
+    { name = "orxt-trace", editable = "trace" },
+    { name = "orxt-transport", editable = "transport" },
+    { name = "orxt-verify", editable = "verify" },
     { name = "orxt-write-safety", editable = "write-safety" },
-    { name = "overseer", editable = "overseer" },
-    { name = "scheduler", editable = "scheduler" },
-    { name = "services", editable = "services" },
-    { name = "session", editable = "session" },
-    { name = "tool", editable = "tool" },
-    { name = "trace", editable = "trace" },
-    { name = "transport", editable = "transport" },
-    { name = "verify", editable = "verify" },
 ]
 
 [package.metadata.requires-dev]
@@ -2257,6 +2164,136 @@ dev = [
 ]
 
 [[package]]
+name = "orxt-agent"
+version = "0.0.0"
+source = { editable = "agent" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.0" }]
+
+[[package]]
+name = "orxt-cli"
+version = "0.0.0"
+source = { editable = "cli" }
+dependencies = [
+    { name = "orxt-services" },
+    { name = "strictcli" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "orxt-services", editable = "services" },
+    { name = "strictcli" },
+]
+
+[[package]]
+name = "orxt-knowledge-module"
+version = "0.0.0"
+source = { editable = "knowledge-module" }
+dependencies = [
+    { name = "cognee" },
+    { name = "orxt-trace" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cognee" },
+    { name = "orxt-trace", editable = "trace" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[[package]]
+name = "orxt-mcp"
+version = "0.0.0"
+source = { editable = "mcp" }
+dependencies = [
+    { name = "orxt-services" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "orxt-services", editable = "services" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxt-notepad"
+version = "0.0.0"
+source = { editable = "notepad" }
+dependencies = [
+    { name = "orxt-trace" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "orxt-trace", editable = "trace" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxt-overseer"
+version = "0.0.0"
+source = { editable = "overseer" }
+dependencies = [
+    { name = "orxt-knowledge-module" },
+    { name = "orxt-protocols" },
+    { name = "orxt-session" },
+    { name = "orxt-tool" },
+    { name = "orxt-trace" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "uuid6" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "orxt-knowledge-module", editable = "knowledge-module" },
+    { name = "orxt-protocols", editable = "protocols" },
+    { name = "orxt-session", editable = "session" },
+    { name = "orxt-tool", editable = "tool" },
+    { name = "orxt-trace", editable = "trace" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1.0" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
+    { name = "uuid6", specifier = ">=2025.0.1" },
+]
+
+[[package]]
 name = "orxt-protocols"
 version = "0.0.0"
 source = { editable = "protocols" }
@@ -2266,6 +2303,37 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2" }]
+
+[[package]]
+name = "orxt-scheduler"
+version = "0.0.0"
+source = { editable = "scheduler" }
+dependencies = [
+    { name = "jsonschema" },
+    { name = "orxt-agent" },
+    { name = "orxt-notepad" },
+    { name = "orxt-protocols" },
+    { name = "orxt-session" },
+    { name = "orxt-tool" },
+    { name = "orxt-trace" },
+    { name = "orxt-verify" },
+    { name = "orxt-write-safety" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jsonschema" },
+    { name = "orxt-agent", editable = "agent" },
+    { name = "orxt-notepad", editable = "notepad" },
+    { name = "orxt-protocols", editable = "protocols" },
+    { name = "orxt-session", editable = "session" },
+    { name = "orxt-tool", editable = "tool" },
+    { name = "orxt-trace", editable = "trace" },
+    { name = "orxt-verify", editable = "verify" },
+    { name = "orxt-write-safety", editable = "write-safety" },
+    { name = "pydantic", specifier = ">=2" },
+]
 
 [[package]]
 name = "orxt-secrets"
@@ -2283,6 +2351,150 @@ dev = [
 dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
+name = "orxt-services"
+version = "0.0.0"
+source = { editable = "services" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "orxt-overseer" },
+    { name = "orxt-scheduler" },
+    { name = "orxt-trace" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg" },
+    { name = "orxt-overseer", editable = "overseer" },
+    { name = "orxt-scheduler", editable = "scheduler" },
+    { name = "orxt-trace", editable = "trace" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[[package]]
+name = "orxt-session"
+version = "0.0.0"
+source = { editable = "session" }
+dependencies = [
+    { name = "orxt-trace" },
+    { name = "orxt-transport" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "orxt-trace", editable = "trace" },
+    { name = "orxt-transport", editable = "transport" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[[package]]
+name = "orxt-tool"
+version = "0.0.0"
+source = { editable = "tool" }
+dependencies = [
+    { name = "httpx" },
+    { name = "jsonschema" },
+    { name = "orxt-protocols" },
+    { name = "orxt-secrets" },
+    { name = "orxt-write-safety" },
+    { name = "pathspec" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx" },
+    { name = "jsonschema" },
+    { name = "orxt-protocols", editable = "protocols" },
+    { name = "orxt-secrets", editable = "secrets" },
+    { name = "orxt-write-safety", editable = "write-safety" },
+    { name = "pathspec" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxt-trace"
+version = "0.0.0"
+source = { editable = "trace" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "orxt-secrets" },
+    { name = "pydantic" },
+    { name = "uuid6" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg" },
+    { name = "orxt-secrets", editable = "secrets" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "uuid6" },
+]
+
+[[package]]
+name = "orxt-transport"
+version = "0.0.0"
+source = { editable = "transport" }
+dependencies = [
+    { name = "httpx" },
+    { name = "orxt-protocols" },
+    { name = "pydantic" },
+    { name = "uuid6" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx" },
+    { name = "orxt-protocols", editable = "protocols" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "uuid6" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1.0" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
+]
+
+[[package]]
+name = "orxt-verify"
+version = "0.0.0"
+source = { editable = "verify" }
+dependencies = [
+    { name = "orxt-protocols" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "orxt-protocols", editable = "protocols" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
 name = "orxt-write-safety"
 version = "0.0.0"
 source = { editable = "write-safety" }
@@ -2296,43 +2508,6 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
-
-[[package]]
-name = "overseer"
-version = "0.0.0"
-source = { editable = "overseer" }
-dependencies = [
-    { name = "knowledge-module" },
-    { name = "orxt-protocols" },
-    { name = "pydantic" },
-    { name = "session" },
-    { name = "tool" },
-    { name = "trace" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "uuid6" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "knowledge-module", editable = "knowledge-module" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "session", editable = "session" },
-    { name = "tool", editable = "tool" },
-    { name = "trace", editable = "trace" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.1.0" },
-    { name = "pytest-asyncio", specifier = ">=1.4.0" },
-    { name = "uuid6", specifier = ">=2025.0.1" },
-]
 
 [[package]]
 name = "packaging"
@@ -3169,75 +3344,6 @@ wheels = [
 ]
 
 [[package]]
-name = "scheduler"
-version = "0.0.0"
-source = { editable = "scheduler" }
-dependencies = [
-    { name = "agent" },
-    { name = "jsonschema" },
-    { name = "notepad" },
-    { name = "orxt-protocols" },
-    { name = "orxt-write-safety" },
-    { name = "pydantic" },
-    { name = "session" },
-    { name = "tool" },
-    { name = "trace" },
-    { name = "verify" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agent", editable = "agent" },
-    { name = "jsonschema" },
-    { name = "notepad", editable = "notepad" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-write-safety", editable = "write-safety" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "session", editable = "session" },
-    { name = "tool", editable = "tool" },
-    { name = "trace", editable = "trace" },
-    { name = "verify", editable = "verify" },
-]
-
-[[package]]
-name = "services"
-version = "0.0.0"
-source = { editable = "services" }
-dependencies = [
-    { name = "asyncpg" },
-    { name = "overseer" },
-    { name = "pydantic" },
-    { name = "scheduler" },
-    { name = "trace" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "asyncpg" },
-    { name = "overseer", editable = "overseer" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "scheduler", editable = "scheduler" },
-    { name = "trace", editable = "trace" },
-]
-
-[[package]]
-name = "session"
-version = "0.0.0"
-source = { editable = "session" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "trace" },
-    { name = "transport" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2" },
-    { name = "trace", editable = "trace" },
-    { name = "transport", editable = "transport" },
-]
-
-[[package]]
 name = "shellingham"
 version = "1.5.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3450,39 +3556,6 @@ wheels = [
 ]
 
 [[package]]
-name = "tool"
-version = "0.0.0"
-source = { editable = "tool" }
-dependencies = [
-    { name = "httpx" },
-    { name = "jsonschema" },
-    { name = "orxt-protocols" },
-    { name = "orxt-secrets" },
-    { name = "orxt-write-safety" },
-    { name = "pathspec" },
-    { name = "pydantic" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx" },
-    { name = "jsonschema" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "orxt-secrets", editable = "secrets" },
-    { name = "orxt-write-safety", editable = "write-safety" },
-    { name = "pathspec" },
-    { name = "pydantic", specifier = ">=2" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
-
-[[package]]
 name = "tqdm"
 version = "4.68.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3495,62 +3568,12 @@ wheels = [
 ]
 
 [[package]]
-name = "trace"
-version = "0.0.0"
-source = { editable = "trace" }
-dependencies = [
-    { name = "asyncpg" },
-    { name = "orxt-secrets" },
-    { name = "pydantic" },
-    { name = "uuid6" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "asyncpg" },
-    { name = "orxt-secrets", editable = "secrets" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "uuid6" },
-]
-
-[[package]]
 name = "traitlets"
 version = "5.15.1"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/57/a9/a2584b8313b89f94869ddb3c4074617a691de1812a614d2d50e32ca5a7a6/traitlets-5.15.1.tar.gz", hash = "sha256:7b1c07854fe25acb39e009bae49f11b79ff6cbb2f27999104e9110e7a6b53722", size = 163344, upload-time = "2026-06-03T12:26:06.181Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/96/8d/1080ee4c231f361b6ce4470d556c8c435b67c7e0753aaa641497ee92f88b/traitlets-5.15.1-py3-none-any.whl", hash = "sha256:770a53705f84b81ac107e83a1b3328ff2dae16094d8fc3cfc004e4b22dfd8e92", size = 85858, upload-time = "2026-06-03T12:26:04.395Z" },
-]
-
-[[package]]
-name = "transport"
-version = "0.0.0"
-source = { editable = "transport" }
-dependencies = [
-    { name = "httpx" },
-    { name = "orxt-protocols" },
-    { name = "pydantic" },
-    { name = "uuid6" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx" },
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "uuid6" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.1.0" },
-    { name = "pytest-asyncio", specifier = ">=1.4.0" },
 ]
 
 [[package]]
@@ -3631,29 +3654,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/c4/1f/fa18009dea8469069
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/fa/e1388bbcf24ef3274f45c0c1c7b501fd14971037c1b6ee23610553307497/uvicorn-0.49.0-py3-none-any.whl", hash = "sha256:ba3d14c3ee7e41c6c654c46c9eb489d33213cdd30aa1696eab1374337c13f68f", size = 71376, upload-time = "2026-06-03T22:01:29.037Z" },
 ]
-
-[[package]]
-name = "verify"
-version = "0.0.0"
-source = { editable = "verify" }
-dependencies = [
-    { name = "orxt-protocols" },
-    { name = "pydantic" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "orxt-protocols", editable = "protocols" },
-    { name = "pydantic", specifier = ">=2" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "websockets"

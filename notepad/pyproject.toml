@@ -1,11 +1,11 @@
 [project]
-name = "notepad"
+name = "orxt-notepad"
 version = "0.0.0"
 description = "Append-only cross-agent context sharing. PG-backed via the trace schema."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
-    "trace",
+    "orxt-trace",
 ]
 keywords = ["rlsbl"]
 
@@ -23,4 +23,4 @@ build-backend = "hatchling.build"
 packages = ["src/orxt"]
 
 [tool.uv.sources]
-trace = { workspace = true }
+orxt-trace = { workspace = true }
