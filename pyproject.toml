@@ -26,6 +26,7 @@ dependencies = [
     "orxt-cli",
     "orxt-mcp",
 ]
+keywords = ["rlsbl"]
 
 [tool.uv.workspace]
 members = [
