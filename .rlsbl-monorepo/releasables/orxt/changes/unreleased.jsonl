@@ -40,3 +40,7 @@
 {"commits":["57bc0eda612c4a60e1a605d4a3dcf14c38793a2e","b7bc16f9055ace920167671c8ae9415c7d764c67"],"user_facing":true,"description":"**New feature.** npm CLI wrapper package (`npm install orxt`) that installs the Python CLI via uv postinstall and provides a Node.js bin shim.","type":"feature"}
 {"commits":["e0996fedb13d3c80e3ab15266a43a5af2d3a4dda","3b4a75253a1875ce35537bdb0f99b9b8eee6a6e7","015b4958d32cb8ca443c993e12d69e332dc637fe","7c851a7fd43232ee66a031b36e3fd34d8d97c603"],"user_facing":true,"description":"**New.** BSL 1.1 license and updated documentation.","type":"feature"}
 {"commits":["07a1842c5d949ea9d75ffa18deb6ad7022ab7d30"],"user_facing":false}
+{"commits":["cf88fe91645cd47b0cae4f71074ee0fd41526a76","6daf94b54a1cda83e2f58d41a806a54a7100c5a7","06991444a733249d6c9fbf00a981ecc5e10242a5","4f3a35053bdcd94e1f42211acb65d52cd588c3d6"],"user_facing":false}
+{"commits":["adf100bba4fc5f7f66bfb8095e777900cfd30b83"],"user_facing":false}
+{"commits":["0016762d4c2ab1e679e143b9a34177e537f539ea"],"user_facing":false}
+{"commits":["d2861e04d90edd03ff0f144dce3913e4d73c183e"],"user_facing":false}
