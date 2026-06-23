@@ -289,3 +289,72 @@ class TestValidation:
         tool = _make(arg_schema=extra)
         with pytest.raises(ToolError, match="Invalid tool arguments"):
             await tool.execute({"pattern": 12345})
+
+
+class TestArgValidation:
+    """Tests for exec tool argument safety (path containment, metachar rejection)."""
+
+    @pytest.mark.asyncio
+    async def test_path_within_read_root_passes(self, tmp_path: Path) -> None:
+        """A path-like arg resolving inside read_root is accepted."""
+        proc = _mock_process(stdout="ok")
+        tool = _make(read_root=tmp_path)
+        subdir = tmp_path / "src"
+        subdir.mkdir()
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.wait_for = asyncio.wait_for
+            result = json.loads((await tool.execute(
+                {"args": ["src/file.py"]},
+            )).text)
+        assert result["exit_code"] == 0
+
+    @pytest.mark.asyncio
+    async def test_path_escaping_read_root_rejected(self, tmp_path: Path) -> None:
+        """A path-like arg escaping read_root is rejected."""
+        tool = _make(read_root=tmp_path)
+        with pytest.raises(ToolError, match="escapes read root"):
+            await tool.execute({"args": ["/etc/passwd"]})
+
+    @pytest.mark.asyncio
+    async def test_traversal_attack_rejected(self, tmp_path: Path) -> None:
+        """An arg with ../../etc/passwd is rejected (metachar ..)."""
+        tool = _make(read_root=tmp_path)
+        with pytest.raises(ToolError, match="forbidden characters"):
+            await tool.execute({"args": ["../../../etc/passwd"]})
+
+    @pytest.mark.asyncio
+    async def test_shell_metachar_dollar_rejected(self) -> None:
+        """Args containing $ are rejected."""
+        tool = _make()
+        with pytest.raises(ToolError, match="forbidden characters"):
+            await tool.execute({"args": ["$HOME"]})
+
+    @pytest.mark.asyncio
+    async def test_shell_metachar_backtick_rejected(self) -> None:
+        """Args containing backticks are rejected."""
+        tool = _make()
+        with pytest.raises(ToolError, match="forbidden characters"):
+            await tool.execute({"args": ["`whoami`"]})
+
+    @pytest.mark.asyncio
+    async def test_shell_metachar_tilde_rejected(self) -> None:
+        """Args containing ~ are rejected."""
+        tool = _make()
+        with pytest.raises(ToolError, match="forbidden characters"):
+            await tool.execute({"args": ["~/secret"]})
+
+    @pytest.mark.asyncio
+    async def test_arg_validation_false_skips_checks(self) -> None:
+        """With arg_validation=False, metachar args pass through."""
+        proc = _mock_process(stdout="ok")
+        tool = _make(arg_validation=False)
+        with patch("orxtra.tool._exec_tool.asyncio") as mock_asyncio:
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=proc)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.wait_for = asyncio.wait_for
+            result = json.loads((await tool.execute(
+                {"args": ["$HOME", "`whoami`"]},
+            )).text)
+        assert result["exit_code"] == 0

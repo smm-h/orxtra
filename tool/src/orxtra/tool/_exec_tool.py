@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from typing import TYPE_CHECKING, Any
 
 from orxtra.protocols._results import ExecResult, ToolOutput
-from orxtra.protocols._tool import Tool
+from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._path import PathError, resolve_and_check
 from orxtra.tool._preview import check_and_preview
 from orxtra.tool._validation import validate_args
 
@@ -28,6 +30,34 @@ _BASE_PROPERTIES: dict[str, Any] = {
 
 _SIGTERM_GRACE_SECONDS = 5.0
 
+# Characters that are dangerous in shell contexts. Even though subprocess_exec
+# doesn't interpret them, rejecting them is defense-in-depth against accidental
+# shell invocation or downstream misuse.
+_SHELL_METACHAR_PATTERN = re.compile(r"\.\.|~|\$|`")
+
+
+def _validate_exec_arg(arg: str, read_root: Path) -> None:
+    """Validate a single exec tool argument for safety.
+
+    Checks:
+    1. Reject shell metacharacters (defense-in-depth).
+    2. If the arg looks like a path (contains ``/`` or ``\\``), verify it
+       resolves within ``read_root``.
+
+    Raises:
+        ToolError: If the argument fails validation.
+    """
+    if _SHELL_METACHAR_PATTERN.search(arg):
+        msg = f"Argument contains forbidden characters: {arg!r}"
+        raise ToolError(msg)
+
+    if "/" in arg or "\\" in arg:
+        try:
+            resolve_and_check(arg, read_root)
+        except PathError as exc:
+            msg = f"Path-like argument escapes read root: {arg!r}"
+            raise ToolError(msg) from exc
+
 
 def make_exec_tool(  # noqa: PLR0913
     executable: str,
@@ -37,6 +67,8 @@ def make_exec_tool(  # noqa: PLR0913
     timeout_ceiling: int,
     preview_threshold: int,
     preview_lines: int,
+    *,
+    arg_validation: bool = True,
 ) -> Tool:
     """Create a tool that runs a single fixed executable.
 
@@ -53,6 +85,8 @@ def make_exec_tool(  # noqa: PLR0913
         timeout_ceiling: Maximum allowed timeout in seconds.
         preview_threshold: Byte threshold for stdout/stderr preview.
         preview_lines: Number of head/tail lines in previews.
+        arg_validation: When True (default), validate each string argument
+            for path containment and shell metacharacters.
 
     Returns:
         A Tool instance for running the executable.
@@ -67,6 +101,11 @@ def make_exec_tool(  # noqa: PLR0913
         validate_args(arguments, schema)
 
         cmd_args: list[str] = arguments.get("args", [])
+
+        if arg_validation:
+            for arg in cmd_args:
+                _validate_exec_arg(arg, read_root)
+
         requested_timeout: int = arguments.get("timeout", timeout_ceiling)
         effective_timeout = min(requested_timeout, timeout_ceiling)
 
