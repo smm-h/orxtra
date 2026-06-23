@@ -70,6 +70,13 @@ class ToolTemplate(Generic[T]):
             # Call the decorated function with validated params + bound deps
             result = await template._fn(validated, **deps)
 
+            # If the function already returned a ToolOutput, use it directly.
+            # This supports tools with complex context-dependent rendering
+            # (e.g., line-numbered file content, previews) where a generic
+            # renderer cannot reproduce the text.
+            if isinstance(result, ToolOutput):
+                return result
+
             # Render to text
             text = template._renderer.render(result)
             return ToolOutput(data=result, text=text)

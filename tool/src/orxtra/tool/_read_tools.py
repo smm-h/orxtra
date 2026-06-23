@@ -8,11 +8,11 @@ import json
 import os
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 
 import pathspec
 from orxtra.protocols._results import (
-    Confirmation,
     DiffResult,
     DirEntry,
     DirListing,
@@ -25,13 +25,18 @@ from orxtra.protocols._results import (
     ToolOutput,
 )
 from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._decorator import tool
+from orxtra.tool._params import (
+    DiffParams,
+    GlobParams,
+    GrepParams,
+    ListDirParams,
+    ReadParams,
+    StatParams,
+)
 from orxtra.tool._path import PathError, resolve_and_check
 from orxtra.tool._preview import FullRetrievalGuard, check_and_preview
-from orxtra.tool._validation import validate_args
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from pathlib import Path
+from orxtra.tool._renderers import TextRenderer
 
 
 _BINARY_CHECK_SIZE = 8192
@@ -223,82 +228,77 @@ def _glob_within_root(
 
 
 # ---------------------------------------------------------------------------
-# Schema definitions
+# Read tool
 # ---------------------------------------------------------------------------
 
-_READ_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "path": {"type": "string"},
-        "offset": {"type": "integer", "minimum": 1},
-        "limit": {"type": "integer", "minimum": 1},
-        "full": {"type": "boolean"},
-    },
-    "required": ["path"],
-    "additionalProperties": False,
-}
 
-_LIST_DIR_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "path": {"type": "string"},
-        "recursive": {"type": "boolean"},
-        "pattern": {"type": "string"},
-        "max_results": {"type": "integer", "minimum": 1},
-    },
-    "required": ["path"],
-    "additionalProperties": False,
-}
+@tool("read", "Read file contents with line numbers.", renderer=TextRenderer())
+async def _read_impl(
+    params: ReadParams,
+    *,
+    read_root: Path,
+    preview_threshold: int,
+    preview_lines: int,
+    session_id: str,
+    guard: FullRetrievalGuard,
+) -> ToolOutput[FileContent]:
+    resolved = _resolve_path(params.path, read_root)
+    _require_file(resolved, params.path)
 
-_GLOB_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "pattern": {"type": "string"},
-        "path": {"type": "string"},
-        "max_results": {"type": "integer", "minimum": 1},
-    },
-    "required": ["pattern"],
-    "additionalProperties": False,
-}
+    if _is_binary(resolved):
+        text = "Binary file, cannot display"
+        return ToolOutput(
+            data=FileContent(content=text, is_preview=False, total_lines=0, total_bytes=0),
+            text=text,
+        )
 
-_GREP_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "pattern": {"type": "string"},
-        "path": {"type": "string"},
-        "case_sensitive": {"type": "boolean"},
-        "context_lines": {"type": "integer", "minimum": 0},
-        "max_results": {"type": "integer", "minimum": 1},
-        "include": {"type": "string"},
-        "mode": {"type": "string", "enum": ["content", "files_only", "count"]},
-    },
-    "required": ["pattern"],
-    "additionalProperties": False,
-}
+    raw_text = _read_text_file(resolved)
+    all_lines = raw_text.splitlines()
+    total_bytes = len(raw_text.encode("utf-8"))
+    total_lines = len(all_lines)
+    offset = params.offset if params.offset is not None else 1
+    limit = params.limit
+    full = params.full if params.full is not None else False
 
-_STAT_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "path": {"type": "string"},
-    },
-    "required": ["path"],
-    "additionalProperties": False,
-}
+    # offset is 1-based
+    start_idx = min(offset - 1, len(all_lines))
+    end_idx = start_idx + limit if limit is not None else len(all_lines)
+    selected = all_lines[start_idx:end_idx]
+    start_lineno = start_idx + 1
 
-_DIFF_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "path_a": {"type": "string"},
-        "path_b": {"type": "string"},
-    },
-    "required": ["path_a", "path_b"],
-    "additionalProperties": False,
-}
+    content = "\n".join(selected)
+    path_str = str(resolved)
 
+    if full:
+        if not guard.check_full_allowed(session_id, path_str):
+            msg = (
+                "Cannot retrieve full content: no preview was "
+                "previously returned for this file. Read the file "
+                "first without full=true."
+            )
+            return ToolOutput(
+                data=FileContent(content=msg, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+                text=msg,
+            )
+        formatted = _format_with_line_numbers(selected, start_lineno)
+        return ToolOutput(
+            data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+            text=formatted,
+        )
 
-# ---------------------------------------------------------------------------
-# Tool constructors
-# ---------------------------------------------------------------------------
+    result = check_and_preview(content, preview_threshold, preview_lines)
+    if result.is_preview:
+        guard.record_preview(session_id, path_str)
+        return ToolOutput(
+            data=FileContent(content=content, is_preview=True, total_lines=total_lines, total_bytes=total_bytes),
+            text=result.content,
+        )
+
+    formatted = _format_with_line_numbers(selected, start_lineno)
+    return ToolOutput(
+        data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+        text=formatted,
+    )
 
 
 def make_read_tool(
@@ -306,7 +306,7 @@ def make_read_tool(
     preview_threshold: int,
     preview_lines: int,
     session_id: str = "default",
-    previewer: Callable[..., Any] | None = None,
+    previewer: Any | None = None,  # noqa: ANN401
 ) -> Tool:
     """Construct the read file tool.
 
@@ -319,73 +319,18 @@ def make_read_tool(
     """
     _ = previewer  # Reserved for future use
     guard = FullRetrievalGuard()
-
-    async def execute(args: dict[str, Any]) -> ToolOutput[FileContent]:
-        validate_args(args, _READ_SCHEMA)
-        resolved = _resolve_path(args["path"], read_root)
-        _require_file(resolved, args["path"])
-
-        if _is_binary(resolved):
-            text = "Binary file, cannot display"
-            return ToolOutput(
-                data=FileContent(content=text, is_preview=False, total_lines=0, total_bytes=0),
-                text=text,
-            )
-
-        raw_text = _read_text_file(resolved)
-        all_lines = raw_text.splitlines()
-        total_bytes = len(raw_text.encode("utf-8"))
-        total_lines = len(all_lines)
-        offset = args.get("offset", 1)
-        limit = args.get("limit")
-        full = args.get("full", False)
-
-        # offset is 1-based
-        start_idx = min(offset - 1, len(all_lines))
-        end_idx = start_idx + limit if limit is not None else len(all_lines)
-        selected = all_lines[start_idx:end_idx]
-        start_lineno = start_idx + 1
-
-        content = "\n".join(selected)
-        path_str = str(resolved)
-
-        if full:
-            if not guard.check_full_allowed(session_id, path_str):
-                msg = (
-                    "Cannot retrieve full content: no preview was "
-                    "previously returned for this file. Read the file "
-                    "first without full=true."
-                )
-                return ToolOutput(
-                    data=FileContent(content=msg, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
-                    text=msg,
-                )
-            formatted = _format_with_line_numbers(selected, start_lineno)
-            return ToolOutput(
-                data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
-                text=formatted,
-            )
-
-        result = check_and_preview(content, preview_threshold, preview_lines)
-        if result.is_preview:
-            guard.record_preview(session_id, path_str)
-            return ToolOutput(
-                data=FileContent(content=content, is_preview=True, total_lines=total_lines, total_bytes=total_bytes),
-                text=result.content,
-            )
-
-        formatted = _format_with_line_numbers(selected, start_lineno)
-        return ToolOutput(
-            data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
-            text=formatted,
-        )
-
-    return Tool(
-        name="read",
-        description="Read file contents with line numbers.",
-        parameters=_READ_SCHEMA,
-        execute=execute,
+    return _read_impl.bind(
+        read_root=read_root,
+        preview_threshold=preview_threshold,
+        preview_lines=preview_lines,
+        session_id=session_id,
+        guard=guard,
     )
+
+
+# ---------------------------------------------------------------------------
+# List dir tool
+# ---------------------------------------------------------------------------
 
 
 def _load_gitignore(read_root: Path) -> pathspec.PathSpec | None:  # type: ignore[type-arg]
@@ -466,56 +411,107 @@ def _list_immediate(
     return entries
 
 
+@tool("list_dir", "List directory contents with type and size information.", renderer=TextRenderer())
+async def _list_dir_impl(
+    params: ListDirParams,
+    *,
+    read_root: Path,
+) -> ToolOutput[DirListing]:
+    resolved = _resolve_path(params.path, read_root)
+    _require_dir(resolved, params.path)
+
+    recursive = params.recursive if params.recursive is not None else False
+    pattern = params.pattern
+    max_results = params.max_results if params.max_results is not None else 500
+
+    gitignore = _load_gitignore(read_root)
+    if recursive:
+        raw_entries = _list_recursive(resolved, pattern, gitignore)
+    else:
+        raw_entries = _list_immediate(resolved, pattern, gitignore)
+
+    raw_entries.sort(key=lambda e: e[2])
+
+    truncated = len(raw_entries) > max_results
+    raw_entries = raw_entries[:max_results]
+
+    dir_entries = [
+        DirEntry(
+            type=etype,
+            size=int(esize) if esize != "-" and esize != "?" else None,
+            path=epath,
+        )
+        for etype, esize, epath in raw_entries
+    ]
+
+    lines = [f"{etype}\t{esize}\t{epath}" for etype, esize, epath in raw_entries]
+    if truncated:
+        lines.append(f"(truncated at {max_results} results)")
+
+    return ToolOutput(
+        data=DirListing(entries=dir_entries, truncated=truncated),
+        text="\n".join(lines),
+    )
+
+
 def make_list_dir_tool(read_root: Path) -> Tool:
     """Construct the list directory tool.
 
     Args:
         read_root: Root directory for path containment.
     """
+    return _list_dir_impl.bind(read_root=read_root)
 
-    async def execute(args: dict[str, Any]) -> ToolOutput[DirListing]:
-        validate_args(args, _LIST_DIR_SCHEMA)
-        resolved = _resolve_path(args["path"], read_root)
-        _require_dir(resolved, args["path"])
 
-        recursive = args.get("recursive", False)
-        pattern = args.get("pattern")
-        max_results = args.get("max_results", 500)
+# ---------------------------------------------------------------------------
+# Glob tool
+# ---------------------------------------------------------------------------
 
-        gitignore = _load_gitignore(read_root)
-        if recursive:
-            raw_entries = _list_recursive(resolved, pattern, gitignore)
-        else:
-            raw_entries = _list_immediate(resolved, pattern, gitignore)
 
-        raw_entries.sort(key=lambda e: e[2])
+@tool("glob", "Find files by glob pattern.", renderer=TextRenderer())
+async def _glob_impl(
+    params: GlobParams,
+    *,
+    read_root: Path,
+) -> ToolOutput[GlobResult]:
+    base_path_str = params.path
+    if base_path_str is not None:
+        base = _resolve_path(base_path_str, read_root)
+    else:
+        base = read_root
 
-        truncated = len(raw_entries) > max_results
-        raw_entries = raw_entries[:max_results]
+    _require_dir(base, base_path_str or str(read_root))
 
-        dir_entries = [
-            DirEntry(
-                type=etype,
-                size=int(esize) if esize != "-" and esize != "?" else None,
-                path=epath,
-            )
-            for etype, esize, epath in raw_entries
-        ]
+    pattern = params.pattern
+    max_results = params.max_results if params.max_results is not None else 200
 
-        lines = [f"{etype}\t{esize}\t{epath}" for etype, esize, epath in raw_entries]
-        if truncated:
-            lines.append(f"(truncated at {max_results} results)")
+    root_resolved = _resolve_root(read_root)
+    matches = _glob_within_root(base, pattern, root_resolved)
 
+    results: list[str] = []
+    for match_resolved in matches:
+        try:
+            rel = str(match_resolved.relative_to(root_resolved))
+        except ValueError:
+            continue
+        results.append(rel)
+
+    truncated = len(results) > max_results
+    results = results[:max_results]
+
+    lines = results.copy()
+    if truncated:
+        lines.append(f"(truncated at {max_results} results)")
+
+    if not lines:
         return ToolOutput(
-            data=DirListing(entries=dir_entries, truncated=truncated),
-            text="\n".join(lines),
+            data=GlobResult(paths=[], truncated=False),
+            text="No matches found.",
         )
 
-    return Tool(
-        name="list_dir",
-        description="List directory contents with type and size information.",
-        parameters=_LIST_DIR_SCHEMA,
-        execute=execute,
+    return ToolOutput(
+        data=GlobResult(paths=results, truncated=truncated),
+        text="\n".join(lines),
     )
 
 
@@ -525,56 +521,12 @@ def make_glob_tool(read_root: Path) -> Tool:
     Args:
         read_root: Root directory for path containment.
     """
+    return _glob_impl.bind(read_root=read_root)
 
-    async def execute(args: dict[str, Any]) -> ToolOutput[GlobResult]:
-        validate_args(args, _GLOB_SCHEMA)
 
-        base_path_str = args.get("path")
-        if base_path_str is not None:
-            base = _resolve_path(base_path_str, read_root)
-        else:
-            base = read_root
-
-        _require_dir(base, base_path_str or str(read_root))
-
-        pattern = args["pattern"]
-        max_results = args.get("max_results", 200)
-
-        root_resolved = _resolve_root(read_root)
-        matches = _glob_within_root(base, pattern, root_resolved)
-
-        results: list[str] = []
-        for match_resolved in matches:
-            try:
-                rel = str(match_resolved.relative_to(root_resolved))
-            except ValueError:
-                continue
-            results.append(rel)
-
-        truncated = len(results) > max_results
-        results = results[:max_results]
-
-        lines = results.copy()
-        if truncated:
-            lines.append(f"(truncated at {max_results} results)")
-
-        if not lines:
-            return ToolOutput(
-                data=GlobResult(paths=[], truncated=False),
-                text="No matches found.",
-            )
-
-        return ToolOutput(
-            data=GlobResult(paths=results, truncated=truncated),
-            text="\n".join(lines),
-        )
-
-    return Tool(
-        name="glob",
-        description="Find files by glob pattern.",
-        parameters=_GLOB_SCHEMA,
-        execute=execute,
-    )
+# ---------------------------------------------------------------------------
+# Grep tool
+# ---------------------------------------------------------------------------
 
 
 def _grep_compile(pattern: str, case_sensitive: bool) -> re.Pattern[str]:
@@ -687,6 +639,92 @@ def _grep_format_results(  # noqa: PLR0913
     return result.content
 
 
+@tool("grep", "Search file contents by regex pattern.", renderer=TextRenderer())
+async def _grep_impl(
+    params: GrepParams,
+    *,
+    read_root: Path,
+    preview_threshold: int,
+    preview_lines: int,
+) -> ToolOutput[GrepResult]:
+    case_sensitive = params.case_sensitive if params.case_sensitive is not None else True
+    compiled = _grep_compile(params.pattern, case_sensitive)
+
+    search_path_str = params.path
+    if search_path_str is not None:
+        search_path = _resolve_path(search_path_str, read_root)
+    else:
+        search_path = read_root
+    _require_dir(search_path, search_path_str or str(read_root))
+
+    context_lines_count = params.context_lines if params.context_lines is not None else 0
+    max_results = params.max_results if params.max_results is not None else 100
+    include = params.include
+    mode = params.mode if params.mode is not None else "content"
+
+    output_lines: list[str] = []
+    total_match_count = 0
+    matched_files: list[str] = []
+    grep_matches: list[GrepMatch] = []
+    hit_limit = False
+
+    files = _grep_iter_files(search_path, read_root, include)
+    for filepath, rel_path in files:
+        try:
+            file_text = filepath.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+
+        file_out, file_count, has_match = _grep_search_file(
+            file_text.splitlines(),
+            rel_path,
+            compiled,
+            context_lines_count,
+            mode,
+        )
+        total_match_count += file_count
+
+        if not has_match:
+            continue
+
+        if mode == "files_only":
+            matched_files.append(rel_path)
+            if len(matched_files) >= max_results:
+                hit_limit = True
+                break
+        elif mode == "content":
+            for line_str in file_out:
+                parts = line_str.split(":", 2)
+                if len(parts) >= 3:  # noqa: PLR2004
+                    grep_matches.append(GrepMatch(
+                        file=parts[0], line_number=int(parts[1]), line=parts[2],
+                    ))
+            output_lines.extend(file_out)
+            if len(output_lines) >= max_results:
+                hit_limit = True
+                output_lines = output_lines[:max_results]
+                break
+
+    text = _grep_format_results(
+        mode,
+        output_lines,
+        matched_files,
+        total_match_count,
+        max_results,
+        hit_limit,
+        preview_threshold,
+        preview_lines,
+    )
+    return ToolOutput(
+        data=GrepResult(
+            matches=grep_matches,
+            mode=mode,
+            count=total_match_count if mode == "count" else None,
+        ),
+        text=text,
+    )
+
+
 def make_grep_tool(
     read_root: Path,
     preview_threshold: int,
@@ -699,138 +737,16 @@ def make_grep_tool(
         preview_threshold: Byte threshold above which output is previewed.
         preview_lines: Number of head/tail lines in a preview.
     """
-
-    async def execute(args: dict[str, Any]) -> ToolOutput[GrepResult]:
-        validate_args(args, _GREP_SCHEMA)
-
-        case_sensitive = args.get("case_sensitive", True)
-        compiled = _grep_compile(args["pattern"], case_sensitive)
-
-        search_path_str = args.get("path")
-        if search_path_str is not None:
-            search_path = _resolve_path(search_path_str, read_root)
-        else:
-            search_path = read_root
-        _require_dir(search_path, search_path_str or str(read_root))
-
-        context_lines_count = args.get("context_lines", 0)
-        max_results = args.get("max_results", 100)
-        include = args.get("include")
-        mode = args.get("mode", "content")
-
-        output_lines: list[str] = []
-        total_match_count = 0
-        matched_files: list[str] = []
-        grep_matches: list[GrepMatch] = []
-        hit_limit = False
-
-        files = _grep_iter_files(search_path, read_root, include)
-        for filepath, rel_path in files:
-            try:
-                file_text = filepath.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                continue
-
-            file_out, file_count, has_match = _grep_search_file(
-                file_text.splitlines(),
-                rel_path,
-                compiled,
-                context_lines_count,
-                mode,
-            )
-            total_match_count += file_count
-
-            if not has_match:
-                continue
-
-            if mode == "files_only":
-                matched_files.append(rel_path)
-                if len(matched_files) >= max_results:
-                    hit_limit = True
-                    break
-            elif mode == "content":
-                for line_str in file_out:
-                    parts = line_str.split(":", 2)
-                    if len(parts) >= 3:  # noqa: PLR2004
-                        grep_matches.append(GrepMatch(
-                            file=parts[0], line_number=int(parts[1]), line=parts[2],
-                        ))
-                output_lines.extend(file_out)
-                if len(output_lines) >= max_results:
-                    hit_limit = True
-                    output_lines = output_lines[:max_results]
-                    break
-
-        text = _grep_format_results(
-            mode,
-            output_lines,
-            matched_files,
-            total_match_count,
-            max_results,
-            hit_limit,
-            preview_threshold,
-            preview_lines,
-        )
-        return ToolOutput(
-            data=GrepResult(
-                matches=grep_matches,
-                mode=mode,
-                count=total_match_count if mode == "count" else None,
-            ),
-            text=text,
-        )
-
-    return Tool(
-        name="grep",
-        description="Search file contents by regex pattern.",
-        parameters=_GREP_SCHEMA,
-        execute=execute,
+    return _grep_impl.bind(
+        read_root=read_root,
+        preview_threshold=preview_threshold,
+        preview_lines=preview_lines,
     )
 
 
-def make_stat_tool(read_root: Path) -> Tool:
-    """Construct the stat tool.
-
-    Args:
-        read_root: Root directory for path containment.
-    """
-
-    async def execute(args: dict[str, Any]) -> ToolOutput[StatResult]:
-        validate_args(args, _STAT_SCHEMA)
-        raw_path = args["path"]
-
-        has_glob = any(c in raw_path for c in ("*", "?", "["))
-        root_resolved = _resolve_root(read_root)
-
-        if has_glob:
-            base = _resolve_path(".", read_root)
-            matches = _glob_within_root(base, raw_path, root_resolved)
-            results = [_stat_single(m, root_resolved) for m in matches]
-            stats = [
-                FileStat(
-                    path=r["path"], exists=r["exists"], byte_size=r["byte_size"],
-                    line_count=r["line_count"], language=r["language"],
-                    mtime=r["mtime"], binary=r.get("binary", False),
-                )
-                for r in results
-            ]
-            return ToolOutput(data=StatResult(files=stats), text=json.dumps(results, indent=2))
-
-        resolved = _resolve_path(raw_path, read_root)
-        info = _stat_single(resolved, root_resolved)
-        stat_data = FileStat(
-            path=info["path"], exists=info["exists"], byte_size=info["byte_size"],
-            line_count=info["line_count"], language=info["language"],
-            mtime=info["mtime"], binary=info.get("binary", False),
-        )
-        return ToolOutput(data=StatResult(files=[stat_data]), text=json.dumps(info, indent=2))
-
-    return Tool(
-        name="stat",
-        description="Get file metadata.",
-        parameters=_STAT_SCHEMA,
-        execute=execute,
-    )
+# ---------------------------------------------------------------------------
+# Stat tool
+# ---------------------------------------------------------------------------
 
 
 def _stat_single(path: Path, root: Path) -> dict[str, Any]:
@@ -882,58 +798,105 @@ def _stat_single(path: Path, root: Path) -> dict[str, Any]:
     }
 
 
+@tool("stat", "Get file metadata.", renderer=TextRenderer())
+async def _stat_impl(
+    params: StatParams,
+    *,
+    read_root: Path,
+) -> ToolOutput[StatResult]:
+    raw_path = params.path
+
+    has_glob = any(c in raw_path for c in ("*", "?", "["))
+    root_resolved = _resolve_root(read_root)
+
+    if has_glob:
+        base = _resolve_path(".", read_root)
+        matches = _glob_within_root(base, raw_path, root_resolved)
+        results = [_stat_single(m, root_resolved) for m in matches]
+        stats = [
+            FileStat(
+                path=r["path"], exists=r["exists"], byte_size=r["byte_size"],
+                line_count=r["line_count"], language=r["language"],
+                mtime=r["mtime"], binary=r.get("binary", False),
+            )
+            for r in results
+        ]
+        return ToolOutput(data=StatResult(files=stats), text=json.dumps(results, indent=2))
+
+    resolved = _resolve_path(raw_path, read_root)
+    info = _stat_single(resolved, root_resolved)
+    stat_data = FileStat(
+        path=info["path"], exists=info["exists"], byte_size=info["byte_size"],
+        line_count=info["line_count"], language=info["language"],
+        mtime=info["mtime"], binary=info.get("binary", False),
+    )
+    return ToolOutput(data=StatResult(files=[stat_data]), text=json.dumps(info, indent=2))
+
+
+def make_stat_tool(read_root: Path) -> Tool:
+    """Construct the stat tool.
+
+    Args:
+        read_root: Root directory for path containment.
+    """
+    return _stat_impl.bind(read_root=read_root)
+
+
+# ---------------------------------------------------------------------------
+# Diff tool
+# ---------------------------------------------------------------------------
+
+
+@tool("diff", "Show unified diff between two files.", renderer=TextRenderer())
+async def _diff_impl(
+    params: DiffParams,
+    *,
+    read_root: Path,
+) -> ToolOutput[DiffResult]:
+    resolved_a = _resolve_path(params.path_a, read_root)
+    resolved_b = _resolve_path(params.path_b, read_root)
+    _require_file(resolved_a, params.path_a)
+    _require_file(resolved_b, params.path_b)
+    _require_text_file(resolved_a, params.path_a)
+    _require_text_file(resolved_b, params.path_b)
+
+    text_a = _read_text_file(resolved_a)
+    text_b = _read_text_file(resolved_b)
+
+    root_resolved = _resolve_root(read_root)
+    try:
+        label_a = str(resolved_a.relative_to(root_resolved))
+    except ValueError:
+        label_a = str(resolved_a)
+    try:
+        label_b = str(resolved_b.relative_to(root_resolved))
+    except ValueError:
+        label_b = str(resolved_b)
+
+    diff = difflib.unified_diff(
+        text_a.splitlines(keepends=True),
+        text_b.splitlines(keepends=True),
+        fromfile=label_a,
+        tofile=label_b,
+    )
+
+    diff_text = "".join(diff)
+    identical = not diff_text
+    if identical:
+        display_text = "Files are identical."
+    else:
+        display_text = diff_text
+
+    return ToolOutput(
+        data=DiffResult(diff=diff_text, identical=identical),
+        text=display_text,
+    )
+
+
 def make_diff_tool(read_root: Path) -> Tool:
     """Construct the diff tool.
 
     Args:
         read_root: Root directory for path containment.
     """
-
-    async def execute(args: dict[str, Any]) -> ToolOutput[DiffResult]:
-        validate_args(args, _DIFF_SCHEMA)
-
-        resolved_a = _resolve_path(args["path_a"], read_root)
-        resolved_b = _resolve_path(args["path_b"], read_root)
-        _require_file(resolved_a, args["path_a"])
-        _require_file(resolved_b, args["path_b"])
-        _require_text_file(resolved_a, args["path_a"])
-        _require_text_file(resolved_b, args["path_b"])
-
-        text_a = _read_text_file(resolved_a)
-        text_b = _read_text_file(resolved_b)
-
-        root_resolved = _resolve_root(read_root)
-        try:
-            label_a = str(resolved_a.relative_to(root_resolved))
-        except ValueError:
-            label_a = str(resolved_a)
-        try:
-            label_b = str(resolved_b.relative_to(root_resolved))
-        except ValueError:
-            label_b = str(resolved_b)
-
-        diff = difflib.unified_diff(
-            text_a.splitlines(keepends=True),
-            text_b.splitlines(keepends=True),
-            fromfile=label_a,
-            tofile=label_b,
-        )
-
-        diff_text = "".join(diff)
-        identical = not diff_text
-        if identical:
-            display_text = "Files are identical."
-        else:
-            display_text = diff_text
-
-        return ToolOutput(
-            data=DiffResult(diff=diff_text, identical=identical),
-            text=display_text,
-        )
-
-    return Tool(
-        name="diff",
-        description="Show unified diff between two files.",
-        parameters=_DIFF_SCHEMA,
-        execute=execute,
-    )
+    return _diff_impl.bind(read_root=read_root)
