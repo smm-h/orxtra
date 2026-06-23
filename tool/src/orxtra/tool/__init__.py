@@ -8,6 +8,7 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
+from orxtra.tool._decorator import ToolTemplate, tool
 from orxtra.tool._discovery import collect_tools
 from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool
@@ -65,6 +66,7 @@ __all__ = [
     "JsonRenderer",
     "TableRenderer",
     "TextRenderer",
+    "ToolTemplate",
     "PathError",
     "PreviewResult",
     "TaskSchedulerRef",
@@ -99,6 +101,7 @@ __all__ = [
     "make_stat_tool",
     "make_write_tool",
     "resolve_and_check",
+    "tool",
     "safe_read_for_write",
     "safe_write",
     "validate_args",
