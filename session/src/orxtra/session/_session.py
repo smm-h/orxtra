@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Self
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Callable
 
     from orxtra.protocols import Tool
     from orxtra.trace import StorageBackend, TraceWriter
@@ -37,6 +38,7 @@ class Session:
         self.total_cache_read_tokens: int = 0
         self.total_cache_write_tokens: int = 0
         self.turn_count: int = 0
+        self._event_handlers: dict[type, list[Callable[[Any], None]]] = defaultdict(list)
 
     @property
     def session_id(self) -> str | None:
@@ -53,6 +55,19 @@ class Session:
     @property
     def tools(self) -> list[Tool]:
         return self._tools
+
+    def on(self, event_type: type, handler: Callable[[Any], None]) -> None:
+        """Register a callback for a specific event type.
+
+        Handlers are called synchronously after each matching event
+        is yielded from send() or resume().
+        """
+        self._event_handlers[event_type].append(handler)
+
+    def _dispatch_handlers(self, event: Event) -> None:
+        """Call registered handlers for the given event's type."""
+        for handler in self._event_handlers.get(type(event), []):
+            handler(event)
 
     def _accumulate_tokens(self, event: StepFinish) -> None:
         """Add token counts from a step-finish event to session totals."""
@@ -154,6 +169,7 @@ class Session:
                 )
 
             yield event
+            self._dispatch_handlers(event)
 
         # Write assistant transcript entry
         if self._session_id is not None and session_id_captured:
@@ -202,6 +218,7 @@ class Session:
                 })
 
             yield event
+            self._dispatch_handlers(event)
 
         # Write transcript entries for the resume turn
         if self._session_id is not None:
