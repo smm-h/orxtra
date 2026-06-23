@@ -2,9 +2,18 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from orxtra.protocols._results import TaskLifecycleResult, ToolOutput
+from orxtra.protocols._results import TaskLifecycleResult
 from orxtra.protocols._tool import Tool
-from orxtra.tool._validation import validate_args
+from orxtra.tool._decorator import tool
+from orxtra.tool._params import (
+    AwaitTaskParams,
+    CreateTaskParams,
+    CreateWaitForParams,
+    CreateWorkflowParams,
+    EndTaskParams,
+    StartTaskParams,
+)
+from orxtra.tool._renderers import TextRenderer
 
 
 class TaskSchedulerRef(Protocol):
@@ -29,14 +38,23 @@ class TaskSchedulerRef(Protocol):
 
 # -- start_task --
 
-_START_TASK_PARAMETERS: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "task_id": {"type": "string", "description": "The task to enter"},
-    },
-    "required": ["task_id"],
-    "additionalProperties": False,
-}
+
+@tool(
+    "start_task",
+    "Enter a task, triggering its pre-checks."
+    " The task must exist and be in a startable state.",
+    renderer=TextRenderer(),
+)
+async def _start_task_impl(
+    params: StartTaskParams,
+    *,
+    scheduler_ref: TaskSchedulerRef,
+    session_id: str,
+) -> TaskLifecycleResult:
+    text = await scheduler_ref.handle_start_task(session_id, params.task_id)
+    return TaskLifecycleResult(
+        message=text, task_id=params.task_id, details=None,
+    )
 
 
 def make_start_task_tool(
@@ -44,46 +62,28 @@ def make_start_task_tool(
     session_id: str,
 ) -> Tool:
     """Create a tool that enters a task, triggering its pre-checks."""
-
-    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
-        validate_args(arguments, _START_TASK_PARAMETERS)
-        text = await scheduler_ref.handle_start_task(
-            session_id, arguments["task_id"]
-        )
-        return ToolOutput(
-            data=TaskLifecycleResult(
-                message=text, task_id=arguments["task_id"], details=None,
-            ),
-            text=text,
-        )
-
-    return Tool(
-        name="start_task",
-        description=(
-            "Enter a task, triggering its pre-checks."
-            " The task must exist and be in a startable state."
-        ),
-        parameters=_START_TASK_PARAMETERS,
-        execute=execute,
+    return _start_task_impl.bind(
+        scheduler_ref=scheduler_ref, session_id=session_id,
     )
 
 
 # -- end_task --
 
-_END_TASK_PARAMETERS: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "message": {
-            "type": "string",
-            "description": (
-                "What the agent accomplished."
-                " Also used as commit message if file changes were made."
-            ),
-        },
-    },
-    "required": ["message"],
-    "additionalProperties": False,
-}
+
+@tool(
+    "end_task",
+    "Complete the active task with a summary message."
+    " Triggers post-checks for verification.",
+    renderer=TextRenderer(),
+)
+async def _end_task_impl(
+    params: EndTaskParams,
+    *,
+    scheduler_ref: TaskSchedulerRef,
+    session_id: str,
+) -> TaskLifecycleResult:
+    text = await scheduler_ref.handle_end_task(session_id, params.message)
+    return TaskLifecycleResult(message=text, task_id=None, details=None)
 
 
 def make_end_task_tool(
@@ -91,99 +91,30 @@ def make_end_task_tool(
     session_id: str,
 ) -> Tool:
     """Create a tool that completes the active task with a summary message."""
-
-    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
-        validate_args(arguments, _END_TASK_PARAMETERS)
-        text = await scheduler_ref.handle_end_task(
-            session_id, arguments["message"]
-        )
-        return ToolOutput(
-            data=TaskLifecycleResult(message=text, task_id=None, details=None),
-            text=text,
-        )
-
-    return Tool(
-        name="end_task",
-        description=(
-            "Complete the active task with a summary message."
-            " Triggers post-checks for verification."
-        ),
-        parameters=_END_TASK_PARAMETERS,
-        execute=execute,
+    return _end_task_impl.bind(
+        scheduler_ref=scheduler_ref, session_id=session_id,
     )
 
 
 # -- create_task --
 
-_CREATE_TASK_PARAMETERS: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string", "description": "Task name"},
-        "agent": {
-            "type": "string",
-            "description": "Agent definition to execute this task",
-        },
-        "task_prompt": {
-            "type": "string",
-            "description": "Prompt describing what the task should accomplish",
-        },
-        "timeout": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Timeout in seconds",
-        },
-        "context_refinement": {
-            "type": "boolean",
-            "description": "Whether to refine context before execution",
-        },
-        "prechecks": {
-            "type": "array",
-            "description": "Pre-check executions to run before the task",
-        },
-        "postchecks": {
-            "type": "array",
-            "description": "Post-check executions to run after the task",
-        },
-        "variable_values": {
-            "type": "object",
-            "description": "Variable substitutions for the task prompt",
-        },
-        "budget": {
-            "type": "number",
-            "minimum": 0,
-            "description": "Budget in USD for this task",
-        },
-        "write_paths": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Paths this task is allowed to write to",
-        },
-        "category": {
-            "type": "string",
-            "description": "Task category for agent resolution",
-        },
-        "retry": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Number of retry attempts on failure",
-        },
-        "retry_resume": {
-            "type": "boolean",
-            "description": "Whether retries resume from failure point",
-        },
-        "retry_inject_failure": {
-            "type": "boolean",
-            "description": "Whether to inject failure context on retry",
-        },
-        "depends_on": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Task IDs this task depends on",
-        },
-    },
-    "required": ["name", "agent", "task_prompt", "timeout", "context_refinement"],
-    "additionalProperties": False,
-}
+
+@tool(
+    "create_task",
+    "Create a concrete subtask within the current active task."
+    " The subtask will be scheduled for execution by its assigned agent.",
+    renderer=TextRenderer(),
+)
+async def _create_task_impl(
+    params: CreateTaskParams,
+    *,
+    scheduler_ref: TaskSchedulerRef,
+    session_id: str,
+) -> TaskLifecycleResult:
+    # The scheduler expects the full args dict (including only present fields).
+    args = params.model_dump(exclude_none=True)
+    text = await scheduler_ref.handle_create_task(session_id, args)
+    return TaskLifecycleResult(message=text, task_id=text, details=None)
 
 
 def make_create_task_tool(
@@ -191,55 +122,29 @@ def make_create_task_tool(
     session_id: str,
 ) -> Tool:
     """Create a tool that creates a concrete subtask within the active task."""
-
-    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
-        validate_args(arguments, _CREATE_TASK_PARAMETERS)
-        text = await scheduler_ref.handle_create_task(session_id, arguments)
-        return ToolOutput(
-            data=TaskLifecycleResult(message=text, task_id=text, details=None),
-            text=text,
-        )
-
-    return Tool(
-        name="create_task",
-        description=(
-            "Create a concrete subtask within the current active task."
-            " The subtask will be scheduled for execution by its assigned agent."
-        ),
-        parameters=_CREATE_TASK_PARAMETERS,
-        execute=execute,
+    return _create_task_impl.bind(
+        scheduler_ref=scheduler_ref, session_id=session_id,
     )
 
 
 # -- create_workflow --
 
-_CREATE_WORKFLOW_PARAMETERS: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string", "description": "Workflow name"},
-        "description": {
-            "type": "string",
-            "description": "What this workflow accomplishes",
-        },
-        "goals": {
-            "type": "array",
-            "items": {"type": "string"},
-            "minItems": 1,
-            "description": "Goals the workflow must achieve",
-        },
-        "postchecks": {
-            "type": "array",
-            "description": "Post-check executions to run after the workflow",
-        },
-        "budget": {
-            "type": "number",
-            "minimum": 0,
-            "description": "Budget in USD for this workflow",
-        },
-    },
-    "required": ["name", "description", "goals"],
-    "additionalProperties": False,
-}
+
+@tool(
+    "create_workflow",
+    "Create a goal-oriented task tree within the current active task."
+    " The workflow decomposes goals into subtasks.",
+    renderer=TextRenderer(),
+)
+async def _create_workflow_impl(
+    params: CreateWorkflowParams,
+    *,
+    scheduler_ref: TaskSchedulerRef,
+    session_id: str,
+) -> TaskLifecycleResult:
+    args = params.model_dump(exclude_none=True)
+    text = await scheduler_ref.handle_create_workflow(session_id, args)
+    return TaskLifecycleResult(message=text, task_id=text, details=None)
 
 
 def make_create_workflow_tool(
@@ -247,52 +152,29 @@ def make_create_workflow_tool(
     session_id: str,
 ) -> Tool:
     """Create a tool that creates a goal-oriented task tree."""
-
-    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
-        validate_args(arguments, _CREATE_WORKFLOW_PARAMETERS)
-        text = await scheduler_ref.handle_create_workflow(
-            session_id, arguments
-        )
-        return ToolOutput(
-            data=TaskLifecycleResult(message=text, task_id=text, details=None),
-            text=text,
-        )
-
-    return Tool(
-        name="create_workflow",
-        description=(
-            "Create a goal-oriented task tree within the current active task."
-            " The workflow decomposes goals into subtasks."
-        ),
-        parameters=_CREATE_WORKFLOW_PARAMETERS,
-        execute=execute,
+    return _create_workflow_impl.bind(
+        scheduler_ref=scheduler_ref, session_id=session_id,
     )
 
 
 # -- create_wait_for --
 
-_CREATE_WAIT_FOR_PARAMETERS: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string", "description": "Wait-for task name"},
-        "event_name": {
-            "type": "string",
-            "description": "Name of the event to wait for",
-        },
-        "timeout": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Timeout in seconds before the wait expires",
-        },
-        "depends_on": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Task IDs this wait-for depends on",
-        },
-    },
-    "required": ["name", "event_name", "timeout"],
-    "additionalProperties": False,
-}
+
+@tool(
+    "create_wait_for",
+    "Create a wait-for task that blocks until a named event fires"
+    " or the timeout expires.",
+    renderer=TextRenderer(),
+)
+async def _create_wait_for_impl(
+    params: CreateWaitForParams,
+    *,
+    scheduler_ref: TaskSchedulerRef,
+    session_id: str,
+) -> TaskLifecycleResult:
+    args = params.model_dump(exclude_none=True)
+    text = await scheduler_ref.handle_create_wait_for(session_id, args)
+    return TaskLifecycleResult(message=text, task_id=text, details=None)
 
 
 def make_create_wait_for_tool(
@@ -300,38 +182,31 @@ def make_create_wait_for_tool(
     session_id: str,
 ) -> Tool:
     """Create a tool that blocks until a named event fires or timeout expires."""
-
-    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
-        validate_args(arguments, _CREATE_WAIT_FOR_PARAMETERS)
-        text = await scheduler_ref.handle_create_wait_for(
-            session_id, arguments
-        )
-        return ToolOutput(
-            data=TaskLifecycleResult(message=text, task_id=text, details=None),
-            text=text,
-        )
-
-    return Tool(
-        name="create_wait_for",
-        description=(
-            "Create a wait-for task that blocks until a named event fires"
-            " or the timeout expires."
-        ),
-        parameters=_CREATE_WAIT_FOR_PARAMETERS,
-        execute=execute,
+    return _create_wait_for_impl.bind(
+        scheduler_ref=scheduler_ref, session_id=session_id,
     )
 
 
 # -- await_task --
 
-_AWAIT_TASK_PARAMETERS: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "task_id": {"type": "string", "description": "The task to await"},
-    },
-    "required": ["task_id"],
-    "additionalProperties": False,
-}
+
+@tool(
+    "await_task",
+    "Suspend the current session until the specified child task completes."
+    " The session will resume with the child's result.",
+    renderer=TextRenderer(),
+    suspending=True,
+)
+async def _await_task_impl(
+    params: AwaitTaskParams,
+    *,
+    scheduler_ref: TaskSchedulerRef,
+    session_id: str,
+) -> TaskLifecycleResult:
+    text = await scheduler_ref.handle_await_task(session_id, params.task_id)
+    return TaskLifecycleResult(
+        message=text, task_id=params.task_id, details=None,
+    )
 
 
 def make_await_task_tool(
@@ -339,26 +214,6 @@ def make_await_task_tool(
     session_id: str,
 ) -> Tool:
     """Create a tool that suspends the session until a child task completes."""
-
-    async def execute(arguments: dict[str, Any]) -> ToolOutput[TaskLifecycleResult]:
-        validate_args(arguments, _AWAIT_TASK_PARAMETERS)
-        text = await scheduler_ref.handle_await_task(
-            session_id, arguments["task_id"]
-        )
-        return ToolOutput(
-            data=TaskLifecycleResult(
-                message=text, task_id=arguments["task_id"], details=None,
-            ),
-            text=text,
-        )
-
-    return Tool(
-        name="await_task",
-        description=(
-            "Suspend the current session until the specified child task completes."
-            " The session will resume with the child's result."
-        ),
-        parameters=_AWAIT_TASK_PARAMETERS,
-        execute=execute,
-        suspending=True,
+    return _await_task_impl.bind(
+        scheduler_ref=scheduler_ref, session_id=session_id,
     )
