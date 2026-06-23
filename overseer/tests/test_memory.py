@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 import uuid6
-from conftest import MockPool
+from .conftest import MockPool
 from orxtra.overseer._memory import (
     query_assumptions,
     query_constraints,

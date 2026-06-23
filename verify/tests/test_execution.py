@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from conftest import (
+from .conftest import (
     MockCheckExecutor,
     make_check_context,
     make_failing_verdict,

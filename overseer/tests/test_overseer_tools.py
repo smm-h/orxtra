@@ -4,12 +4,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from conftest import MockTraceWriter
+from .conftest import MockSession, MockTraceWriter
 from orxtra.overseer._autonomy import AutonomyLevel
 from orxtra.overseer._health import HealthMonitor
 from orxtra.overseer._overseer import Overseer
 from orxtra.protocols._tool import Tool
-from test_overseer import MockSession
 
 if TYPE_CHECKING:
     from pathlib import Path

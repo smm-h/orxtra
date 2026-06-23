@@ -8,6 +8,7 @@ import uuid6
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from pathlib import Path
     from uuid import UUID
 
 
@@ -159,6 +160,43 @@ class MockPool:
     @asynccontextmanager
     async def acquire(self) -> AsyncIterator[MockConn]:
         yield self._conn
+
+
+class MockSession:
+    def __init__(self) -> None:
+        self.sent_messages: list[str] = []
+        self.total_input_tokens: int = 0
+        self.total_output_tokens: int = 0
+        self.total_reasoning_tokens: int = 0
+        self.total_cache_read_tokens: int = 0
+        self.total_cache_write_tokens: int = 0
+        self.turn_count: int = 0
+
+    @property
+    def model(self) -> str:
+        return "test-model"
+
+    @property
+    def system_prompt(self) -> str:
+        return "test-prompt"
+
+    @property
+    def tools(self) -> list[Any]:
+        return []
+
+    @property
+    def session_id(self) -> str | None:
+        return "test-session-id"
+
+    async def send(
+        self, message: str,
+    ) -> AsyncIterator[Any]:
+        self.sent_messages.append(message)
+        return
+        yield
+
+    def resume_id(self) -> str:
+        return "test-session-id"
 
 
 @pytest.fixture

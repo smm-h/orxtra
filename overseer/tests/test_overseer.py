@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from conftest import MockTraceWriter
+from .conftest import MockSession, MockTraceWriter
 from orxtra.overseer._autonomy import AutonomyLevel
 from orxtra.overseer._health import HealthMonitor
 from orxtra.overseer._overseer import Overseer
@@ -17,46 +17,8 @@ from orxtra.protocols._execution import CheckResult
 from orxtra.protocols._task import EscalationPayload, TaskContext
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
     from pathlib import Path
     from uuid import UUID
-
-
-class MockSession:
-    def __init__(self) -> None:
-        self.sent_messages: list[str] = []
-        self.total_input_tokens: int = 0
-        self.total_output_tokens: int = 0
-        self.total_reasoning_tokens: int = 0
-        self.total_cache_read_tokens: int = 0
-        self.total_cache_write_tokens: int = 0
-        self.turn_count: int = 0
-
-    @property
-    def model(self) -> str:
-        return "test-model"
-
-    @property
-    def system_prompt(self) -> str:
-        return "test-prompt"
-
-    @property
-    def tools(self) -> list[Any]:
-        return []
-
-    @property
-    def session_id(self) -> str | None:
-        return "test-session-id"
-
-    async def send(
-        self, message: str,
-    ) -> AsyncIterator[Any]:
-        self.sent_messages.append(message)
-        return
-        yield
-
-    def resume_id(self) -> str:
-        return "test-session-id"
 
 
 @pytest.fixture
