@@ -30,6 +30,9 @@ class TextRenderer:
     def render(self, data: Any) -> str:  # noqa: ANN401
         if isinstance(data, str):
             return data
+        # Confirmation-like objects: prefer .message attribute
+        if hasattr(data, "message") and isinstance(data.message, str):
+            return data.message
         return str(data)
 
 
