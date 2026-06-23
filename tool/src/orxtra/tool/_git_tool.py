@@ -1,34 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 
 from orxtra.protocols._results import GitOutput, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
-from orxtra.tool._validation import validate_args
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from orxtra.tool._decorator import tool
+from orxtra.tool._params import GitParams
+from orxtra.tool._renderers import TextRenderer
 
 _TIMEOUT_SECONDS = 30
 _MIN_COMMIT_ARGS = 2  # message + at least one file
-
-_PARAMETERS: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "subcommand": {"type": "string", "description": "Git subcommand to run"},
-        "args": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": (
-                "Arguments. For commit: first element is message,"
-                " rest are file paths."
-            ),
-        },
-    },
-    "required": ["subcommand"],
-    "additionalProperties": False,
-}
 
 _DESCRIPTION = (
     "Run git operations. Read-only subcommands return output directly."
@@ -161,6 +144,41 @@ _MUTATION_SUBCOMMANDS: set[str] = {"commit"}
 _ALL_SUBCOMMANDS: set[str] = {*_READ_HANDLERS, *_MUTATION_SUBCOMMANDS}
 
 
+@tool("git", _DESCRIPTION, renderer=TextRenderer())
+async def _git_impl(
+    params: GitParams,
+    *,
+    read_root: Path,
+    allowed: set[str],
+    run_context: dict[str, str] | None,
+) -> ToolOutput[GitOutput]:
+    subcommand: str = params.subcommand
+    args: list[str] = params.args if params.args is not None else []
+
+    if subcommand not in allowed:
+        msg = f"Subcommand '{subcommand}' is not allowed"
+        raise ToolError(msg)
+
+    if subcommand in _READ_HANDLERS:
+        handler = _READ_HANDLERS[subcommand]
+        result_text: str = await handler(args, read_root)
+        return ToolOutput(
+            data=GitOutput(output=result_text, subcommand=subcommand, exit_code=0),
+            text=result_text,
+        )
+
+    if subcommand == "commit":
+        result_text = await _handle_commit(args, read_root, run_context)
+        return ToolOutput(
+            data=GitOutput(output=result_text, subcommand=subcommand, exit_code=0),
+            text=result_text,
+        )
+
+    # Should be unreachable due to the allowed check above
+    msg = f"No handler for subcommand '{subcommand}'"
+    raise ToolError(msg)
+
+
 def make_git_tool(
     read_root: Path,
     allowed_subcommands: list[str],
@@ -184,40 +202,8 @@ def make_git_tool(
         msg = f"Unknown git subcommands: {', '.join(sorted(unknown))}"
         raise ValueError(msg)
 
-    allowed = set(allowed_subcommands)
-
-    async def execute(arguments: dict[str, Any]) -> ToolOutput[GitOutput]:
-        validate_args(arguments, _PARAMETERS)
-
-        subcommand: str = arguments["subcommand"]
-        args: list[str] = arguments.get("args", [])
-
-        if subcommand not in allowed:
-            msg = f"Subcommand '{subcommand}' is not allowed"
-            raise ToolError(msg)
-
-        if subcommand in _READ_HANDLERS:
-            handler = _READ_HANDLERS[subcommand]
-            result_text: str = await handler(args, read_root)
-            return ToolOutput(
-                data=GitOutput(output=result_text, subcommand=subcommand, exit_code=0),
-                text=result_text,
-            )
-
-        if subcommand == "commit":
-            result_text = await _handle_commit(args, read_root, run_context)
-            return ToolOutput(
-                data=GitOutput(output=result_text, subcommand=subcommand, exit_code=0),
-                text=result_text,
-            )
-
-        # Should be unreachable due to the allowed check above
-        msg = f"No handler for subcommand '{subcommand}'"
-        raise ToolError(msg)
-
-    return Tool(
-        name="git",
-        description=_DESCRIPTION,
-        parameters=_PARAMETERS,
-        execute=execute,
+    return _git_impl.bind(
+        read_root=read_root,
+        allowed=set(allowed_subcommands),
+        run_context=run_context,
     )
