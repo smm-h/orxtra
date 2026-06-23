@@ -52,6 +52,7 @@ from orxtra.tool._write_tools import (
     make_edit_tool,
     make_mkdir_tool,
     make_move_tool,
+    make_multi_edit_tool,
     make_set_executable_tool,
     make_write_tool,
 )
@@ -89,6 +90,7 @@ __all__ = [
     "make_list_dir_tool",
     "make_mkdir_tool",
     "make_move_tool",
+    "make_multi_edit_tool",
     "make_notepad_tool",
     "make_read_tool",
     "make_set_executable_tool",

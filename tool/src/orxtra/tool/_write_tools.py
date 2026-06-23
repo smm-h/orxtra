@@ -407,6 +407,113 @@ def make_delete_tool(
     )
 
 
+_MULTI_EDIT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "edits": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "file": {"type": "string"},
+                    "old_string": {"type": "string"},
+                    "new_string": {"type": "string"},
+                },
+                "required": ["file", "old_string", "new_string"],
+                "additionalProperties": False,
+            },
+            "minItems": 1,
+        },
+    },
+    "required": ["edits"],
+    "additionalProperties": False,
+}
+
+
+def make_multi_edit_tool(
+    read_root: Path,
+    write_scope: list[Path] | None,
+    queue: WriteQueue,
+    tracker: StaleWriteTracker,
+    session_id: str,
+) -> Tool:
+    """Construct the multi-edit tool for batched find-and-replace edits.
+
+    Applies edits sequentially. If any edit fails, the result reports
+    which edits succeeded and which failed (no atomic rollback).
+
+    Args:
+        read_root: Root directory for path containment.
+        write_scope: Allowed write paths, or None for unrestricted.
+        queue: Per-path write queue for serialization.
+        tracker: Stale-write detector.
+        session_id: The session performing writes.
+    """
+
+    async def execute(args: dict[str, Any]) -> ToolOutput[list[Confirmation]]:
+        validate_args(args, _MULTI_EDIT_SCHEMA)
+        edits: list[dict[str, str]] = args["edits"]
+
+        # Validate all paths upfront before applying any edits.
+        resolved_edits: list[tuple[Path, str, str]] = []
+        for i, edit in enumerate(edits):
+            resolved = _resolve_path(edit["file"], read_root)
+            _check_scope(resolved, write_scope, read_root)
+            old_string = edit["old_string"]
+            if not old_string:
+                msg = f"Edit {i}: old_string must not be empty"
+                raise ToolError(msg)
+            resolved_edits.append((resolved, old_string, edit["new_string"]))
+
+        # Apply edits sequentially.
+        confirmations: list[Confirmation] = []
+        failures: list[str] = []
+        for i, (resolved, old_string, new_string) in enumerate(resolved_edits):
+            try:
+                content = await safe_read_for_write(
+                    resolved, queue, tracker, session_id,
+                )
+                count = content.count(old_string)
+                if count == 0:
+                    msg = f"Edit {i}: old_string not found in {resolved}"
+                    raise ToolError(msg)
+                new_content = content.replace(old_string, new_string)
+                await safe_write(
+                    resolved,
+                    new_content,
+                    queue,
+                    tracker,
+                    session_id,
+                    is_new_file=False,
+                )
+                confirmations.append(
+                    Confirmation(message=f"Edit {i}: edited {resolved}"),
+                )
+            except (ToolError, FileNotFoundError, OSError) as exc:
+                failures.append(f"Edit {i}: {exc}")
+
+        parts: list[str] = []
+        for c in confirmations:
+            parts.append(c.message)
+        for f in failures:
+            parts.append(f"FAILED - {f}")
+
+        text = "\n".join(parts)
+        if failures:
+            text += f"\n{len(failures)} edit(s) failed, {len(confirmations)} succeeded"
+        else:
+            text += f"\nAll {len(confirmations)} edit(s) succeeded"
+
+        return ToolOutput(data=confirmations, text=text)
+
+    return Tool(
+        name="multi_edit",
+        description="Apply multiple find-and-replace edits in a batch.",
+        parameters=_MULTI_EDIT_SCHEMA,
+        execute=execute,
+    )
+
+
 def make_set_executable_tool(
     read_root: Path,
     write_scope: list[Path] | None,
