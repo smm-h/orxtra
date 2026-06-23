@@ -50,7 +50,7 @@ def _load_api_key() -> str:
 
 
 def _load_system_prompt() -> str:
-    prompt_file = ROOT / "overseer" / "prompts" / "overseer_base.md"
+    prompt_file = ROOT / "overseer" / "src" / "orxtra" / "overseer" / "prompts" / "overseer_base.md"
     return prompt_file.read_text()
 
 
