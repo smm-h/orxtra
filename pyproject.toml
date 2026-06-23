@@ -150,27 +150,11 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = "uuid6.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
 module = "strictcli.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "jsonschema.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "asyncpg.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "pathspec.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "respx.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
