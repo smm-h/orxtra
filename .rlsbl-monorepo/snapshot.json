@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-23T09:42:33Z",
-  "package_count": 16,
+  "generated_at": "2026-06-23T13:04:13Z",
+  "package_count": 17,
   "packages": {
     "protocols": {
       "path": "protocols",
@@ -63,7 +63,8 @@
       "rdeps": [
         "session",
         "scheduler",
-        "overseer"
+        "overseer",
+        "services"
       ],
       "library": true,
       "dev_only": false,
@@ -183,9 +184,9 @@
       "description": "Task executor (recursive hierarchy, budgets, constraints)",
       "deps": [
         "protocols",
+        "write-safety",
         "agent",
         "tool",
-        "write-safety",
         "session",
         "trace",
         "verify",
@@ -232,7 +233,8 @@
         "scheduler",
         "session",
         "overseer",
-        "trace"
+        "trace",
+        "transport"
       ],
       "rdeps": [
         "cli",
@@ -286,11 +288,26 @@
       "dev_only": true,
       "releasable_flag": false,
       "test_only": false
+    },
+    "npm": {
+      "path": "npm",
+      "targets": [
+        "npm"
+      ],
+      "version": "0.1.0",
+      "description": "npm shim package wrapping the Python CLI",
+      "deps": [],
+      "rdeps": [],
+      "library": false,
+      "dev_only": true,
+      "releasable_flag": false,
+      "test_only": false
     }
   },
   "graph": {
     "leaf_nodes": [
       "agent",
+      "npm",
       "protocols",
       "schema",
       "secrets",
@@ -300,11 +317,13 @@
     "root_nodes": [
       "cli",
       "mcp",
+      "npm",
       "schema"
     ],
     "max_depth": 5,
     "topological_order": [
       "agent",
+      "npm",
       "protocols",
       "schema",
       "secrets",
