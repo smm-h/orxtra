@@ -119,6 +119,12 @@ description = "pgdesign database schema definitions"
 dev_node = true
 releasable = false
 
+[[projects]]
+path = "npm"
+description = "npm shim package wrapping the Python CLI"
+dev_node = true
+releasable = false
+
 # --- Architecture layers ---
 
 [layers]
