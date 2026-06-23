@@ -2,20 +2,36 @@
 
 # Changelog
 
-## 0.3.0
+## 0.4.0
 
-Typed tool returns, storage abstraction, headless mode, streaming always-on, and 15 new features.
+@tool decorator, layer violation fix, knowledge hash persistence, CI fixes, and type cleanup.
 
 <details>
 <summary>Context</summary>
 
-Major architectural overhaul spanning 15 phases. Tool.execute returns ToolOutput[T] with semantic result types.
-StorageBackend abstraction enables workflows without PostgreSQL. Streaming is always-on with stuck detection.
-Headless mode has deterministic fallbacks instead of silent degradation. Autonomy gating enforced at runtime.
-One-shot ask() API for simple LLM calls. GoogleProvider for Gemini. 3 breaking changes (knowledge-module
-removed, stream_deltas removed, autonomy_level required).
+Introduced @tool decorator with ToolTemplate[T].bind() for typed tool definitions. All 22 decorator-eligible
+tools migrated, 4 factory tools updated with Pydantic input schemas. OverseerProtocol and HealthMonitorProtocol
+added to protocols, removing the scheduler->overseer layer violation. Knowledge file hashes persisted via
+StorageBackend. StatResult and GlobResult replace union types and DirListing misuse. Pipeline suspending
+flag bug fixed. Dead escalation handler removed. CI fixes for transport, overseer prompts, schema, and pytest.
 
 </details>
+
+### Features
+
+- **New feature.** `OverseerProtocol` and `HealthMonitorProtocol` in protocols. Scheduler no longer depends on the overseer module.
+- **New feature.** `StatResult` and `GlobResult` types replace union returns and misused `DirListing`.
+- **New feature.** Knowledge file hashes persisted via StorageBackend. Eliminates redundant re-loading on restart.
+- **New feature.** `@tool` decorator with `ToolTemplate[T].bind()` for typed tool definitions. 22 tools migrated. Pydantic input models for all tools.
+- **New feature.** Remaining tools migrated to Pydantic input schemas. Factory tools (exec, shell, http, consult) use `model_json_schema()`.
+
+### Fixes
+
+- **Bug fix.** Pipeline wrapping now preserves the `suspending` flag on tools.
+- **Bug fix.** Removed dead `_fixed_escalation_ladder` fallback handler.
+- **Bug fix.** Fixed conftest imports for pytest importlib mode compatibility across overseer, services, and verify tests.
+
+## 0.3.0
 
 ### Breaking
 
