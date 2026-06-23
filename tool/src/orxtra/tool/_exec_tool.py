@@ -4,29 +4,15 @@ import asyncio
 import json
 import re
 import time
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 
 from orxtra.protocols._results import ExecResult, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._params import ExecBaseParams
 from orxtra.tool._path import PathError, resolve_and_check
 from orxtra.tool._preview import check_and_preview
 from orxtra.tool._validation import validate_args
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-_BASE_PROPERTIES: dict[str, Any] = {
-    "args": {
-        "type": "array",
-        "items": {"type": "string"},
-        "description": "Command-line arguments to pass to the executable.",
-    },
-    "timeout": {
-        "type": "integer",
-        "minimum": 1,
-        "description": "Timeout in seconds. Capped at the configured ceiling.",
-    },
-}
 
 _SIGTERM_GRACE_SECONDS = 5.0
 
@@ -57,6 +43,15 @@ def _validate_exec_arg(arg: str, read_root: Path) -> None:
         except PathError as exc:
             msg = f"Path-like argument escapes read root: {arg!r}"
             raise ToolError(msg) from exc
+
+
+def _build_exec_schema(arg_schema: dict[str, Any]) -> dict[str, Any]:
+    """Build the exec tool schema from the base Pydantic model + dynamic arg_schema."""
+    base_schema = ExecBaseParams.model_json_schema()
+    # Merge dynamic arg_schema properties into the base schema
+    if arg_schema:
+        base_schema["properties"] = {**base_schema["properties"], **arg_schema}
+    return base_schema
 
 
 def make_exec_tool(  # noqa: PLR0913
@@ -91,13 +86,10 @@ def make_exec_tool(  # noqa: PLR0913
     Returns:
         A Tool instance for running the executable.
     """
-    schema: dict[str, Any] = {
-        "type": "object",
-        "properties": {**_BASE_PROPERTIES, **arg_schema},
-        "additionalProperties": False,
-    }
+    schema = _build_exec_schema(arg_schema)
 
     async def execute(arguments: dict[str, Any]) -> ToolOutput[ExecResult]:
+        # Validate the full schema (base + dynamic) via jsonschema
         validate_args(arguments, schema)
 
         cmd_args: list[str] = arguments.get("args", [])

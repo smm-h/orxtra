@@ -10,8 +10,17 @@ from typing import Any
 import httpx
 from orxtra.protocols._results import HttpResponse, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._params import HttpBaseParams
 from orxtra.tool._preview import check_and_preview
 from orxtra.tool._validation import validate_args
+
+
+def _build_http_schema(methods: list[str]) -> dict[str, Any]:
+    """Build the HTTP tool schema from the base Pydantic model with dynamic method enum."""
+    schema = HttpBaseParams.model_json_schema()
+    # Override the method field with the dynamic enum
+    schema["properties"]["method"] = {"type": "string", "enum": methods}
+    return schema
 
 
 def make_http_tool(
@@ -40,21 +49,7 @@ def make_http_tool(
         "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD",
     ]
 
-    schema: dict[str, Any] = {
-        "type": "object",
-        "properties": {
-            "method": {"type": "string", "enum": methods},
-            "url": {"type": "string"},
-            "headers": {
-                "type": "object",
-                "additionalProperties": {"type": "string"},
-            },
-            "body": {"type": "string"},
-            "timeout": {"type": "integer", "minimum": 1},
-        },
-        "required": ["method", "url"],
-        "additionalProperties": False,
-    }
+    schema = _build_http_schema(methods)
 
     async def execute(args: dict[str, Any]) -> ToolOutput[HttpResponse]:
         validate_args(args, schema)

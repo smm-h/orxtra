@@ -4,15 +4,14 @@ import asyncio
 import json
 import shlex
 import time
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 
 from orxtra.protocols._results import ExecResult, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._params import ShellBaseParams
 from orxtra.tool._preview import check_and_preview
 from orxtra.tool._validation import validate_args
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 _SIGTERM_GRACE_SECONDS = 5.0
 
@@ -46,27 +45,8 @@ def make_shell_tool(  # noqa: PLR0913
     """
     allowed_set = frozenset(allowed_binaries)
 
-    schema: dict[str, Any] = {
-        "type": "object",
-        "properties": {
-            "command": {
-                "type": "string",
-                "description": (
-                    "Shell command to execute. "
-                    "Only whitelisted binaries are allowed."
-                ),
-            },
-            "timeout": {
-                "type": "integer",
-                "minimum": 1,
-                "description": (
-                    "Timeout in seconds. Capped at the configured ceiling."
-                ),
-            },
-        },
-        "required": ["command"],
-        "additionalProperties": False,
-    }
+    # Use Pydantic base schema for the static fields
+    schema = ShellBaseParams.model_json_schema()
 
     async def execute(arguments: dict[str, Any]) -> ToolOutput[ExecResult]:
         validate_args(arguments, schema)
