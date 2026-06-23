@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from conftest import FakeRecord
+from .conftest import FakeRecord
 from orxtra.services._inbox import (
     get_inbox_item,
     list_inbox,

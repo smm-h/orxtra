@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
-from conftest import FakeRecord
+from .conftest import FakeRecord
 from orxtra.services._config import dump_config, show_pricing
 from orxtra.session._pricing import PRICING_TABLE
 

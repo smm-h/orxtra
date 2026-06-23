@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from conftest import MockTraceWriter
+from .conftest import MockTraceWriter
 from orxtra.overseer._knowledge import (
     load_knowledge_files,
 )

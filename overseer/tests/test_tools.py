@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from conftest import MockTraceWriter
+from .conftest import MockTraceWriter
 from orxtra.overseer._tools import (
     make_add_constraint_tool,
     make_create_inbox_item_tool,
