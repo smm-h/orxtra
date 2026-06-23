@@ -10,6 +10,7 @@ except PackageNotFoundError:
 from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,
+    ContextWarning,
     Error,
     Event,
     LivenessWarning,
@@ -38,6 +39,7 @@ __all__ = [
     "__version__",
     "ApiRetry",
     "ContentBlock",
+    "ContextWarning",
     "Continuation",
     "Error",
     "Event",

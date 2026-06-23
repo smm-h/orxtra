@@ -48,7 +48,7 @@ from orxtra.tool._write_tools import (
     make_set_executable_tool,
     make_write_tool,
 )
-from orxtra.transport import Result, Usage
+from orxtra.transport import ContextWarning, Result, Usage
 
 if TYPE_CHECKING:
     from orxtra.agent import Agent
@@ -614,14 +614,150 @@ class AgentExecutionMixin(SchedulerBase):
         self,
         session: Session,
         prompt: str,
-        session_id: str,  # noqa: ARG002
-        task_id: UUID,  # noqa: ARG002
+        session_id: str,
+        task_id: UUID,
     ) -> str:
         result_text = ""
         async for event in session.send(prompt):
             if isinstance(event, Result):
                 result_text = event.text
+
+        # Check agent context window usage after session run
+        await self._check_agent_context(session, session_id, task_id)
+
         return result_text
+
+    def _compute_context_usage(
+        self, session: Session,
+    ) -> tuple[int, float]:
+        """Compute total tokens used and usage percentage of context limit.
+
+        Returns (tokens_used, usage_percent).
+        """
+        tokens_used = (
+            session.total_input_tokens
+            + session.total_output_tokens
+        )
+        if self._model_context_limit <= 0:
+            return tokens_used, 0.0
+        usage_percent = tokens_used / self._model_context_limit
+        return tokens_used, usage_percent
+
+    async def _check_agent_context(
+        self,
+        session: Session,
+        session_id: str,
+        task_id: UUID,
+    ) -> None:
+        """Check agent session context usage and emit warnings or trigger handoff.
+
+        Emits ContextWarning at 80% usage. Triggers handoff at 90%.
+        """
+        tokens_used, usage_percent = self._compute_context_usage(session)
+
+        if usage_percent >= 0.9:
+            _logger.warning(
+                "Agent session %s at %.0f%% context"
+                " (%d/%d tokens), triggering handoff",
+                session_id,
+                usage_percent * 100,
+                tokens_used,
+                self._model_context_limit,
+            )
+            await self._trace_writer.write_event(
+                run_id=self._run_id,
+                event_type="context_warning",
+                data={
+                    "session_id": session_id,
+                    "task_id": str(task_id),
+                    "usage_percent": round(usage_percent * 100, 1),
+                    "tokens_used": tokens_used,
+                    "context_limit": self._model_context_limit,
+                    "action": "handoff",
+                },
+                task_id=task_id,
+            )
+            await self._agent_handoff(session, task_id)
+        elif usage_percent >= 0.8:
+            _logger.info(
+                "Agent session %s at %.0f%% context"
+                " (%d/%d tokens)",
+                session_id,
+                usage_percent * 100,
+                tokens_used,
+                self._model_context_limit,
+            )
+            await self._trace_writer.write_event(
+                run_id=self._run_id,
+                event_type="context_warning",
+                data={
+                    "session_id": session_id,
+                    "task_id": str(task_id),
+                    "usage_percent": round(usage_percent * 100, 1),
+                    "tokens_used": tokens_used,
+                    "context_limit": self._model_context_limit,
+                    "action": "warning",
+                },
+                task_id=task_id,
+            )
+
+    async def _agent_handoff(
+        self,
+        session: Session,
+        task_id: UUID,
+    ) -> None:
+        """Perform agent context handoff: summarize conversation, create new session.
+
+        Asks the current session to summarize, then creates a fresh
+        session with the summary as initial context. Replaces the
+        session in _task_sessions.
+        """
+        # Ask the agent to summarize
+        summary_parts: list[str] = []
+        async for event in session.send(
+            "Your context window is nearly full. "
+            "Summarize the conversation so far, including: "
+            "what task you are working on, what you have done, "
+            "what remains, and any important decisions or context. "
+            "Be concise but complete.",
+        ):
+            if isinstance(event, Result):
+                summary_parts.append(event.text)
+
+        summary = "".join(summary_parts)
+        if not summary:
+            summary = "Previous conversation context was lost."
+
+        # Create a new session with the same parameters
+        task_spec = self._task_specs.get(task_id)
+        if task_spec is None:
+            return
+
+        new_session, new_session_id = await self._create_agent_session(
+            task_spec, task_id,
+            1,  # Reset attempt counter for the new session
+        )
+
+        # Inject summary as initial context
+        summary_prompt = (
+            "You are continuing a task from a previous session. "
+            "Here is a summary of your work so far:\n\n"
+            f"{summary}\n\n"
+            "Continue from where you left off."
+        )
+        # Send the summary to prime the new session
+        async for event in new_session.send(summary_prompt):
+            if isinstance(event, Result):
+                pass  # Consume the response
+
+        # Replace the old session with the new one
+        self._task_sessions[task_id] = new_session
+        _logger.info(
+            "Agent handoff complete for task %s:"
+            " old session -> %s",
+            task_id,
+            new_session_id,
+        )
 
     async def _create_agent_session(
         self,

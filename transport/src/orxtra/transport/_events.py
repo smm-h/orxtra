@@ -155,6 +155,16 @@ class ToolExecuting:
     tool_input: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class ContextWarning:
+    """Emitted when a session's token usage approaches the model's context limit."""
+
+    session_id: str
+    usage_percent: float
+    tokens_used: int
+    context_limit: int
+
+
 Event = (
     StepStart
     | Text
@@ -173,4 +183,5 @@ Event = (
     | UnknownEvent
     | RateLimit
     | ToolExecuting
+    | ContextWarning
 )
