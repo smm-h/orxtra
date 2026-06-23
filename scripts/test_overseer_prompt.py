@@ -75,16 +75,26 @@ def _make_mock_tools() -> list[Tool]:
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "Name of the workflow",
+                        "description": "Workflow name",
                     },
                     "description": {
                         "type": "string",
-                        "description": "Description of what this workflow accomplishes",
+                        "description": "What this workflow accomplishes",
                     },
                     "goals": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of goals for this workflow",
+                        "minItems": 1,
+                        "description": "Goals the workflow must achieve",
+                    },
+                    "postchecks": {
+                        "type": "array",
+                        "description": "Post-check executions to run after the workflow",
+                    },
+                    "budget": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Budget in USD for this workflow",
                     },
                 },
                 "required": ["name", "description", "goals"],
@@ -103,22 +113,71 @@ def _make_mock_tools() -> list[Tool]:
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "Name of the task",
+                        "description": "Task name",
                     },
                     "agent": {
                         "type": "string",
-                        "description": "Agent to assign the task to",
+                        "description": "Agent definition to execute this task",
                     },
                     "task_prompt": {
                         "type": "string",
-                        "description": "Detailed prompt/instructions for the agent",
+                        "description": "Prompt describing what the task should accomplish",
                     },
                     "timeout": {
-                        "type": "number",
+                        "type": "integer",
+                        "minimum": 1,
                         "description": "Timeout in seconds",
                     },
+                    "context_refinement": {
+                        "type": "boolean",
+                        "description": "Whether to refine context before execution",
+                    },
+                    "prechecks": {
+                        "type": "array",
+                        "description": "Pre-check executions to run before the task",
+                    },
+                    "postchecks": {
+                        "type": "array",
+                        "description": "Post-check executions to run after the task",
+                    },
+                    "variable_values": {
+                        "type": "object",
+                        "description": "Variable substitutions for the task prompt",
+                    },
+                    "budget": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Budget in USD for this task",
+                    },
+                    "write_paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Paths this task is allowed to write to",
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Task category for agent resolution",
+                    },
+                    "retry": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Number of retry attempts on failure",
+                    },
+                    "retry_resume": {
+                        "type": "boolean",
+                        "description": "Whether retries resume from failure point",
+                    },
+                    "retry_inject_failure": {
+                        "type": "boolean",
+                        "description": "Whether to inject failure context on retry",
+                    },
+                    "depends_on": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Task IDs this task depends on",
+                    },
                 },
-                "required": ["name", "agent", "task_prompt", "timeout"],
+                "required": ["name", "agent", "task_prompt", "timeout", "context_refinement"],
                 "additionalProperties": False,
             },
             execute=_mock_execute,
@@ -276,6 +335,19 @@ def _make_mock_tools() -> list[Tool]:
                         "type": "string",
                         "description": "Impact if the assumption is wrong",
                     },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Tags for categorizing the inbox item",
+                    },
+                    "deadline": {
+                        "type": "string",
+                        "description": "Deadline for the human response",
+                    },
+                    "answer_event": {
+                        "type": "string",
+                        "description": "Event name to fire when the item is answered",
+                    },
                 },
                 "required": [
                     "decision_type", "question", "options",
@@ -304,6 +376,11 @@ def _make_mock_tools() -> list[Tool]:
                     "permanent": {
                         "type": "boolean",
                         "description": "Whether the lesson persists across all runs",
+                    },
+                    "source_files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Source files relevant to this lesson",
                     },
                 },
                 "required": ["text", "relevance_tags", "permanent"],
