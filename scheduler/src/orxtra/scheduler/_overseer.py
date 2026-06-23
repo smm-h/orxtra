@@ -58,23 +58,6 @@ FALLBACK_BEHAVIORS: dict[str, str] = {
 _DEFAULT_FALLBACK = "escalate_to_human_inbox"
 
 
-async def _fixed_escalation_ladder(
-    event: OverseerEvent,
-    logger: logging.Logger,
-    *,
-    trace_writer: Any = None,  # noqa: ANN401
-    run_id: UUID | None = None,
-) -> None:
-    """For TaskFailed/TaskEscalated: log and let the
-    scheduler's own retry mechanism handle it."""
-    _ = trace_writer, run_id
-    event_type = type(event).__name__
-    logger.info(
-        "Degraded mode: fixed escalation for %s",
-        event_type,
-    )
-
-
 async def _maintain_current_allocations(
     event: OverseerEvent,
     logger: logging.Logger,
@@ -207,9 +190,6 @@ FALLBACK_HANDLERS: dict[
     str,
     Callable[..., Awaitable[None]],
 ] = {
-    "fixed_escalation_ladder": (
-        _fixed_escalation_ladder
-    ),
     "maintain_current_allocations": (
         _maintain_current_allocations
     ),

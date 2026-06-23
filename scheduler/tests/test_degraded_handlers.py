@@ -23,7 +23,6 @@ from orxtra.protocols._task import EscalationPayload, TaskContext
 from orxtra.scheduler._overseer import (
     FALLBACK_HANDLERS,
     _escalate_to_human_inbox,
-    _fixed_escalation_ladder,
     _log_only,
     _maintain_current_allocations,
     _write_to_trace,
@@ -89,20 +88,6 @@ class _MockTraceWriter:
 
 
 # -- Tests -------------------------------------------------
-
-
-async def test_fixed_escalation_ladder_logs(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """_fixed_escalation_ladder logs with the event type name."""
-    logger = logging.getLogger("test.degraded")
-    event = _make_task_failed()
-    with caplog.at_level(logging.INFO, logger="test.degraded"):
-        await _fixed_escalation_ladder(event, logger)
-    assert any(
-        "fixed escalation" in r.message and "TaskFailed" in r.message
-        for r in caplog.records
-    )
 
 
 async def test_maintain_current_allocations_is_noop(
@@ -171,10 +156,6 @@ async def test_escalate_to_human_inbox_skips_without_run_id() -> None:
 async def test_fallback_handlers_dispatch_correctly() -> None:
     """FALLBACK_HANDLERS maps string names to the correct functions."""
     assert (
-        FALLBACK_HANDLERS["fixed_escalation_ladder"]
-        is _fixed_escalation_ladder
-    )
-    assert (
         FALLBACK_HANDLERS["maintain_current_allocations"]
         is _maintain_current_allocations
     )
@@ -190,7 +171,7 @@ async def test_fallback_handlers_dispatch_correctly() -> None:
         FALLBACK_HANDLERS["log_only"]
         is _log_only
     )
-    assert len(FALLBACK_HANDLERS) == 5
+    assert len(FALLBACK_HANDLERS) == 4
 
 
 async def test_escalate_with_conftest_mock_trace_writer() -> None:
