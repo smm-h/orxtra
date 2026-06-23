@@ -76,6 +76,17 @@ class FileStat:
 
 
 @dataclass(frozen=True)
+class StatResult:
+    files: list[FileStat]
+
+
+@dataclass(frozen=True)
+class GlobResult:
+    paths: list[str]
+    truncated: bool
+
+
+@dataclass(frozen=True)
 class DiffResult:
     diff: str
     identical: bool

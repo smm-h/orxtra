@@ -18,8 +18,10 @@ from orxtra.protocols._results import (
     DirListing,
     FileContent,
     FileStat,
+    GlobResult,
     GrepMatch,
     GrepResult,
+    StatResult,
     ToolOutput,
 )
 from orxtra.protocols._tool import Tool, ToolError
@@ -524,7 +526,7 @@ def make_glob_tool(read_root: Path) -> Tool:
         read_root: Root directory for path containment.
     """
 
-    async def execute(args: dict[str, Any]) -> ToolOutput[DirListing]:
+    async def execute(args: dict[str, Any]) -> ToolOutput[GlobResult]:
         validate_args(args, _GLOB_SCHEMA)
 
         base_path_str = args.get("path")
@@ -552,23 +554,18 @@ def make_glob_tool(read_root: Path) -> Tool:
         truncated = len(results) > max_results
         results = results[:max_results]
 
-        dir_entries = [
-            DirEntry(type="file", size=None, path=rel)
-            for rel in results
-        ]
-
         lines = results.copy()
         if truncated:
             lines.append(f"(truncated at {max_results} results)")
 
         if not lines:
             return ToolOutput(
-                data=DirListing(entries=[], truncated=False),
+                data=GlobResult(paths=[], truncated=False),
                 text="No matches found.",
             )
 
         return ToolOutput(
-            data=DirListing(entries=dir_entries, truncated=truncated),
+            data=GlobResult(paths=results, truncated=truncated),
             text="\n".join(lines),
         )
 
@@ -798,7 +795,7 @@ def make_stat_tool(read_root: Path) -> Tool:
         read_root: Root directory for path containment.
     """
 
-    async def execute(args: dict[str, Any]) -> ToolOutput[FileStat | list[FileStat]]:
+    async def execute(args: dict[str, Any]) -> ToolOutput[StatResult]:
         validate_args(args, _STAT_SCHEMA)
         raw_path = args["path"]
 
@@ -817,7 +814,7 @@ def make_stat_tool(read_root: Path) -> Tool:
                 )
                 for r in results
             ]
-            return ToolOutput(data=stats, text=json.dumps(results, indent=2))
+            return ToolOutput(data=StatResult(files=stats), text=json.dumps(results, indent=2))
 
         resolved = _resolve_path(raw_path, read_root)
         info = _stat_single(resolved, root_resolved)
@@ -826,7 +823,7 @@ def make_stat_tool(read_root: Path) -> Tool:
             line_count=info["line_count"], language=info["language"],
             mtime=info["mtime"], binary=info.get("binary", False),
         )
-        return ToolOutput(data=stat_data, text=json.dumps(info, indent=2))
+        return ToolOutput(data=StatResult(files=[stat_data]), text=json.dumps(info, indent=2))
 
     return Tool(
         name="stat",
