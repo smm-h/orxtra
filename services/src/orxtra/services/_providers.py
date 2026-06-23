@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from orxtra.transport import RetryPolicy, Transport
-from orxtra.transport.providers import AnthropicProvider, OpenAIProvider
+from orxtra.transport.providers import AnthropicProvider, GoogleProvider, OpenAIProvider
 
 _PROVIDER_TYPES = {
     "anthropic": AnthropicProvider,
+    "google": GoogleProvider,
     "openai": OpenAIProvider,
 }
 
