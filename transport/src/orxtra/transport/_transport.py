@@ -93,6 +93,17 @@ class Transport:
         self._max_history_turns = max_history_turns
         self._sessions: dict[str, list[dict[str, Any]]] = {}
 
+    def inject_history(
+        self, session_id: str, messages: list[dict[str, Any]],
+    ) -> None:
+        """Inject pre-existing conversation history for a session.
+
+        Used on session resume to restore conversation context
+        from persisted transcripts. Messages should be simple
+        role/content dicts (e.g. {"role": "user", "content": "..."}).
+        """
+        self._sessions[session_id] = list(messages)
+
     @staticmethod
     def _compact_history(
         history: list[dict[str, Any]],

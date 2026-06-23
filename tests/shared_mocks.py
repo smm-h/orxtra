@@ -323,6 +323,13 @@ class MockTransport:
         self._response_text = response_text
         self._auto_execute_tools = auto_execute_tools
         self._call_count = 0
+        self._sessions: dict[str, list[dict[str, Any]]] = {}
+
+    def inject_history(
+        self, session_id: str, messages: list[dict[str, Any]],
+    ) -> None:
+        """Mock of Transport.inject_history for session resume tests."""
+        self._sessions[session_id] = list(messages)
 
     def set_events(self, *sequences: list[Event]) -> None:
         self._event_sequences = list(sequences)
