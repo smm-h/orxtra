@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from orxtra.protocols import Tool
+from orxtra.protocols import Confirmation, Tool, ToolOutput
 from orxtra.transport import (
     ApiRetry,
     Error,
@@ -57,9 +57,10 @@ def _load_system_prompt() -> str:
 # -- Mock tools ---------------------------------------------------------------
 
 
-async def _mock_execute(args: dict[str, Any]) -> str:
+async def _mock_execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
     """Mock tool executor -- acknowledges the call without doing real work."""
-    return json.dumps({"status": "ok", "message": "Tool call acknowledged (mock)"})
+    result = json.dumps({"status": "ok", "message": "Tool call acknowledged (mock)"})
+    return ToolOutput(data=Confirmation(message=result), text=result)
 
 
 def _make_mock_tools() -> list[Tool]:
