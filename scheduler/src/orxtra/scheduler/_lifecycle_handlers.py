@@ -195,16 +195,34 @@ class LifecycleHandlersMixin(SchedulerBase):
             task_type="agent",
         )
         self._task_states[task_id] = TaskState.CREATED
+
+        # Resolve agent defaults for fields not
+        # specified in the create_task call
+        effective_write_paths = parsed.write_paths
+        effective_budget = parsed.budget
+        effective_timeout = parsed.timeout
+        if parsed.agent:
+            agent_def = self._agents.get(parsed.agent)
+            if agent_def is not None:
+                if effective_write_paths is None:
+                    effective_write_paths = (
+                        agent_def.write_paths
+                    )
+                if effective_budget is None:
+                    effective_budget = agent_def.budget
+                if effective_timeout is None:
+                    effective_timeout = agent_def.timeout
+
         spec = TaskSpec(
             name=parsed.name,
             agent=parsed.agent,
             task_prompt=parsed.task_prompt,
             prechecks=list(parsed.prechecks),
             postchecks=list(parsed.postchecks),
-            timeout=parsed.timeout,
+            timeout=effective_timeout,
             context_refinement=parsed.context_refinement,
-            budget=parsed.budget,
-            write_paths=parsed.write_paths,
+            budget=effective_budget,
+            write_paths=effective_write_paths,
             category=parsed.category,
             retry=parsed.retry,
             retry_resume=parsed.retry_resume,
@@ -220,10 +238,10 @@ class LifecycleHandlersMixin(SchedulerBase):
         self._task_costs[task_id] = Decimal(0)
 
         # Claim write paths in file lock registry
-        if parsed.write_paths:
+        if effective_write_paths:
             try:
                 self._file_lock_registry.claim(
-                    task_id, parsed.write_paths,
+                    task_id, effective_write_paths,
                 )
             except ValueError as e:
                 raise ToolError(str(e)) from e

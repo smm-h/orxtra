@@ -331,8 +331,20 @@ class AgentExecutionMixin(SchedulerBase):
                 session.total_cache_write_tokens
             )
 
+            # Resolve effective timeout: task overrides
+            # agent default
+            effective_timeout = task.timeout
+            if effective_timeout is None and task.agent:
+                agent_def_t = self._agents.get(
+                    task.agent,
+                )
+                if agent_def_t is not None:
+                    effective_timeout = (
+                        agent_def_t.timeout
+                    )
+
             try:
-                if task.timeout is not None:
+                if effective_timeout is not None:
                     await asyncio.wait_for(
                         self._run_session(
                             session,
@@ -340,7 +352,7 @@ class AgentExecutionMixin(SchedulerBase):
                             session_id,
                             task_id,
                         ),
-                        timeout=float(task.timeout),
+                        timeout=float(effective_timeout),
                     )
                 else:
                     await self._run_session(
