@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import inspect
 import sys
+from collections.abc import Callable
 from typing import Any, Generic, TypeVar, get_type_hints
 
 from pydantic import BaseModel, ValidationError
@@ -96,7 +97,7 @@ def tool(
     *,
     renderer: Renderer[Any],
     suspending: bool = False,
-) -> Any:  # noqa: ANN401
+) -> Callable[..., ToolTemplate[Any]]:
     """Decorator that creates a ``ToolTemplate`` from a typed async function.
 
     The decorated function's **first parameter** must be typed as a Pydantic
@@ -123,7 +124,7 @@ def tool(
     caller_localns: dict[str, Any] = caller_frame.f_locals.copy()
     caller_globalns: dict[str, Any] = caller_frame.f_globals
 
-    def decorator(fn: Any) -> ToolTemplate[Any]:  # noqa: ANN401
+    def decorator(fn: Any) -> ToolTemplate[Any]:  # noqa: ANN401 -- fn type varies
         # Extract the Pydantic model from the first parameter's type annotation
         sig = inspect.signature(fn)
         params = list(sig.parameters.keys())
