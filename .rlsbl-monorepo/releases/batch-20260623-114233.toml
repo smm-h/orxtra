@@ -1,0 +1,12 @@
+[releasables.orxtra]
+bump = "minor"
+description = "Typed tool returns, storage abstraction, headless mode, streaming always-on, and 15 new features."
+context = """
+Major architectural overhaul spanning 15 phases. Tool.execute returns ToolOutput[T] with semantic result types.
+StorageBackend abstraction enables workflows without PostgreSQL. Streaming is always-on with stuck detection.
+Headless mode has deterministic fallbacks instead of silent degradation. Autonomy gating enforced at runtime.
+One-shot ask() API for simple LLM calls. GoogleProvider for Gemini. 3 breaking changes (knowledge-module
+removed, stream_deltas removed, autonomy_level required).
+"""
+include = ["pypi"]
+exclude = []
