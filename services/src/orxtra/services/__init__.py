@@ -7,6 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
+from orxtra.services._ask import ask, ask_structured
 from orxtra.services._config import dump_config, show_pricing
 from orxtra.services._providers import build_transport_registry
 from orxtra.services._events import fire_event
@@ -43,6 +44,8 @@ from orxtra.services._validate import (
 
 __all__ = [
     "__version__",
+    "ask",
+    "ask_structured",
     "RunConfig",
     "abort_run",
     "build_transport_registry",
