@@ -17,13 +17,20 @@ class MockPool:
         self,
         fetch_rows: list[dict[str, Any]] | None = None,
         fetchval_result: int | None = None,
+        transcript_rows: list[dict[str, Any]] | None = None,
     ) -> None:
         self._fetch_rows = fetch_rows or []
         self._fetchval_result = fetchval_result
+        self._transcript_rows = transcript_rows or []
 
     async def fetch(
         self, query: str, *args: object,
     ) -> list[dict[str, Any]]:
+        # Route transcript reads vs token count reads by query content.
+        # read_transcript selects "turn, role, content" columns;
+        # read_session_token_counts selects only "tokens".
+        if "role" in query and "FROM transcripts" in query:
+            return self._transcript_rows
         return self._fetch_rows
 
     async def fetchval(
