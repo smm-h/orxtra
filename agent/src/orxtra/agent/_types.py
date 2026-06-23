@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, model_validator
 
 
@@ -27,6 +29,9 @@ class Agent(BaseModel):
     provider: str | None = None
     model: str | None = None
     allow: list[str]
+    budget: Decimal | None = None
+    write_paths: list[str] | None = None
+    timeout: int | None = None
     exec_tools: list[ExecToolConfig] = []
     shell_config: ShellConfig | None = None
 

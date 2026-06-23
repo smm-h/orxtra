@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 from orxtra.agent import Agent, ExecToolConfig, ShellConfig
 from pydantic import ValidationError
@@ -224,3 +226,85 @@ class TestAgentWithExecShell:
         )
         assert agent.exec_tools == []
         assert agent.shell_config is None
+
+
+class TestAgentDefaults:
+    """Tests for budget, write_paths, timeout defaults."""
+
+    def test_agent_with_budget(self) -> None:
+        agent = Agent(
+            name="budgeted",
+            description="Has budget",
+            prompt="Work",
+            category="fast",
+            allow=[],
+            budget=Decimal("5.00"),
+        )
+        assert agent.budget == Decimal("5.00")
+
+    def test_agent_without_budget_defaults_none(self) -> None:
+        agent = Agent(
+            name="basic",
+            description="No budget",
+            prompt="Work",
+            category="fast",
+            allow=[],
+        )
+        assert agent.budget is None
+
+    def test_agent_with_write_paths(self) -> None:
+        agent = Agent(
+            name="writer",
+            description="Has paths",
+            prompt="Work",
+            category="fast",
+            allow=["write"],
+            write_paths=["src/", "tests/"],
+        )
+        assert agent.write_paths == ["src/", "tests/"]
+
+    def test_agent_without_write_paths_defaults_none(self) -> None:
+        agent = Agent(
+            name="basic",
+            description="No paths",
+            prompt="Work",
+            category="fast",
+            allow=[],
+        )
+        assert agent.write_paths is None
+
+    def test_agent_with_timeout(self) -> None:
+        agent = Agent(
+            name="timed",
+            description="Has timeout",
+            prompt="Work",
+            category="fast",
+            allow=[],
+            timeout=300,
+        )
+        assert agent.timeout == 300
+
+    def test_agent_without_timeout_defaults_none(self) -> None:
+        agent = Agent(
+            name="basic",
+            description="No timeout",
+            prompt="Work",
+            category="fast",
+            allow=[],
+        )
+        assert agent.timeout is None
+
+    def test_all_defaults_together(self) -> None:
+        agent = Agent(
+            name="full",
+            description="All defaults set",
+            prompt="Work",
+            category="fast",
+            allow=["read", "write"],
+            budget=Decimal("10.00"),
+            write_paths=["src/"],
+            timeout=600,
+        )
+        assert agent.budget == Decimal("10.00")
+        assert agent.write_paths == ["src/"]
+        assert agent.timeout == 600

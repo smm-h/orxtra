@@ -64,10 +64,16 @@ class EnforcementMixin(SchedulerBase):
             return
         cost = compute_cost_usd(model_key, usage)
         self._task_costs[task_id] += cost
-        # Budget enforcement
-        if task.budget is not None:
+        # Budget enforcement: task budget overrides
+        # agent default
+        effective_budget = task.budget
+        if effective_budget is None and task.agent:
+            agent_def = self._agents.get(task.agent)
+            if agent_def is not None:
+                effective_budget = agent_def.budget
+        if effective_budget is not None:
             spent = self._task_costs[task_id]
-            budget = task.budget
+            budget = effective_budget
             threshold = Decimal("0.8")
             if (
                 spent >= budget * threshold
