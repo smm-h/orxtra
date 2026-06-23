@@ -247,7 +247,8 @@ async def test_recovery_order(  # noqa: PLR0913
     tmp_path: Path,
 ) -> None:
     """Recovery functions are called in the correct order:
-    reclaim, reevaluate, clean, then lock."""
+    lock first (prevents current run from being marked orphaned),
+    then reclaim, reevaluate, clean."""
     mock_pool = AsyncMock()
     sched = _make_scheduler(
         trace_writer, transport, agents, categories,
@@ -294,10 +295,10 @@ async def test_recovery_order(  # noqa: PLR0913
         await sched.execute_workflow(_simple_config())
 
     assert call_order == [
+        "acquire_run_lock",
         "reclaim_interrupted",
         "reevaluate_blocked",
         "clean_orphaned",
-        "acquire_run_lock",
     ]
 
 
