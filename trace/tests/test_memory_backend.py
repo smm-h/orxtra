@@ -13,6 +13,7 @@ from orxtra.trace._protocols import (
     EventBus,
     EventStorage,
     InboxStorage,
+    KnowledgeHashStorage,
     NotepadStorage,
     OverseerStorage,
     RecoveryOperations,
@@ -36,6 +37,7 @@ ALL_SUB_PROTOCOLS = [
     StorageReader,
     StorageLock,
     RecoveryOperations,
+    KnowledgeHashStorage,
 ]
 
 
@@ -145,6 +147,9 @@ class TestInMemoryBackendRuntimeCheckable:
 
     def test_is_recovery_operations(self) -> None:
         assert isinstance(InMemoryBackend(), RecoveryOperations)
+
+    def test_is_knowledge_hash_storage(self) -> None:
+        assert isinstance(InMemoryBackend(), KnowledgeHashStorage)
 
     def test_is_storage_backend(self) -> None:
         assert isinstance(InMemoryBackend(), StorageBackend)
@@ -882,3 +887,56 @@ class TestEventCallback:
         run_id = await backend.create_run("test", {}, "max")
         await backend.transition_run(run_id, "running")
         assert "run_transition" in received
+
+
+# ── KnowledgeHashStorage ──
+
+
+class TestKnowledgeHashStorage:
+    @pytest.mark.asyncio
+    async def test_write_and_read(self, backend: InMemoryBackend) -> None:
+        run_id = await backend.create_run("test", {}, "max")
+        await backend.write_knowledge_hash(run_id, "/path/a.md", "abc123")
+        hashes = await backend.read_knowledge_hashes(run_id)
+        assert hashes == {"/path/a.md": "abc123"}
+
+    @pytest.mark.asyncio
+    async def test_upsert_overwrites(self, backend: InMemoryBackend) -> None:
+        run_id = await backend.create_run("test", {}, "max")
+        await backend.write_knowledge_hash(run_id, "/path/a.md", "hash1")
+        await backend.write_knowledge_hash(run_id, "/path/a.md", "hash2")
+        hashes = await backend.read_knowledge_hashes(run_id)
+        assert hashes["/path/a.md"] == "hash2"
+
+    @pytest.mark.asyncio
+    async def test_empty_run_returns_empty(self, backend: InMemoryBackend) -> None:
+        run_id = await backend.create_run("test", {}, "max")
+        hashes = await backend.read_knowledge_hashes(run_id)
+        assert hashes == {}
+
+    @pytest.mark.asyncio
+    async def test_multiple_paths(self, backend: InMemoryBackend) -> None:
+        run_id = await backend.create_run("test", {}, "max")
+        await backend.write_knowledge_hash(run_id, "/a.md", "h1")
+        await backend.write_knowledge_hash(run_id, "/b.toml", "h2")
+        hashes = await backend.read_knowledge_hashes(run_id)
+        assert hashes == {"/a.md": "h1", "/b.toml": "h2"}
+
+    @pytest.mark.asyncio
+    async def test_runs_isolated(self, backend: InMemoryBackend) -> None:
+        run1 = await backend.create_run("test1", {}, "max")
+        run2 = await backend.create_run("test2", {}, "max")
+        await backend.write_knowledge_hash(run1, "/a.md", "h1")
+        await backend.write_knowledge_hash(run2, "/a.md", "h2")
+        assert (await backend.read_knowledge_hashes(run1)) == {"/a.md": "h1"}
+        assert (await backend.read_knowledge_hashes(run2)) == {"/a.md": "h2"}
+
+    @pytest.mark.asyncio
+    async def test_read_returns_copy(self, backend: InMemoryBackend) -> None:
+        """Returned dict is a copy, not the internal dict."""
+        run_id = await backend.create_run("test", {}, "max")
+        await backend.write_knowledge_hash(run_id, "/a.md", "h1")
+        hashes = await backend.read_knowledge_hashes(run_id)
+        hashes["/mutated"] = "bad"
+        fresh = await backend.read_knowledge_hashes(run_id)
+        assert "/mutated" not in fresh

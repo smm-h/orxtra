@@ -6,7 +6,7 @@
 # via deny-mutation triggers (pgdesign append_only = true).
 
 [meta]
-version = 17
+version = 18
 schema = "public"
 
 # ---------------------------------------------------------------------------
@@ -782,3 +782,39 @@ columns = ["run_id"]
 ref_table = "runs"
 ref_columns = ["id"]
 on_delete = "CASCADE"
+
+# ---------------------------------------------------------------------------
+# Tables: Knowledge file hashes
+# ---------------------------------------------------------------------------
+
+[tables.knowledge_hashes]
+comment = "Content hashes for knowledge files. Used to skip reloading unchanged files."
+
+[tables.knowledge_hashes.columns.id]
+type = "id"
+
+[tables.knowledge_hashes.columns.run_id]
+type = "ref"
+
+[tables.knowledge_hashes.columns.path]
+type = "str"
+comment = "Filesystem path of the knowledge file"
+
+[tables.knowledge_hashes.columns.file_hash]
+type = "str"
+comment = "SHA-256 content hash"
+
+[tables.knowledge_hashes.columns.created_at]
+type = "timestamp"
+
+[tables.knowledge_hashes.fks.fk_knowledge_hashes_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.knowledge_hashes.unique.uq_knowledge_hashes_run_path]
+columns = ["run_id", "path"]
+
+[tables.knowledge_hashes.indexes.idx_knowledge_hashes_run]
+columns = ["run_id"]

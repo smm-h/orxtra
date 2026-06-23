@@ -436,3 +436,25 @@ class PgBackend:
 
     async def clean_orphaned(self) -> int:
         return await _recovery.clean_orphaned(self._pool)
+
+    # -- KnowledgeHashStorage --
+
+    async def write_knowledge_hash(self, run_id: UUID, path: str, file_hash: str) -> None:
+        async with self._pool.acquire() as conn, conn.transaction():
+            await conn.execute(
+                "INSERT INTO knowledge_hashes (id, run_id, path, file_hash)"
+                " VALUES (uuid_generate_v7(), $1, $2, $3)"
+                " ON CONFLICT (run_id, path) DO UPDATE"
+                " SET file_hash = $3",
+                run_id,
+                path,
+                file_hash,
+            )
+
+    async def read_knowledge_hashes(self, run_id: UUID) -> dict[str, str]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT path, file_hash FROM knowledge_hashes WHERE run_id = $1",
+                run_id,
+            )
+            return {row["path"]: row["file_hash"] for row in rows}
