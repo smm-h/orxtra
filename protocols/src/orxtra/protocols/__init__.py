@@ -34,6 +34,11 @@ from orxtra.protocols._events import (
     TaskFailed,
     format_event,
 )
+from orxtra.protocols._overseer_protocols import (
+    HealthMonitorProtocol,
+    OverseerEvent,
+    OverseerProtocol,
+)
 from orxtra.protocols._execution import (
     SEVERITY_ORDER,
     AgentExecution,
@@ -109,6 +114,7 @@ __all__ = [
     "GrepMatch",
     "GrepResult",
     "HealthDegraded",
+    "HealthMonitorProtocol",
     "HttpResponse",
     "InboxAnswered",
     "InboxRejected",
@@ -126,6 +132,8 @@ __all__ = [
     "TaskState",
     "Tool",
     "ToolError",
+    "OverseerEvent",
+    "OverseerProtocol",
     "ToolOutput",
     "WorkflowExecution",
     "format_event",
