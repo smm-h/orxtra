@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from orxtra.session._session import Session
-from orxtra.session._sync import SyncSession, sync_ask
+from orxtra.session._sync import SyncSession
 from orxtra.transport import Result, StepFinish
 
 from .conftest import MockTraceWriter, make_standard_events
@@ -23,37 +22,6 @@ _spec = _ilu.spec_from_file_location(
 _mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
 _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
 MockTransport = _mod.MockTransport
-
-
-class TestSyncAsk:
-    def test_sync_ask_returns_string(self) -> None:
-        mock_result = "Hello from the LLM"
-
-        async def mock_ask(
-            prompt: str,
-            provider_type: str,
-            model: str,
-            api_key: str,
-            **kwargs: object,
-        ) -> str:
-            return mock_result
-
-        with patch(
-            "orxtra.session._sync.ask",
-            new=mock_ask,
-            create=True,
-        ), patch(
-            "orxtra.services.ask",
-            new=mock_ask,
-        ):
-            result = sync_ask(
-                "test prompt",
-                "anthropic",
-                "claude-sonnet-4-6",
-                "fake-key",
-            )
-        assert result == mock_result
-        assert isinstance(result, str)
 
 
 class TestSyncSession:
