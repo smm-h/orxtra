@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
+from uuid import UUID
 
 from orxtra.protocols._results import ConsultResponse, ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
+from orxtra.tool._params import ConsultParams
 from orxtra.tool._validation import validate_args
-
-if TYPE_CHECKING:
-    from pathlib import Path
-    from uuid import UUID
 
 CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
     "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
@@ -17,27 +16,8 @@ CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
     "start_task", "end_task", "create_task", "create_workflow", "create_wait_for",
 })
 
-_CONSULT_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "agent": {
-            "type": "string",
-            "description": "Name of agent to consult.",
-        },
-        "question": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The question to ask.",
-        },
-        "variable_values": {
-            "type": "object",
-            "additionalProperties": {"type": "string"},
-            "description": "Template variable substitutions.",
-        },
-    },
-    "required": ["agent", "question"],
-    "additionalProperties": False,
-}
+# Pre-compute the schema once at import time
+_CONSULT_SCHEMA: dict[str, Any] = ConsultParams.model_json_schema()
 
 
 def make_consult_tool(  # noqa: PLR0913
