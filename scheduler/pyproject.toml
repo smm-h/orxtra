@@ -15,7 +15,6 @@ dependencies = [
     "orxtra-trace",
     "orxtra-verify",
     "orxtra-notepad",
-    "orxtra-overseer",
     "orxtra-secrets",
     "orxtra-transport",
 ]
@@ -37,6 +36,5 @@ orxtra-session = { workspace = true }
 orxtra-trace = { workspace = true }
 orxtra-verify = { workspace = true }
 orxtra-notepad = { workspace = true }
-orxtra-overseer = { workspace = true }
 orxtra-secrets = { workspace = true }
 orxtra-transport = { workspace = true }
