@@ -367,6 +367,41 @@ class TestWrapToolPreservation:
         )
         assert wrapped.parameters == {"type": "object"}
 
+    def test_wrapped_tool_preserves_suspending_true(self) -> None:
+        """A tool with suspending=True retains the flag after pipeline wrapping."""
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="ok", text="ok")
+
+        original = Tool(
+            name="await_task",
+            description="Suspending tool",
+            parameters={"type": "object"},
+            execute=_execute,
+            suspending=True,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=original,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        assert wrapped.suspending is True
+
+    def test_wrapped_tool_preserves_suspending_false(self) -> None:
+        """A tool with suspending=False (default) retains the flag after wrapping."""
+        original = _dummy_tool()
+        assert original.suspending is False
+        wrapped = wrap_tool_with_pipeline(
+            tool=original,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        assert wrapped.suspending is False
+
 
 # ---------------------------------------------------------------------------
 # TestWrapToolsForSession
