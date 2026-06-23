@@ -12,17 +12,7 @@ from orxtra.overseer._tools import (
     make_write_lesson_tool,
 )
 from orxtra.protocols import format_event
-from orxtra.protocols._events import (
-    BudgetExhausted,
-    BudgetThresholdCrossed,
-    HealthDegraded,
-    InboxAnswered,
-    InboxRejected,
-    RunStarted,
-    StructuralAdvisory,
-    TaskEscalated,
-    TaskFailed,
-)
+from orxtra.protocols._overseer_protocols import OverseerEvent
 from orxtra.tool._notepad_tool import make_notepad_tool
 from orxtra.tool._read_tools import (
     make_diff_tool,
@@ -50,19 +40,6 @@ def load_overseer_prompt() -> str:
     """Load the Overseer's base system prompt from the prompts directory."""
     prompt_path = _PROMPTS_DIR / "overseer_base.md"
     return prompt_path.read_text(encoding="utf-8")
-
-
-type OverseerEvent = (
-    RunStarted
-    | TaskFailed
-    | TaskEscalated
-    | BudgetThresholdCrossed
-    | BudgetExhausted
-    | InboxAnswered
-    | InboxRejected
-    | StructuralAdvisory
-    | HealthDegraded
-)
 
 
 class Overseer:

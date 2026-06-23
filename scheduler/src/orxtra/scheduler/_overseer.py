@@ -21,25 +21,17 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from uuid import UUID
 
-    from orxtra.overseer._health import HealthMonitor
-    from orxtra.overseer._overseer import Overseer
     from orxtra.protocols._autonomy import AutonomyLevel
+    from orxtra.protocols._overseer_protocols import (
+        HealthMonitorProtocol,
+        OverseerProtocol,
+    )
     from orxtra.protocols._tool import Tool
     from orxtra.session import Session
 
-_logger = logging.getLogger("orxtra.scheduler")
+from orxtra.protocols._overseer_protocols import OverseerEvent
 
-type OverseerEvent = (
-    RunStarted
-    | TaskFailed
-    | TaskEscalated
-    | BudgetThresholdCrossed
-    | BudgetExhausted
-    | InboxAnswered
-    | InboxRejected
-    | StructuralAdvisory
-    | HealthDegraded
-)
+_logger = logging.getLogger("orxtra.scheduler")
 
 # Fallback behaviors when Overseer is degraded for an
 # event type. Keys are event type names; values are short
@@ -262,8 +254,8 @@ class OverseerAdapter:
 
     def __init__(  # noqa: PLR0913
         self,
-        overseer: Overseer,
-        health_monitor: HealthMonitor,
+        overseer: OverseerProtocol,
+        health_monitor: HealthMonitorProtocol,
         autonomy_level: AutonomyLevel | None = None,
         budget_limit: Decimal | None = None,
         spent_fn: Callable[[], Decimal] | None = None,
