@@ -9,12 +9,22 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from orxtra.trace import StorageBackend, TraceWriter
-
-_loaded_hashes: dict[str, str] = {}
+    from orxtra.trace._protocols import KnowledgeHashStorage
 
 
 def _file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _supports_knowledge_hashes(
+    writer: TraceWriter | StorageBackend,
+) -> KnowledgeHashStorage | None:
+    """Check if the writer supports knowledge hash persistence."""
+    from orxtra.trace._protocols import KnowledgeHashStorage  # noqa: PLC0415
+
+    if isinstance(writer, KnowledgeHashStorage):
+        return writer
+    return None
 
 
 async def load_knowledge_files(
@@ -25,19 +35,28 @@ async def load_knowledge_files(
     if not knowledge_dir.is_dir():  # noqa: ASYNC240
         return
 
+    hash_store = _supports_knowledge_hashes(trace_writer)
+    loaded_hashes: dict[str, str] = {}
+    if hash_store is not None:
+        loaded_hashes = await hash_store.read_knowledge_hashes(run_id)
+
     for path in sorted(knowledge_dir.iterdir()):  # noqa: ASYNC240
         if path.suffix == ".md":
-            await _load_markdown(path, trace_writer, run_id)
+            await _load_markdown(path, trace_writer, run_id, loaded_hashes, hash_store)
         elif path.suffix == ".toml":
-            await _load_toml(path, trace_writer, run_id)
+            await _load_toml(path, trace_writer, run_id, loaded_hashes, hash_store)
 
 
 async def _load_markdown(
-    path: Path, trace_writer: TraceWriter | StorageBackend, run_id: UUID,
+    path: Path,
+    trace_writer: TraceWriter | StorageBackend,
+    run_id: UUID,
+    loaded_hashes: dict[str, str],
+    hash_store: KnowledgeHashStorage | None,
 ) -> None:
     file_hash = _file_hash(path)
     cache_key = str(path)
-    if _loaded_hashes.get(cache_key) == file_hash:
+    if loaded_hashes.get(cache_key) == file_hash:
         return
     text = path.read_text(encoding="utf-8")  # noqa: ASYNC240
     await trace_writer.write_lesson(
@@ -47,15 +66,21 @@ async def _load_markdown(
         permanent=True,
         source_files=[str(path)],
     )
-    _loaded_hashes[cache_key] = file_hash
+    loaded_hashes[cache_key] = file_hash
+    if hash_store is not None:
+        await hash_store.write_knowledge_hash(run_id, cache_key, file_hash)
 
 
 async def _load_toml(
-    path: Path, trace_writer: TraceWriter | StorageBackend, run_id: UUID,
+    path: Path,
+    trace_writer: TraceWriter | StorageBackend,
+    run_id: UUID,
+    loaded_hashes: dict[str, str],
+    hash_store: KnowledgeHashStorage | None,
 ) -> None:
     file_hash = _file_hash(path)
     cache_key = str(path)
-    if _loaded_hashes.get(cache_key) == file_hash:
+    if loaded_hashes.get(cache_key) == file_hash:
         return
     raw = path.read_text(encoding="utf-8")  # noqa: ASYNC240
     data: dict[str, Any] = tomllib.loads(raw)
@@ -70,4 +95,6 @@ async def _load_toml(
             tier=tier,
             kind=kind,
         )
-    _loaded_hashes[cache_key] = file_hash
+    loaded_hashes[cache_key] = file_hash
+    if hash_store is not None:
+        await hash_store.write_knowledge_hash(run_id, cache_key, file_hash)

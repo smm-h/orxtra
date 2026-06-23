@@ -367,6 +367,15 @@ class EventBus(Protocol):
 
 
 @runtime_checkable
+class KnowledgeHashStorage(Protocol):
+    """Persistence for knowledge file content hashes."""
+
+    async def write_knowledge_hash(self, run_id: UUID, path: str, file_hash: str) -> None: ...
+
+    async def read_knowledge_hashes(self, run_id: UUID) -> dict[str, str]: ...
+
+
+@runtime_checkable
 class StorageBackend(
     TaskStorage,
     EventStorage,
@@ -378,6 +387,7 @@ class StorageBackend(
     StorageReader,
     StorageLock,
     RecoveryOperations,
+    KnowledgeHashStorage,
     Protocol,
 ):
     """Combined protocol for a complete storage backend.

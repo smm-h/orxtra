@@ -67,6 +67,8 @@ class InMemoryBackend:
         self._heartbeats: dict[UUID, float] = {}
         # Run control callbacks: run_id -> callback
         self._control_callbacks: dict[UUID, Callable[[UUID, str], Awaitable[None]]] = {}
+        # Knowledge hashes: run_id -> {path: hash}
+        self._knowledge_hashes: dict[UUID, dict[str, str]] = {}
         # Event callback (mirrors TraceWriter pattern)
         self._event_callback: (
             Callable[[UUID, UUID, str, dict[str, Any]], Awaitable[None]] | None
@@ -987,6 +989,14 @@ class InMemoryBackend:
                 })
                 cleaned += 1
         return cleaned
+
+    # ── KnowledgeHashStorage ──
+
+    async def write_knowledge_hash(self, run_id: UUID, path: str, file_hash: str) -> None:
+        self._knowledge_hashes.setdefault(run_id, {})[path] = file_hash
+
+    async def read_knowledge_hashes(self, run_id: UUID) -> dict[str, str]:
+        return dict(self._knowledge_hashes.get(run_id, {}))
 
 
 class InMemoryEventBus:

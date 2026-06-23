@@ -12,6 +12,7 @@ from orxtra.trace._protocols import (
     EventBus,
     EventStorage,
     InboxStorage,
+    KnowledgeHashStorage,
     NotepadStorage,
     OverseerStorage,
     RecoveryOperations,
@@ -38,6 +39,7 @@ ALL_SUB_PROTOCOLS = [
     StorageReader,
     StorageLock,
     RecoveryOperations,
+    KnowledgeHashStorage,
 ]
 
 
@@ -247,6 +249,10 @@ class TestProtocolMethodCounts:
         methods = _get_protocol_method_names(RecoveryOperations)
         assert len(methods) == 3, f"RecoveryOperations methods: {sorted(methods)}"
 
+    def test_knowledge_hash_storage_count(self) -> None:
+        methods = _get_protocol_method_names(KnowledgeHashStorage)
+        assert len(methods) == 2, f"KnowledgeHashStorage methods: {sorted(methods)}"
+
     def test_event_bus_count(self) -> None:
         methods = _get_protocol_method_names(EventBus)
         assert len(methods) == 2, f"EventBus methods: {sorted(methods)}"
@@ -255,7 +261,7 @@ class TestProtocolMethodCounts:
         """StorageBackend combines all sub-protocols."""
         methods = _get_protocol_method_names(StorageBackend)
         # Sum of all sub-protocol methods (no overlap expected)
-        expected = 8 + 2 + 3 + 2 + 6 + 5 + 1 + 23 + 4 + 3  # = 57
+        expected = 8 + 2 + 3 + 2 + 6 + 5 + 1 + 23 + 4 + 3 + 2  # = 59
         assert len(methods) == expected, (
             f"StorageBackend has {len(methods)} methods, expected {expected}. "
             f"Methods: {sorted(methods)}"

@@ -36,6 +36,7 @@ TABLE_NAMES: dict[str, str] = {
     "lessons": "lessons",
     "overseer_workflow_status": "overseer_workflow_status",
     "run_heartbeats": "run_heartbeats",
+    "knowledge_hashes": "knowledge_hashes",
 }
 
 # ---------------------------------------------------------------------------
@@ -243,6 +244,17 @@ CREATE TABLE run_heartbeats (
 );
 """
 
+CREATE_KNOWLEDGE_HASHES = """\
+CREATE TABLE knowledge_hashes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    run_id UUID NOT NULL REFERENCES runs(id),
+    path TEXT NOT NULL,
+    file_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (run_id, path)
+);
+"""
+
 # ---------------------------------------------------------------------------
 # Indexes
 # ---------------------------------------------------------------------------
@@ -311,6 +323,7 @@ ALL_CREATE_STATEMENTS: list[str] = [
     CREATE_LESSONS,
     CREATE_OVERSEER_WORKFLOW_STATUS,
     CREATE_RUN_HEARTBEATS,
+    CREATE_KNOWLEDGE_HASHES,
     CREATE_EVENTS_INDEXES,
     REVOKE_EVENTS,
     REVOKE_TRANSCRIPTS,
