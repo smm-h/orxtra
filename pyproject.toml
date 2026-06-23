@@ -41,7 +41,6 @@ include = [
     "session/src/",
     "scheduler/src/",
     "overseer/src/",
-    "overseer/prompts/",
     "services/src/",
     "cli/src/",
     "mcp/src/",
@@ -60,7 +59,6 @@ include = [
 "session/src/orxtra/session" = "orxtra/session"
 "scheduler/src/orxtra/scheduler" = "orxtra/scheduler"
 "overseer/src/orxtra/overseer" = "orxtra/overseer"
-"overseer/prompts" = "orxtra/overseer/prompts"
 "services/src/orxtra/services" = "orxtra/services"
 "cli/src/orxtra/cli" = "orxtra/cli"
 "mcp/src/orxtra/mcp" = "orxtra/mcp"
