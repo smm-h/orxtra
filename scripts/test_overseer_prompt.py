@@ -192,8 +192,32 @@ def _make_mock_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {
                     "path": {
+                        "title": "Path",
                         "type": "string",
-                        "description": "Path to the file to read",
+                    },
+                    "offset": {
+                        "anyOf": [
+                            {"minimum": 1, "type": "integer"},
+                            {"type": "null"},
+                        ],
+                        "default": None,
+                        "title": "Offset",
+                    },
+                    "limit": {
+                        "anyOf": [
+                            {"minimum": 1, "type": "integer"},
+                            {"type": "null"},
+                        ],
+                        "default": None,
+                        "title": "Limit",
+                    },
+                    "full": {
+                        "anyOf": [
+                            {"type": "boolean"},
+                            {"type": "null"},
+                        ],
+                        "default": None,
+                        "title": "Full",
                     },
                 },
                 "required": ["path"],
@@ -212,12 +236,24 @@ def _make_mock_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {
                     "agent": {
+                        "title": "Agent",
                         "type": "string",
-                        "description": "Name of the specialist agent to consult",
                     },
                     "question": {
+                        "minLength": 1,
+                        "title": "Question",
                         "type": "string",
-                        "description": "The question to ask the specialist",
+                    },
+                    "variable_values": {
+                        "anyOf": [
+                            {
+                                "additionalProperties": {"type": "string"},
+                                "type": "object",
+                            },
+                            {"type": "null"},
+                        ],
+                        "default": None,
+                        "title": "Variable Values",
                     },
                 },
                 "required": ["agent", "question"],
