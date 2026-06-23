@@ -84,6 +84,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
         description=tool.description,
         parameters=tool.parameters,
         execute=wrapped_execute,
+        suspending=tool.suspending,
     )
 
 
