@@ -49,3 +49,47 @@ class TestFileLockRegistry:
         wf_id = uuid6.uuid7()
         registry.claim(wf_id, [])
         assert registry.check_conflict([]) is None
+
+    def test_exact_overlap_detected(self) -> None:
+        """Identical paths conflict (existing behavior)."""
+        registry = FileLockRegistry()
+        wf_id = uuid6.uuid7()
+        registry.claim(wf_id, ["/src/a/file.py"])
+        assert registry.check_conflict(["/src/a/file.py"]) == wf_id
+
+    def test_prefix_overlap_parent_claimed(self) -> None:
+        """A claimed parent path conflicts with a child path."""
+        registry = FileLockRegistry()
+        wf_id = uuid6.uuid7()
+        registry.claim(wf_id, ["/src/a"])
+        assert registry.check_conflict(["/src/a/b/file.py"]) == wf_id
+
+    def test_prefix_overlap_child_claimed(self) -> None:
+        """A claimed child path conflicts with a parent path."""
+        registry = FileLockRegistry()
+        wf_id = uuid6.uuid7()
+        registry.claim(wf_id, ["/src/a/b"])
+        assert registry.check_conflict(["/src/a"]) == wf_id
+
+    def test_non_overlapping_paths_no_conflict(self) -> None:
+        """Paths with no prefix relationship don't conflict."""
+        registry = FileLockRegistry()
+        wf_id = uuid6.uuid7()
+        registry.claim(wf_id, ["/src/a"])
+        assert registry.check_conflict(["/src/b"]) is None
+
+    def test_similar_prefix_no_false_positive(self) -> None:
+        """/src/abc should not conflict with /src/a (not a true prefix)."""
+        registry = FileLockRegistry()
+        wf_id = uuid6.uuid7()
+        registry.claim(wf_id, ["/src/a"])
+        assert registry.check_conflict(["/src/abc"]) is None
+
+    def test_prefix_overlap_claim_raises(self) -> None:
+        """Claiming a nested path raises ValueError."""
+        registry = FileLockRegistry()
+        wf1 = uuid6.uuid7()
+        wf2 = uuid6.uuid7()
+        registry.claim(wf1, ["/src/a"])
+        with pytest.raises(ValueError, match="conflict"):
+            registry.claim(wf2, ["/src/a/b"])
