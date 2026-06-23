@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -131,3 +132,21 @@ async def ask_structured(  # noqa: PLR0913
             raise ValueError(msg)
 
     return result
+
+
+def sync_ask(
+    prompt: str,
+    provider_type: str,
+    model: str,
+    api_key: str,
+    **kwargs: Any,
+) -> str:
+    """Synchronous wrapper around :func:`ask`.
+
+    Constructs a provider, sends a single message, and returns
+    the result text. Intended for scripts and synchronous consumers
+    that cannot use async/await.
+    """
+    return asyncio.run(
+        ask(prompt, provider_type, model, api_key, **kwargs),
+    )

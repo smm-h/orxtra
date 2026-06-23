@@ -5,7 +5,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from orxtra.services._ask import ask, ask_structured
+from orxtra.services._ask import ask, ask_structured, sync_ask
 from orxtra.transport import Result, StepFinish, StepStart
 
 
@@ -264,3 +264,30 @@ class TestAskStructured:
             )
             assert isinstance(result, dict)
             assert "name" in result
+
+
+class TestSyncAsk:
+    def test_sync_ask_returns_string(self) -> None:
+        mock_result = "Hello from the LLM"
+
+        async def mock_ask(
+            prompt: str,
+            provider_type: str,
+            model: str,
+            api_key: str,
+            **kwargs: object,
+        ) -> str:
+            return mock_result
+
+        with patch(
+            "orxtra.services._ask.ask",
+            new=mock_ask,
+        ):
+            result = sync_ask(
+                "test prompt",
+                "anthropic",
+                "claude-sonnet-4-6",
+                "fake-key",
+            )
+        assert result == mock_result
+        assert isinstance(result, str)

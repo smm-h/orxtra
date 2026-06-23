@@ -10,7 +10,7 @@ except PackageNotFoundError:
 from orxtra.session._factory import create_session
 from orxtra.session._pricing import PRICING_TABLE, TokenRates, compute_cost_usd
 from orxtra.session._session import Session
-from orxtra.session._sync import SyncSession, sync_ask
+from orxtra.session._sync import SyncSession
 
 __all__ = [
     "__version__",
@@ -20,5 +20,4 @@ __all__ = [
     "TokenRates",
     "compute_cost_usd",
     "create_session",
-    "sync_ask",
 ]

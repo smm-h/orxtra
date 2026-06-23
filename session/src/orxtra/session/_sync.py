@@ -8,26 +8,6 @@ if TYPE_CHECKING:
     from orxtra.transport import Event
 
 
-def sync_ask(
-    prompt: str,
-    provider_type: str,
-    model: str,
-    api_key: str,
-    **kwargs: Any,
-) -> str:
-    """Synchronous wrapper around services.ask().
-
-    Constructs a provider, sends a single message, and returns
-    the result text. Intended for scripts and synchronous consumers
-    that cannot use async/await.
-    """
-    from orxtra.services import ask  # noqa: PLC0415
-
-    return asyncio.run(
-        ask(prompt, provider_type, model, api_key, **kwargs),
-    )
-
-
 class SyncSession:
     """Synchronous wrapper around Session.
 
