@@ -168,46 +168,58 @@ def _make_mock_tools() -> list[Tool]:
         ),
         Tool(
             name="record_decision",
-            description="Record a strategic decision with rationale.",
+            description="Record a decision with rationale in the decisions table.",
             parameters={
                 "type": "object",
                 "properties": {
-                    "decision": {
+                    "decision_type": {
                         "type": "string",
-                        "description": "The decision being made",
+                        "description": "Category of the decision",
+                    },
+                    "choice": {
+                        "type": "object",
+                        "description": "The decision being made (structured)",
                     },
                     "rationale": {
                         "type": "string",
                         "description": "Why this decision was made",
                     },
                 },
-                "required": ["decision", "rationale"],
+                "required": ["decision_type", "choice"],
                 "additionalProperties": False,
             },
             execute=_mock_execute,
         ),
         Tool(
             name="record_assumption",
-            description="Record an assumption you are making.",
+            description=(
+                "Record an assumption, optionally creating"
+                " an inbox item for verification."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
-                    "assumption": {
+                    "text": {
                         "type": "string",
-                        "description": "The assumption being recorded",
+                        "description": "The assumption text",
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Scope of the assumption",
+                    },
+                    "create_inbox_item": {
+                        "type": "boolean",
+                        "description": "Whether to create an inbox item for verification",
                     },
                 },
-                "required": ["assumption"],
+                "required": ["text", "scope", "create_inbox_item"],
                 "additionalProperties": False,
             },
             execute=_mock_execute,
         ),
         Tool(
             name="add_constraint",
-            description=(
-                "Add a constraint to the current run. Constraints have a kind "
-                "and args."
-            ),
+            description="Add a mechanical or advisory constraint.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -215,34 +227,110 @@ def _make_mock_tools() -> list[Tool]:
                         "type": "string",
                         "description": "Constraint type (e.g. tests_pass, lint_clean)",
                     },
+                    "text": {
+                        "type": "string",
+                        "description": "Human-readable constraint description",
+                    },
+                    "tier": {
+                        "type": "string",
+                        "description": "Constraint tier (mechanical or advisory)",
+                    },
                     "args": {
                         "type": "object",
                         "description": "Parameters for the constraint",
                     },
                 },
-                "required": ["kind"],
+                "required": ["kind", "text", "tier"],
                 "additionalProperties": False,
             },
             execute=_mock_execute,
         ),
         Tool(
             name="create_inbox_item",
-            description=(
-                "Create a question for the human operator with an assumed option."
-            ),
+            description="Create a human inbox item for escalation.",
             parameters={
                 "type": "object",
                 "properties": {
+                    "decision_type": {
+                        "type": "string",
+                        "description": "Category of the decision",
+                    },
                     "question": {
                         "type": "string",
                         "description": "The question for the human",
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": "Available options",
                     },
                     "assumed_option": {
                         "type": "string",
                         "description": "The option to proceed with if no response",
                     },
+                    "work_proceeding": {
+                        "type": "string",
+                        "description": "What work continues while awaiting answer",
+                    },
+                    "contradiction_impact": {
+                        "type": "string",
+                        "description": "Impact if the assumption is wrong",
+                    },
                 },
-                "required": ["question", "assumed_option"],
+                "required": [
+                    "decision_type", "question", "options",
+                    "assumed_option", "work_proceeding",
+                    "contradiction_impact",
+                ],
+                "additionalProperties": False,
+            },
+            execute=_mock_execute,
+        ),
+        Tool(
+            name="write_lesson",
+            description="Write to the cross-run knowledge base.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "The lesson text",
+                    },
+                    "relevance_tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Tags for lesson retrieval",
+                    },
+                    "permanent": {
+                        "type": "boolean",
+                        "description": "Whether the lesson persists across all runs",
+                    },
+                },
+                "required": ["text", "relevance_tags", "permanent"],
+                "additionalProperties": False,
+            },
+            execute=_mock_execute,
+        ),
+        Tool(
+            name="update_workflow_status",
+            description="Update the Overseer's health assessment of a workflow.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "workflow_id": {
+                        "type": "string",
+                        "description": "UUID of the workflow",
+                    },
+                    "current_step": {
+                        "type": "string",
+                        "description": "Current step description",
+                    },
+                    "health": {
+                        "type": "string",
+                        "description": "Health status (healthy, degraded, failing)",
+                    },
+                },
+                "required": ["workflow_id", "health"],
                 "additionalProperties": False,
             },
             execute=_mock_execute,
