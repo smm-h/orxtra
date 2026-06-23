@@ -14,6 +14,7 @@ from orxtra.transport._events import (
     StreamToolUse,
     StreamUsage,
     Thinking,
+    UnknownEvent,
     Usage,
 )
 
@@ -71,6 +72,10 @@ class AnthropicProvider:
                 )
             elif block_type == "thinking":
                 blocks.append(ContentBlock(type="thinking", text=item["thinking"]))
+            else:
+                blocks.append(
+                    ContentBlock(type=block_type, text=json.dumps(item)),
+                )
         return blocks
 
     async def parse_stream(  # noqa: C901, PLR0912
@@ -110,6 +115,8 @@ class AnthropicProvider:
                             current_tool_json_parts.append(
                                 delta.get("partial_json", ""),
                             )
+                        else:
+                            yield UnknownEvent(raw=delta)
                     elif event_type == "content_block_stop":
                         if current_tool_id is not None:
                             json_str = "".join(current_tool_json_parts)
@@ -142,6 +149,11 @@ class AnthropicProvider:
                             )
                     elif event_type == "message_stop":
                         return
+                    elif event_type not in (
+                        "message_start",
+                        "ping",
+                    ):
+                        yield UnknownEvent(raw=data)
 
     def extract_usage(self, response: dict[str, Any]) -> Usage:
         usage: dict[str, Any] = response["usage"]

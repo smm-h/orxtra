@@ -15,6 +15,7 @@ from ._events import (
     Error,
     Event,
     LivenessWarning,
+    RateLimit,
     Result,
     SessionSuspended,
     StepFinish,
@@ -25,7 +26,9 @@ from ._events import (
     StuckDetected,
     Text,
     Thinking,
+    ToolExecuting,
     ToolUse,
+    UnknownEvent,
     Usage,
 )
 from ._liveness import LivenessMonitor
@@ -79,10 +82,42 @@ class _StepContext:
 
 
 class Transport:
-    def __init__(self, provider: Provider, retry_policy: RetryPolicy) -> None:
+    def __init__(
+        self,
+        provider: Provider,
+        retry_policy: RetryPolicy,
+        max_history_turns: int | None = None,
+    ) -> None:
         self._provider = provider
         self._retry = retry_policy
+        self._max_history_turns = max_history_turns
         self._sessions: dict[str, list[dict[str, Any]]] = {}
+
+    @staticmethod
+    def _compact_history(
+        history: list[dict[str, Any]],
+        max_turns: int,
+    ) -> None:
+        """Trim history in-place, keeping only the last *max_turns* turns.
+
+        A "turn" starts at each user message. All non-user messages following
+        a user message belong to the same turn. We count turns from the end
+        and drop earlier ones.
+        """
+        if max_turns <= 0:
+            return
+
+        # Find turn boundaries (indices of user messages)
+        turn_starts: list[int] = [
+            i for i, msg in enumerate(history) if msg.get("role") == "user"
+        ]
+
+        if len(turn_starts) <= max_turns:
+            return
+
+        # Keep from the Nth-to-last user message onward
+        keep_from = turn_starts[-max_turns]
+        del history[:keep_from]
 
     async def send(  # noqa: PLR0913
         self,
@@ -98,6 +133,10 @@ class Transport:
 
         history = self._sessions.setdefault(session_id, [])
         history.append({"role": "user", "content": message})
+
+        # Compact history if limit is set
+        if self._max_history_turns is not None:
+            self._compact_history(history, self._max_history_turns)
 
         tool_specs = [
             {"name": t.name, "description": t.description, "parameters": t.parameters}
@@ -218,6 +257,7 @@ class Transport:
                 )
                 continue
 
+            yield ToolExecuting(tool_name=tool_name, tool_input=tool_input)
             start = time.monotonic_ns()
             try:
                 result = await tool.execute(tool_input)
@@ -305,11 +345,17 @@ class Transport:
     @staticmethod
     def _categorize_blocks(
         blocks: list[ContentBlock],
-    ) -> tuple[list[ContentBlock], list[ContentBlock], list[ContentBlock]]:
-        """Split content blocks into text, thinking, and tool_use lists."""
+    ) -> tuple[
+        list[ContentBlock],
+        list[ContentBlock],
+        list[ContentBlock],
+        list[ContentBlock],
+    ]:
+        """Split content blocks into text, thinking, tool_use, and unknown lists."""
         text_blocks: list[ContentBlock] = []
         thinking_blocks: list[ContentBlock] = []
         tool_use_blocks: list[ContentBlock] = []
+        unknown_blocks: list[ContentBlock] = []
 
         for block in blocks:
             if block.type == "text":
@@ -318,8 +364,10 @@ class Transport:
                 thinking_blocks.append(block)
             elif block.type == "tool_use":
                 tool_use_blocks.append(block)
+            else:
+                unknown_blocks.append(block)
 
-        return text_blocks, thinking_blocks, tool_use_blocks
+        return text_blocks, thinking_blocks, tool_use_blocks, unknown_blocks
 
     @staticmethod
     def _build_finish_events(
@@ -411,9 +459,16 @@ class Transport:
             for stu in tool_use_events
         )
 
-        text_blocks, _thinking_blocks, tool_use_blocks = (
+        text_blocks, _thinking_blocks, tool_use_blocks, unknown_blocks = (
             self._categorize_blocks(blocks)
         )
+
+        # Emit UnknownEvent for any unrecognized content blocks
+        for ub in unknown_blocks:
+            raw: dict[str, Any] = {"type": ub.type}
+            if ub.text is not None:
+                raw["text"] = ub.text
+            events.append(UnknownEvent(raw=raw))
 
         # Use streaming usage if available, otherwise empty
         usage = stream_usage if stream_usage is not None else Usage()
@@ -480,6 +535,11 @@ class Transport:
                     )
                 )
                 continue
+
+            # Emit ToolExecuting before execution
+            events.append(
+                ToolExecuting(tool_name=tool_name, tool_input=tool_input),
+            )
 
             # Check for suspension BEFORE execution
             if tool.suspending:
@@ -579,6 +639,41 @@ class Transport:
         ctx.pending_tool_blocks = []
         return (TransportState.CALLING_API, events)
 
+    @staticmethod
+    def _parse_rate_limit_headers(
+        headers: httpx.Headers,
+    ) -> RateLimit | None:
+        """Extract rate limit info from response headers (429 responses)."""
+        resets_at = headers.get("retry-after")
+
+        limit_str = headers.get(
+            "x-ratelimit-limit-requests",
+            headers.get("x-ratelimit-limit-tokens"),
+        )
+        limit = int(limit_str) if limit_str is not None else None
+
+        remaining_str = headers.get(
+            "x-ratelimit-remaining-requests",
+            headers.get("x-ratelimit-remaining-tokens"),
+        )
+        remaining = int(remaining_str) if remaining_str is not None else None
+
+        # Compute utilization if both limit and remaining are known
+        utilization: float | None = None
+        if limit is not None and remaining is not None and limit > 0:
+            utilization = 1.0 - (remaining / limit)
+
+        # Only emit if at least one header was present
+        if resets_at is None and limit is None and remaining is None:
+            return None
+
+        return RateLimit(
+            resets_at=resets_at,
+            limit=limit,
+            remaining=remaining,
+            utilization=utilization,
+        )
+
     async def _send_streaming_with_retry(  # noqa: C901, PLR0912
         self,
         *,
@@ -664,6 +759,14 @@ class Transport:
                     # Read the error body from the stream
                     error_body = (await response.aread()).decode("utf-8")
                     last_error = error_body
+
+                    # Surface rate limit info on 429 responses
+                    if response.status_code == 429:  # noqa: PLR2004
+                        rl = self._parse_rate_limit_headers(
+                            response.headers,
+                        )
+                        if rl is not None:
+                            retry_events.append(rl)
 
                     if response.status_code not in _TRANSIENT_STATUS_CODES:
                         retry_events.append(
