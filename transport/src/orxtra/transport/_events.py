@@ -130,6 +130,31 @@ class StuckDetected:
     elapsed_seconds: float
 
 
+@dataclass(frozen=True)
+class UnknownEvent:
+    """Emitted when a provider encounters an unrecognized content block or SSE event."""
+
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RateLimit:
+    """Emitted before an ApiRetry when rate limit headers are present on a 429."""
+
+    resets_at: str | None
+    limit: int | None
+    remaining: int | None
+    utilization: float | None
+
+
+@dataclass(frozen=True)
+class ToolExecuting:
+    """Emitted immediately before a tool begins execution."""
+
+    tool_name: str
+    tool_input: dict[str, Any]
+
+
 Event = (
     StepStart
     | Text
@@ -145,4 +170,7 @@ Event = (
     | SessionSuspended
     | LivenessWarning
     | StuckDetected
+    | UnknownEvent
+    | RateLimit
+    | ToolExecuting
 )

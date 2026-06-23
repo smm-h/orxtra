@@ -13,6 +13,7 @@ from orxtra.transport._events import (
     Error,
     Event,
     LivenessWarning,
+    RateLimit,
     Result,
     SessionSuspended,
     StepFinish,
@@ -23,7 +24,9 @@ from orxtra.transport._events import (
     StuckDetected,
     Text,
     Thinking,
+    ToolExecuting,
     ToolUse,
+    UnknownEvent,
     Usage,
 )
 from orxtra.transport._liveness import LivenessMonitor
@@ -41,6 +44,7 @@ __all__ = [
     "LivenessMonitor",
     "LivenessWarning",
     "Provider",
+    "RateLimit",
     "Result",
     "RetryPolicy",
     "SessionSuspended",
@@ -52,8 +56,10 @@ __all__ = [
     "StuckDetected",
     "Text",
     "Thinking",
+    "ToolExecuting",
     "ToolUse",
     "Transport",
     "TransportState",
+    "UnknownEvent",
     "Usage",
 ]

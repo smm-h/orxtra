@@ -8,7 +8,13 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-from orxtra.transport._events import ContentBlock, StreamDelta, StreamToolUse, Usage
+from orxtra.transport._events import (
+    ContentBlock,
+    StreamDelta,
+    StreamToolUse,
+    UnknownEvent,
+    Usage,
+)
 
 if TYPE_CHECKING:
     from orxtra.transport._events import Event
@@ -105,6 +111,13 @@ class OpenAIProvider:
                 text = delta.get("content")
                 if text:
                     yield StreamDelta(text=text)
+                # Surface unrecognized delta keys
+                _known_delta_keys = {"role", "content", "tool_calls"}
+                unknown_keys = set(delta) - _known_delta_keys
+                if unknown_keys:
+                    yield UnknownEvent(
+                        raw={k: delta[k] for k in unknown_keys},
+                    )
                 # Handle tool calls
                 for tc_delta in delta.get("tool_calls", []):
                     idx = tc_delta.get("index", 0)
