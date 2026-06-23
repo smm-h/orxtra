@@ -14,4 +14,4 @@ jobs:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv tool install pgdesign
-      - run: pgdesign validate schema/
+      - run: pgdesign validate .
