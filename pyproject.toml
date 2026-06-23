@@ -170,3 +170,4 @@ warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+importmode = "importlib"
