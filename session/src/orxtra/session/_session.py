@@ -56,6 +56,10 @@ class Session:
     def tools(self) -> list[Tool]:
         return self._tools
 
+    def update_tools(self, tools: list[Tool]) -> None:
+        """Replace the active tool set. Takes effect on the next send() call."""
+        self._tools = tools
+
     def on(self, event_type: type, handler: Callable[[Any], None]) -> None:
         """Register a callback for a specific event type.
 
