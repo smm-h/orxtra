@@ -629,3 +629,118 @@ class TestCompose:
         )
         await compose(wrapped, {})
         assert _SESSION_ID not in tracker
+
+
+# ---------------------------------------------------------------------------
+# TestNamespaceTagsPreservation
+# ---------------------------------------------------------------------------
+
+
+class TestNamespaceTagsPreservation:
+    """Tests that namespace and tags are preserved through pipeline wrapping."""
+
+    def test_namespace_preserved_through_wrapping(self) -> None:
+        """A tool's namespace is preserved after pipeline wrapping."""
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="ok", text="ok")
+
+        original = Tool(
+            name="read",
+            description="Read tool",
+            parameters={"type": "object"},
+            execute=_execute,
+            namespace="fs.read",
+            tags=frozenset({"readonly"}),
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=original,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        assert wrapped.namespace == "fs.read"
+
+    def test_tags_preserved_through_wrapping(self) -> None:
+        """A tool's tags are preserved after pipeline wrapping."""
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="ok", text="ok")
+
+        original = Tool(
+            name="git",
+            description="Git tool",
+            parameters={"type": "object"},
+            execute=_execute,
+            namespace="git",
+            tags=frozenset({"readonly", "mutation"}),
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=original,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        assert wrapped.tags == frozenset({"readonly", "mutation"})
+
+    def test_empty_namespace_preserved(self) -> None:
+        """Default empty namespace is preserved after wrapping."""
+        original = _dummy_tool()
+        wrapped = wrap_tool_with_pipeline(
+            tool=original,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        assert wrapped.namespace == ""
+
+    def test_empty_tags_preserved(self) -> None:
+        """Default empty tags are preserved after wrapping."""
+        original = _dummy_tool()
+        wrapped = wrap_tool_with_pipeline(
+            tool=original,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        assert wrapped.tags == frozenset()
+
+    def test_namespace_tags_preserved_through_wrap_tools_for_session(self) -> None:
+        """wrap_tools_for_session preserves namespace and tags on all tools."""
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="ok", text="ok")
+
+        tools = [
+            Tool(
+                name="read",
+                description="Read",
+                parameters={"type": "object"},
+                execute=_execute,
+                namespace="fs.read",
+                tags=frozenset({"readonly"}),
+            ),
+            Tool(
+                name="write",
+                description="Write",
+                parameters={"type": "object"},
+                execute=_execute,
+                namespace="fs.write",
+                tags=frozenset({"mutation"}),
+            ),
+        ]
+        wrapped = wrap_tools_for_session(
+            tools=tools,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=None,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        assert wrapped[0].namespace == "fs.read"
+        assert wrapped[0].tags == frozenset({"readonly"})
+        assert wrapped[1].namespace == "fs.write"
+        assert wrapped[1].tags == frozenset({"mutation"})

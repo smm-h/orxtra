@@ -35,6 +35,8 @@ class ToolTemplate(Generic[T]):
         "_params_model",
         "_renderer",
         "_suspending",
+        "_namespace",
+        "_tags",
         "_schema",
     )
 
@@ -47,6 +49,8 @@ class ToolTemplate(Generic[T]):
         renderer: Renderer[Any],
         *,
         suspending: bool = False,
+        namespace: str = "",
+        tags: frozenset[str] = frozenset(),
     ) -> None:
         self.name = name
         self.description = description
@@ -54,15 +58,26 @@ class ToolTemplate(Generic[T]):
         self._params_model = params_model
         self._renderer = renderer
         self._suspending = suspending
+        self._namespace = namespace
+        self._tags = tags
         self._schema: dict[str, Any] = params_model.model_json_schema()
 
-    def bind(self, *, name: str | None = None, **deps: Any) -> Tool:  # noqa: ANN401
+    def bind(
+        self,
+        *,
+        name: str | None = None,
+        namespace: str | None = None,
+        tags: frozenset[str] | None = None,
+        **deps: Any,  # noqa: ANN401
+    ) -> Tool:
         """Bind dependencies to produce a ready-to-use ``Tool``.
 
         Args:
             name: Override the template's name on the produced Tool.
                 Useful for tools like ``exec`` where each instance is
                 named after its executable.
+            namespace: Override the template's namespace on the produced Tool.
+            tags: Override the template's tags on the produced Tool.
             **deps: Keyword arguments forwarded to the decorated function.
         """
         template = self
@@ -95,6 +110,8 @@ class ToolTemplate(Generic[T]):
             parameters=template._schema,
             execute=execute,
             suspending=template._suspending,
+            namespace=namespace if namespace is not None else template._namespace,
+            tags=tags if tags is not None else template._tags,
         )
 
 
@@ -104,6 +121,8 @@ def tool(
     *,
     renderer: Renderer[Any],
     suspending: bool = False,
+    namespace: str = "",
+    tags: frozenset[str] = frozenset(),
 ) -> Callable[..., ToolTemplate[Any]]:
     """Decorator that creates a ``ToolTemplate`` from a typed async function.
 
@@ -171,6 +190,8 @@ def tool(
             params_model=params_model,
             renderer=renderer,
             suspending=suspending,
+            namespace=namespace,
+            tags=tags,
         )
 
     return decorator
