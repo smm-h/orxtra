@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from orxtra.scheduler._overseer import OverseerEvent, OverseerInterface
     from orxtra.scheduler._services import ServiceInstance
     from orxtra.secrets._registry import SecretRegistry
+    from orxtra.scheduler._tool_registry import ToolRegistry
     from orxtra.session import Session
     from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport, Usage
@@ -100,6 +101,7 @@ class SchedulerBase(ABC):
     _budget_exhausted_events: list[tuple[UUID, str, Decimal, Decimal]]
     _budget_blocked: bool
     _custom_tools: dict[str, Callable[..., Tool]]
+    _tool_registry: ToolRegistry
 
     # ------------------------------------------------------------------
     # Cross-mixin methods (from _executor.py)

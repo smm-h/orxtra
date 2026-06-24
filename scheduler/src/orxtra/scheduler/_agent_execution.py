@@ -15,21 +15,18 @@ from orxtra.protocols._task import (
     TaskSpec,
     TaskState,
 )
+from orxtra.scheduler._allow_resolver import resolve_allow_list
+from orxtra.scheduler._tool_registry import (
+    CONSULT_METADATA,
+    GIT_METADATA,
+    WRITE_TOOL_NAMES,
+    ToolDeps,
+)
 from orxtra.session import Session, create_session
 from orxtra.tool._consult_tool import make_consult_tool
 from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool
-from orxtra.tool._http_tool import make_http_tool
-from orxtra.tool._notepad_tool import make_notepad_tool
 from orxtra.tool._pipeline import wrap_tools_for_session
-from orxtra.tool._read_tools import (
-    make_diff_tool,
-    make_glob_tool,
-    make_grep_tool,
-    make_list_dir_tool,
-    make_read_tool,
-    make_stat_tool,
-)
 from orxtra.tool._shell_tool import make_shell_tool
 from orxtra.tool._task_tools import (
     make_await_task_tool,
@@ -38,16 +35,6 @@ from orxtra.tool._task_tools import (
     make_create_workflow_tool,
     make_end_task_tool,
     make_start_task_tool,
-)
-from orxtra.tool._write_tools import (
-    make_copy_tool,
-    make_delete_tool,
-    make_edit_tool,
-    make_mkdir_tool,
-    make_move_tool,
-    make_multi_edit_tool,
-    make_set_executable_tool,
-    make_write_tool,
 )
 from orxtra.transport import ContextWarning, Result, Usage
 
@@ -879,7 +866,7 @@ class AgentExecutionMixin(SchedulerBase):
         )
         return session, session_id
 
-    def _build_agent_tools(  # noqa: C901, PLR0912
+    def _build_agent_tools(
         self,
         agent_def: Agent,
         task_id: UUID,
@@ -887,97 +874,61 @@ class AgentExecutionMixin(SchedulerBase):
         task_name: str,
         task_agent: str,
     ) -> list[Tool]:
-        """Build raw tools based on agent's allow list."""
-        agent_allow = set(agent_def.allow)
-        raw_tools: list[Tool] = []
+        """Build raw tools based on agent's allow list.
 
-        # Preview configuration
+        Uses the ToolRegistry for data-driven construction of
+        standard tools, with special handling for git (subcommand
+        resolution), consult (needs already-built tools), exec/shell
+        (per-agent config), and lifecycle tools (always present).
+        """
         preview_threshold = 10000
         preview_lines = 50
 
-        # Read tools
-        if "read" in agent_allow:
-            raw_tools.append(make_read_tool(
-                self._read_root, preview_threshold,
-                preview_lines,
-                session_id=session_id,
-            ))
-        if "list_dir" in agent_allow:
-            raw_tools.append(
-                make_list_dir_tool(self._read_root),
-            )
-        if "glob" in agent_allow:
-            raw_tools.append(
-                make_glob_tool(self._read_root),
-            )
-        if "grep" in agent_allow:
-            raw_tools.append(make_grep_tool(
-                self._read_root, preview_threshold,
-                preview_lines,
-            ))
-        if "stat" in agent_allow:
-            raw_tools.append(
-                make_stat_tool(self._read_root),
-            )
-        if "diff" in agent_allow:
-            raw_tools.append(
-                make_diff_tool(self._read_root),
-            )
+        # Build metadata including special tools for
+        # wildcard/tag resolution.
+        metadata = dict(self._tool_registry.get_metadata())
+        metadata["git"] = GIT_METADATA
+        metadata["consult"] = CONSULT_METADATA
+        # exec/shell are allow-list keys that trigger
+        # per-agent config, not registry entries.
+        metadata["exec"] = (
+            "exec", frozenset({"mutation"}),
+        )
+        metadata["shell"] = (
+            "exec", frozenset({"mutation"}),
+        )
 
-        # Write tools (with write-safety)
-        if "write" in agent_allow:
-            raw_tools.append(make_write_tool(
-                self._read_root, None,
-                self._write_queue,
-                self._stale_tracker, session_id,
-            ))
-        if "edit" in agent_allow:
-            raw_tools.append(make_edit_tool(
-                self._read_root, None,
-                self._write_queue,
-                self._stale_tracker, session_id,
-            ))
-        if "multi_edit" in agent_allow:
-            raw_tools.append(make_multi_edit_tool(
-                self._read_root, None,
-                self._write_queue,
-                self._stale_tracker, session_id,
-            ))
-        if "mkdir" in agent_allow:
-            raw_tools.append(
-                make_mkdir_tool(self._read_root, None),
-            )
-        if "move" in agent_allow:
-            raw_tools.append(make_move_tool(
-                self._read_root, None,
-                self._write_queue,
-                self._stale_tracker, session_id,
-            ))
-        if "copy" in agent_allow:
-            raw_tools.append(make_copy_tool(
-                self._read_root, None,
-                self._write_queue,
-                self._stale_tracker, session_id,
-            ))
-        if "delete" in agent_allow:
-            raw_tools.append(
-                make_delete_tool(self._read_root, None),
-            )
-        if "set_executable" in agent_allow:
-            raw_tools.append(
-                make_set_executable_tool(
-                    self._read_root, None,
-                ),
-            )
+        # Resolve allow list to concrete tool names.
+        resolved = resolve_allow_list(
+            agent_def.allow, metadata,
+        )
 
-        # Git tool
-        if "git" in agent_allow:
-            write_tools = {
-                "write", "edit", "multi_edit",
-                "delete", "move",
-                "copy", "mkdir", "set_executable",
-            }
-            has_write = bool(agent_allow & write_tools)
+        # Build standard tools from registry.
+        deps = ToolDeps(
+            read_root=self._read_root,
+            write_scope=None,
+            write_queue=self._write_queue,
+            stale_tracker=self._stale_tracker,
+            session_id=session_id,
+            trace_writer=self._trace_writer,
+            run_id=self._run_id,
+            task_id=task_id,
+            task_name=task_name,
+            task_agent=task_agent,
+            scheduler_ref=self,
+            transport_registry=self._transport_registry,
+            categories=self._categories,
+            agents=self._agents,
+            preview_threshold=preview_threshold,
+            preview_lines=preview_lines,
+        )
+        raw_tools = self._tool_registry.build_tools(
+            resolved, deps,
+        )
+
+        # Git tool (subcommands depend on write access).
+        if "git" in resolved:
+            has_write = bool(resolved & WRITE_TOOL_NAMES)
             subcommands = list(
                 ["status", "diff", "log", "show",
                  "blame", "branches",
@@ -992,23 +943,8 @@ class AgentExecutionMixin(SchedulerBase):
                 },
             ))
 
-        # Notepad
-        if "notepad" in agent_allow:
-            raw_tools.append(make_notepad_tool(
-                self._trace_writer,
-                str(self._run_id),
-                task_name,
-                task_agent,
-            ))
-
-        # HTTP
-        if "http" in agent_allow:
-            raw_tools.append(make_http_tool(
-                allowed_hosts="allow_all",
-            ))
-
-        # Consult
-        if "consult" in agent_allow:
+        # Consult (needs already-built tools).
+        if "consult" in resolved:
             consult_registry: dict[str, Tool] = {
                 t.name: t for t in raw_tools
             }
@@ -1024,60 +960,36 @@ class AgentExecutionMixin(SchedulerBase):
                 agents=self._agents,
             ))
 
-        # Exec tools (per-agent configured executables)
-        if "exec" in agent_allow and agent_def.exec_tools:
+        # Exec tools (per-agent configured executables).
+        if "exec" in resolved and agent_def.exec_tools:
             raw_tools.extend(
                 make_exec_tool(
-                    executable=exec_config.executable,
-                    description=exec_config.description,
+                    executable=ec.executable,
+                    description=ec.description,
                     read_root=self._read_root,
-                    timeout_ceiling=(
-                        exec_config.timeout_ceiling
-                    ),
+                    timeout_ceiling=ec.timeout_ceiling,
                     preview_threshold=preview_threshold,
                     preview_lines=preview_lines,
                 )
-                for exec_config in agent_def.exec_tools
+                for ec in agent_def.exec_tools
             )
 
-        # Shell tool (per-agent configured shell access)
+        # Shell tool (per-agent configured shell access).
         if (
-            "shell" in agent_allow
+            "shell" in resolved
             and agent_def.shell_config
         ):
+            sc = agent_def.shell_config
             raw_tools.append(make_shell_tool(
-                allowed_binaries=(
-                    agent_def.shell_config
-                    .allowed_binaries
-                ),
-                description=(
-                    agent_def.shell_config.description
-                ),
+                allowed_binaries=sc.allowed_binaries,
+                description=sc.description,
                 read_root=self._read_root,
-                timeout_ceiling=(
-                    agent_def.shell_config
-                    .timeout_ceiling
-                ),
+                timeout_ceiling=sc.timeout_ceiling,
                 preview_threshold=preview_threshold,
                 preview_lines=preview_lines,
             ))
 
-        # Custom tools: resolve remaining allow-list
-        # names from _custom_tools. Built-ins win on
-        # name collision (checked against names already
-        # in raw_tools).
-        if self._custom_tools:
-            builtin_names = {t.name for t in raw_tools}
-            for name in agent_allow:
-                if (
-                    name not in builtin_names
-                    and name in self._custom_tools
-                ):
-                    raw_tools.append(
-                        self._custom_tools[name](),
-                    )
-
-        # Always add lifecycle tools
+        # Always add lifecycle tools.
         raw_tools.extend([
             make_start_task_tool(self, session_id),
             make_end_task_tool(self, session_id),
