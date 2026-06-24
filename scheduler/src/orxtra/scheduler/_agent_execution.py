@@ -1030,7 +1030,6 @@ class AgentExecutionMixin(SchedulerBase):
                 make_exec_tool(
                     executable=exec_config.executable,
                     description=exec_config.description,
-                    arg_schema={},
                     read_root=self._read_root,
                     timeout_ceiling=(
                         exec_config.timeout_ceiling

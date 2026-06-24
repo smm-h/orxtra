@@ -28,7 +28,6 @@ def _mock_process(
 _DEFAULTS: dict[str, Any] = {
     "executable": "test_bin",
     "description": "test tool",
-    "arg_schema": {},
     "read_root": Path("/fake/root"),
     "timeout_ceiling": 30,
     "preview_threshold": 50000,
@@ -50,19 +49,10 @@ class TestMakeExecTool:
         tool = _make(executable="my_binary")
         assert tool.name == "my_binary"
 
-    def test_tool_merges_arg_schema(self) -> None:
-        """Additional arg_schema properties appear in tool parameters."""
-        extra = {
-            "pattern": {
-                "type": "string",
-                "description": "Search pattern.",
-            },
-        }
-        tool = _make(arg_schema=extra)
+    def test_schema_has_base_properties(self) -> None:
+        """Schema has args and timeout properties from ExecBaseParams."""
+        tool = _make()
         props = tool.parameters["properties"]
-        assert "pattern" in props
-        assert props["pattern"]["type"] == "string"
-        # Base properties still present.
         assert "args" in props
         assert "timeout" in props
 
@@ -275,20 +265,21 @@ class TestPreview:
 
 
 class TestValidation:
-    """Tests for argument validation via the exec tool schema."""
+    """Tests for Pydantic validation via the exec tool schema."""
 
     @pytest.mark.asyncio
-    async def test_custom_arg_schema_validation(self) -> None:
-        """Additional schema is validated -- wrong type raises ToolError."""
-        extra = {
-            "pattern": {
-                "type": "string",
-                "description": "Search pattern.",
-            },
-        }
-        tool = _make(arg_schema=extra)
+    async def test_wrong_type_for_args_raises_tool_error(self) -> None:
+        """Passing a non-list for args raises ToolError."""
+        tool = _make()
         with pytest.raises(ToolError, match="Invalid tool arguments"):
-            await tool.execute({"pattern": 12345})
+            await tool.execute({"args": "not-a-list"})
+
+    @pytest.mark.asyncio
+    async def test_wrong_type_for_timeout_raises_tool_error(self) -> None:
+        """Passing a string for timeout raises ToolError."""
+        tool = _make()
+        with pytest.raises(ToolError, match="Invalid tool arguments"):
+            await tool.execute({"timeout": "not-an-int"})
 
 
 class TestArgValidation:
