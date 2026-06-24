@@ -1,5 +1,8 @@
 {
   "batch_limits": {
     "exclusions": []
-  }
+  },
+  "targets": [
+    "pypi"
+  ]
 }
