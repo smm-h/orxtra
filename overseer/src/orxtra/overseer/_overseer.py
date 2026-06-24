@@ -77,10 +77,8 @@ class Overseer:
     def session(self, value: Session) -> None:
         self._session = value
 
-    async def handle_event(self, event: OverseerEvent) -> None:
-        message = format_event(event)
-        async for _ev in self._session.send(message):
-            pass
+    def prepare_event(self, event: OverseerEvent) -> str:
+        return format_event(event)
 
     def get_tools(self) -> list[Tool]:
         memory_tools = [

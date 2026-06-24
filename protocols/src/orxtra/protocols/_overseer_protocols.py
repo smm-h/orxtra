@@ -37,7 +37,7 @@ class OverseerProtocol(Protocol):
 
     session: Session
 
-    async def handle_event(self, event: OverseerEvent) -> None: ...
+    def prepare_event(self, event: OverseerEvent) -> str: ...
 
 
 @runtime_checkable
