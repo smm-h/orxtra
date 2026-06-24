@@ -732,7 +732,6 @@ version = "0.1.1"
 source = { editable = "tool" }
 dependencies = [
     { name = "httpx" },
-    { name = "jsonschema" },
     { name = "orxtra-protocols" },
     { name = "orxtra-secrets" },
     { name = "orxtra-write-safety" },
@@ -748,7 +747,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "httpx" },
-    { name = "jsonschema" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-secrets", editable = "secrets" },
     { name = "orxtra-write-safety", editable = "write-safety" },
