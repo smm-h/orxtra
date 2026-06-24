@@ -88,6 +88,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
         suspending=tool.suspending,
         namespace=tool.namespace,
         tags=tool.tags,
+        deferred=tool.deferred,
     )
 
 

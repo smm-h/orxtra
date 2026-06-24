@@ -150,7 +150,12 @@ class Transport:
             self._compact_history(history, self._max_history_turns)
 
         tool_specs = [
-            {"name": t.name, "description": t.description, "parameters": t.parameters}
+            {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.parameters,
+                **({"deferred": True} if t.deferred else {}),
+            }
             for t in tools
         ]
         tool_map = {t.name: t for t in tools}
@@ -206,7 +211,12 @@ class Transport:
         self._sessions[session_id] = history
 
         tool_specs = [
-            {"name": t.name, "description": t.description, "parameters": t.parameters}
+            {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.parameters,
+                **({"deferred": True} if t.deferred else {}),
+            }
             for t in tools
         ]
         tool_map = {t.name: t for t in tools}

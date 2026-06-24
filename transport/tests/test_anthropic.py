@@ -42,7 +42,44 @@ class TestBuildRequest:
             system="sys",
             model="claude-sonnet-4-20250514",
         )
-        assert result["json_body"]["tools"] == tools
+        formatted = result["json_body"]["tools"]
+        assert len(formatted) == 1
+        assert formatted[0]["name"] == "read_file"
+        assert formatted[0]["description"] == "Read a file"
+        assert formatted[0]["input_schema"] == {"type": "object"}
+        assert "defer_loading" not in formatted[0]
+
+    def test_deferred_tools_get_defer_loading_flag(
+        self,
+        provider: AnthropicProvider,
+    ) -> None:
+        tools = [
+            {
+                "name": "read_file",
+                "description": "Read a file",
+                "parameters": {"type": "object"},
+                "deferred": True,
+            },
+            {
+                "name": "write_file",
+                "description": "Write a file",
+                "parameters": {"type": "object"},
+            },
+        ]
+        result = provider.build_request(
+            messages=[{"role": "user", "content": "hi"}],
+            tools=tools,
+            system="sys",
+            model="claude-sonnet-4-20250514",
+        )
+        formatted = result["json_body"]["tools"]
+        assert len(formatted) == 2
+        # Deferred tool gets defer_loading
+        assert formatted[0]["name"] == "read_file"
+        assert formatted[0]["defer_loading"] is True
+        # Non-deferred tool does not
+        assert formatted[1]["name"] == "write_file"
+        assert "defer_loading" not in formatted[1]
 
     def test_system_prompt_location(
         self,

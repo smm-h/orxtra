@@ -63,6 +63,43 @@ class TestBuildRequest:
         assert decls[0]["description"] == "Read a file"
         assert decls[0]["parameters"]["type"] == "object"
 
+    def test_deferred_tools_omit_parameters(self, provider: GoogleProvider) -> None:
+        tools = [
+            {
+                "name": "read_file",
+                "description": "Read a file",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"path": {"type": "string"}},
+                    "required": ["path"],
+                },
+                "deferred": True,
+            },
+            {
+                "name": "write_file",
+                "description": "Write a file",
+                "parameters": {"type": "object"},
+            },
+        ]
+        result = provider.build_request(
+            messages=[{"role": "user", "content": "hi"}],
+            tools=tools,
+            system="sys",
+            model="gemini-2.5-flash",
+        )
+        decls = result["json_body"]["tools"][0]["functionDeclarations"]
+        assert len(decls) == 2
+
+        # Deferred tool: no parameters, hint in description
+        assert decls[0]["name"] == "read_file"
+        assert "parameters" not in decls[0]
+        assert "load_tools" in decls[0]["description"]
+
+        # Non-deferred tool: parameters preserved
+        assert decls[1]["name"] == "write_file"
+        assert "parameters" in decls[1]
+        assert "load_tools" not in decls[1]["description"]
+
     def test_with_system(self, provider: GoogleProvider) -> None:
         result = provider.build_request(
             messages=[{"role": "user", "content": "hi"}],

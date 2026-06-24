@@ -44,7 +44,7 @@ class AnthropicProvider:
             "stream": True,
         }
         if tools:
-            body["tools"] = tools
+            body["tools"] = [_format_anthropic_tool(t) for t in tools]
         return {
             "url": f"{self.base_url}/v1/messages",
             "headers": {
@@ -201,3 +201,20 @@ class AnthropicProvider:
             elif b.type == "thinking":
                 content.append({"type": "thinking", "thinking": b.text})
         return {"role": "assistant", "content": content}
+
+
+def _format_anthropic_tool(tool: dict[str, Any]) -> dict[str, Any]:
+    """Format a tool spec for the Anthropic API.
+
+    Deferred tools get ``defer_loading: true`` which tells Anthropic
+    to exclude them from prompt token counting until they are called.
+    Non-deferred tools are passed through with the ``deferred`` key stripped.
+    """
+    spec: dict[str, Any] = {
+        "name": tool["name"],
+        "description": tool["description"],
+        "input_schema": tool["parameters"],
+    }
+    if tool.get("deferred"):
+        spec["defer_loading"] = True
+    return spec
