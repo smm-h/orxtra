@@ -21,3 +21,4 @@ coverage/
 .*-cache.json
 .env.local
 *.local-only
+.strictcli/
