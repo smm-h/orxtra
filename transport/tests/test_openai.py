@@ -59,6 +59,45 @@ class TestBuildRequest:
         ]
         assert result["json_body"]["tools"] == expected_tools
 
+    def test_deferred_tools_get_compact_spec(self, provider: OpenAIProvider) -> None:
+        tools = [
+            {
+                "name": "read_file",
+                "description": "Read a file",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"path": {"type": "string"}},
+                    "required": ["path"],
+                },
+                "deferred": True,
+            },
+            {
+                "name": "write_file",
+                "description": "Write a file",
+                "parameters": {"type": "object"},
+            },
+        ]
+        result = provider.build_request(
+            messages=[{"role": "user", "content": "hi"}],
+            tools=tools,
+            system="sys",
+            model="gpt-4o",
+        )
+        formatted = result["json_body"]["tools"]
+        assert len(formatted) == 2
+
+        # Deferred tool: empty parameters, hint in description
+        deferred_fn = formatted[0]["function"]
+        assert deferred_fn["name"] == "read_file"
+        assert deferred_fn["parameters"] == {"type": "object", "properties": {}}
+        assert "load_tools" in deferred_fn["description"]
+
+        # Non-deferred tool: full spec preserved
+        normal_fn = formatted[1]["function"]
+        assert normal_fn["name"] == "write_file"
+        assert normal_fn["parameters"] == {"type": "object"}
+        assert "load_tools" not in normal_fn["description"]
+
     def test_custom_endpoint(self) -> None:
         custom = OpenAIProvider(api_key="k", base_url="https://my-azure.openai.com")
         result = custom.build_request(

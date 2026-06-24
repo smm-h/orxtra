@@ -255,12 +255,23 @@ def _convert_content_block(block: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _convert_tool(tool: dict[str, Any]) -> dict[str, Any]:
-    """Convert an orxtra tool definition to a Gemini functionDeclaration."""
+    """Convert an orxtra tool definition to a Gemini functionDeclaration.
+
+    Deferred tools omit ``parameters`` entirely (Gemini allows this),
+    producing a compact declaration with only name and description.
+    """
     decl: dict[str, Any] = {"name": tool["name"]}
     if "description" in tool:
-        decl["description"] = tool["description"]
-    if "parameters" in tool:
-        decl["parameters"] = tool["parameters"]
-    elif "input_schema" in tool:
-        decl["parameters"] = tool["input_schema"]
+        desc = tool["description"]
+        if tool.get("deferred"):
+            desc = (
+                f"{desc} "
+                "(Schema not loaded -- call load_tools to load full schema first.)"
+            )
+        decl["description"] = desc
+    if not tool.get("deferred"):
+        if "parameters" in tool:
+            decl["parameters"] = tool["parameters"]
+        elif "input_schema" in tool:
+            decl["parameters"] = tool["input_schema"]
     return decl

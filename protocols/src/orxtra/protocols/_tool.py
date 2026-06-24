@@ -18,6 +18,7 @@ class Tool:
     suspending: bool = False
     namespace: str = ""
     tags: frozenset[str] = frozenset()
+    deferred: bool = False
 
 
 class ToolError(Exception):

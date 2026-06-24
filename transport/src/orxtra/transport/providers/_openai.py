@@ -39,7 +39,8 @@ class OpenAIProvider:
         }
         if tools:
             body["tools"] = [
-                {"type": "function", "function": t} for t in tools
+                {"type": "function", "function": _format_openai_tool(t)}
+                for t in tools
             ]
         return {
             "url": f"{self.base_url}/chat/completions",
@@ -183,3 +184,25 @@ class OpenAIProvider:
         if tool_calls:
             message["tool_calls"] = tool_calls
         return message
+
+
+def _format_openai_tool(tool: dict[str, Any]) -> dict[str, Any]:
+    """Format a tool spec for the OpenAI API.
+
+    Deferred tools get a compact spec with empty parameters and a
+    description hint telling the model to call load_tools first.
+    """
+    if tool.get("deferred"):
+        return {
+            "name": tool["name"],
+            "description": (
+                f"{tool['description']} "
+                "(Schema not loaded -- call load_tools to load full schema first.)"
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        }
+    return {
+        "name": tool["name"],
+        "description": tool["description"],
+        "parameters": tool["parameters"],
+    }
