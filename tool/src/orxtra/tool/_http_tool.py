@@ -97,7 +97,13 @@ async def _execute_http_request(
     )
 
 
-@tool("http", _HTTP_DESCRIPTION, renderer=JsonRenderer())
+@tool(
+    "http",
+    _HTTP_DESCRIPTION,
+    renderer=JsonRenderer(),
+    namespace="io.http",
+    tags=frozenset({"readonly", "mutation"}),
+)
 async def _http_full_impl(
     params: HttpFullParams,
     *,
@@ -119,7 +125,13 @@ async def _http_full_impl(
     )
 
 
-@tool("http", _HTTP_DESCRIPTION, renderer=JsonRenderer())
+@tool(
+    "http",
+    _HTTP_DESCRIPTION,
+    renderer=JsonRenderer(),
+    namespace="io.http",
+    tags=frozenset({"readonly"}),
+)
 async def _http_consult_impl(
     params: HttpConsultParams,
     *,

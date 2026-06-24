@@ -44,6 +44,8 @@ class TaskSchedulerRef(Protocol):
     "Enter a task, triggering its pre-checks."
     " The task must exist and be in a startable state.",
     renderer=TextRenderer(),
+    namespace="task.lifecycle",
+    tags=frozenset({"lifecycle"}),
 )
 async def _start_task_impl(
     params: StartTaskParams,
@@ -75,6 +77,8 @@ def make_start_task_tool(
     "Complete the active task with a summary message."
     " Triggers post-checks for verification.",
     renderer=TextRenderer(),
+    namespace="task.lifecycle",
+    tags=frozenset({"lifecycle"}),
 )
 async def _end_task_impl(
     params: EndTaskParams,
@@ -104,6 +108,8 @@ def make_end_task_tool(
     "Create a concrete subtask within the current active task."
     " The subtask will be scheduled for execution by its assigned agent.",
     renderer=TextRenderer(),
+    namespace="task.lifecycle",
+    tags=frozenset({"lifecycle"}),
 )
 async def _create_task_impl(
     params: CreateTaskParams,
@@ -135,6 +141,8 @@ def make_create_task_tool(
     "Create a goal-oriented task tree within the current active task."
     " The workflow decomposes goals into subtasks.",
     renderer=TextRenderer(),
+    namespace="task.lifecycle",
+    tags=frozenset({"lifecycle"}),
 )
 async def _create_workflow_impl(
     params: CreateWorkflowParams,
@@ -165,6 +173,8 @@ def make_create_workflow_tool(
     "Create a wait-for task that blocks until a named event fires"
     " or the timeout expires.",
     renderer=TextRenderer(),
+    namespace="task.lifecycle",
+    tags=frozenset({"lifecycle"}),
 )
 async def _create_wait_for_impl(
     params: CreateWaitForParams,
@@ -196,6 +206,8 @@ def make_create_wait_for_tool(
     " The session will resume with the child's result.",
     renderer=TextRenderer(),
     suspending=True,
+    namespace="task.lifecycle",
+    tags=frozenset({"lifecycle", "suspending"}),
 )
 async def _await_task_impl(
     params: AwaitTaskParams,

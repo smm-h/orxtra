@@ -46,7 +46,13 @@ def _validate_exec_arg(arg: str, read_root: Path) -> None:
             raise ToolError(msg) from exc
 
 
-@tool("exec", "Run a fixed executable with arguments.", renderer=JsonRenderer())
+@tool(
+    "exec",
+    "Run a fixed executable with arguments.",
+    renderer=JsonRenderer(),
+    namespace="exec",
+    tags=frozenset({"mutation"}),
+)
 async def _exec_impl(
     params: ExecBaseParams,
     *,

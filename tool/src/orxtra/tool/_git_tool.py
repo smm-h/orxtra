@@ -144,7 +144,13 @@ _MUTATION_SUBCOMMANDS: set[str] = {"commit"}
 _ALL_SUBCOMMANDS: set[str] = {*_READ_HANDLERS, *_MUTATION_SUBCOMMANDS}
 
 
-@tool("git", _DESCRIPTION, renderer=TextRenderer())
+@tool(
+    "git",
+    _DESCRIPTION,
+    renderer=TextRenderer(),
+    namespace="git",
+    tags=frozenset({"readonly", "mutation"}),
+)
 async def _git_impl(
     params: GitParams,
     *,
