@@ -7,7 +7,7 @@ adherence -- no coercion, no extra fields.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -257,6 +257,26 @@ class HttpBaseParams(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     method: str
+    url: str
+    headers: dict[str, str] | None = None
+    body: str | None = None
+    timeout: int | None = Field(default=None, ge=1)
+
+
+class HttpFullParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    method: Literal["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"]
+    url: str
+    headers: dict[str, str] | None = None
+    body: str | None = None
+    timeout: int | None = Field(default=None, ge=1)
+
+
+class HttpConsultParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    method: Literal["GET", "HEAD"]
     url: str
     headers: dict[str, str] | None = None
     body: str | None = None
