@@ -45,6 +45,7 @@ from orxtra.tool._write_tools import (
     make_edit_tool,
     make_mkdir_tool,
     make_move_tool,
+    make_multi_edit_tool,
     make_set_executable_tool,
     make_write_tool,
 )
@@ -936,6 +937,12 @@ class AgentExecutionMixin(SchedulerBase):
                 self._write_queue,
                 self._stale_tracker, session_id,
             ))
+        if "multi_edit" in agent_allow:
+            raw_tools.append(make_multi_edit_tool(
+                self._read_root, None,
+                self._write_queue,
+                self._stale_tracker, session_id,
+            ))
         if "mkdir" in agent_allow:
             raw_tools.append(
                 make_mkdir_tool(self._read_root, None),
@@ -966,7 +973,8 @@ class AgentExecutionMixin(SchedulerBase):
         # Git tool
         if "git" in agent_allow:
             write_tools = {
-                "write", "edit", "delete", "move",
+                "write", "edit", "multi_edit",
+                "delete", "move",
                 "copy", "mkdir", "set_executable",
             }
             has_write = bool(agent_allow & write_tools)

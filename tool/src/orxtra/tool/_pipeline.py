@@ -15,7 +15,8 @@ if TYPE_CHECKING:
     from orxtra.secrets._registry import SecretRegistry
 
 FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
-    "write", "edit", "delete", "move", "copy", "mkdir", "set_executable", "shell",
+    "write", "edit", "multi_edit", "delete", "move", "copy", "mkdir",
+    "set_executable", "shell",
 })
 
 

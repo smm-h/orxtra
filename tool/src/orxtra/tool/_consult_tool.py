@@ -10,7 +10,8 @@ from orxtra.tool._params import ConsultParams
 from orxtra.tool._validation import validate_args
 
 CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
-    "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
+    "write", "edit", "multi_edit", "delete", "move", "copy", "mkdir",
+    "set_executable",
     "exec", "shell", "git",
     "http",
     "start_task", "end_task", "create_task", "create_workflow", "create_wait_for",

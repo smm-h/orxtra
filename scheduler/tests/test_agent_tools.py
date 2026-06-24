@@ -468,3 +468,25 @@ class TestShellWithoutConfig:
         names = await _extract_tool_names(sched)
         assert "shell" not in names
         assert names == LIFECYCLE_TOOLS
+
+
+class TestMultiEditToolPresent:
+    """Agent with allow=["multi_edit"] gets the multi_edit
+    tool; agent without it does not."""
+
+    async def test_multi_edit_present_when_allowed(
+        self, tmp_path: Path,
+    ) -> None:
+        agent = _agent(["multi_edit"])
+        sched = _make_scheduler(agent, tmp_path)
+        names = await _extract_tool_names(sched)
+        assert "multi_edit" in names
+        assert names >= LIFECYCLE_TOOLS
+
+    async def test_multi_edit_absent_when_not_allowed(
+        self, tmp_path: Path,
+    ) -> None:
+        agent = _agent(["read", "write"])
+        sched = _make_scheduler(agent, tmp_path)
+        names = await _extract_tool_names(sched)
+        assert "multi_edit" not in names
