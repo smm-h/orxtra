@@ -45,7 +45,6 @@ from orxtra.tool._task_tools import (
     make_end_task_tool,
     make_start_task_tool,
 )
-from orxtra.tool._validation import validate_args
 from orxtra.tool._write_integration import safe_read_for_write, safe_write
 from orxtra.tool._write_tools import (
     make_copy_tool,
@@ -104,7 +103,6 @@ __all__ = [
     "tool",
     "safe_read_for_write",
     "safe_write",
-    "validate_args",
     "wrap_tool_with_pipeline",
     "wrap_tools_for_session",
 ]

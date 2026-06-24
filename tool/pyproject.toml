@@ -6,7 +6,6 @@ description = "Tool registry with granular constructors. Path enforcement, write
 requires-python = ">=3.12"
 dependencies = [
     "httpx",
-    "jsonschema",
     "pathspec",
     "pydantic>=2",
     "orxtra-protocols",
