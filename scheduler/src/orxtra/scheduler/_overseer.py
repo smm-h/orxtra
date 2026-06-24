@@ -358,12 +358,11 @@ class OverseerAdapter:
     ) -> None:
         """Delegate to the Overseer and capture tool calls."""
         # Capture tool calls by iterating the session
-        # stream directly instead of handle_event, so we
-        # can inspect tool use events.
-        from orxtra.protocols import format_event  # noqa: PLC0415
+        # stream directly instead of using the Overseer's
+        # session, so we can inspect tool use events.
         from orxtra.transport import ToolUse  # noqa: PLC0415
 
-        message = format_event(event)
+        message = self._overseer.prepare_event(event)
         tool_calls: list[dict[str, Any]] = []
         async for ev in self._overseer.session.send(
             message,

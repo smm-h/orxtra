@@ -53,16 +53,14 @@ def overseer(
     )
 
 
-@pytest.mark.asyncio
-async def test_handle_event_sends_message(
-    overseer: Overseer, session: MockSession,
+def test_prepare_event_returns_formatted_message(
+    overseer: Overseer,
 ) -> None:
     event = RunStarted(
         intent="Build feature", config_snapshot={},
     )
-    await overseer.handle_event(event)
-    assert len(session.sent_messages) == 1
-    parsed = json.loads(session.sent_messages[0])
+    result = overseer.prepare_event(event)
+    parsed = json.loads(result)
     assert parsed["event_type"] == "RunStarted"
 
 
@@ -95,23 +93,21 @@ def test_overseer_construction(
     assert overseer._autonomy_level == AutonomyLevel.HIGH  # noqa: SLF001
 
 
-@pytest.mark.asyncio
-async def test_handle_run_started(
-    overseer: Overseer, session: MockSession,
+def test_prepare_run_started(
+    overseer: Overseer,
 ) -> None:
     event = RunStarted(
         intent="Implement module",
         config_snapshot={"key": "val"},
     )
-    await overseer.handle_event(event)
-    parsed = json.loads(session.sent_messages[0])
+    result = overseer.prepare_event(event)
+    parsed = json.loads(result)
     assert parsed["event_type"] == "RunStarted"
     assert parsed["intent"] == "Implement module"
 
 
-@pytest.mark.asyncio
-async def test_handle_task_failed(
-    overseer: Overseer, session: MockSession,
+def test_prepare_task_failed(
+    overseer: Overseer,
 ) -> None:
     task_id = uuid6.uuid7()
     ctx = TaskContext(
@@ -143,8 +139,8 @@ async def test_handle_task_failed(
         task_name="run_tests",
         payload=payload,
     )
-    await overseer.handle_event(event)
-    parsed = json.loads(session.sent_messages[0])
+    result = overseer.prepare_event(event)
+    parsed = json.loads(result)
     assert parsed["event_type"] == "TaskFailed"
     assert parsed["task_name"] == "run_tests"
 
