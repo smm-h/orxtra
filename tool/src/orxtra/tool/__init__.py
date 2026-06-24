@@ -13,6 +13,7 @@ from orxtra.tool._discovery import collect_tools
 from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool
 from orxtra.tool._http_tool import make_http_tool
+from orxtra.tool._load_tools import make_load_tools_tool
 from orxtra.tool._notepad_tool import make_notepad_tool
 from orxtra.tool._path import PathError, check_write_scope, resolve_and_check
 from orxtra.tool._pipeline import (
@@ -89,6 +90,7 @@ __all__ = [
     "make_grep_tool",
     "make_http_tool",
     "make_list_dir_tool",
+    "make_load_tools_tool",
     "make_mkdir_tool",
     "make_move_tool",
     "make_multi_edit_tool",
