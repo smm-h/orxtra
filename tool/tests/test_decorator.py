@@ -327,3 +327,128 @@ class TestToolDecoratorEdgeCases:
     def test_template_description_attribute(self) -> None:
         """ToolTemplate exposes description attribute."""
         assert greet.description == "Greet someone."
+
+
+class TestToolDecoratorNamespaceTags:
+    """Namespace and tags flow through @tool -> ToolTemplate -> bind -> Tool."""
+
+    def test_namespace_and_tags_on_decorator(self) -> None:
+        """@tool with namespace and tags stores them on the template."""
+
+        @tool(
+            "ns_tool",
+            "A namespaced tool.",
+            renderer=TextRenderer(),
+            namespace="fs.read",
+            tags=frozenset({"readonly"}),
+        )
+        async def ns_tool(params: GreetParams) -> str:
+            return "ok"
+
+        assert ns_tool._namespace == "fs.read"
+        assert ns_tool._tags == frozenset({"readonly"})
+
+    def test_namespace_and_tags_flow_to_bound_tool(self) -> None:
+        """Namespace and tags from the decorator appear on the bound Tool."""
+
+        @tool(
+            "ns_tool2",
+            "A namespaced tool.",
+            renderer=TextRenderer(),
+            namespace="fs.write",
+            tags=frozenset({"mutation"}),
+        )
+        async def ns_tool2(params: GreetParams) -> str:
+            return "ok"
+
+        t = ns_tool2.bind()
+        assert t.namespace == "fs.write"
+        assert t.tags == frozenset({"mutation"})
+
+    def test_namespace_default_empty(self) -> None:
+        """Namespace defaults to empty string."""
+        t = greet.bind()
+        assert t.namespace == ""
+
+    def test_tags_default_empty(self) -> None:
+        """Tags default to empty frozenset."""
+        t = greet.bind()
+        assert t.tags == frozenset()
+
+    def test_namespace_override_at_bind_time(self) -> None:
+        """bind(namespace=...) overrides the template's namespace."""
+
+        @tool(
+            "ns_override",
+            "Override test.",
+            renderer=TextRenderer(),
+            namespace="original",
+        )
+        async def ns_override(params: GreetParams) -> str:
+            return "ok"
+
+        t = ns_override.bind(namespace="overridden")
+        assert t.namespace == "overridden"
+
+    def test_tags_override_at_bind_time(self) -> None:
+        """bind(tags=...) overrides the template's tags."""
+
+        @tool(
+            "tags_override",
+            "Override test.",
+            renderer=TextRenderer(),
+            tags=frozenset({"original"}),
+        )
+        async def tags_override(params: GreetParams) -> str:
+            return "ok"
+
+        t = tags_override.bind(tags=frozenset({"overridden"}))
+        assert t.tags == frozenset({"overridden"})
+
+    def test_namespace_override_none_uses_template(self) -> None:
+        """bind(namespace=None) falls back to the template's namespace."""
+
+        @tool(
+            "ns_none",
+            "None test.",
+            renderer=TextRenderer(),
+            namespace="keep_me",
+        )
+        async def ns_none(params: GreetParams) -> str:
+            return "ok"
+
+        t = ns_none.bind(namespace=None)
+        assert t.namespace == "keep_me"
+
+    def test_tags_override_none_uses_template(self) -> None:
+        """bind(tags=None) falls back to the template's tags."""
+
+        @tool(
+            "tags_none",
+            "None test.",
+            renderer=TextRenderer(),
+            tags=frozenset({"keep_me"}),
+        )
+        async def tags_none(params: GreetParams) -> str:
+            return "ok"
+
+        t = tags_none.bind(tags=None)
+        assert t.tags == frozenset({"keep_me"})
+
+    def test_namespace_and_tags_with_name_override(self) -> None:
+        """Namespace/tags work alongside name override and deps."""
+
+        @tool(
+            "combo",
+            "Combo test.",
+            renderer=TextRenderer(),
+            namespace="exec",
+            tags=frozenset({"mutation"}),
+        )
+        async def combo(params: AddParams, *, offset: int = 0) -> dict[str, int]:
+            return {"result": params.a + params.b + offset}
+
+        t = combo.bind(name="custom", namespace="exec.custom", offset=5)
+        assert t.name == "custom"
+        assert t.namespace == "exec.custom"
+        assert t.tags == frozenset({"mutation"})

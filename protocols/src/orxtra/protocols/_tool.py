@@ -16,6 +16,8 @@ class Tool:
     parameters: dict[str, Any]
     execute: Callable[[dict[str, Any]], Awaitable[ToolOutput[Any]]]
     suspending: bool = False
+    namespace: str = ""
+    tags: frozenset[str] = frozenset()
 
 
 class ToolError(Exception):
