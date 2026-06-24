@@ -17,7 +17,13 @@ from orxtra.tool._renderers import JsonRenderer
 _SIGTERM_GRACE_SECONDS = 5.0
 
 
-@tool("shell", "Run shell commands with a binary whitelist.", renderer=JsonRenderer())
+@tool(
+    "shell",
+    "Run shell commands with a binary whitelist.",
+    renderer=JsonRenderer(),
+    namespace="exec",
+    tags=frozenset({"mutation"}),
+)
 async def _shell_impl(
     params: ShellBaseParams,
     *,

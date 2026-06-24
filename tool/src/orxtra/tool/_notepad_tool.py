@@ -16,7 +16,13 @@ _DESCRIPTION = (
 )
 
 
-@tool("notepad", _DESCRIPTION, renderer=TextRenderer())
+@tool(
+    "notepad",
+    _DESCRIPTION,
+    renderer=TextRenderer(),
+    namespace="io.notepad",
+    tags=frozenset({"mutation"}),
+)
 async def _notepad_impl(
     params: NotepadParams,
     *,

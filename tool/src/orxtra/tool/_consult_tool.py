@@ -24,6 +24,8 @@ CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
     "The consulted agent cannot modify files, execute commands, "
     "or manage tasks. Returns the agent's text response.",
     renderer=TextRenderer(),
+    namespace="meta.consult",
+    tags=frozenset({"readonly"}),
 )
 async def _consult_impl(
     params: ConsultParams,

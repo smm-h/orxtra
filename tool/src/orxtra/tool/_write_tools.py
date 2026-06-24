@@ -52,7 +52,13 @@ def _check_scope(resolved: Path, scope: list[Path] | None, root: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@tool("write", "Create or overwrite a file.", renderer=TextRenderer())
+@tool(
+    "write",
+    "Create or overwrite a file.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _write_impl(
     params: WriteParams,
     *,
@@ -111,7 +117,13 @@ def make_write_tool(
 # ---------------------------------------------------------------------------
 
 
-@tool("edit", "Find-and-replace in a file.", renderer=TextRenderer())
+@tool(
+    "edit",
+    "Find-and-replace in a file.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _edit_impl(
     params: EditParams,
     *,
@@ -191,7 +203,13 @@ def make_edit_tool(
 # ---------------------------------------------------------------------------
 
 
-@tool("multi_edit", "Apply multiple find-and-replace edits in a batch.", renderer=TextRenderer())
+@tool(
+    "multi_edit",
+    "Apply multiple find-and-replace edits in a batch.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _multi_edit_impl(
     params: MultiEditParams,
     *,
@@ -287,7 +305,13 @@ def make_multi_edit_tool(
 # ---------------------------------------------------------------------------
 
 
-@tool("mkdir", "Create a directory.", renderer=TextRenderer())
+@tool(
+    "mkdir",
+    "Create a directory.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _mkdir_impl(
     params: MkdirParams,
     *,
@@ -319,7 +343,13 @@ def make_mkdir_tool(
 # ---------------------------------------------------------------------------
 
 
-@tool("move", "Move or rename a file or directory.", renderer=TextRenderer())
+@tool(
+    "move",
+    "Move or rename a file or directory.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _move_impl(
     params: MoveParams,
     *,
@@ -365,7 +395,13 @@ def make_move_tool(
 # ---------------------------------------------------------------------------
 
 
-@tool("copy", "Copy a file.", renderer=TextRenderer())
+@tool(
+    "copy",
+    "Copy a file.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _copy_impl(
     params: CopyParams,
     *,
@@ -415,7 +451,13 @@ def make_copy_tool(
 # ---------------------------------------------------------------------------
 
 
-@tool("delete", "Delete a file or directory via saferm.", renderer=TextRenderer())
+@tool(
+    "delete",
+    "Delete a file or directory via saferm.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _delete_impl(
     params: DeleteParams,
     *,
@@ -472,7 +514,13 @@ def make_delete_tool(
 # ---------------------------------------------------------------------------
 
 
-@tool("set_executable", "Set the executable bit on a file.", renderer=TextRenderer())
+@tool(
+    "set_executable",
+    "Set the executable bit on a file.",
+    renderer=TextRenderer(),
+    namespace="fs.write",
+    tags=frozenset({"mutation"}),
+)
 async def _set_executable_impl(
     params: SetExecutableParams,
     *,

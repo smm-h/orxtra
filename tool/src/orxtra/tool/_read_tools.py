@@ -232,7 +232,13 @@ def _glob_within_root(
 # ---------------------------------------------------------------------------
 
 
-@tool("read", "Read file contents with line numbers.", renderer=TextRenderer())
+@tool(
+    "read",
+    "Read file contents with line numbers.",
+    renderer=TextRenderer(),
+    namespace="fs.read",
+    tags=frozenset({"readonly"}),
+)
 async def _read_impl(
     params: ReadParams,
     *,
@@ -411,7 +417,13 @@ def _list_immediate(
     return entries
 
 
-@tool("list_dir", "List directory contents with type and size information.", renderer=TextRenderer())
+@tool(
+    "list_dir",
+    "List directory contents with type and size information.",
+    renderer=TextRenderer(),
+    namespace="fs.read",
+    tags=frozenset({"readonly"}),
+)
 async def _list_dir_impl(
     params: ListDirParams,
     *,
@@ -468,7 +480,13 @@ def make_list_dir_tool(read_root: Path) -> Tool:
 # ---------------------------------------------------------------------------
 
 
-@tool("glob", "Find files by glob pattern.", renderer=TextRenderer())
+@tool(
+    "glob",
+    "Find files by glob pattern.",
+    renderer=TextRenderer(),
+    namespace="fs.read",
+    tags=frozenset({"readonly"}),
+)
 async def _glob_impl(
     params: GlobParams,
     *,
@@ -639,7 +657,13 @@ def _grep_format_results(  # noqa: PLR0913
     return result.content
 
 
-@tool("grep", "Search file contents by regex pattern.", renderer=TextRenderer())
+@tool(
+    "grep",
+    "Search file contents by regex pattern.",
+    renderer=TextRenderer(),
+    namespace="fs.read",
+    tags=frozenset({"readonly"}),
+)
 async def _grep_impl(
     params: GrepParams,
     *,
@@ -798,7 +822,13 @@ def _stat_single(path: Path, root: Path) -> dict[str, Any]:
     }
 
 
-@tool("stat", "Get file metadata.", renderer=TextRenderer())
+@tool(
+    "stat",
+    "Get file metadata.",
+    renderer=TextRenderer(),
+    namespace="fs.read",
+    tags=frozenset({"readonly"}),
+)
 async def _stat_impl(
     params: StatParams,
     *,
@@ -847,7 +877,13 @@ def make_stat_tool(read_root: Path) -> Tool:
 # ---------------------------------------------------------------------------
 
 
-@tool("diff", "Show unified diff between two files.", renderer=TextRenderer())
+@tool(
+    "diff",
+    "Show unified diff between two files.",
+    renderer=TextRenderer(),
+    namespace="fs.read",
+    tags=frozenset({"readonly"}),
+)
 async def _diff_impl(
     params: DiffParams,
     *,
