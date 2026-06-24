@@ -2,20 +2,35 @@
 
 # Changelog
 
-## 0.4.0
+## 0.5.0
 
-@tool decorator, layer violation fix, knowledge hash persistence, CI fixes, and type cleanup.
+Tool namespaces, capability tags, registry-based construction, deferred loading, and prepare_event protocol.
 
 <details>
 <summary>Context</summary>
 
-Introduced @tool decorator with ToolTemplate[T].bind() for typed tool definitions. All 22 decorator-eligible
-tools migrated, 4 factory tools updated with Pydantic input schemas. OverseerProtocol and HealthMonitorProtocol
-added to protocols, removing the scheduler->overseer layer violation. Knowledge file hashes persisted via
-StorageBackend. StatResult and GlobResult replace union types and DirListing misuse. Pipeline suspending
-flag bug fixed. Dead escalation handler removed. CI fixes for transport, overseer prompts, schema, and pytest.
+Tools gain hierarchical namespaces (fs.read, fs.write, git, task.lifecycle, etc.) and capability tags
+(readonly, mutation, lifecycle, suspending). Allow lists support wildcards (fs.*) and tag filters (#readonly).
+ToolRegistry replaces the 207-line if/elif chain with data-driven construction. load_tools meta-tool enables
+on-demand schema loading with provider-aware deferred specs (Anthropic defer_loading, OpenAI empty params,
+Gemini parameterless). All 26 tools now use the @tool decorator. OverseerProtocol gains prepare_event replacing
+handle_event for clean message formatting. Session.update_tools() enables dynamic tool sets.
 
 </details>
+
+### Features
+
+- **New feature.** `prepare_event(event) -> str` replaces `handle_event` on OverseerProtocol. Separates message formatting from session interaction.
+- **New feature.** All 26 tools now use the `@tool` decorator. Shell, consult, http (two modes), and exec converted. `validate_args` and `jsonschema` removed from tool module.
+- **New feature.** `namespace` and `tags` fields on Tool. All 26 tools tagged with hierarchical namespaces (`fs.read`, `fs.write`, `git`, `task.lifecycle`, etc.) and capability tags (`readonly`, `mutation`, `lifecycle`, `suspending`).
+- **New feature.** `ToolRegistry` for data-driven tool construction. Allow lists support namespace wildcards (`fs.*`) and tag filters (`#readonly`). Replaces 207-line if/elif chain.
+- **New feature.** `load_tools` meta-tool for on-demand schema loading. Provider-aware deferred tools: Anthropic `defer_loading`, OpenAI empty params, Gemini parameterless. `Session.update_tools()` for dynamic tool sets.
+
+### Fixes
+
+- **Bug fix.** `multi_edit` tool now reachable via allow lists and correctly tracked as file mutation.
+
+## 0.4.0
 
 ### Features
 
