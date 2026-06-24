@@ -56,8 +56,15 @@ class ToolTemplate(Generic[T]):
         self._suspending = suspending
         self._schema: dict[str, Any] = params_model.model_json_schema()
 
-    def bind(self, **deps: Any) -> Tool:  # noqa: ANN401
-        """Bind dependencies to produce a ready-to-use ``Tool``."""
+    def bind(self, *, name: str | None = None, **deps: Any) -> Tool:  # noqa: ANN401
+        """Bind dependencies to produce a ready-to-use ``Tool``.
+
+        Args:
+            name: Override the template's name on the produced Tool.
+                Useful for tools like ``exec`` where each instance is
+                named after its executable.
+            **deps: Keyword arguments forwarded to the decorated function.
+        """
         template = self
 
         async def execute(args: dict[str, Any]) -> ToolOutput[Any]:
@@ -83,7 +90,7 @@ class ToolTemplate(Generic[T]):
             return ToolOutput(data=result, text=text)
 
         return Tool(
-            name=template.name,
+            name=name if name is not None else template.name,
             description=template.description,
             parameters=template._schema,
             execute=execute,

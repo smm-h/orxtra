@@ -204,6 +204,37 @@ class TestToolDecoratorSchema:
         assert "b" in props
 
 
+class TestToolDecoratorNameOverride:
+    """Tests for the name override parameter on bind()."""
+
+    def test_name_override_on_bound_tool(self) -> None:
+        """bind(name='custom') produces a Tool with name='custom'."""
+        t = greet.bind(name="custom_greet")
+        assert t.name == "custom_greet"
+
+    def test_name_override_none_uses_template_name(self) -> None:
+        """bind(name=None) falls back to the template's name."""
+        t = greet.bind(name=None)
+        assert t.name == "greet"
+
+    def test_name_override_omitted_uses_template_name(self) -> None:
+        """bind() without name uses the template's name."""
+        t = greet.bind()
+        assert t.name == "greet"
+
+    @pytest.mark.asyncio
+    async def test_name_override_does_not_affect_execution(self) -> None:
+        """Overriding name does not change the tool's behavior."""
+        t = greet.bind(name="renamed")
+        result = await t.execute({"name": "World"})
+        assert result.data == "Hello, World!"
+
+    def test_name_override_with_deps(self) -> None:
+        """name override works alongside bound dependencies."""
+        t = add_numbers.bind(name="adder", offset=5)
+        assert t.name == "adder"
+
+
 class TestToolDecoratorMultipleBind:
     """Multiple binds from the same template."""
 
