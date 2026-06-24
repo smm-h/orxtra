@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pytest
+from orxtra.protocols._results import ToolOutput
+from orxtra.protocols._tool import Tool
 from orxtra.session._session import Session
 from orxtra.transport import Error, Result, StepFinish, StepStart, Text, ToolUse
 
@@ -487,3 +489,73 @@ class TestErrorHandling:
         assert session.session_id is None
         # No transcript entries should be written since no Result was received
         assert len(mock_trace_writer.transcript_entries) == 0
+
+
+class TestUpdateTools:
+    def test_update_tools_replaces_tool_set(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+        assert session.tools == []
+
+        async def _noop(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="ok", text="ok")
+
+        new_tools = [
+            Tool(name="alpha", description="A", parameters={"type": "object"}, execute=_noop),
+            Tool(name="beta", description="B", parameters={"type": "object"}, execute=_noop),
+        ]
+        session.update_tools(new_tools)
+        assert session.tools is new_tools
+        assert [t.name for t in session.tools] == ["alpha", "beta"]
+
+    async def test_update_tools_takes_effect_on_next_send(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        """After update_tools, the next send() passes new tools to transport."""
+        sid = "a0b1c2d3-e4f5-4a6b-8c7d-0e1f2a3b4c5d"
+
+        async def _noop(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="ok", text="ok")
+
+        original_tool = Tool(
+            name="original", description="Original", parameters={"type": "object"}, execute=_noop,
+        )
+        new_tool = Tool(
+            name="replacement", description="Replacement", parameters={"type": "object"}, execute=_noop,
+        )
+
+        mock_transport.set_events(
+            make_standard_events(session_id=sid),
+            make_standard_events(session_id=sid),
+        )
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[original_tool],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+
+        # First send uses original tool
+        await _collect_events(session, "first")
+        assert [t.name for t in mock_transport.calls[0]["tools"]] == ["original"]
+
+        # Update tools and send again
+        session.update_tools([new_tool])
+        await _collect_events(session, "second")
+        assert [t.name for t in mock_transport.calls[1]["tools"]] == ["replacement"]
