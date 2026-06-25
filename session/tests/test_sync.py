@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import threading
 from typing import TYPE_CHECKING
 
 import pytest
@@ -103,3 +105,66 @@ class TestSyncSession:
         sync.send("hello")
         assert sync.total_input_tokens == 42
         assert sync.total_output_tokens == 17
+
+    def test_send_from_different_thread(
+        self,
+        run_id: uuid.UUID,
+    ) -> None:
+        """SyncSession.send works when called from a thread with a running loop elsewhere."""
+        mock_transport = MockTransport()
+        mock_trace_writer = MockTraceWriter()
+        mock_transport.set_events(
+            make_standard_events(text="threaded response"),
+        )
+
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+        sync = SyncSession(session)
+
+        loop = asyncio.new_event_loop()
+        thread = threading.Thread(target=loop.run_forever, daemon=True)
+        thread.start()
+
+        try:
+            result = sync.send("hello")
+            assert isinstance(result, list)
+            last = result[-1]
+            assert isinstance(last, Result)
+            assert last.text == "threaded response"
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
+            thread.join(timeout=5)
+            loop.close()
+
+    def test_send_from_loop_thread_raises(
+        self,
+        run_id: uuid.UUID,
+    ) -> None:
+        """SyncSession.send raises RuntimeError when called from the event loop thread."""
+        mock_transport = MockTransport()
+        mock_trace_writer = MockTraceWriter()
+        mock_transport.set_events(
+            make_standard_events(text="should not reach"),
+        )
+
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+        sync = SyncSession(session)
+
+        async def _inner() -> None:
+            sync.send("hello")
+
+        with pytest.raises(RuntimeError, match="run_sync\\(\\) called from the event loop thread"):
+            asyncio.run(_inner())

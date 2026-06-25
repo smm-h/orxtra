@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import threading
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -291,3 +293,58 @@ class TestSyncAsk:
             )
         assert result == mock_result
         assert isinstance(result, str)
+
+    def test_sync_ask_from_different_thread(self) -> None:
+        """sync_ask works when called from a thread with a running loop elsewhere."""
+        mock_result = "threaded response"
+
+        async def mock_ask(
+            prompt: str,
+            provider_type: str,
+            model: str,
+            api_key: str,
+            **kwargs: object,
+        ) -> str:
+            return mock_result
+
+        loop = asyncio.new_event_loop()
+        thread = threading.Thread(target=loop.run_forever, daemon=True)
+        thread.start()
+
+        try:
+            with patch("orxtra.services._ask.ask", new=mock_ask):
+                result = sync_ask(
+                    "test prompt",
+                    "anthropic",
+                    "claude-sonnet-4-6",
+                    "fake-key",
+                )
+            assert result == mock_result
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
+            thread.join(timeout=5)
+            loop.close()
+
+    def test_sync_ask_from_loop_thread_raises(self) -> None:
+        """sync_ask raises RuntimeError when called from the event loop thread."""
+
+        async def mock_ask(
+            prompt: str,
+            provider_type: str,
+            model: str,
+            api_key: str,
+            **kwargs: object,
+        ) -> str:
+            return "should not reach"
+
+        async def _inner() -> None:
+            with patch("orxtra.services._ask.ask", new=mock_ask):
+                sync_ask(
+                    "test prompt",
+                    "anthropic",
+                    "claude-sonnet-4-6",
+                    "fake-key",
+                )
+
+        with pytest.raises(RuntimeError, match="run_sync\\(\\) called from the event loop thread"):
+            asyncio.run(_inner())
