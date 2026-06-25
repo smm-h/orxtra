@@ -26,6 +26,7 @@ from orxtra.protocols._types._actions import (
 from orxtra.protocols._types._dispatch import (
     AccumulatorEntry,
     FilterPredicate,
+    Source,
     Subscription,
     SubscriptionAction,
 )
@@ -158,6 +159,7 @@ __all__ = [
     "RunStarted",
     "ScriptAction",
     "ScriptExecution",
+    "Source",
     "Subscription",
     "SubscriptionAction",
     "Severity",
