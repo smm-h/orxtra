@@ -12,6 +12,7 @@ from orxtra.overseer._autonomy import (
     requires_approval,
 )
 from orxtra.overseer._health import HealthMetrics, HealthMonitor
+from orxtra.overseer._knowledge import load_knowledge_files
 from orxtra.overseer._overseer import Overseer, OverseerEvent, load_overseer_prompt
 
 __all__ = [
@@ -23,6 +24,7 @@ __all__ = [
     "Overseer",
     "OverseerEvent",
     "is_autonomous",
+    "load_knowledge_files",
     "load_overseer_prompt",
     "requires_approval",
 ]

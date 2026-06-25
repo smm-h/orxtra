@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from orxtra.agent import load_agents, load_categories
-from orxtra.overseer._knowledge import load_knowledge_files
+from orxtra.overseer import load_knowledge_files
 from orxtra.protocols._task import BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, load_workflow
 from orxtra.services._providers import build_transport_registry
