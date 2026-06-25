@@ -4,7 +4,7 @@ import json
 from typing import TYPE_CHECKING
 
 import uuid6
-from orxtra.trace._lock import _lock_key
+from orxtra.trace._lock import lock_key
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -58,7 +58,7 @@ async def clean_orphaned(pool: asyncpg.Pool) -> int:
     cleaned = 0
     for row in rows:
         run_id: UUID = row["id"]
-        key = _lock_key(run_id)
+        key = lock_key(run_id)
         async with pool.acquire() as conn:
             acquired: bool = await conn.fetchval(
                 "SELECT pg_try_advisory_lock($1)", key
