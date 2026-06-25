@@ -97,13 +97,15 @@ description = "Persistent LLM with action tools, PG memory, session handoff"
 depends_on = ["protocols", "trace", "session", "tool", "transport"]
 releasable = "orxtra"
 
-# --- Interface layer ---
+# --- Composition layer ---
 
 [[projects]]
 path = "services"
 description = "Shared business logic for all frontends"
-depends_on = ["agent", "protocols", "scheduler", "session", "overseer", "trace"]
+depends_on = ["agent", "dispatch", "protocols", "scheduler", "session", "overseer", "trace"]
 releasable = "orxtra"
+
+# --- Interface layer ---
 
 [[projects]]
 path = "cli"
@@ -134,10 +136,11 @@ releasable = false
 # --- Architecture layers ---
 
 [layers]
-order = ["foundation", "orchestration", "intelligence", "interfaces"]
+order = ["foundation", "orchestration", "intelligence", "composition", "interfaces"]
 
 [layers.assignments]
 foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
-interfaces = ["services", "cli", "mcp"]
+composition = ["services"]
+interfaces = ["cli", "mcp"]
