@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 from .conftest import FakeRecord
 from orxtra.services._config import dump_config, show_pricing
-from orxtra.session._pricing import PRICING_TABLE
+from orxtra.session import PRICING_TABLE
 
 if TYPE_CHECKING:
     from uuid import UUID

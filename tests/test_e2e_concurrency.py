@@ -15,12 +15,12 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import uuid6
 from orxtra.protocols import CheckResult, TaskResult, TaskSpec, TaskState
-from orxtra.scheduler._graph import (
+from orxtra.scheduler import (
+    WorkflowConfig,
     build_graph,
     find_parallel_groups,
     topological_sort,
 )
-from orxtra.scheduler._types import WorkflowConfig
 
 from tests.conftest import (
     AgentTurn,

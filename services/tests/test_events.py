@@ -10,7 +10,7 @@ from uuid import uuid4
 import asyncpg  # type: ignore[import-untyped]
 import pytest
 from orxtra.services._events import event_stream, fire_event
-from orxtra.trace._memory_backend import InMemoryEventBus
+from orxtra.trace import InMemoryEventBus
 
 if TYPE_CHECKING:
     from uuid import UUID

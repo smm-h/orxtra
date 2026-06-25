@@ -7,7 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
-from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._executor import Scheduler, classify_error
 from orxtra.scheduler._graph import (
     CycleError,
     build_graph,
@@ -41,6 +41,7 @@ __all__ = [
     "OverseerAdapter",
     "OverseerInterface",
     "Scheduler",
+    "classify_error",
     "ServiceConfig",
     "ServiceInstance",
     "WorkflowConfig",

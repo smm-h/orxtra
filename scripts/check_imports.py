@@ -145,17 +145,28 @@ def _is_import_allowed(source_layer: str, target_layer: str) -> bool:
     return target_order < source_order
 
 
+_SUPPRESS_MARKER = "allow-private-import"
+
+
 def _collect_cross_package_private_imports(
     tree: ast.Module,
     source_package: str,
+    source_lines: list[str],
 ) -> list[tuple[int, str, str]]:
     """Collect runtime imports of private modules from other orxtra packages.
 
     For each ``from orxtra.X._foo import ...`` where X != source_package,
     returns (line_number, target_package, full_module_path).
-    Skips imports inside TYPE_CHECKING blocks.
+    Skips imports inside TYPE_CHECKING blocks and lines with an
+    ``# allow-private-import`` comment.
     """
     results: list[tuple[int, str, str]] = []
+
+    def _is_suppressed(lineno: int) -> bool:
+        idx = lineno - 1
+        if 0 <= idx < len(source_lines):
+            return _SUPPRESS_MARKER in source_lines[idx]
+        return False
 
     def _walk_body(body: list[ast.stmt], in_type_checking: bool = False) -> None:
         for node in body:
@@ -173,6 +184,7 @@ def _collect_cross_package_private_imports(
                         and parts[0] == "orxtra"
                         and parts[2].startswith("_")
                         and parts[1] != source_package
+                        and not _is_suppressed(node.lineno)
                     ):
                         results.append((node.lineno, parts[1], node.module))
 
@@ -184,6 +196,7 @@ def _collect_cross_package_private_imports(
                         and parts[0] == "orxtra"
                         and parts[2].startswith("_")
                         and parts[1] != source_package
+                        and not _is_suppressed(node.lineno)
                     ):
                         results.append((node.lineno, parts[1], alias.name))
 
@@ -295,8 +308,9 @@ def _check_file(  # noqa: C901
                 errors.append(msg)
 
     # Cross-package private import check
+    source_lines = source_text.splitlines()
     private_imports = _collect_cross_package_private_imports(
-        tree, source_module,
+        tree, source_module, source_lines,
     )
     for lineno, target_pkg, full_path in private_imports:
         severity = "WARNING" if is_test else "VIOLATION"

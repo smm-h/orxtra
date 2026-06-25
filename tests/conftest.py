@@ -10,8 +10,7 @@ import pytest
 import uuid6
 from orxtra.agent import Agent
 from orxtra.protocols import TaskSpec, Tool, ToolError
-from orxtra.scheduler._executor import Scheduler
-from orxtra.scheduler._types import WorkflowConfig
+from orxtra.scheduler import Scheduler, WorkflowConfig
 from orxtra.transport import Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:

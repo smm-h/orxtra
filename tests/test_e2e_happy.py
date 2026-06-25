@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import uuid6
 from orxtra.protocols import CheckResult, ScriptExecution, TaskResult, TaskSpec, TaskState
-from orxtra.scheduler._types import WorkflowConfig
+from orxtra.scheduler import WorkflowConfig
 
 from tests.conftest import (
     AgentTurn,
