@@ -2,21 +2,30 @@
 
 # Changelog
 
-## 0.5.0
+## 0.6.0
 
-Tool namespaces, capability tags, registry-based construction, deferred loading, and prepare_event protocol.
+Dispatch module, event bus enhancements, protocols reorganization
 
 <details>
 <summary>Context</summary>
 
-Tools gain hierarchical namespaces (fs.read, fs.write, git, task.lifecycle, etc.) and capability tags
-(readonly, mutation, lifecycle, suspending). Allow lists support wildcards (fs.*) and tag filters (#readonly).
-ToolRegistry replaces the 207-line if/elif chain with data-driven construction. load_tools meta-tool enables
-on-demand schema loading with provider-aware deferred specs (Anthropic defer_loading, OpenAI empty params,
-Gemini parameterless). All 26 tools now use the @tool decorator. OverseerProtocol gains prepare_event replacing
-handle_event for clean message formatting. Session.update_tools() enables dynamic tool sets.
+Major architectural changes: new dispatch module for event delivery with subscriptions, action dispatch, and accumulator flush. Event bus enhanced with nullable run_id, source column, replay(), fire_blocking(), and event_stream(). Protocols reorganized into internal _types/ package. Scheduler migrated from EventRegistry to dispatch's TransientEventDelivery. Services promoted to composition layer owning dispatch integration.
 
 </details>
+
+### Breaking
+
+- **Scheduler migrated to dispatch.** EventRegistry removed from public API, replaced by dispatch module's TransientEventDelivery. Bridge-to-events pattern removed in favor of direct dispatch subscriptions.
+- **Services promoted to composition layer.** Services now owns dispatch integration (subscribe, unsubscribe, list_subscriptions), AsyncioFlushScheduler, and ServicesActionExecutor.
+
+### Features
+
+- **EventDelivery protocol.** Clean abstraction for event delivery, injected into Scheduler.
+- **Event bus enhancements.** Nullable run_id for system-level events, source column for event provenance, replay() for cursor-based pagination, fire_blocking() for synchronous delivery, event_stream() async generator.
+- **Action type hierarchy and FlushScheduler protocol.** Typed Action union (CreateTask, CreateWorkflow, AddConstraint, etc.) and FlushScheduler protocol for accumulator-driven dispatch.
+- **Dispatch module.** New event delivery system with subscriptions, action dispatch, and accumulator flush. Includes TransientEventDelivery (in-memory), InMemoryDispatchBackend, dual-phase delivery, persistent subscriptions, and action executor with typed Action dispatch.
+
+## 0.5.0
 
 ### Features
 
