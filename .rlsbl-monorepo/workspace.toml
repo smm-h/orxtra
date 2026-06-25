@@ -80,7 +80,7 @@ releasable = "orxtra"
 [[projects]]
 path = "scheduler"
 description = "Task executor (recursive hierarchy, budgets, constraints)"
-depends_on = ["protocols", "agent", "tool", "write-safety", "session", "trace", "verify", "notepad", "secrets", "transport"]
+depends_on = ["protocols", "agent", "tool", "write-safety", "session", "trace", "verify", "notepad", "secrets", "transport", "dispatch"]
 releasable = "orxtra"
 
 [[projects]]
