@@ -239,7 +239,7 @@ class TestProtocolMethodCounts:
 
     def test_storage_reader_count(self) -> None:
         methods = _get_protocol_method_names(StorageReader)
-        assert len(methods) == 23, f"StorageReader methods: {sorted(methods)}"
+        assert len(methods) == 24, f"StorageReader methods: {sorted(methods)}"
 
     def test_storage_lock_count(self) -> None:
         methods = _get_protocol_method_names(StorageLock)
@@ -261,7 +261,7 @@ class TestProtocolMethodCounts:
         """StorageBackend combines all sub-protocols."""
         methods = _get_protocol_method_names(StorageBackend)
         # Sum of all sub-protocol methods (no overlap expected)
-        expected = 8 + 2 + 3 + 2 + 6 + 5 + 1 + 23 + 4 + 3 + 2  # = 59
+        expected = 8 + 2 + 3 + 2 + 6 + 5 + 1 + 24 + 4 + 3 + 2  # = 60
         assert len(methods) == expected, (
             f"StorageBackend has {len(methods)} methods, expected {expected}. "
             f"Methods: {sorted(methods)}"

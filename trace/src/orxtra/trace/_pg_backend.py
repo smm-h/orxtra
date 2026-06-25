@@ -411,6 +411,22 @@ class PgBackend:
     ) -> dict[str, Any] | None:
         return await _reader.read_workflow_status(self._pool, workflow_id)
 
+    async def replay(
+        self,
+        *,
+        event_types: list[str] | None = None,
+        source: str | None = None,
+        since_id: UUID | None = None,
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]:
+        return await _reader.replay(
+            self._pool,
+            event_types=event_types,
+            source=source,
+            since_id=since_id,
+            limit=limit,
+        )
+
     # -- StorageLock --
 
     async def acquire_run_lock(self, run_id: UUID) -> None:

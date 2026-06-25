@@ -918,6 +918,26 @@ class InMemoryBackend:
     ) -> dict[str, Any] | None:
         return self._workflow_status.get(workflow_id)
 
+    async def replay(
+        self,
+        *,
+        event_types: list[str] | None = None,
+        source: str | None = None,
+        since_id: UUID | None = None,
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
+        for ev in self._events:
+            if event_types is not None and ev["event_type"] not in event_types:
+                continue
+            if source is not None and ev["source"] != source:
+                continue
+            if since_id is not None and ev["id"] <= since_id:
+                continue
+            results.append(ev)
+        results.sort(key=lambda e: e["id"])
+        return results[:limit]
+
     # ── StorageLock ──
 
     async def acquire_run_lock(self, run_id: UUID) -> None:
