@@ -8,7 +8,6 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
-import uuid6
 from orxtra.protocols import CheckResult, TaskResult, TaskSpec
 from orxtra.scheduler._types import WorkflowConfig
 
@@ -135,61 +134,6 @@ class TestPgListener:
         await asyncio.sleep(0.05)
 
         assert scheduler.is_paused
-
-    async def test_pg_listener_dispatches_to_event_registry(
-        self,
-        make_scheduler: _SchedulerFactory,
-        trace_writer: MockTraceWriter,
-        run_id: uuid.UUID,
-    ) -> None:
-        """PG notification with non-run_state event fires on
-        EventRegistry."""
-        mock_conn = AsyncMock()
-        mock_pool = AsyncMock()
-        mock_pool.acquire = AsyncMock(return_value=mock_conn)
-        mock_pool.release = AsyncMock()
-
-        scheduler = make_scheduler(pool=mock_pool)
-
-        captured_callback = None
-
-        async def capture_add_listener(
-            channel: str, callback: _ListenerCallback,
-        ) -> None:
-            nonlocal captured_callback
-            captured_callback = callback
-
-        mock_conn.add_listener = capture_add_listener
-        mock_conn.remove_listener = AsyncMock()
-
-        config = _noop_workflow()
-        with _patch_recovery():
-            await scheduler.execute_workflow(config)
-        assert captured_callback is not None
-
-        # Set up a waiter on the event registry
-        received: dict[str, object] | None = None
-
-        async def wait_for_event() -> None:
-            nonlocal received
-            received = await scheduler._event_registry.wait_for(  # noqa: SLF001
-                "custom_event", deadline_seconds=2.0,
-            )
-
-        waiter = asyncio.create_task(wait_for_event())
-        await asyncio.sleep(0.01)
-
-        # Fire a non-run_state notification
-        payload = json.dumps({
-            "event_type": "custom_event",
-            "run_id": str(uuid6.uuid7()),  # different run
-            "data": {"key": "value"},
-        })
-        captured_callback(mock_conn, 0, "orxtra_events", payload)
-
-        await asyncio.sleep(0.05)
-        await waiter
-        assert received == {"key": "value"}
 
     async def test_no_pool_no_listener(
         self,

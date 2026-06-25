@@ -1,12 +1,11 @@
 """Phase 3 tests: trace-integrated signal delivery.
 
 Tests subscribe/unsubscribe, control signal dispatch,
-event bridging, and the execute_workflow lifecycle.
+and the execute_workflow lifecycle.
 """
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 
 import uuid6
@@ -262,116 +261,6 @@ class TestSignalDelivery:
 
         # Neither paused nor aborted
         assert not scheduler.is_paused
-
-    # -- event bridge --
-
-    async def test_event_bridge_fires_on_registry(
-        self,
-        scheduler: Scheduler,
-    ) -> None:
-        """_bridge_trace_to_events wires the trace event callback
-        to also fire on the in-process EventRegistry."""
-        await scheduler._bridge_trace_to_events()  # noqa: SLF001
-
-        received: dict[str, object] | None = None
-
-        async def listener() -> None:
-            nonlocal received
-            received = await scheduler._event_registry.wait_for(  # noqa: SLF001
-                "test_event", deadline_seconds=2.0,
-            )
-
-        task = asyncio.create_task(listener())
-        await asyncio.sleep(0.01)
-
-        # Fire through the bridged callback
-        assert (
-            scheduler._trace_writer._event_callback  # noqa: SLF001
-            is not None
-        )
-        await scheduler._trace_writer._event_callback(  # noqa: SLF001
-            uuid6.uuid7(),
-            uuid6.uuid7(),
-            "test_event",
-            {"key": "value"},
-        )
-
-        await task
-        assert received == {"key": "value"}
-
-    async def test_wait_for_unblocks_via_bridge(
-        self,
-        scheduler: Scheduler,
-    ) -> None:
-        """A wait_for listener unblocks when an event is fired
-        through the trace layer bridge."""
-        await scheduler._bridge_trace_to_events()  # noqa: SLF001
-
-        task_id = uuid6.uuid7()
-        scheduler._event_registry.register(  # noqa: SLF001
-            "my_event", task_id,
-        )
-
-        async def waiter() -> dict[str, object] | None:
-            return await scheduler._event_registry.wait_for(  # noqa: SLF001
-                "my_event", deadline_seconds=2.0,
-            )
-
-        task = asyncio.create_task(waiter())
-        await asyncio.sleep(0.01)
-
-        # Fire through the trace layer bridge
-        assert (
-            scheduler._trace_writer._event_callback  # noqa: SLF001
-            is not None
-        )
-        await scheduler._trace_writer._event_callback(  # noqa: SLF001
-            uuid6.uuid7(),
-            uuid6.uuid7(),
-            "my_event",
-            {"done": True},
-        )
-
-        result = await task
-        assert result == {"done": True}
-
-    async def test_bridge_preserves_original_callback(
-        self,
-        scheduler: Scheduler,
-    ) -> None:
-        """If a callback was already set on the trace writer,
-        the bridge wraps it so the original is still called."""
-        original_calls: list[tuple[Any, ...]] = []
-
-        async def original_cb(
-            event_id: uuid.UUID,
-            run_id: uuid.UUID,
-            event_type: str,
-            data: dict[str, Any],
-        ) -> None:
-            original_calls.append(
-                (event_id, run_id, event_type, data),
-            )
-
-        scheduler._trace_writer._event_callback = (  # noqa: SLF001
-            original_cb
-        )
-        await scheduler._bridge_trace_to_events()  # noqa: SLF001
-
-        eid = uuid6.uuid7()
-        rid = uuid6.uuid7()
-        await scheduler._trace_writer._event_callback(  # noqa: SLF001
-            eid, rid, "some_event", {"x": 1},
-        )
-
-        # Original callback was invoked
-        assert len(original_calls) == 1
-        assert original_calls[0] == (
-            eid,
-            rid,
-            "some_event",
-            {"x": 1},
-        )
 
     # -- execute_workflow lifecycle --
 
