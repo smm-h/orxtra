@@ -10,6 +10,7 @@ dependencies = [
     "orxtra-protocols",
     "orxtra-write-safety",
     "orxtra-agent",
+    "orxtra-dispatch",
     "orxtra-tool",
     "orxtra-session",
     "orxtra-trace",
@@ -31,6 +32,7 @@ packages = ["src/orxtra"]
 orxtra-protocols = { workspace = true }
 orxtra-write-safety = { workspace = true }
 orxtra-agent = { workspace = true }
+orxtra-dispatch = { workspace = true }
 orxtra-tool = { workspace = true }
 orxtra-session = { workspace = true }
 orxtra-trace = { workspace = true }

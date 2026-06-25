@@ -23,9 +23,9 @@ from orxtra.protocols import (
     TaskSpec,
     TaskState,
 )
+from orxtra.dispatch import TransientEventDelivery
 from orxtra.scheduler._agent_execution import AgentExecutionMixin
 from orxtra.scheduler._enforcement import EnforcementMixin
-from orxtra.scheduler._events import EventRegistry
 from orxtra.scheduler._graph import (
     build_graph,
     find_parallel_groups,
@@ -210,7 +210,7 @@ class Scheduler(
         self._task_sessions: dict[UUID, Session] = {}
         self._running_tasks: set[asyncio.Task[Any]] = set()
         self._background_tasks: set[asyncio.Task[Any]] = set()
-        self._event_registry = event_delivery or EventRegistry()
+        self._event_registry = event_delivery or TransientEventDelivery()
         self._session_mutations: dict[str, set[str]] = {}
         self._write_queue = WriteQueue()
         self._stale_tracker = StaleWriteTracker()
