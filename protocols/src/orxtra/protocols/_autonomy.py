@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from types import MappingProxyType
 
 _ALL_SENTINEL = "__all__"
 
@@ -11,17 +12,30 @@ class AutonomyLevel(StrEnum):
     HIGH = "high"
     MAX = "max"
 
+    _RULES: MappingProxyType[str, frozenset[str]]  # type: ignore[assignment]
 
-AUTONOMY_RULES: dict[AutonomyLevel, set[str]] = {
-    AutonomyLevel.LOW: {"read_only"},
-    AutonomyLevel.MEDIUM: {
+    def is_autonomous(self, action_type: str) -> bool:
+        allowed = self._RULES[self.value]
+        if _ALL_SENTINEL in allowed:
+            return True
+        return action_type in allowed
+
+    def requires_approval(self, action_type: str) -> bool:
+        return not self.is_autonomous(action_type)
+
+
+# Assigned after class body because StrEnum members
+# occupy the namespace during class definition.
+AutonomyLevel._RULES = MappingProxyType({  # type: ignore[attr-defined]
+    "low": frozenset({"read_only"}),
+    "medium": frozenset({
         "read_only",
         "retry",
         "budget_reallocation",
         "concurrency",
         "task_assumption",
-    },
-    AutonomyLevel.HIGH: {
+    }),
+    "high": frozenset({
         "read_only",
         "retry",
         "budget_reallocation",
@@ -30,17 +44,6 @@ AUTONOMY_RULES: dict[AutonomyLevel, set[str]] = {
         "scope_change",
         "architecture_decision",
         "understanding_assumption",
-    },
-    AutonomyLevel.MAX: {_ALL_SENTINEL},
-}
-
-
-def is_autonomous(level: AutonomyLevel, action_type: str) -> bool:
-    allowed = AUTONOMY_RULES[level]
-    if _ALL_SENTINEL in allowed:
-        return True
-    return action_type in allowed
-
-
-def requires_approval(level: AutonomyLevel, action_type: str) -> bool:
-    return not is_autonomous(level, action_type)
+    }),
+    "max": frozenset({_ALL_SENTINEL}),
+})

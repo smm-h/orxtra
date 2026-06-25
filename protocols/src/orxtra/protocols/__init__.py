@@ -7,14 +7,13 @@ except PackageNotFoundError:
 
 from orxtra.protocols._autonomy import (
     AutonomyLevel,
-    is_autonomous,
-    requires_approval,
 )
 from orxtra.protocols._contracts import (
     CheckExecutor,
     HealthMonitorProtocol,
     OverseerProtocol,
     Renderer,
+    SessionProtocol,
 )
 from orxtra.protocols._types import (
     ALWAYS_ACTIVE_CONSTRAINTS,
@@ -113,6 +112,7 @@ __all__ = [
     "OverseerEvent",
     "OverseerProtocol",
     "Renderer",
+    "SessionProtocol",
     "RunStarted",
     "ScriptExecution",
     "Severity",
@@ -130,6 +130,4 @@ __all__ = [
     "ToolOutput",
     "WorkflowExecution",
     "__version__",
-    "is_autonomous",
-    "requires_approval",
 ]

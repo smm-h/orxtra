@@ -25,9 +25,9 @@ if TYPE_CHECKING:
     from orxtra.protocols._overseer_protocols import (
         HealthMonitorProtocol,
         OverseerProtocol,
+        SessionProtocol,
     )
     from orxtra.protocols._tool import Tool
-    from orxtra.session import Session
 
 from orxtra.protocols._overseer_protocols import OverseerEvent
 
@@ -285,17 +285,17 @@ class OverseerAdapter:
         """Replace the Overseer session's tools with
         autonomy-gated versions."""
         session = self._overseer.session
-        session._tools = self.gate_tools(  # noqa: SLF001
-            session._tools,  # noqa: SLF001
+        session.update_tools(
+            self.gate_tools(session.tools),
         )
 
     @property
-    def session(self) -> Session:
+    def session(self) -> SessionProtocol:
         """Expose the overseer's session for handoff."""
         return self._overseer.session
 
     def update_session(
-        self, new_session: Session,
+        self, new_session: SessionProtocol,
     ) -> None:
         """Update the overseer's session after handoff."""
         self._overseer.session = new_session
@@ -315,15 +315,14 @@ class OverseerAdapter:
 
     def _gate_tool(self, tool: Tool) -> Tool:
         """Wrap a single tool with autonomy gating."""
-        from orxtra.protocols._autonomy import is_autonomous  # noqa: PLC0415
         from orxtra.protocols._results import Confirmation, ToolOutput  # noqa: PLC0415
         from orxtra.protocols._tool import Tool as ToolCls  # noqa: PLC0415
 
         action_type = TOOL_ACTION_TYPES.get(
             tool.name, "scope_change",
         )
-        if is_autonomous(
-            self._autonomy_level, action_type,
+        if self._autonomy_level.is_autonomous(
+            action_type,
         ):
             return tool
 
