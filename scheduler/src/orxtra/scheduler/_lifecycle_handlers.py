@@ -325,9 +325,6 @@ class LifecycleHandlersMixin(SchedulerBase):
             parent_id, [],
         ).append(task_id)
         self._task_costs[task_id] = Decimal(0)
-        self._event_registry.register(
-            parsed.event_name, task_id,
-        )
         return str(task_id)
 
     async def handle_await_task(

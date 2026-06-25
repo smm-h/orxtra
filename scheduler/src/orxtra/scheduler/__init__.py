@@ -7,7 +7,6 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
-from orxtra.scheduler._events import EventRegistry
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._graph import (
     CycleError,
@@ -38,7 +37,6 @@ __all__ = [
     "__version__",
     "CycleError",
     "EscalationPolicy",
-    "EventRegistry",
     "FileLockRegistry",
     "OverseerAdapter",
     "OverseerInterface",
