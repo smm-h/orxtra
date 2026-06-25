@@ -8,8 +8,7 @@ from typing import Any
 
 import pytest
 from orxtra.protocols import TaskResult, TaskSpec
-from orxtra.scheduler._executor import Scheduler
-from orxtra.scheduler._types import WorkflowConfig
+from orxtra.scheduler import Scheduler, WorkflowConfig
 from orxtra.trace import InMemoryBackend, InMemoryEventBus
 
 

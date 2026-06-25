@@ -13,7 +13,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from orxtra.protocols import CheckResult, ErrorCategory, TaskState
-from orxtra.scheduler._executor import Scheduler, classify_error
+from orxtra.scheduler import Scheduler, classify_error
 from orxtra.transport import Result, StepFinish, ToolUse
 
 from tests.conftest import (

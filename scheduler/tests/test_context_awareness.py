@@ -24,7 +24,7 @@ class TestComputeContextUsage:
         self,
         scheduler: Scheduler,
     ) -> None:
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 0
@@ -37,7 +37,7 @@ class TestComputeContextUsage:
         self,
         scheduler: Scheduler,
     ) -> None:
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 50_000
@@ -51,7 +51,7 @@ class TestComputeContextUsage:
         make_scheduler: Callable[..., Scheduler],
     ) -> None:
         sched = make_scheduler(model_context_limit=100_000)
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 80_000
@@ -65,7 +65,7 @@ class TestComputeContextUsage:
         make_scheduler: Callable[..., Scheduler],
     ) -> None:
         sched = make_scheduler(model_context_limit=0)
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 1000
@@ -86,7 +86,7 @@ class TestCheckAgentContext:
         """Below 80% usage: no context warning event."""
         sched = make_scheduler(model_context_limit=100_000)
 
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 30_000
@@ -112,7 +112,7 @@ class TestCheckAgentContext:
         """At 80% usage: emits context warning event with action=warning."""
         sched = make_scheduler(model_context_limit=100_000)
 
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 50_000
@@ -144,7 +144,7 @@ class TestCheckAgentContext:
         """At 85% usage: still warning, not handoff."""
         sched = make_scheduler(model_context_limit=100_000)
 
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 50_000
@@ -187,7 +187,7 @@ class TestCheckAgentContext:
         )
 
         from orxtra.protocols import TaskSpec
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         task_spec = TaskSpec(
             name="test-task",
@@ -238,7 +238,7 @@ class TestCheckAgentContext:
         """Exactly 80% triggers warning."""
         sched = make_scheduler(model_context_limit=200_000)
 
-        from orxtra.session._session import Session
+        from orxtra.session import Session
 
         session = Session.__new__(Session)
         session.total_input_tokens = 100_000

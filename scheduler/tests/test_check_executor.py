@@ -326,7 +326,7 @@ class TestCheckExecutorIntegration:
         self, scheduler: Scheduler,
     ) -> None:
         """AgentExecution postcheck with invalid JSON returns passed=False."""
-        from orxtra.verify._execution import _run_agent  # noqa: PLC0415
+        from orxtra.verify._execution import _run_agent  # noqa: PLC0415  # allow-private-import
 
         agent_exec = AgentExecution(
             agent="test-agent",
@@ -355,7 +355,7 @@ class TestCheckExecutorIntegration:
 
     async def test_agent_execution_valid_verdict(self, tmp_path: Path) -> None:
         """AgentExecution postcheck with valid verdict JSON returns passed=True."""
-        from orxtra.verify._execution import _run_agent  # noqa: PLC0415
+        from orxtra.verify._execution import _run_agent  # noqa: PLC0415  # allow-private-import
 
         verdict_json = json.dumps({
             "verdict": "pass",

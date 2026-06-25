@@ -242,7 +242,7 @@ class TestSessionResumeWithHistory:
 class TestTransportInjectHistory:
     def test_inject_history_sets_session(self) -> None:
         """Transport.inject_history populates _sessions dict."""
-        from orxtra.transport._provider import RetryPolicy
+        from orxtra.transport import RetryPolicy
 
         class StubProvider:
             pass
@@ -272,7 +272,7 @@ class TestTransportInjectHistory:
 
     def test_inject_history_copies_messages(self) -> None:
         """inject_history makes a copy, not a reference."""
-        from orxtra.transport._provider import RetryPolicy
+        from orxtra.transport import RetryPolicy
 
         class StubProvider:
             pass
