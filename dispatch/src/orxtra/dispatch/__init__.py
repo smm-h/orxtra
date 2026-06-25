@@ -7,6 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
+from orxtra.dispatch._memory_backend import InMemoryDispatchBackend
 from orxtra.dispatch._protocols import (
     AccumulatorStorage,
     ActionStorage,
@@ -27,6 +28,7 @@ __all__ = [
     "ActionStorage",
     "DispatchBackend",
     "FilterPredicate",
+    "InMemoryDispatchBackend",
     "Subscription",
     "SubscriptionAction",
     "SubscriptionStorage",
