@@ -18,7 +18,7 @@ def run_sync(coro: Any) -> T:  # noqa: ANN401
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        return asyncio.run(coro)  # type: ignore[return-value]
+        return asyncio.run(coro)
 
     if loop._thread_id == threading.get_ident():  # noqa: SLF001
         msg = (
@@ -28,4 +28,4 @@ def run_sync(coro: Any) -> T:  # noqa: ANN401
         raise RuntimeError(msg)
 
     future = asyncio.run_coroutine_threadsafe(coro, loop)
-    return future.result()  # type: ignore[return-value]
+    return future.result()
