@@ -338,6 +338,7 @@ class TestWriteEvent:
         assert "insert into events" in sql.lower()
         assert args == (
             TEST_UUID, RUN_ID, None,
+            "internal",
             "test_event", json.dumps({"key": "value"}),
         )
 
@@ -358,6 +359,7 @@ class TestWriteEvent:
         assert "insert into events" in sql.lower()
         assert args == (
             TEST_UUID, RUN_ID, TASK_ID,
+            "internal",
             "test_event", json.dumps({"key": "value"}),
         )
 
