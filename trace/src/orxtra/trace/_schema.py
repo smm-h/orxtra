@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Schema authority: pgdesign TOML (schema/orxtra.toml) is the source of truth.
+# Schema authority: pgdesign TOML (schema/trace.toml) is the source of truth.
 # This file is a hand-maintained Python DDL that will be replaced by pgdesign
 # codegen once that capability exists. Known divergences from pgdesign output:
 #
