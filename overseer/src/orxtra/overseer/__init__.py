@@ -6,10 +6,7 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.overseer._autonomy import (
-    AUTONOMY_RULES,
     AutonomyLevel,
-    is_autonomous,
-    requires_approval,
 )
 from orxtra.overseer._health import HealthMetrics, HealthMonitor
 from orxtra.overseer._knowledge import load_knowledge_files
@@ -17,14 +14,11 @@ from orxtra.overseer._overseer import Overseer, OverseerEvent, load_overseer_pro
 
 __all__ = [
     "__version__",
-    "AUTONOMY_RULES",
     "AutonomyLevel",
     "HealthMetrics",
     "HealthMonitor",
     "Overseer",
     "OverseerEvent",
-    "is_autonomous",
     "load_knowledge_files",
     "load_overseer_prompt",
-    "requires_approval",
 ]
