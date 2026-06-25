@@ -10,6 +10,7 @@ from orxtra.protocols._autonomy import (
 )
 from orxtra.protocols._contracts import (
     CheckExecutor,
+    EventDelivery,
     HealthMonitorProtocol,
     OverseerProtocol,
     Renderer,
@@ -125,6 +126,7 @@ __all__ = [
     "DirListing",
     "ErrorCategory",
     "EscalationPayload",
+    "EventDelivery",
     "ExecResult",
     "Execution",
     "FileContent",
