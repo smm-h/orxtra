@@ -117,8 +117,9 @@ CREATE TABLE task_iterations (
 CREATE_EVENTS = """\
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    run_id UUID NOT NULL REFERENCES runs(id),
+    run_id UUID REFERENCES runs(id),
     task_id UUID REFERENCES tasks(id),
+    source TEXT NOT NULL DEFAULT 'internal',
     event_type TEXT NOT NULL,
     data JSONB NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -262,6 +263,7 @@ CREATE TABLE knowledge_hashes (
 CREATE_EVENTS_INDEXES = """\
 CREATE INDEX idx_events_run_created ON events (run_id, created_at DESC);
 CREATE INDEX idx_events_type_created ON events (event_type, created_at DESC);
+CREATE INDEX idx_events_source_created ON events (source, created_at DESC);
 """
 
 # ---------------------------------------------------------------------------
@@ -290,6 +292,7 @@ BEGIN
     PERFORM pg_notify('orxtra_events', json_build_object(
         'event_id', NEW.id,
         'run_id', NEW.run_id,
+        'source', NEW.source,
         'event_type', NEW.event_type
     )::text);
     RETURN NEW;
