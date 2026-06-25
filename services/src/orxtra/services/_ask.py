@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any
 
+from orxtra.protocols import run_sync
 from orxtra.transport import Result, Transport
 
 from orxtra.services._providers import _DEFAULT_RETRY_POLICY, _PROVIDER_TYPES
@@ -136,6 +136,6 @@ def sync_ask(
     the result text. Intended for scripts and synchronous consumers
     that cannot use async/await.
     """
-    return asyncio.run(
+    return run_sync(
         ask(prompt, provider_type, model, api_key, **kwargs),
     )

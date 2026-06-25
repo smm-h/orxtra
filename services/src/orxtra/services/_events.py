@@ -4,6 +4,7 @@ import asyncio
 import json
 from typing import TYPE_CHECKING, Any
 
+from orxtra.protocols import run_sync
 from orxtra.trace import TraceWriter
 
 if TYPE_CHECKING:
@@ -34,7 +35,7 @@ def fire_blocking(
     source: str = "internal",
 ) -> UUID:
     """Synchronous wrapper around fire_event for non-async contexts."""
-    return asyncio.run(fire_event(pool, run_id, event_name, payload, source))
+    return run_sync(fire_event(pool, run_id, event_name, payload, source))
 
 
 async def event_stream(

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
+
+from orxtra.protocols import run_sync
 
 if TYPE_CHECKING:
     from orxtra.session._session import Session
@@ -28,7 +29,7 @@ class SyncSession:
             ):
                 events.append(event)
 
-        asyncio.run(_collect())
+        run_sync(_collect())
         return events
 
     @property
