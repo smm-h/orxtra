@@ -3,7 +3,15 @@ from __future__ import annotations
 import pytest
 
 from orxtra.dispatch import FilterPredicate, InMemoryDispatchBackend
-from orxtra.services._dispatch import list_subscriptions, subscribe, unsubscribe
+from orxtra.services._dispatch import (
+    create_source,
+    delete_source,
+    get_source,
+    list_sources,
+    list_subscriptions,
+    subscribe,
+    unsubscribe,
+)
 
 
 @pytest.fixture
@@ -196,3 +204,98 @@ async def test_list_subscriptions_includes_disabled(
 
     all_subs = await list_subscriptions(backend, enabled_only=False)
     assert len(all_subs) == 1
+
+
+# -- create_source --
+
+
+@pytest.mark.asyncio
+async def test_create_source(backend: InMemoryDispatchBackend) -> None:
+    source_id = await create_source(backend, "github", "GitHub")
+    source = await backend.get_source(source_id)
+    assert source is not None
+    assert source.slug == "github"
+    assert source.name == "GitHub"
+    assert source.auth_method is None
+    assert source.auth_config is None
+
+
+@pytest.mark.asyncio
+async def test_create_source_with_auth(backend: InMemoryDispatchBackend) -> None:
+    source_id = await create_source(
+        backend,
+        "webhook",
+        "Webhook",
+        auth_method="hmac",
+        auth_config={"secret": "s3cret"},
+    )
+    source = await backend.get_source(source_id)
+    assert source is not None
+    assert source.auth_method == "hmac"
+    assert source.auth_config == {"secret": "s3cret"}
+
+
+@pytest.mark.asyncio
+async def test_create_source_duplicate_slug_raises(
+    backend: InMemoryDispatchBackend,
+) -> None:
+    await create_source(backend, "github", "GitHub")
+    with pytest.raises(ValueError, match="already exists"):
+        await create_source(backend, "github", "GitHub 2")
+
+
+# -- get_source --
+
+
+@pytest.mark.asyncio
+async def test_get_source(backend: InMemoryDispatchBackend) -> None:
+    source_id = await create_source(backend, "gitlab", "GitLab")
+    source = await get_source(backend, source_id)
+    assert source is not None
+    assert source.slug == "gitlab"
+
+
+@pytest.mark.asyncio
+async def test_get_source_not_found(backend: InMemoryDispatchBackend) -> None:
+    from uuid import uuid4
+
+    result = await get_source(backend, uuid4())
+    assert result is None
+
+
+# -- list_sources --
+
+
+@pytest.mark.asyncio
+async def test_list_sources_empty(backend: InMemoryDispatchBackend) -> None:
+    result = await list_sources(backend)
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_list_sources(backend: InMemoryDispatchBackend) -> None:
+    await create_source(backend, "a", "A")
+    await create_source(backend, "b", "B")
+    result = await list_sources(backend)
+    assert len(result) == 2
+
+
+# -- delete_source --
+
+
+@pytest.mark.asyncio
+async def test_delete_source(backend: InMemoryDispatchBackend) -> None:
+    source_id = await create_source(backend, "temp", "Temp")
+    await delete_source(backend, source_id)
+    result = await get_source(backend, source_id)
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_delete_source_nonexistent_noop(
+    backend: InMemoryDispatchBackend,
+) -> None:
+    from uuid import uuid4
+
+    # Should not raise.
+    await delete_source(backend, uuid4())
