@@ -4,7 +4,7 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation. Monorepo with 15 sub-projects, all layers implemented across 90 source modules and 107 test files. Foundation, orchestration, and intelligence layers are functional; production PG integration and end-to-end hardening in progress.
+Active implementation. Monorepo with 16 sub-projects across five layers, implemented across 90+ source modules and 110+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
 
 ## Philosophy
 
@@ -47,10 +47,11 @@ orxtra/
     session/                    # Foundation: session lifecycle
 
     scheduler/                  # Orchestration: task executor
+    dispatch/                   # Orchestration: event delivery + subscriptions
 
     overseer/                   # Intelligence: persistent LLM brain
 
-    services/                   # Interface: shared business logic
+    services/                   # Composition: shared business logic
     cli/                        # Interface: strictcli CLI
     mcp/                        # Interface: MCP server
 ```
@@ -62,9 +63,10 @@ Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 | Layer | Sub-projects | Dependencies |
 |---|---|---|
 | Foundation | protocols, secrets, write-safety, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + secrets + write-safety, trace -> secrets, verify -> protocols) |
-| Orchestration | scheduler | Depends on foundation |
+| Orchestration | scheduler, dispatch | Depends on foundation |
 | Intelligence | overseer | Depends on foundation (not orchestration -- shared protocols at the seam) |
-| Interfaces | services, cli, mcp | Depends on orchestration + intelligence |
+| Composition | services | Depends on orchestration + intelligence; provides concrete implementations (ActionExecutor, FlushScheduler) and service functions |
+| Interfaces | cli, mcp | Depends on composition |
 
 Higher layers can depend on lower layers. Lower layers cannot depend on higher layers. The Overseer and scheduler share types via the protocols module but never import each other.
 
@@ -81,8 +83,9 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **Notepad** is PG-backed append-only cross-agent IPC.
 - **Session** wraps transport with token tracking, transcript persistence, cross-restart resumption.
 - **Scheduler** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints.
+- **Dispatch** is the event delivery engine. Subscriptions with filter predicates, per-subscription action chains, accumulator buffering with count/time thresholds, dual-phase delivery (transient futures + persistent subscriptions). ActionExecutor protocol for injecting workflow execution without downward dependencies.
 - **Overseer** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent.
-- **Services** is shared business logic consumed by CLI, MCP, and the Python API.
+- **Services** is the composition layer: shared business logic consumed by CLI, MCP, and the Python API. Provides concrete implementations of dispatch protocols (ServicesActionExecutor, AsyncioFlushScheduler) and thin service functions for subscriptions, events, runs, inbox, and trace queries.
 - **CLI** is a strictcli frontend. Agents are the primary users.
 - **MCP** is an MCP server for human interface via dashboard/AI client.
 
