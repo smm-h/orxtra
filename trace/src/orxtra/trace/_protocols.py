@@ -365,15 +365,7 @@ class RecoveryOperations(Protocol):
     async def clean_orphaned(self) -> int: ...
 
 
-@runtime_checkable
-class EventBus(Protocol):
-    """Event notification (replaces LISTEN/NOTIFY)."""
-
-    async def subscribe(
-        self, channel: str, callback: Callable[[str], Awaitable[None]],
-    ) -> None: ...
-
-    async def publish(self, channel: str, payload: str) -> None: ...
+from orxtra.protocols import EventBus  # re-export for backward compat
 
 
 @runtime_checkable

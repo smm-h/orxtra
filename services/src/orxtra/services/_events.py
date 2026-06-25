@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     import asyncpg
 
-    from orxtra.trace._protocols import EventBus
+    from orxtra.protocols import EventBus
 
 
 async def fire_event(
