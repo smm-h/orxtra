@@ -2,16 +2,23 @@
 
 # Changelog
 
+## 0.7.0
+
+PgDispatchBackend, source CRUD, sync wrapper hardening, protocol consolidation
+
+### Breaking
+
+- **MCP no longer depends on orxtra-trace.** MCPServer now requires EventBus injection instead of importing trace directly.
+- **ActionExecutor, DispatchBackend, and EventBus protocols moved to orxtra-protocols.** Import paths changed from orxtra.dispatch and orxtra.scheduler to orxtra.protocols.
+
+### Features
+
+- **PgDispatchBackend.** Full asyncpg-backed dispatch storage with subscription, source, and accumulator persistence.
+- **Source CRUD.** Register, query, and delete event sources with SourceStorage protocol and InMemoryDispatchBackend implementation.
+- **run_sync utility.** Event-loop-aware sync wrappers that safely handle nested event loops, replacing raw asyncio.run() calls.
+- **EventDelivery.fire()** gains source parameter for tracking event origin.
+
 ## 0.6.0
-
-Dispatch module, event bus enhancements, protocols reorganization
-
-<details>
-<summary>Context</summary>
-
-Major architectural changes: new dispatch module for event delivery with subscriptions, action dispatch, and accumulator flush. Event bus enhanced with nullable run_id, source column, replay(), fire_blocking(), and event_stream(). Protocols reorganized into internal _types/ package. Scheduler migrated from EventRegistry to dispatch's TransientEventDelivery. Services promoted to composition layer owning dispatch integration.
-
-</details>
 
 ### Breaking
 

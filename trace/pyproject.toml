@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-trace"
-version = "0.6.0"
+version = "0.7.0"
 license = "BUSL-1.1"
 description = "PG schema owner. Events, task results, transcripts, inbox, state machines, crash recovery."
 requires-python = ">=3.12"

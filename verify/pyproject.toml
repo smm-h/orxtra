@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-verify"
-version = "0.6.0"
+version = "0.7.0"
 license = "BUSL-1.1"
 description = "Verification runner. Ordered callable chains, structured verdicts, severity-gated blocking."
 requires-python = ">=3.12"

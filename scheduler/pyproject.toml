@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-scheduler"
-version = "0.6.0"
+version = "0.7.0"
 license = "BUSL-1.1"
 description = "Task executor. Recursive task hierarchy, dependency graphs, budgets, constraints, crash recovery."
 requires-python = ">=3.12"
