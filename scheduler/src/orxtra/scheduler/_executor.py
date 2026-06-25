@@ -887,7 +887,7 @@ class Scheduler(
 
         async def _bridged_callback(
             event_id: UUID,
-            run_id: UUID,
+            run_id: UUID | None,
             event_type: str,
             data: dict[str, Any],
         ) -> None:

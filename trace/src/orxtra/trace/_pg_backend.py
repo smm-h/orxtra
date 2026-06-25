@@ -35,7 +35,7 @@ class PgBackend:
         self,
         pool: asyncpg.Pool,
         event_callback: Callable[
-            [UUID, UUID, str, dict[str, Any]],
+            [UUID, UUID | None, str, dict[str, Any]],
             Awaitable[None],
         ]
         | None = None,
@@ -137,12 +137,13 @@ class PgBackend:
 
     async def write_event(
         self,
-        run_id: UUID,
+        run_id: UUID | None,
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
+        source: str = "internal",
     ) -> UUID:
-        return await self._writer.write_event(run_id, event_type, data, task_id)
+        return await self._writer.write_event(run_id, event_type, data, task_id, source)
 
     async def write_transcript_entry(
         self,
