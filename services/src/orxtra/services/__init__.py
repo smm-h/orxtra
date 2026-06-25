@@ -9,6 +9,7 @@ except PackageNotFoundError:
 
 from orxtra.services._ask import ask, ask_structured, sync_ask
 from orxtra.services._config import dump_config, show_pricing
+from orxtra.services._dispatch import list_subscriptions, subscribe, unsubscribe
 from orxtra.services._providers import build_transport_registry
 from orxtra.services._events import event_stream, fire_blocking, fire_event
 from orxtra.services._inbox import (
@@ -61,6 +62,7 @@ __all__ = [
     "get_transcript",
     "list_inbox",
     "list_runs",
+    "list_subscriptions",
     "list_tasks",
     "pause_run",
     "query_events",
@@ -72,6 +74,8 @@ __all__ = [
     "skip_inbox_item",
     "start_run",
     "start_run_from_file",
+    "subscribe",
+    "unsubscribe",
     "validate_agent",
     "validate_categories",
     "validate_workflow",
