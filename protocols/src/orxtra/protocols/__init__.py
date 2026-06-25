@@ -8,6 +8,9 @@ except PackageNotFoundError:
 from orxtra.protocols._autonomy import (
     AutonomyLevel,
 )
+from orxtra.protocols._sync import (
+    run_sync,
+)
 from orxtra.protocols._contracts import (
     AccumulatorStorage,
     ActionExecutor,
@@ -204,4 +207,5 @@ __all__ = [
     "WriteLessonParams",
     "WriteLessonResult",
     "__version__",
+    "run_sync",
 ]
