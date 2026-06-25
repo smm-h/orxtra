@@ -66,3 +66,25 @@ class HealthMonitorProtocol(Protocol):
     def record_event(
         self, event_type: str, *, success: bool, is_repetition: bool = False,
     ) -> None: ...
+
+
+@runtime_checkable
+class EventDelivery(Protocol):
+    """Protocol for event delivery (fire-and-wait).
+
+    Used by the scheduler so callers can inject alternative
+    implementations (e.g. PG-backed LISTEN/NOTIFY).
+    """
+
+    async def fire(
+        self,
+        event_name: str,
+        payload: dict[str, object] | None = None,
+    ) -> None: ...
+
+    async def wait_for(
+        self,
+        event_name: str,
+        *,
+        deadline_seconds: float,
+    ) -> dict[str, object] | None: ...

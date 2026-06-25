@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from orxtra.protocols import (
         BudgetExhaustionPolicy,
         CheckResult,
+        EventDelivery,
         Execution,
         TaskContext,
         TaskResult,
@@ -29,7 +30,6 @@ if TYPE_CHECKING:
         TaskState,
         Tool,
     )
-    from orxtra.scheduler._events import EventRegistry
     from orxtra.scheduler._locks import FileLockRegistry
     from orxtra.scheduler._overseer import OverseerEvent, OverseerInterface
     from orxtra.scheduler._services import ServiceInstance
@@ -81,7 +81,7 @@ class SchedulerBase(ABC):
     _task_sessions: dict[UUID, Session]
     _running_tasks: set[asyncio.Task[Any]]
     _background_tasks: set[asyncio.Task[Any]]
-    _event_registry: EventRegistry
+    _event_registry: EventDelivery
     _session_mutations: dict[str, set[str]]
     _write_queue: WriteQueue
     _stale_tracker: StaleWriteTracker

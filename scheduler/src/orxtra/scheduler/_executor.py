@@ -15,6 +15,7 @@ from orxtra.protocols import (
     BudgetExhaustionPolicy,
     CheckResult,
     ErrorCategory,
+    EventDelivery,
     RunStarted,
     StructuralAdvisory,
     TaskContext,
@@ -147,6 +148,7 @@ class Scheduler(
         custom_tools: (
             dict[str, Callable[..., Tool]] | None
         ) = None,
+        event_delivery: EventDelivery | None = None,
     ) -> None:
         # When a StorageBackend is provided, use it as the trace writer
         # (it implements all the same write methods).
@@ -208,7 +210,7 @@ class Scheduler(
         self._task_sessions: dict[UUID, Session] = {}
         self._running_tasks: set[asyncio.Task[Any]] = set()
         self._background_tasks: set[asyncio.Task[Any]] = set()
-        self._event_registry = EventRegistry()
+        self._event_registry = event_delivery or EventRegistry()
         self._session_mutations: dict[str, set[str]] = {}
         self._write_queue = WriteQueue()
         self._stale_tracker = StaleWriteTracker()
