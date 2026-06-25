@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Check that orxtra sub-project imports respect layer boundaries.
 
-Walks all .py files under */src/orxtra/*/ and verifies that no module
-imports from a higher layer at runtime (TYPE_CHECKING imports are OK).
+Walks all .py files under */src/orxtra/*/ and */tests/ and verifies:
+1. No source module imports from a higher layer at runtime
+   (TYPE_CHECKING imports are OK).
+2. No cross-package private imports (from orxtra.X._foo where X is a
+   different package). Source-file violations are errors; test-file
+   violations are warnings.
 """
 
 import ast
@@ -67,6 +71,7 @@ def _is_type_checking_block(node: ast.AST) -> bool:
 
 
 _MIN_MODULE_PARTS = 2
+_PRIVATE_IMPORT_MIN_PARTS = 3
 
 
 def _extract_target_module(node: ast.Import | ast.ImportFrom) -> str | None:
@@ -140,16 +145,17 @@ def _is_import_allowed(source_layer: str, target_layer: str) -> bool:
     return target_order < source_order
 
 
-def _collect_private_protocol_imports(
+def _collect_cross_package_private_imports(
     tree: ast.Module,
-) -> list[tuple[int, str]]:
-    """Collect runtime imports of private protocols modules.
+    source_package: str,
+) -> list[tuple[int, str, str]]:
+    """Collect runtime imports of private modules from other orxtra packages.
 
-    Returns (line_number, full_module_path) for any import matching
-    ``from orxtra.protocols._*`` (any private sub-module).
+    For each ``from orxtra.X._foo import ...`` where X != source_package,
+    returns (line_number, target_package, full_module_path).
     Skips imports inside TYPE_CHECKING blocks.
     """
-    results: list[tuple[int, str]] = []
+    results: list[tuple[int, str, str]] = []
 
     def _walk_body(body: list[ast.stmt], in_type_checking: bool = False) -> None:
         for node in body:
@@ -159,16 +165,27 @@ def _collect_private_protocol_imports(
                 continue
 
             if isinstance(node, ast.ImportFrom) and not in_type_checking:
-                if (
-                    node.module is not None
-                    and node.module.startswith("orxtra.protocols._")
-                ):
-                    results.append((node.lineno, node.module))
+                if node.module is not None:
+                    parts = node.module.split(".")
+                    # Match orxtra.X._something
+                    if (
+                        len(parts) >= _PRIVATE_IMPORT_MIN_PARTS
+                        and parts[0] == "orxtra"
+                        and parts[2].startswith("_")
+                        and parts[1] != source_package
+                    ):
+                        results.append((node.lineno, parts[1], node.module))
 
             if isinstance(node, ast.Import) and not in_type_checking:
                 for alias in node.names:
-                    if alias.name.startswith("orxtra.protocols._"):
-                        results.append((node.lineno, alias.name))
+                    parts = alias.name.split(".")
+                    if (
+                        len(parts) >= _PRIVATE_IMPORT_MIN_PARTS
+                        and parts[0] == "orxtra"
+                        and parts[2].startswith("_")
+                        and parts[1] != source_package
+                    ):
+                        results.append((node.lineno, parts[1], alias.name))
 
             # Recurse into nested blocks
             if isinstance(node, ast.If):
@@ -211,47 +228,63 @@ def _module_name_from_path(py_file: Path) -> str | None:
     return None
 
 
-def main() -> int:  # noqa: C901
-    repo_root = Path()
-    violations: list[str] = []
+def _module_name_from_test_path(py_file: Path) -> str | None:
+    """Extract the orxtra sub-module name from a test file path.
 
-    # Find all .py files under */src/orxtra/*/
-    py_files = sorted(repo_root.glob("*/src/orxtra/*/**/*.py"))
-    # Also include files directly in */src/orxtra/*/ (like __init__.py)
-    py_files += sorted(repo_root.glob("*/src/orxtra/*/*.py"))
-    # Deduplicate while preserving order
-    seen: set[Path] = set()
-    unique_files: list[Path] = []
-    for f in py_files:
-        resolved = f.resolve()
-        if resolved not in seen:
-            seen.add(resolved)
-            unique_files.append(f)
-    py_files = unique_files
+    E.g. .../scheduler/tests/test_foo.py -> 'scheduler'
+         .../write-safety/tests/test_bar.py -> 'write_safety'
 
-    for py_file in py_files:
-        source_module = _module_name_from_path(py_file)
-        if source_module is None:
-            continue
-        source_layer = MODULE_TO_LAYER.get(source_module)
-        if source_layer is None:
-            continue
+    Returns None for root-level tests/ (not under a sub-project).
+    """
+    parts = py_file.parts
+    for i, part in enumerate(parts):
+        if part == "tests" and i > 0:
+            # The directory before 'tests' is the sub-project directory.
+            # Convert directory name to Python package name (e.g.
+            # write-safety -> write_safety).
+            subproject_dir = parts[i - 1]
+            pkg_name = subproject_dir.replace("-", "_")
+            if pkg_name in MODULE_TO_LAYER:
+                return pkg_name
+    return None
 
-        try:
-            source_text = py_file.read_text(encoding="utf-8")
-            tree = ast.parse(source_text, filename=str(py_file))
-        except SyntaxError as e:
-            print(f"WARNING: Failed to parse {py_file}: {e}", file=sys.stderr)
-            continue
 
+def _check_file(  # noqa: C901
+    py_file: Path,
+    source_module: str,
+    *,
+    is_test: bool,
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    """Run all import checks on a single file.
+
+    Appends to errors (src files) or warnings (test files).
+    """
+    source_layer = MODULE_TO_LAYER.get(source_module)
+    # For test files, source_layer may be None (e.g. root-level tests
+    # with source_module="__root__") -- that's fine, we still check
+    # cross-package private imports. For src files, unknown layers are
+    # skipped.
+    if source_layer is None and not is_test:
+        return
+
+    try:
+        source_text = py_file.read_text(encoding="utf-8")
+        tree = ast.parse(source_text, filename=str(py_file))
+    except SyntaxError as e:
+        print(f"WARNING: Failed to parse {py_file}: {e}", file=sys.stderr)
+        return
+
+    # Layer violation check (src files only -- tests are expected to
+    # import from any layer)
+    if not is_test:
         runtime_imports = _collect_runtime_imports(tree)
         for lineno, target_module in runtime_imports:
-            # Self-imports are always fine
             if target_module == source_module:
                 continue
             target_layer = MODULE_TO_LAYER.get(target_module)
             if target_layer is None:
-                # Not an orxtra module we track
                 continue
             if not _is_import_allowed(source_layer, target_layer):
                 msg = (
@@ -259,27 +292,90 @@ def main() -> int:  # noqa: C901
                     f"{source_module} ({source_layer}) imports "
                     f"{target_module} ({target_layer})"
                 )
-                violations.append(msg)
+                errors.append(msg)
 
-        # Check for private protocol imports from outside protocols
-        if source_module != "protocols":
-            private_imports = _collect_private_protocol_imports(tree)
-            for lineno, full_path in private_imports:
-                msg = (
-                    f"VIOLATION: {py_file}:{lineno} - "
-                    f"{source_module} imports private protocol "
-                    f"module '{full_path}' (use orxtra.protocols "
-                    f"public API instead)"
-                )
-                violations.append(msg)
+    # Cross-package private import check
+    private_imports = _collect_cross_package_private_imports(
+        tree, source_module,
+    )
+    for lineno, target_pkg, full_path in private_imports:
+        severity = "WARNING" if is_test else "VIOLATION"
+        target = errors if not is_test else warnings
+        msg = (
+            f"{severity}: {py_file}:{lineno} - "
+            f"{source_module} imports private module "
+            f"'{full_path}' from package {target_pkg} "
+            f"(use orxtra.{target_pkg} public API instead)"
+        )
+        target.append(msg)
 
-    for v in violations:
-        print(v)
 
-    if violations:
-        print(f"\n{len(violations)} violation(s) found")
+def _dedup_paths(paths: list[Path]) -> list[Path]:
+    """Deduplicate paths while preserving order."""
+    seen: set[Path] = set()
+    result: list[Path] = []
+    for p in paths:
+        resolved = p.resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            result.append(p)
+    return result
+
+
+def main() -> int:
+    repo_root = Path()
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    # --- Source files: */src/orxtra/*/ ---
+    src_files = sorted(repo_root.glob("*/src/orxtra/*/**/*.py"))
+    src_files += sorted(repo_root.glob("*/src/orxtra/*/*.py"))
+    src_files = _dedup_paths(src_files)
+
+    for py_file in src_files:
+        source_module = _module_name_from_path(py_file)
+        if source_module is None:
+            continue
+        _check_file(
+            py_file, source_module,
+            is_test=False, errors=errors, warnings=warnings,
+        )
+
+    # --- Test files: */tests/**/*.py ---
+    test_files = sorted(repo_root.glob("*/tests/**/*.py"))
+    test_files += sorted(repo_root.glob("*/tests/*.py"))
+    # Root-level tests/ (not under a sub-project) -- skip these since
+    # they have no single owning package
+    root_test_files = sorted(repo_root.glob("tests/**/*.py"))
+    root_test_files += sorted(repo_root.glob("tests/*.py"))
+    test_files += root_test_files
+    test_files = _dedup_paths(test_files)
+
+    for py_file in test_files:
+        source_module = _module_name_from_test_path(py_file)
+        if source_module is None:
+            # Root-level tests -- no owning package, so every
+            # cross-package private import is a warning
+            # Use a sentinel to flag all private imports
+            source_module = "__root__"
+        _check_file(
+            py_file, source_module,
+            is_test=True, errors=errors, warnings=warnings,
+        )
+
+    for e in errors:
+        print(e)
+    for w in warnings:
+        print(w)
+
+    total = len(errors) + len(warnings)
+    if errors:
+        print(f"\n{len(errors)} error(s), {len(warnings)} warning(s)")
         return 1
-    print("No violations found")
+    if warnings:
+        print(f"\n{len(warnings)} warning(s), 0 errors")
+    else:
+        print("No violations found")
     return 0
 
 
