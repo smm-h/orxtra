@@ -104,7 +104,7 @@ The following are all projects under `~/Projects/`, maintained by us. Any featur
 - **saferm** (`~/Projects/saferm`) -- audited file deletion with mandatory descriptions, audit trail, and recovery. The delete tool wraps saferm, not raw rm.
 - **rlsbl** (`~/Projects/rlsbl`) -- release orchestration, changelog enforcement, CI scaffolding, monorepo workspace management.
 - **strictcli** (`~/Projects/strictcli`) -- schema-driven CLI framework. No implicit flags.
-- **pgdesign** (`~/Projects/pgdesign`) -- PostgreSQL schema compiler. Owns `schema/orxtra.toml`.
+- **pgdesign** (`~/Projects/pgdesign`) -- PostgreSQL schema compiler. Owns `schema/trace.toml` and `schema/dispatch.toml`.
 - **selfdoc** (`~/Projects/selfdoc`) -- documentation generation from templates.
 
 ### Consumers
