@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from orxtra.session._pricing import PRICING_TABLE
+from orxtra.session import PRICING_TABLE
 from orxtra.trace import read_run_config as _read_run_config
 
 if TYPE_CHECKING:
