@@ -1,11 +1,4 @@
-from enum import StrEnum
+# Temporary shim -- will be deleted in Phase 1.5
+from orxtra.protocols._types._enums import ErrorCategory
 
-
-class ErrorCategory(StrEnum):
-    INFRA = "infra"
-    CONTEXT_LIMIT = "context_limit"
-    PARSE = "parse"
-    FLAKY = "flaky"
-    BUILD_ENV = "build_env"
-    LOGIC = "logic"
-    UNCLASSIFIED = "unclassified"
+__all__ = ["ErrorCategory"]
