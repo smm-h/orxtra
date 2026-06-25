@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -151,6 +152,45 @@ def test_fire_blocking_with_source(sample_run_id: UUID) -> None:
         )
 
     assert result == expected_id
+
+
+def test_fire_blocking_from_different_thread(sample_run_id: UUID) -> None:
+    """fire_blocking works when called from a thread with a running loop elsewhere."""
+    expected_id = uuid4()
+    loop = asyncio.new_event_loop()
+    thread = threading.Thread(target=loop.run_forever, daemon=True)
+    thread.start()
+
+    try:
+        with patch("orxtra.services._events.TraceWriter") as mock_writer_cls:
+            mock_writer = mock_writer_cls.return_value
+            mock_writer.write_event = AsyncMock(return_value=expected_id)
+
+            from orxtra.services._events import fire_blocking
+
+            result = fire_blocking(AsyncMock(), sample_run_id, "test_event")
+
+        assert result == expected_id
+    finally:
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join(timeout=5)
+        loop.close()
+
+
+def test_fire_blocking_from_loop_thread_raises(sample_run_id: UUID) -> None:
+    """fire_blocking raises RuntimeError when called from the event loop thread."""
+
+    async def _inner() -> None:
+        with patch("orxtra.services._events.TraceWriter") as mock_writer_cls:
+            mock_writer = mock_writer_cls.return_value
+            mock_writer.write_event = AsyncMock(return_value=uuid4())
+
+            from orxtra.services._events import fire_blocking
+
+            fire_blocking(AsyncMock(), sample_run_id, "test_event")
+
+    with pytest.raises(RuntimeError, match="run_sync\\(\\) called from the event loop thread"):
+        asyncio.run(_inner())
 
 
 # ── event_stream tests ──
