@@ -12,6 +12,7 @@ from orxtra.dispatch import (
     Subscription,
     SubscriptionAction,
 )
+from orxtra.protocols import ScriptAction
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 SUB_ID = UUID("01234567-89ab-cdef-0123-456789abcdef")
@@ -95,7 +96,7 @@ class TestSubscriptionAction:
             id=ACTION_ID,
             subscription_id=SUB_ID,
             position=0,
-            action={"callable": "my.module:handler"},
+            action=ScriptAction(callable="my.module:handler"),
             created_at=NOW,
         )
         assert sa.id == ACTION_ID
@@ -108,7 +109,7 @@ class TestSubscriptionAction:
             id=ACTION_ID,
             subscription_id=SUB_ID,
             position=1,
-            action={"callable": "my.module:handler"},
+            action=ScriptAction(callable="my.module:handler"),
             accumulator_config={"batch_size": 10, "flush_interval_s": 60},
             created_at=NOW,
         )
@@ -119,7 +120,7 @@ class TestSubscriptionAction:
             id=ACTION_ID,
             subscription_id=SUB_ID,
             position=0,
-            action={"callable": "my.module:handler"},
+            action=ScriptAction(callable="my.module:handler"),
             created_at=NOW,
         )
         with pytest.raises(ValidationError):

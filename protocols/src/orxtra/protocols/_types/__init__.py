@@ -23,6 +23,12 @@ from orxtra.protocols._types._actions import (
     WriteLessonParams,
     WriteLessonResult,
 )
+from orxtra.protocols._types._dispatch import (
+    AccumulatorEntry,
+    FilterPredicate,
+    Subscription,
+    SubscriptionAction,
+)
 from orxtra.protocols._types._checks import (
     AgentExecution,
     CheckAgentContext,
@@ -94,6 +100,7 @@ __all__ = [
     "ALWAYS_ACTIVE_CONSTRAINTS",
     "EXPENSIVE_CONSTRAINTS",
     "SEVERITY_ORDER",
+    "AccumulatorEntry",
     "Action",
     "AddConstraintParams",
     "AddConstraintResult",
@@ -128,6 +135,7 @@ __all__ = [
     "EscalationPayload",
     "EventAction",
     "ExecResult",
+    "FilterPredicate",
     "Execution",
     "FileContent",
     "FileStat",
@@ -150,6 +158,8 @@ __all__ = [
     "RunStarted",
     "ScriptAction",
     "ScriptExecution",
+    "Subscription",
+    "SubscriptionAction",
     "Severity",
     "StatResult",
     "StructuralAdvisory",

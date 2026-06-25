@@ -17,6 +17,7 @@ from orxtra.dispatch import (
     Subscription,
     SubscriptionAction,
 )
+from orxtra.protocols import Action, ScriptAction
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 
@@ -61,7 +62,7 @@ def _make_sub(
 def _make_action(
     *,
     sub_id: Any,
-    action: dict[str, Any],
+    action: Action,
     accumulator_config: dict[str, Any] | None = None,
     position: int = 0,
 ) -> SubscriptionAction:
@@ -94,7 +95,7 @@ class TestAccumulatorBuffering:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 5, "flush_interval_s": 0},
         )
         await backend.create_action(action)
@@ -119,7 +120,7 @@ class TestCountThresholdFlush:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 3, "flush_interval_s": 0},
         )
         await backend.create_action(action)
@@ -146,7 +147,7 @@ class TestCountThresholdFlush:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 2, "flush_interval_s": 0},
         )
         await backend.create_action(action)
@@ -172,7 +173,7 @@ class TestCountThresholdFlush:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 1, "flush_interval_s": 0},
         )
         await backend.create_action(action)
@@ -197,7 +198,7 @@ class TestFlushSchedulerIntegration:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 0, "flush_interval_s": 60},
         )
         await backend.create_action(action)
@@ -225,7 +226,7 @@ class TestFlushSchedulerIntegration:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 0, "flush_interval_s": 30},
         )
         await backend.create_action(action)
@@ -256,7 +257,7 @@ class TestFlushSchedulerIntegration:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 0, "flush_interval_s": 60},
         )
         await backend.create_action(action)
@@ -280,7 +281,7 @@ class TestBufferClaimConfirmCycle:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 10, "flush_interval_s": 0},
         )
         await backend.create_action(action)
@@ -310,7 +311,7 @@ class TestBufferClaimConfirmCycle:
 
         action = _make_action(
             sub_id=sub.id,
-            action={"callable": "_handlers:flush_handler"},
+            action=ScriptAction(callable="_handlers:flush_handler"),
             accumulator_config={"threshold": 0, "flush_interval_s": 30},
         )
         await backend.create_action(action)

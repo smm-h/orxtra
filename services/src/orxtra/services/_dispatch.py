@@ -5,15 +5,38 @@ from typing import TYPE_CHECKING, Any
 
 from uuid6 import uuid7
 
-from orxtra.dispatch import (
+from orxtra.protocols import (
+    Action,
     DispatchBackend,
+    EventAction,
     FilterPredicate,
+    LogAction,
+    ScriptAction,
     Subscription,
     SubscriptionAction,
+    WorkflowAction,
 )
 
 if TYPE_CHECKING:
     from uuid import UUID
+
+
+def _resolve_action_from_dict(action_data: dict[str, Any]) -> Action:
+    """Resolve a plain dict to a typed Action instance.
+
+    Detects the action type from dict keys and validates via pydantic.
+    """
+    if "callable" in action_data:
+        return ScriptAction.model_validate(action_data)
+    if "message" in action_data:
+        return LogAction.model_validate(action_data)
+    if "workflow_path" in action_data:
+        return WorkflowAction.model_validate(action_data)
+    if "event_type" in action_data:
+        return EventAction.model_validate(action_data)
+
+    msg = f"Cannot determine action type from keys: {set(action_data.keys())}"
+    raise ValueError(msg)
 
 
 async def subscribe(
@@ -28,7 +51,8 @@ async def subscribe(
 
     Thin wrapper: builds a Subscription from the filter predicate,
     persists it via the backend, then creates SubscriptionActions
-    for each action dict in order.
+    for each action dict in order. Action dicts are resolved to
+    typed Action instances before storage.
     """
     now = datetime.now(tz=UTC)
     sub = Subscription(
@@ -44,11 +68,12 @@ async def subscribe(
     for position, action_config in enumerate(actions):
         accumulator_config = action_config.pop("accumulator_config", None)
         action_data = action_config.pop("action", action_config)
+        action = _resolve_action_from_dict(action_data)
         sub_action = SubscriptionAction(
             id=uuid7(),
             subscription_id=sub.id,
             position=position,
-            action=action_data,
+            action=action,
             accumulator_config=accumulator_config,
             created_at=now,
         )

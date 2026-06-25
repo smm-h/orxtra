@@ -13,6 +13,7 @@ from orxtra.dispatch import (
     Subscription,
     SubscriptionAction,
 )
+from orxtra.protocols import ScriptAction
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 LATER = datetime(2025, 7, 1, 12, 5, 0, tzinfo=UTC)
@@ -42,7 +43,7 @@ def _action(
         id=action_id or uuid7(),
         subscription_id=sub_id,
         position=position,
-        action={"callable": "my.module:handler"},
+        action=ScriptAction(callable="my.module:handler"),
         created_at=NOW,
     )
 
