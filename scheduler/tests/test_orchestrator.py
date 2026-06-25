@@ -11,8 +11,7 @@ from uuid import UUID
 
 import pytest
 import uuid6
-from orxtra.protocols import TaskSpec, TaskState
-from orxtra.protocols._execution import CheckResult, ScriptExecution
+from orxtra.protocols import CheckResult, ScriptExecution, TaskSpec, TaskState
 from orxtra.tool import make_await_task_tool
 from orxtra.transport import (
     Continuation,
@@ -27,7 +26,7 @@ from tests.conftest import MockTransport
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from orxtra.protocols._tool import Tool
+    from orxtra.protocols import Tool
     from orxtra.scheduler._executor import Scheduler
 
     from tests.conftest import MockTraceWriter

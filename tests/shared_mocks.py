@@ -4,7 +4,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 import uuid6
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Tool, ToolError
 from orxtra.transport import Continuation, Event, Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:

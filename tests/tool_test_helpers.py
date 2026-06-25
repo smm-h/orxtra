@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxtra.protocols._results import Renderer, ToolOutput
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Renderer, Tool, ToolOutput
 
 
 class MockRenderer:

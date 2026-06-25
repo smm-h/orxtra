@@ -9,7 +9,7 @@ from uuid import UUID
 
 import pytest
 import uuid6
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool
 from orxtra.scheduler._tool_registry import (
     ToolDeps,
     ToolEntry,

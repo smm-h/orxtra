@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from orxtra.protocols._results import ToolOutput
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool, ToolOutput
 from orxtra.session._session import Session
 from orxtra.transport import Error, Result, StepFinish, StepStart, Text, ToolUse
 

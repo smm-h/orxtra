@@ -186,7 +186,7 @@ class TestCheckAgentContext:
             model_context_limit=100_000,
         )
 
-        from orxtra.protocols._task import TaskSpec
+        from orxtra.protocols import TaskSpec
         from orxtra.session._session import Session
 
         task_spec = TaskSpec(

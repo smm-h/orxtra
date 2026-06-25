@@ -14,12 +14,13 @@ import uuid6
 
 if TYPE_CHECKING:
     import pytest
-from orxtra.protocols._events import (
+from orxtra.protocols import (
     BudgetThresholdCrossed,
+    EscalationPayload,
     HealthDegraded,
+    TaskContext,
     TaskFailed,
 )
-from orxtra.protocols._task import EscalationPayload, TaskContext
 from orxtra.scheduler._overseer import (
     FALLBACK_HANDLERS,
     _escalate_to_human_inbox,

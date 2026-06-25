@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxtra.protocols._task import TaskSpec, TaskState
+from orxtra.protocols import TaskSpec, TaskState
 
 if TYPE_CHECKING:
     import uuid

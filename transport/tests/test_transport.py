@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 import respx
-from orxtra.protocols import Tool, ToolError
-from orxtra.protocols._results import Confirmation, ToolOutput
+from orxtra.protocols import Confirmation, Tool, ToolError, ToolOutput
 from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,

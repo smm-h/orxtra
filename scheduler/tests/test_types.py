@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols import TaskSpec
 from orxtra.scheduler._types import (
     ServiceConfig,
     WorkflowConfig,

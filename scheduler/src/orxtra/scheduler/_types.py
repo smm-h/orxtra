@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols import TaskSpec
 from pydantic import BaseModel, ConfigDict
 
 

@@ -8,8 +8,7 @@ import urllib.parse
 from typing import Any
 
 import httpx
-from orxtra.protocols._results import HttpResponse, ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import HttpResponse, Tool, ToolError, ToolOutput
 from orxtra.tool._decorator import tool
 from orxtra.tool._params import HttpConsultParams, HttpFullParams
 from orxtra.tool._preview import check_and_preview

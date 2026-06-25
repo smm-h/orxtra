@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import uuid6
 from orxtra.agent import Agent, ExecToolConfig, ShellConfig
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols import TaskSpec
 from orxtra.scheduler._executor import Scheduler
 
 from tests.conftest import (
@@ -20,7 +20,7 @@ from tests.conftest import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxtra.protocols._tool import Tool
+    from orxtra.protocols import Tool
 
 LIFECYCLE_TOOLS = frozenset({
     "start_task",

@@ -3,16 +3,18 @@ from __future__ import annotations
 import importlib
 import traceback
 
-from orxtra.protocols._checks import CheckContext, CheckExecutor
-from orxtra.protocols._execution import (
+from orxtra.protocols import (
     SEVERITY_ORDER,
     AgentExecution,
+    CheckContext,
+    CheckExecutor,
     CheckIssue,
     CheckResult,
     CheckVerdict,
+    Execution,
     ScriptExecution,
+    WorkflowExecution,
 )
-from orxtra.protocols._task import Execution, WorkflowExecution
 
 
 def _format_mechanical_results(results: list[CheckResult] | None) -> str:

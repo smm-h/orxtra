@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxtra.protocols._task import BudgetExhaustionPolicy, TaskSpec, TaskState
-from orxtra.protocols._tool import ToolError
+from orxtra.protocols import BudgetExhaustionPolicy, TaskSpec, TaskState, ToolError
 from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Usage
 

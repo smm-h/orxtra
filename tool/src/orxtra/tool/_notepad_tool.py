@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxtra.protocols._results import Confirmation
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Confirmation, Tool
 from orxtra.tool._decorator import tool
 from orxtra.tool._params import NotepadParams
 from orxtra.tool._renderers import TextRenderer

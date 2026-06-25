@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols import TaskSpec
 
 if TYPE_CHECKING:
     from orxtra.scheduler._executor import Scheduler

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Tool, ToolError
 from orxtra.tool import CONSULT_STRIP_TOOLS, FILE_MUTATION_TOOLS, wrap_tools_for_session
 
 

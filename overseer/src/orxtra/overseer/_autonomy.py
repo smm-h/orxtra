@@ -1,6 +1,6 @@
 """Autonomy types -- re-exported from protocols."""
 
-from orxtra.protocols._autonomy import AutonomyLevel
+from orxtra.protocols import AutonomyLevel
 
 __all__ = [
     "AutonomyLevel",

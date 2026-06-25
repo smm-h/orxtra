@@ -11,7 +11,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool
 from orxtra.tool._consult_tool import make_consult_tool
 from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool

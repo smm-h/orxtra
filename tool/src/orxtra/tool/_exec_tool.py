@@ -7,8 +7,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from orxtra.protocols._results import ExecResult, ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import ExecResult, Tool, ToolError, ToolOutput
 from orxtra.tool._decorator import tool
 from orxtra.tool._params import ExecBaseParams
 from orxtra.tool._path import PathError, resolve_and_check

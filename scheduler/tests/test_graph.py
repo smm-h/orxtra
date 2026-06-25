@@ -5,8 +5,7 @@ import types
 from typing import TYPE_CHECKING
 
 import pytest
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import TaskContext, TaskResult, TaskSpec
+from orxtra.protocols import CheckResult, TaskContext, TaskResult, TaskSpec
 from orxtra.scheduler._graph import (
     CycleError,
     build_graph,

@@ -3,8 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from orxtra.protocols._results import ConsultResponse, ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import ConsultResponse, Tool, ToolError, ToolOutput
 from orxtra.tool._decorator import tool
 from orxtra.tool._params import ConsultParams
 from orxtra.tool._renderers import TextRenderer

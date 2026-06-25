@@ -21,11 +21,15 @@ import pytest
 import uuid6
 from orxtra.agent import Agent
 from orxtra.notepad import NotepadEntry, format_notepad
-from orxtra.protocols._errors import ErrorCategory
-from orxtra.protocols._execution import CheckResult, ScriptExecution
-from orxtra.protocols._task import TaskSpec, TaskState
-from orxtra.protocols._tool import ToolError
-from orxtra.protocols._tools import CreateTaskParams
+from orxtra.protocols import (
+    CheckResult,
+    CreateTaskParams,
+    ErrorCategory,
+    ScriptExecution,
+    TaskSpec,
+    TaskState,
+    ToolError,
+)
 from orxtra.scheduler._executor import Scheduler, classify_error
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.transport import Result, StepFinish, ToolUse

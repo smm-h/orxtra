@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orxtra.protocols._execution import Severity
+from orxtra.protocols import Severity
 
 
 class TestReExports:

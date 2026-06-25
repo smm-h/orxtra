@@ -12,7 +12,7 @@ from orxtra.overseer._tools import (
     make_write_lesson_tool,
 )
 from orxtra.overseer._format import format_event
-from orxtra.protocols._overseer_protocols import OverseerEvent
+from orxtra.protocols import OverseerEvent
 from orxtra.tool import (
     make_diff_tool,
     make_glob_tool,
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
     from orxtra.overseer._autonomy import AutonomyLevel
     from orxtra.overseer._health import HealthMonitor
-    from orxtra.protocols._tool import Tool
+    from orxtra.protocols import Tool
     from orxtra.session import Session
     from orxtra.trace import TraceWriter
 

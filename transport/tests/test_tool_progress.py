@@ -4,8 +4,7 @@ from typing import Any
 
 import httpx
 import respx
-from orxtra.protocols import Tool
-from orxtra.protocols._results import ToolOutput
+from orxtra.protocols import Tool, ToolOutput
 from orxtra.transport._events import (
     ContentBlock,
     Event,

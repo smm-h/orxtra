@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols import TaskSpec
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.scheduler._validator import validate_task_tree
 

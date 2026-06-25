@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from orxtra.protocols._results import Confirmation, DirEntry, DirListing
+from orxtra.protocols import Confirmation, DirEntry, DirListing
 from orxtra.tool._renderers import JsonRenderer, TableRenderer, TextRenderer
 
 

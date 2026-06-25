@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from orxtra.scheduler._graph import CycleError, build_graph, topological_sort
 
 if TYPE_CHECKING:
-    from orxtra.protocols._task import TaskSpec
+    from orxtra.protocols import TaskSpec
     from orxtra.scheduler._types import WorkflowConfig
 
 _OUTPUT_SUFFIXES = ("_output", "_text", "_result")

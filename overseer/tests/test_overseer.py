@@ -9,12 +9,13 @@ from .conftest import MockSession, MockTraceWriter
 from orxtra.overseer._autonomy import AutonomyLevel
 from orxtra.overseer._health import HealthMonitor
 from orxtra.overseer._overseer import Overseer
-from orxtra.protocols._events import (
+from orxtra.protocols import (
+    CheckResult,
+    EscalationPayload,
     RunStarted,
+    TaskContext,
     TaskFailed,
 )
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import EscalationPayload, TaskContext
 
 if TYPE_CHECKING:
     from pathlib import Path

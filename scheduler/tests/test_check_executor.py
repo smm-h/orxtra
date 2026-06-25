@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxtra.protocols._checks import CheckContext
-from orxtra.protocols._execution import (
+from orxtra.protocols import (
     AgentExecution,
+    CheckContext,
     ScriptExecution,
     Severity,
+    TaskSpec,
+    WorkflowExecution,
 )
-from orxtra.protocols._task import TaskSpec, WorkflowExecution
 from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result, StepFinish
 
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxtra.protocols._tool import Tool
+    from orxtra.protocols import Tool
     from orxtra.transport import Event
 
 

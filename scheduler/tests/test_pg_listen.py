@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
 import uuid6
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import TaskResult, TaskSpec
+from orxtra.protocols import CheckResult, TaskResult, TaskSpec
 from orxtra.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:

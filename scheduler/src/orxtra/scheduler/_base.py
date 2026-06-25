@@ -19,16 +19,16 @@ if TYPE_CHECKING:
     import asyncpg
     from orxtra.agent import Agent
     from orxtra.notepad import NotepadEntry
-    from orxtra.protocols._execution import CheckResult
-    from orxtra.protocols._task import (
+    from orxtra.protocols import (
         BudgetExhaustionPolicy,
+        CheckResult,
         Execution,
         TaskContext,
         TaskResult,
         TaskSpec,
         TaskState,
+        Tool,
     )
-    from orxtra.protocols._tool import Tool
     from orxtra.scheduler._events import EventRegistry
     from orxtra.scheduler._locks import FileLockRegistry
     from orxtra.scheduler._overseer import OverseerEvent, OverseerInterface

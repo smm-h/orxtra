@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from orxtra.protocols._results import Confirmation, ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Confirmation, Tool, ToolError, ToolOutput
 from orxtra.tool._load_tools import make_load_tools_tool
 
 

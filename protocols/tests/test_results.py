@@ -4,7 +4,7 @@ import dataclasses
 from typing import Any
 
 import pytest
-from orxtra.protocols._results import (
+from orxtra.protocols import (
     Confirmation,
     ConsultResponse,
     DiffResult,

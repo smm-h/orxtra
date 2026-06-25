@@ -8,7 +8,7 @@ from .conftest import MockSession, MockTraceWriter
 from orxtra.overseer._autonomy import AutonomyLevel
 from orxtra.overseer._health import HealthMonitor
 from orxtra.overseer._overseer import Overseer
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool
 
 if TYPE_CHECKING:
     from pathlib import Path

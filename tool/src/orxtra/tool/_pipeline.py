@@ -4,8 +4,7 @@ import json
 import time
 from typing import TYPE_CHECKING, Any, cast
 
-from orxtra.protocols._results import ToolOutput
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool, ToolOutput
 from orxtra.write_safety import with_transient_retry
 
 if TYPE_CHECKING:

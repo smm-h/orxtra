@@ -11,8 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from orxtra.protocols._results import Confirmation, ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Confirmation, Tool, ToolError, ToolOutput
 
 if TYPE_CHECKING:
     from collections.abc import Callable

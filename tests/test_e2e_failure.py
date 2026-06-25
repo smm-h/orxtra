@@ -12,9 +12,7 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
-from orxtra.protocols._errors import ErrorCategory
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import TaskState
+from orxtra.protocols import CheckResult, ErrorCategory, TaskState
 from orxtra.scheduler._executor import Scheduler, classify_error
 from orxtra.transport import Result, StepFinish, ToolUse
 
@@ -31,7 +29,7 @@ if TYPE_CHECKING:
     import uuid
     from collections.abc import AsyncIterator
 
-    from orxtra.protocols._tool import Tool
+    from orxtra.protocols import Tool
     from orxtra.transport import Event
 
 

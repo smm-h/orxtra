@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxtra.protocols._execution import AgentExecution, ScriptExecution
+from orxtra.protocols import AgentExecution, ScriptExecution
 from orxtra.scheduler._loader import load_workflow
 
 if TYPE_CHECKING:

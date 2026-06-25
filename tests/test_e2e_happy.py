@@ -13,8 +13,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import uuid6
-from orxtra.protocols._execution import CheckResult, ScriptExecution
-from orxtra.protocols._task import TaskResult, TaskSpec, TaskState
+from orxtra.protocols import CheckResult, ScriptExecution, TaskResult, TaskSpec, TaskState
 from orxtra.scheduler._types import WorkflowConfig
 
 from tests.conftest import (
