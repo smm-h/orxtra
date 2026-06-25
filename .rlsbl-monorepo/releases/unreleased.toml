@@ -1,0 +1,14 @@
+[releasables.orxtra]
+# Version bump type: patch, minor, major, or hotfix
+bump = "minor"
+# Short description of this release (required)
+description = "Dispatch module, event bus enhancements, protocols reorganization"
+# Optional context explaining why these changes were made
+context = """
+Major architectural changes: new dispatch module for event delivery with subscriptions, \
+action dispatch, and accumulator flush. Event bus enhanced with nullable run_id, source \
+column, replay(), fire_blocking(), and event_stream(). Protocols reorganized into internal \
+_types/ package. Scheduler migrated from EventRegistry to dispatch's TransientEventDelivery. \
+Services promoted to composition layer owning dispatch integration."""
+include = ["pypi"]
+exclude = []
