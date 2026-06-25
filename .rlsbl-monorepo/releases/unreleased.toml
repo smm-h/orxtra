@@ -1,0 +1,9 @@
+[releasables.orxtra]
+# Version bump type: patch, minor, major, or hotfix
+bump = "minor"
+# Short description of this release (required)
+description = "PgDispatchBackend, source CRUD, sync wrapper hardening, protocol consolidation"
+# Optional context explaining why these changes were made
+context = ""
+include = ["pypi"]
+exclude = []
