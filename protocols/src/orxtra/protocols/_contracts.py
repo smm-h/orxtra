@@ -4,7 +4,14 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from orxtra.protocols._types._checks import CheckResult
+    from orxtra.protocols._types._dispatch import (
+        AccumulatorEntry,
+        Subscription,
+        SubscriptionAction,
+    )
     from orxtra.protocols._types._events import OverseerEvent
     from orxtra.protocols._types._task import Execution
     from orxtra.protocols._types._tool import Tool
@@ -132,3 +139,39 @@ class FlushScheduler(Protocol):
     ) -> object: ...  # returns a handle for cancellation
 
     def cancel_flush(self, handle: object) -> None: ...
+
+
+@runtime_checkable
+class SubscriptionStorage(Protocol):
+    async def create_subscription(self, subscription: Subscription) -> UUID: ...
+    async def get_subscription(self, sub_id: UUID) -> Subscription | None: ...
+    async def list_subscriptions(
+        self, *, enabled_only: bool = True,
+    ) -> list[Subscription]: ...
+    async def update_subscription(
+        self, sub_id: UUID, *, enabled: bool,
+    ) -> None: ...
+    async def delete_subscription(self, sub_id: UUID) -> None: ...
+
+
+@runtime_checkable
+class ActionStorage(Protocol):
+    async def create_action(self, action: SubscriptionAction) -> UUID: ...
+    async def list_actions(self, sub_id: UUID) -> list[SubscriptionAction]: ...
+    async def delete_actions(self, sub_id: UUID) -> None: ...
+
+
+@runtime_checkable
+class AccumulatorStorage(Protocol):
+    async def buffer_event(self, entry: AccumulatorEntry) -> UUID: ...
+    async def claim_batch(
+        self, action_id: UUID, limit: int = 100,
+    ) -> list[AccumulatorEntry]: ...
+    async def confirm_batch(self, entry_ids: list[UUID]) -> None: ...
+    async def pending_count(self, action_id: UUID) -> int: ...
+
+
+@runtime_checkable
+class DispatchBackend(
+    SubscriptionStorage, ActionStorage, AccumulatorStorage, Protocol,
+): ...

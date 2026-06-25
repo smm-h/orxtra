@@ -17,7 +17,7 @@ from orxtra.dispatch import (
     SubscriptionAction,
     match_subscription,
 )
-from orxtra.protocols import EventDelivery, LogAction, ScriptAction
+from orxtra.protocols import Action, EventDelivery, LogAction, ScriptAction
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 
@@ -86,7 +86,7 @@ def _make_sub(
 def _make_action(
     *,
     sub_id: Any,
-    action: dict[str, Any],
+    action: Action,
     position: int = 0,
     accumulator_config: dict[str, Any] | None = None,
 ) -> SubscriptionAction:
@@ -140,7 +140,7 @@ class TestDualPhasePersistent:
         await backend.create_action(
             _make_action(
                 sub_id=sub.id,
-                action={"message": "persistent fired", "level": "info"},
+                action=LogAction(message="persistent fired", level="info"),
             ),
         )
 
@@ -170,7 +170,7 @@ class TestDualPhasePersistent:
         await backend.create_action(
             _make_action(
                 sub_id=sub.id,
-                action={"message": "task completed log", "level": "info"},
+                action=LogAction(message="task completed log", level="info"),
             ),
         )
 
@@ -188,7 +188,7 @@ class TestDualPhasePersistent:
         await backend.create_action(
             _make_action(
                 sub_id=sub.id,
-                action={"callable": "nonexistent.module:func"},
+                action=ScriptAction(callable="nonexistent.module:func"),
             ),
         )
 
@@ -205,7 +205,7 @@ class TestDualPhasePersistent:
         await backend.create_action(
             _make_action(
                 sub_id=sub.id,
-                action={"callable": "nonexistent.module:func"},
+                action=ScriptAction(callable="nonexistent.module:func"),
             ),
         )
 
@@ -221,7 +221,7 @@ class TestDualPhasePersistent:
         await backend.create_action(
             _make_action(
                 sub_id=sub.id,
-                action={"callable": "nonexistent.module:func"},
+                action=ScriptAction(callable="nonexistent.module:func"),
             ),
         )
 
@@ -241,13 +241,13 @@ class TestDualPhasePersistent:
         await backend.create_action(
             _make_action(
                 sub_id=sub1.id,
-                action={"message": "sub1 log", "level": "info"},
+                action=LogAction(message="sub1 log", level="info"),
             ),
         )
         await backend.create_action(
             _make_action(
                 sub_id=sub2.id,
-                action={"message": "sub2 log", "level": "info"},
+                action=LogAction(message="sub2 log", level="info"),
             ),
         )
 

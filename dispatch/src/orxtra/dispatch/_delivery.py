@@ -7,7 +7,12 @@ from typing import Any
 
 from uuid6 import uuid7
 
-from orxtra.protocols import Action, ActionExecutor, EventFireCallback, FlushScheduler
+from orxtra.protocols import (
+    ActionExecutor,
+    EventFireCallback,
+    FlushScheduler,
+    SubscriptionAction,
+)
 
 from orxtra.dispatch._action_executor import execute_action
 from orxtra.dispatch._protocols import DispatchBackend
@@ -182,9 +187,8 @@ class DualPhaseEventDelivery:
                 if sub_action.accumulator_config is not None:
                     await self._buffer_or_flush(sub_action, event_payload)
                 else:
-                    action = _resolve_action(sub_action.action)
                     await execute_action(
-                        action,
+                        sub_action.action,
                         [event_payload],
                         workflow_executor=self._workflow_executor,
                         event_fire_callback=self._make_event_fire_callback(),
@@ -192,7 +196,7 @@ class DualPhaseEventDelivery:
 
     async def _buffer_or_flush(
         self,
-        sub_action: Any,
+        sub_action: SubscriptionAction,
         event_payload: dict[str, object],
     ) -> None:
         """Buffer event for accumulator; flush inline if count threshold reached."""
@@ -223,7 +227,7 @@ class DualPhaseEventDelivery:
                 self._make_flush_callback(sub_action),
             )
 
-    def _make_flush_callback(self, sub_action: Any) -> Any:
+    def _make_flush_callback(self, sub_action: SubscriptionAction) -> Any:
         """Create a zero-arg async callback for FlushScheduler."""
 
         async def _flush() -> None:
@@ -231,7 +235,7 @@ class DualPhaseEventDelivery:
 
         return _flush
 
-    async def _flush_action(self, sub_action: Any) -> None:
+    async def _flush_action(self, sub_action: SubscriptionAction) -> None:
         """Claim a batch, execute the action, confirm the batch."""
         assert self._backend is not None  # noqa: S101
 
@@ -239,7 +243,6 @@ class DualPhaseEventDelivery:
         if not batch:
             return
 
-        action = _resolve_action(sub_action.action)
         events: list[dict[str, object]] = [
             {
                 "entry_id": str(entry.id),
@@ -249,46 +252,9 @@ class DualPhaseEventDelivery:
             for entry in batch
         ]
         await execute_action(
-            action,
+            sub_action.action,
             events,
             workflow_executor=self._workflow_executor,
             event_fire_callback=self._make_event_fire_callback(),
         )
         await self._backend.confirm_batch([entry.id for entry in batch])
-
-
-def _resolve_action(action_data: Any) -> Action:
-    """Resolve an action dict or Action instance to an Action.
-
-    SubscriptionAction.action is typed as Any because the dispatch
-    types module cannot import from protocols without creating a
-    circular dependency at the type level. At runtime, the value is
-    either an Action instance or a plain dict matching one of the
-    Action union members.
-    """
-    from orxtra.protocols import (
-        EventAction,
-        LogAction,
-        ScriptAction,
-        WorkflowAction,
-    )
-
-    if isinstance(action_data, ScriptAction | LogAction | WorkflowAction | EventAction):
-        return action_data
-
-    if not isinstance(action_data, dict):
-        msg = f"Cannot resolve action from {type(action_data).__name__}"
-        raise TypeError(msg)
-
-    # Detect type from dict keys.
-    if "callable" in action_data:
-        return ScriptAction.model_validate(action_data)
-    if "message" in action_data:
-        return LogAction.model_validate(action_data)
-    if "workflow_path" in action_data:
-        return WorkflowAction.model_validate(action_data)
-    if "event_type" in action_data:
-        return EventAction.model_validate(action_data)
-
-    msg = f"Cannot determine action type from keys: {set(action_data.keys())}"
-    raise ValueError(msg)

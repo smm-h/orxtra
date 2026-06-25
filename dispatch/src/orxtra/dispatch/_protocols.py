@@ -1,42 +1,17 @@
+"""Dispatch protocols -- re-exported from protocols."""
+
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
-from uuid import UUID
+from orxtra.protocols import (
+    AccumulatorStorage,
+    ActionStorage,
+    DispatchBackend,
+    SubscriptionStorage,
+)
 
-from orxtra.dispatch._types import AccumulatorEntry, Subscription, SubscriptionAction
-
-
-@runtime_checkable
-class SubscriptionStorage(Protocol):
-    async def create_subscription(self, subscription: Subscription) -> UUID: ...
-    async def get_subscription(self, sub_id: UUID) -> Subscription | None: ...
-    async def list_subscriptions(
-        self, *, enabled_only: bool = True,
-    ) -> list[Subscription]: ...
-    async def update_subscription(
-        self, sub_id: UUID, *, enabled: bool,
-    ) -> None: ...
-    async def delete_subscription(self, sub_id: UUID) -> None: ...
-
-
-@runtime_checkable
-class ActionStorage(Protocol):
-    async def create_action(self, action: SubscriptionAction) -> UUID: ...
-    async def list_actions(self, sub_id: UUID) -> list[SubscriptionAction]: ...
-    async def delete_actions(self, sub_id: UUID) -> None: ...
-
-
-@runtime_checkable
-class AccumulatorStorage(Protocol):
-    async def buffer_event(self, entry: AccumulatorEntry) -> UUID: ...
-    async def claim_batch(
-        self, action_id: UUID, limit: int = 100,
-    ) -> list[AccumulatorEntry]: ...
-    async def confirm_batch(self, entry_ids: list[UUID]) -> None: ...
-    async def pending_count(self, action_id: UUID) -> int: ...
-
-
-@runtime_checkable
-class DispatchBackend(
-    SubscriptionStorage, ActionStorage, AccumulatorStorage, Protocol,
-): ...
+__all__ = [
+    "AccumulatorStorage",
+    "ActionStorage",
+    "DispatchBackend",
+    "SubscriptionStorage",
+]
