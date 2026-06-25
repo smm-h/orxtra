@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-write-safety"
-version = "0.6.0"
+version = "0.7.0"
 license = "BUSL-1.1"
 description = "Write queue, stale-write detection, atomic replace, transient replay."
 requires-python = ">=3.12"
