@@ -549,9 +549,7 @@ def test_serialize_empty_containers() -> None:
 
 
 @patch("orxtra.mcp._server.event_stream")
-@patch("orxtra.mcp._server.PgEventBus")
 async def test_event_listener_forwards_notifications(
-    mock_bus_cls: Any,  # noqa: ANN401
     mock_event_stream: Any,  # noqa: ANN401
 ) -> None:
     """Events from services event_stream are forwarded as JSON-RPC notifications."""
@@ -576,7 +574,8 @@ async def test_event_listener_forwards_notifications(
 
     mock_event_stream.side_effect = _fake_stream
 
-    server = MCPServer(pool=AsyncMock())
+    mock_bus = AsyncMock()
+    server = MCPServer(pool=AsyncMock(), event_bus=mock_bus)
     writer = MockWriter()
 
     task = await server._start_event_listener(writer)  # noqa: SLF001
@@ -592,13 +591,11 @@ async def test_event_listener_forwards_notifications(
     assert notification["params"]["run_id"] == "abc"
     assert "id" not in notification
 
-    # Verify PgEventBus was constructed with the pool
-    mock_bus_cls.assert_called_once()
-
-    # Verify event_stream was called with channel="orxtra_events"
+    # Verify event_stream was called with the injected bus and channel="orxtra_events"
     mock_event_stream.assert_called_once()
-    call_kwargs = mock_event_stream.call_args
-    assert call_kwargs[1]["channel"] == "orxtra_events"
+    call_args = mock_event_stream.call_args
+    assert call_args[0][0] is mock_bus
+    assert call_args[1]["channel"] == "orxtra_events"
 
     task.cancel()
     with contextlib.suppress(asyncio.CancelledError):

@@ -117,7 +117,7 @@ releasable = "orxtra"
 [[projects]]
 path = "mcp"
 description = "MCP server (human interface via dashboard/AI client)"
-depends_on = ["services", "trace"]
+depends_on = ["services"]
 releasable = "orxtra"
 
 # --- Infrastructure ---
