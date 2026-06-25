@@ -8,6 +8,7 @@ dependencies = [
     "pydantic>=2",
     "asyncpg",
     "orxtra-agent",
+    "orxtra-dispatch",
     "orxtra-protocols",
     "orxtra-scheduler",
     "orxtra-session",
@@ -26,6 +27,7 @@ packages = ["src/orxtra"]
 
 [tool.uv.sources]
 orxtra-agent = { workspace = true }
+orxtra-dispatch = { workspace = true }
 orxtra-protocols = { workspace = true }
 orxtra-scheduler = { workspace = true }
 orxtra-session = { workspace = true }

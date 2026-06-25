@@ -659,6 +659,7 @@ source = { editable = "scheduler" }
 dependencies = [
     { name = "jsonschema" },
     { name = "orxtra-agent" },
+    { name = "orxtra-dispatch" },
     { name = "orxtra-notepad" },
     { name = "orxtra-protocols" },
     { name = "orxtra-secrets" },
@@ -675,6 +676,7 @@ dependencies = [
 requires-dist = [
     { name = "jsonschema" },
     { name = "orxtra-agent", editable = "agent" },
+    { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-notepad", editable = "notepad" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-secrets", editable = "secrets" },
@@ -709,6 +711,7 @@ source = { editable = "services" }
 dependencies = [
     { name = "asyncpg" },
     { name = "orxtra-agent" },
+    { name = "orxtra-dispatch" },
     { name = "orxtra-overseer" },
     { name = "orxtra-protocols" },
     { name = "orxtra-scheduler" },
@@ -722,6 +725,7 @@ dependencies = [
 requires-dist = [
     { name = "asyncpg" },
     { name = "orxtra-agent", editable = "agent" },
+    { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-overseer", editable = "overseer" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-scheduler", editable = "scheduler" },
