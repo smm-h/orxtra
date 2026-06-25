@@ -8,7 +8,7 @@ from .conftest import MockTraceWriter
 from orxtra.overseer._knowledge import (
     load_knowledge_files,
 )
-from orxtra.trace._memory_backend import InMemoryBackend
+from orxtra.trace import InMemoryBackend
 
 if TYPE_CHECKING:
     from pathlib import Path

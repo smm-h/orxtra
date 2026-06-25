@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxtra.trace import StorageBackend, TraceWriter
-    from orxtra.trace._protocols import KnowledgeHashStorage
+    from orxtra.trace import KnowledgeHashStorage, StorageBackend, TraceWriter
 
 
 def _file_hash(path: Path) -> str:
@@ -20,7 +19,7 @@ def _supports_knowledge_hashes(
     writer: TraceWriter | StorageBackend,
 ) -> KnowledgeHashStorage | None:
     """Check if the writer supports knowledge hash persistence."""
-    from orxtra.trace._protocols import KnowledgeHashStorage  # noqa: PLC0415
+    from orxtra.trace import KnowledgeHashStorage  # noqa: PLC0415
 
     if isinstance(writer, KnowledgeHashStorage):
         return writer

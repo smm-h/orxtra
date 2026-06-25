@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import pytest
 from orxtra.protocols._tool import Tool, ToolError
-from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS
-from orxtra.tool._pipeline import FILE_MUTATION_TOOLS, wrap_tools_for_session
+from orxtra.tool import CONSULT_STRIP_TOOLS, FILE_MUTATION_TOOLS, wrap_tools_for_session
 
 
 async def _noop(args: dict[str, object]) -> str:

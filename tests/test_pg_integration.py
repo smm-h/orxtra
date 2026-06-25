@@ -64,7 +64,7 @@ class TestSchemaCreation:
 
     async def test_all_tables_created(self, pg_pool: asyncpg.Pool) -> None:
         """All expected tables exist after schema creation."""
-        from orxtra.trace._schema import TABLE_NAMES  # noqa: PLC0415
+        from orxtra.trace import TABLE_NAMES  # noqa: PLC0415
 
         rows = await pg_pool.fetch(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
@@ -236,9 +236,9 @@ class TestAdvisoryLocks:
         writer = TraceWriter(pg_pool)
         run_id = await _create_run(writer)
 
-        from orxtra.trace._lock import _lock_key  # noqa: PLC0415
+        from orxtra.trace import lock_key  # noqa: PLC0415
 
-        key = _lock_key(run_id)
+        key = lock_key(run_id)
 
         # Hold the lock on a dedicated connection
         conn1 = await pg_pool.acquire()

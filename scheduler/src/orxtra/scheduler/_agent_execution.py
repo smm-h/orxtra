@@ -23,18 +23,18 @@ from orxtra.scheduler._tool_registry import (
     ToolDeps,
 )
 from orxtra.session import Session, create_session
-from orxtra.tool._consult_tool import make_consult_tool
-from orxtra.tool._exec_tool import make_exec_tool
-from orxtra.tool._git_tool import make_git_tool
-from orxtra.tool._pipeline import wrap_tools_for_session
-from orxtra.tool._shell_tool import make_shell_tool
-from orxtra.tool._task_tools import (
+from orxtra.tool import (
     make_await_task_tool,
+    make_consult_tool,
     make_create_task_tool,
     make_create_wait_for_tool,
     make_create_workflow_tool,
     make_end_task_tool,
+    make_exec_tool,
+    make_git_tool,
+    make_shell_tool,
     make_start_task_tool,
+    wrap_tools_for_session,
 )
 from orxtra.transport import ContextWarning, Result, Usage
 

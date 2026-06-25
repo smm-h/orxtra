@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from uuid import UUID
 
-    from orxtra.secrets._registry import SecretRegistry
+    from orxtra.secrets import SecretRegistry
 
 FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
     "write", "edit", "multi_edit", "delete", "move", "copy", "mkdir",
