@@ -564,7 +564,6 @@ version = "0.6.0"
 source = { editable = "mcp" }
 dependencies = [
     { name = "orxtra-services" },
-    { name = "orxtra-trace" },
 ]
 
 [package.dev-dependencies]
@@ -573,10 +572,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "orxtra-services", editable = "services" },
-    { name = "orxtra-trace", editable = "trace" },
-]
+requires-dist = [{ name = "orxtra-services", editable = "services" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
