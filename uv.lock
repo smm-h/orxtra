@@ -12,6 +12,7 @@ members = [
     "orxtra",
     "orxtra-agent",
     "orxtra-cli",
+    "orxtra-dispatch",
     "orxtra-mcp",
     "orxtra-notepad",
     "orxtra-overseer",
@@ -531,6 +532,31 @@ requires-dist = [
     { name = "orxtra-services", editable = "services" },
     { name = "strictcli" },
 ]
+
+[[package]]
+name = "orxtra-dispatch"
+version = "0.1.1"
+source = { editable = "dispatch" }
+dependencies = [
+    { name = "orxtra-protocols" },
+    { name = "pydantic" },
+    { name = "uuid6" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "uuid6" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-mcp"
