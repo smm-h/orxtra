@@ -19,15 +19,18 @@ from orxtra.dispatch._delivery import (
     match_subscription,
 )
 from orxtra.dispatch._memory_backend import InMemoryDispatchBackend
+from orxtra.dispatch._pg_backend import PgDispatchBackend
 from orxtra.dispatch._protocols import (
     AccumulatorStorage,
     ActionStorage,
     DispatchBackend,
+    SourceStorage,
     SubscriptionStorage,
 )
 from orxtra.dispatch._types import (
     AccumulatorEntry,
     FilterPredicate,
+    Source,
     Subscription,
     SubscriptionAction,
 )
@@ -42,7 +45,10 @@ __all__ = [
     "DispatchBackend",
     "DualPhaseEventDelivery",
     "FilterPredicate",
+    "Source",
+    "SourceStorage",
     "InMemoryDispatchBackend",
+    "PgDispatchBackend",
     "Subscription",
     "SubscriptionAction",
     "SubscriptionStorage",

@@ -6,6 +6,7 @@ description = "Event delivery: subscriptions, action dispatch, accumulator flush
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
+    "asyncpg",
     "orxtra-protocols",
     "uuid6",
 ]
