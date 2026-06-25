@@ -5,12 +5,13 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from orxtra.protocols._task import TaskSpec, TaskState
-from orxtra.protocols._tool import ToolError
-from orxtra.protocols._tools import (
+from orxtra.protocols import (
     CreateTaskParams,
     CreateWaitForParams,
     CreateWorkflowParams,
+    TaskSpec,
+    TaskState,
+    ToolError,
 )
 from orxtra.scheduler._base import SchedulerBase
 

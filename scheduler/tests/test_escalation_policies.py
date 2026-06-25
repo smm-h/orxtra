@@ -6,8 +6,7 @@ from uuid import UUID
 import pytest
 import uuid6
 from orxtra.agent import Agent
-from orxtra.protocols._task import TaskSpec, TaskState
-from orxtra.protocols._tools import CreateWorkflowParams
+from orxtra.protocols import CreateWorkflowParams, TaskSpec, TaskState
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._services import ServiceInstance
 from orxtra.scheduler._types import (

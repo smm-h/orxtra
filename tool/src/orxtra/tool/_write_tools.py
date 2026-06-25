@@ -7,8 +7,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from orxtra.protocols._results import Confirmation, ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Confirmation, Tool, ToolError, ToolOutput
 from orxtra.tool._decorator import tool
 from orxtra.tool._params import (
     CopyParams,

@@ -14,8 +14,7 @@ from typing import Any, Generic, TypeVar, get_type_hints
 
 from pydantic import BaseModel, ValidationError
 
-from orxtra.protocols._results import Renderer, ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Renderer, Tool, ToolError, ToolOutput
 
 T = TypeVar("T")
 

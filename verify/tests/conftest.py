@@ -5,11 +5,10 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from orxtra.protocols._execution import CheckResult
+from orxtra.protocols import CheckResult
 
 if TYPE_CHECKING:
-    from orxtra.protocols._checks import CheckContext
-    from orxtra.protocols._task import Execution
+    from orxtra.protocols import CheckContext, Execution
 
 
 class MockCheckExecutor:
@@ -53,7 +52,7 @@ def make_check_context(
     task_name: str = "test-task",
     attempt: int = 1,
 ) -> CheckContext:
-    from orxtra.protocols._checks import CheckContext  # noqa: PLC0415
+    from orxtra.protocols import CheckContext  # noqa: PLC0415
 
     return CheckContext(
         variables=variables or {},

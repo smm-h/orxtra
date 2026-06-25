@@ -4,8 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 import respx
-from orxtra.protocols import Tool
-from orxtra.protocols._results import Confirmation, ToolOutput
+from orxtra.protocols import Confirmation, Tool, ToolOutput
 from orxtra.transport._events import (
     ContentBlock,
     Event,

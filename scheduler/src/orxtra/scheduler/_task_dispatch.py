@@ -8,8 +8,8 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from orxtra.notepad import format_notepad
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import (
+from orxtra.protocols import (
+    CheckResult,
     TaskContext,
     TaskResult,
     TaskSpec,
@@ -63,7 +63,7 @@ class TaskDispatchMixin(SchedulerBase):
         )
 
         # Send to Overseer (or headless fallback)
-        from orxtra.protocols._events import (  # noqa: PLC0415
+        from orxtra.protocols import (  # noqa: PLC0415
             StructuralAdvisory,
         )
         await self._send_overseer_event(

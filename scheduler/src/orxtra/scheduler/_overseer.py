@@ -5,12 +5,13 @@ import logging
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Protocol
 
-from orxtra.protocols._events import (
+from orxtra.protocols import (
     BudgetExhausted,
     BudgetThresholdCrossed,
     HealthDegraded,
     InboxAnswered,
     InboxRejected,
+    OverseerEvent,
     RunStarted,
     StructuralAdvisory,
     TaskEscalated,
@@ -21,15 +22,13 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from uuid import UUID
 
-    from orxtra.protocols._autonomy import AutonomyLevel
-    from orxtra.protocols._overseer_protocols import (
+    from orxtra.protocols import (
+        AutonomyLevel,
         HealthMonitorProtocol,
         OverseerProtocol,
         SessionProtocol,
+        Tool,
     )
-    from orxtra.protocols._tool import Tool
-
-from orxtra.protocols._overseer_protocols import OverseerEvent
 
 _logger = logging.getLogger("orxtra.scheduler")
 
@@ -262,7 +261,7 @@ class OverseerAdapter:
         proportionality_threshold: float | None = None,
     ) -> None:
         if autonomy_level is None:
-            from orxtra.protocols._autonomy import AutonomyLevel  # noqa: PLC0415
+            from orxtra.protocols import AutonomyLevel  # noqa: PLC0415
             autonomy_level = AutonomyLevel.MAX
         self._overseer = overseer
         self._health_monitor = health_monitor
@@ -315,8 +314,8 @@ class OverseerAdapter:
 
     def _gate_tool(self, tool: Tool) -> Tool:
         """Wrap a single tool with autonomy gating."""
-        from orxtra.protocols._results import Confirmation, ToolOutput  # noqa: PLC0415
-        from orxtra.protocols._tool import Tool as ToolCls  # noqa: PLC0415
+        from orxtra.protocols import Confirmation, ToolOutput  # noqa: PLC0415
+        from orxtra.protocols import Tool as ToolCls  # noqa: PLC0415
 
         action_type = TOOL_ACTION_TYPES.get(
             tool.name, "scope_change",
@@ -498,7 +497,7 @@ class OverseerAdapter:
 
         # Try to construct a TaskSpec and validate
         try:
-            from orxtra.protocols._task import TaskSpec  # noqa: PLC0415
+            from orxtra.protocols import TaskSpec  # noqa: PLC0415
             from orxtra.scheduler._types import WorkflowConfig  # noqa: PLC0415
             from orxtra.scheduler._validator import validate_task_tree  # noqa: PLC0415
 

@@ -5,9 +5,7 @@ from typing import TYPE_CHECKING
 from orxtra.verify._execution import execute_check
 
 if TYPE_CHECKING:
-    from orxtra.protocols._checks import CheckContext, CheckExecutor
-    from orxtra.protocols._execution import CheckResult
-    from orxtra.protocols._task import Execution
+    from orxtra.protocols import CheckContext, CheckExecutor, CheckResult, Execution
 
 
 async def run_checks(

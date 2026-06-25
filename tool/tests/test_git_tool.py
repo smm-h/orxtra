@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxtra.protocols._tool import ToolError
+from orxtra.protocols import ToolError
 from orxtra.tool._git_tool import make_git_tool
 
 

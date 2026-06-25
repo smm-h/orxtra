@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from orxtra.protocols._tool import ToolError
+from orxtra.protocols import ToolError
 from orxtra.tool._http_tool import make_http_tool
 
 

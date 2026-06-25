@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from orxtra.protocols._results import TaskLifecycleResult
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import TaskLifecycleResult, Tool
 from orxtra.tool._decorator import tool
 from orxtra.tool._params import (
     AwaitTaskParams,

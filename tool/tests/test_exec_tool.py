@@ -7,7 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxtra.protocols._tool import ToolError
+from orxtra.protocols import ToolError
 from orxtra.tool._exec_tool import make_exec_tool
 
 

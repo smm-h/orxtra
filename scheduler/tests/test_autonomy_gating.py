@@ -10,8 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxtra.protocols._autonomy import AutonomyLevel
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import AutonomyLevel, Tool
 from orxtra.scheduler._overseer import OverseerAdapter
 
 # -- Helpers ----------------------------------------------
@@ -20,7 +19,7 @@ from orxtra.scheduler._overseer import OverseerAdapter
 async def _dummy_execute(
     args: dict[str, Any],
 ) -> Any:  # noqa: ANN401
-    from orxtra.protocols._results import Confirmation, ToolOutput  # noqa: PLC0415
+    from orxtra.protocols import Confirmation, ToolOutput  # noqa: PLC0415
     _ = args
     return ToolOutput(data=Confirmation(message="executed"), text="executed")
 

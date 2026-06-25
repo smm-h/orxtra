@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols import TaskSpec
 from orxtra.scheduler._executor import Scheduler
 
 from tests.conftest import (

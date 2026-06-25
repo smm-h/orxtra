@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING
 
 import uuid6
 from orxtra.agent import Agent
-from orxtra.protocols import TaskSpec, TaskState
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import TaskSpec, TaskState, Tool, ToolError
 from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result, StepFinish, StreamDelta, ToolUse
 

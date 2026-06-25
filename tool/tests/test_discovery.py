@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import ModuleType
 from unittest.mock import AsyncMock
 
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool
 from orxtra.tool._discovery import collect_tools
 
 

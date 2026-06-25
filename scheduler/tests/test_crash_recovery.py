@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from orxtra.protocols._task import TaskSpec
+from orxtra.protocols import TaskSpec
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.trace import RunLockError

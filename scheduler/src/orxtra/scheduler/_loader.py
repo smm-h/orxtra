@@ -4,8 +4,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from orxtra.protocols._execution import AgentExecution, ScriptExecution, Severity
-from orxtra.protocols._task import Execution, TaskSpec
+from orxtra.protocols import AgentExecution, Execution, ScriptExecution, Severity, TaskSpec
 from orxtra.scheduler._types import EscalationPolicy, ServiceConfig, WorkflowConfig
 
 

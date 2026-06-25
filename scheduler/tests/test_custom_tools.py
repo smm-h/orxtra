@@ -8,8 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import uuid6
 from orxtra.agent import Agent
-from orxtra.protocols._task import TaskSpec
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import TaskSpec, Tool
 from orxtra.scheduler._executor import Scheduler
 
 from tests.conftest import (

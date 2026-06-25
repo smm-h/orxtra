@@ -14,7 +14,7 @@ from orxtra.overseer._tools import (
     make_update_workflow_status_tool,
     make_write_lesson_tool,
 )
-from orxtra.protocols._tool import ToolError
+from orxtra.protocols import ToolError
 
 if TYPE_CHECKING:
     from uuid import UUID

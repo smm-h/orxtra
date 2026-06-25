@@ -11,18 +11,16 @@ from unittest.mock import patch
 
 import pytest
 import uuid6
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import (
+from orxtra.protocols import (
+    CheckResult,
+    CreateTaskParams,
+    CreateWaitForParams,
+    CreateWorkflowParams,
     TaskContext,
     TaskResult,
     TaskSpec,
     TaskState,
-)
-from orxtra.protocols._tool import ToolError
-from orxtra.protocols._tools import (
-    CreateTaskParams,
-    CreateWaitForParams,
-    CreateWorkflowParams,
+    ToolError,
 )
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._types import WorkflowConfig

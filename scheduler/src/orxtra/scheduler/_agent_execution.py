@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from orxtra.notepad import format_notepad
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import (
+from orxtra.protocols import (
+    CheckResult,
     EscalationPayload,
     TaskResult,
     TaskSpec,
@@ -40,7 +40,7 @@ from orxtra.transport import ContextWarning, Result, Usage
 
 if TYPE_CHECKING:
     from orxtra.agent import Agent
-    from orxtra.protocols._tool import Tool
+    from orxtra.protocols import Tool
 
 from orxtra.scheduler._base import SchedulerBase
 
@@ -163,7 +163,7 @@ class AgentExecutionMixin(SchedulerBase):
                     TaskState.ESCALATED.value,
                 )
 
-                from orxtra.protocols._events import (  # noqa: PLC0415
+                from orxtra.protocols import (  # noqa: PLC0415
                     TaskEscalated,
                 )
 
@@ -586,7 +586,7 @@ class AgentExecutionMixin(SchedulerBase):
             async for _ in parent_session.send(escalation_msg):
                 pass
         else:
-            from orxtra.protocols._events import (  # noqa: PLC0415
+            from orxtra.protocols import (  # noqa: PLC0415
                 TaskEscalated,
             )
             await self._send_overseer_event(

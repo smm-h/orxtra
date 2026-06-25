@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxtra.protocols._task import (
+from orxtra.protocols import (
     BudgetExhaustionPolicy,
     TaskSpec,
     TaskState,

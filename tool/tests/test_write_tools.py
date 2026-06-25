@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from orxtra.protocols._tool import ToolError
+from orxtra.protocols import ToolError
 from orxtra.tool._write_integration import safe_read_for_write
 from orxtra.tool._write_tools import (
     make_copy_tool,

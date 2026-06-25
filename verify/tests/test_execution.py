@@ -9,17 +9,17 @@ from .conftest import (
     make_mixed_verdict,
     make_passing_verdict,
 )
-from orxtra.protocols._execution import (
+from orxtra.protocols import (
     AgentExecution,
     CheckResult,
     ScriptExecution,
     Severity,
+    WorkflowExecution,
 )
-from orxtra.protocols._task import WorkflowExecution
 from orxtra.verify._execution import execute_check
 
 if TYPE_CHECKING:
-    from orxtra.protocols._checks import CheckContext
+    from orxtra.protocols import CheckContext
 
 
 class TestScriptChecks:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import ModuleType
 
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool
 
 
 def collect_tools(module: ModuleType) -> dict[str, Tool]:

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from orxtra.protocols._task import TaskResult, TaskSpec
+from orxtra.protocols import TaskResult, TaskSpec
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.trace import InMemoryBackend, InMemoryEventBus

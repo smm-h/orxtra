@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Tool, ToolError
 from orxtra.tool._consult_tool import make_consult_tool
 
 _RUN_ID = UUID("12345678-1234-1234-1234-123456789abc")

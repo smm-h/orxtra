@@ -14,18 +14,16 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import uuid6
-from orxtra.protocols._events import (
+from orxtra.protocols import (
     BudgetThresholdCrossed,
+    EscalationPayload,
     HealthDegraded,
     InboxAnswered,
     InboxRejected,
     RunStarted,
     StructuralAdvisory,
-    TaskFailed,
-)
-from orxtra.protocols._task import (
-    EscalationPayload,
     TaskContext,
+    TaskFailed,
     TaskSpec,
 )
 from orxtra.scheduler._executor import Scheduler

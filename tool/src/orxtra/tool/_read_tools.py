@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pathspec
-from orxtra.protocols._results import (
+from orxtra.protocols import (
     DiffResult,
     DirEntry,
     DirListing,
@@ -22,9 +22,10 @@ from orxtra.protocols._results import (
     GrepMatch,
     GrepResult,
     StatResult,
+    Tool,
+    ToolError,
     ToolOutput,
 )
-from orxtra.protocols._tool import Tool, ToolError
 from orxtra.tool._decorator import tool
 from orxtra.tool._params import (
     DiffParams,

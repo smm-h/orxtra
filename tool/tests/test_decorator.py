@@ -7,8 +7,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from orxtra.protocols._results import ToolOutput
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import Tool, ToolError, ToolOutput
 from orxtra.tool._decorator import ToolTemplate, tool
 from orxtra.tool._renderers import JsonRenderer, TextRenderer
 

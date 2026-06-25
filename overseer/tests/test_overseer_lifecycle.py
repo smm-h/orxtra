@@ -8,7 +8,7 @@ from .conftest import MockTraceWriter
 from orxtra.overseer._autonomy import AutonomyLevel
 from orxtra.overseer._health import HealthMonitor
 from orxtra.overseer._overseer import Overseer, load_overseer_prompt
-from orxtra.protocols._tool import Tool
+from orxtra.protocols import Tool
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -54,7 +54,7 @@ class MockSession:
 
 
 async def _noop_execute(args: dict[str, Any]) -> Any:
-    from orxtra.protocols._results import Confirmation, ToolOutput
+    from orxtra.protocols import Confirmation, ToolOutput
     return ToolOutput(data=Confirmation(message="ok"), text="ok")
 
 

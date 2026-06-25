@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxtra.protocols._tool import ToolError
+from orxtra.protocols import ToolError
 from orxtra.tool._write_tools import make_multi_edit_tool
 from orxtra.write_safety import StaleWriteTracker, WriteQueue
 

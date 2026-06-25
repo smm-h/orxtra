@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 import uuid6
 from orxtra.agent import Agent
-from orxtra.protocols._task import TaskSpec
-from orxtra.protocols._tool import Tool, ToolError
+from orxtra.protocols import TaskSpec, Tool, ToolError
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.transport import Result, StepFinish, ToolUse

@@ -10,8 +10,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 import uuid6
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import TaskResult, TaskSpec, TaskState
+from orxtra.protocols import CheckResult, TaskResult, TaskSpec, TaskState
 from orxtra.scheduler._types import WorkflowConfig
 
 if TYPE_CHECKING:

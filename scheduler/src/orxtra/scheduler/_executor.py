@@ -10,12 +10,13 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from orxtra.notepad import NotepadEntry, format_notepad
-from orxtra.protocols._errors import ErrorCategory
-from orxtra.protocols._events import RunStarted, StructuralAdvisory
-from orxtra.protocols._execution import CheckResult
-from orxtra.protocols._task import (
+from orxtra.protocols import (
     AttemptSummary,
     BudgetExhaustionPolicy,
+    CheckResult,
+    ErrorCategory,
+    RunStarted,
+    StructuralAdvisory,
     TaskContext,
     TaskResult,
     TaskSpec,
@@ -49,8 +50,7 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxtra.agent import Agent
-    from orxtra.protocols._task import Execution
-    from orxtra.protocols._tool import Tool
+    from orxtra.protocols import Execution, Tool
     from orxtra.scheduler._overseer import (
         OverseerEvent,
         OverseerInterface,
@@ -305,7 +305,7 @@ class Scheduler(
         self,
         execution: Execution,
     ) -> CheckResult:
-        from orxtra.protocols._task import (  # noqa: PLC0415
+        from orxtra.protocols import (  # noqa: PLC0415
             WorkflowExecution,
         )
 
