@@ -49,6 +49,9 @@ class _MockSession:
     def __init__(self, tools: list[Tool]) -> None:
         self._tools = tools
 
+    def update_tools(self, tools: list[Tool]) -> None:
+        self._tools = tools
+
     @property
     def tools(self) -> list[Tool]:
         return self._tools
