@@ -22,9 +22,10 @@ LAYERS = {
         "notepad",
         "session",
     },
-    "orchestration": {"scheduler"},
+    "orchestration": {"scheduler", "dispatch"},
     "intelligence": {"overseer"},
-    "interfaces": {"services", "cli", "mcp"},
+    "composition": {"services"},
+    "interfaces": {"cli", "mcp"},
 }
 
 # Build reverse lookup: module_name -> layer_name
@@ -40,7 +41,8 @@ LAYER_ORDER = {
     "foundation": 0,
     "orchestration": 1,
     "intelligence": 1,
-    "interfaces": 2,
+    "composition": 2,
+    "interfaces": 3,
 }
 
 
