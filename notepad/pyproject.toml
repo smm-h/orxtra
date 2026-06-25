@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-notepad"
-version = "0.1.1"
+version = "0.6.0"
 license = "BUSL-1.1"
 description = "Append-only cross-agent context sharing. PG-backed via the trace schema."
 requires-python = ">=3.12"
