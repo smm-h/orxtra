@@ -329,6 +329,15 @@ class StorageReader(Protocol):
         self, workflow_id: UUID,
     ) -> dict[str, Any] | None: ...
 
+    async def replay(
+        self,
+        *,
+        event_types: list[str] | None = None,
+        source: str | None = None,
+        since_id: UUID | None = None,
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]: ...
+
 
 @runtime_checkable
 class StorageLock(Protocol):

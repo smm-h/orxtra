@@ -446,3 +446,45 @@ async def read_workflow_status(
     if row is None:
         return None
     return _record_to_dict(row)
+
+
+async def replay(
+    pool: asyncpg.Pool,
+    *,
+    event_types: list[str] | None = None,
+    source: str | None = None,
+    since_id: UUID | None = None,
+    limit: int = 1000,
+) -> list[dict[str, Any]]:
+    """Replay events with optional filters and cursor-based pagination.
+
+    Uses since_id (UUIDv7, time-ordered) as cursor for monotonic pagination.
+    """
+    conditions: list[str] = []
+    params: list[Any] = []
+    idx = 1
+
+    if event_types is not None:
+        conditions.append(f"event_type = ANY(${idx})")
+        params.append(event_types)
+        idx += 1
+
+    if source is not None:
+        conditions.append(f"source = ${idx}")
+        params.append(source)
+        idx += 1
+
+    if since_id is not None:
+        conditions.append(f"id > ${idx}")
+        params.append(since_id)
+        idx += 1
+
+    where = " AND ".join(conditions) if conditions else "TRUE"
+    params.append(limit)
+    query = (
+        "SELECT id, run_id, task_id, event_type, source, data, created_at"  # noqa: S608
+        f" FROM events WHERE {where}"
+        f" ORDER BY id LIMIT ${idx}"
+    )
+    rows: list[asyncpg.Record] = await pool.fetch(query, *params)
+    return [_record_to_dict(row) for row in rows]

@@ -56,6 +56,7 @@ from orxtra.trace._reader import (
     read_task_attempts,
     read_transcript,
     read_workflow_status,
+    replay,
     search_transcript,
 )
 from orxtra.trace._schema import ALL_CREATE_STATEMENTS, TABLE_NAMES
@@ -138,6 +139,7 @@ __all__ = [
     "read_transcript",
     "read_workflow_status",
     "reclaim_interrupted",
+    "replay",
     "reevaluate_blocked",
     "release_run_lock",
     "search_transcript",
