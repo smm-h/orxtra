@@ -121,10 +121,11 @@ class MockTraceWriter:
 
     async def write_event(
         self,
-        run_id: UUID,
+        run_id: UUID | None,
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
+        source: str = "internal",
     ) -> UUID:
         generated = self._gen_id()
         self.calls.append(("write_event", {

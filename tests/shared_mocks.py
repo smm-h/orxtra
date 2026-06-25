@@ -149,10 +149,11 @@ class MockTraceWriter:
 
     async def write_event(
         self,
-        run_id: uuid.UUID,
+        run_id: uuid.UUID | None,
         event_type: str,
         data: dict[str, Any],
         task_id: uuid.UUID | None = None,
+        source: str = "internal",
     ) -> uuid.UUID:
         event_id = uuid6.uuid7()
         self._record(
