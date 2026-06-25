@@ -1,4 +1,32 @@
 {
+  "cli-config.md": {
+    "content": "ee4454c4076c690867d55088b20cc77309a1f4716f1a458ebf4c1902d33ab665",
+    "description": "7f0afec604982951d2f242b2ecf30ab9ad2f3395b84f714e5c9643fe1c9eb1da"
+  },
+  "cli-event.md": {
+    "content": "dee78255687fc980a766f59a12951751a619366a14e273ade561fbc04c1d4d94",
+    "description": "cb4545b0eca92a0abcf0399c502b02b824322a62c23d46220cba5d408ffbf067"
+  },
+  "cli-inbox.md": {
+    "content": "fd8343ea21a5d491c6cdce6e216c29a8e274e3cd72be788c54cd5f953f407ae8",
+    "description": "6b14553db289bce7da01169c5013d49f8ffd121f358cfeaa8d36417f37d28147"
+  },
+  "cli-index.md": {
+    "content": "7df9e5c1836525d0511829f130139341b860cf8c057f2fbe840a9ab6b834b222",
+    "description": "2a078aecbd5d7b1cfdb389e09ccb429c3cccca94b8736b748e6e2b6d71954f28"
+  },
+  "cli-run.md": {
+    "content": "9a103c39842abf93f28be925d42e0c797214fde77318a3d466cec19f1152fa60",
+    "description": "fe4302fcf25e99f6562ee053ade0e84dab6b89721b20decfc458ef6fe634461b"
+  },
+  "cli-trace.md": {
+    "content": "55b7b219d4669990d9ae8ed81d6bebb1d9ca4be485841fffed9f0b689c360752",
+    "description": "17cacd0267eb34ee721c70cb46ff20cec88873d9723aea236de3500936de45d9"
+  },
+  "cli-validate.md": {
+    "content": "585277fcdeb219b73fdf461e9bf5c98596cd4c97a0d56c64e990c77b4e63c10e",
+    "description": "2a16df8c0725618b2ac489fa1871b528d0d8f97d2f09f7372ff7640b55578351"
+  },
   "gen-index.md": {
     "content": "77b26abe69da3a05549e49ce64a424607918ca7cfb8913353870f1d7ae523870",
     "description": "bb3cd9d34f014c0674a9285c25ee14b5b4abc5cf941f0d83594c301405e8f3b6"
