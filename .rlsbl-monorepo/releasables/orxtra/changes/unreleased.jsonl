@@ -1,0 +1,1 @@
+{"commits":["994ac66ef4ee49693c793dcf6addb551733630d5","63bd639fdb54c9f57ab15f1be14bb3a65f79685b"],"user_facing":true,"description":"**PgDispatchBackend.** Full asyncpg-backed dispatch storage with subscription, source, and accumulator persistence.","type":"feature","packages":["dispatch"]}
