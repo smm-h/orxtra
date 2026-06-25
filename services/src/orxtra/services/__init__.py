@@ -10,7 +10,7 @@ except PackageNotFoundError:
 from orxtra.services._ask import ask, ask_structured, sync_ask
 from orxtra.services._config import dump_config, show_pricing
 from orxtra.services._providers import build_transport_registry
-from orxtra.services._events import fire_event
+from orxtra.services._events import event_stream, fire_blocking, fire_event
 from orxtra.services._inbox import (
     get_inbox_item,
     list_inbox,
@@ -51,6 +51,8 @@ __all__ = [
     "abort_run",
     "build_transport_registry",
     "dump_config",
+    "event_stream",
+    "fire_blocking",
     "fire_event",
     "get_inbox_item",
     "get_notepad",
