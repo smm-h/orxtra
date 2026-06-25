@@ -1,7 +1,7 @@
 [project]
 name = "orxtra"
 version = "0.1.0"
-schemas = ["orxtra.toml"]
+schemas = ["trace.toml", "dispatch.toml"]
 
 [suppress]
 "overseer_workflow_status.W005" = "Uses updated_at instead of created_at; this table is intentionally overwritten, not appended"

@@ -1,0 +1,181 @@
+# dispatch module PostgreSQL schema
+# Single owner: the dispatch module. Event sources, subscriptions, actions,
+# and accumulator buffering.
+#
+# Cross-file FK references: subscriptions.owner_run_id -> trace's runs table,
+# accumulator_buffer.event_id -> trace's events table. pgdesign resolves these
+# when generating from the schema/ directory (topo sort merges all files).
+
+[meta]
+version = 1
+schema = "public"
+
+# ---------------------------------------------------------------------------
+# Tables: Event sources
+# ---------------------------------------------------------------------------
+
+[tables.sources]
+comment = "Registry of event sources (webhook endpoints, polled APIs, internal emitters)."
+
+[tables.sources.columns.id]
+type = "id"
+
+[tables.sources.columns.slug]
+type = "str"
+comment = "URL-safe unique identifier"
+
+[tables.sources.columns.name]
+type = "str"
+comment = "Human-readable source name"
+
+[tables.sources.columns.auth_method]
+type = "str_nullable"
+comment = "Authentication method (e.g. hmac, bearer, none)"
+
+[tables.sources.columns.auth_config]
+type = "jsonb_nullable"
+comment = "Auth configuration (secrets referenced by name, never raw values)"
+
+[tables.sources.columns.created_at]
+type = "timestamp"
+
+[tables.sources.unique.uq_sources_slug]
+columns = ["slug"]
+
+# ---------------------------------------------------------------------------
+# Tables: Subscriptions
+# ---------------------------------------------------------------------------
+
+[tables.subscriptions]
+comment = "Event subscriptions. A subscription matches events via filter_expr and routes them to actions."
+
+[tables.subscriptions.columns.id]
+type = "id"
+
+[tables.subscriptions.columns.source_id]
+type = "ref"
+nullable = true
+comment = "Optional source filter (null = match all sources)"
+
+[tables.subscriptions.columns.filter_expr]
+type = "json"
+default = "{}"
+comment = "FilterPredicate serialized as JSON"
+
+[tables.subscriptions.columns.enabled]
+type = "flag"
+default = "true"
+
+[tables.subscriptions.columns.storage]
+type = "str"
+default = "persistent"
+comment = "Storage mode: persistent or transient"
+
+[tables.subscriptions.columns.owner_run_id]
+type = "ref"
+nullable = true
+comment = "Run that owns this subscription (null = global)"
+
+[tables.subscriptions.columns.created_at]
+type = "timestamp"
+
+[tables.subscriptions.fks.fk_subscriptions_source]
+columns = ["source_id"]
+ref_table = "sources"
+ref_columns = ["id"]
+on_delete = "SET NULL"
+
+[tables.subscriptions.fks.fk_subscriptions_run]
+columns = ["owner_run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "SET NULL"
+
+[tables.subscriptions.indexes.idx_subscriptions_source]
+columns = ["source_id"]
+
+[tables.subscriptions.indexes.idx_subscriptions_enabled]
+columns = ["enabled"]
+
+# ---------------------------------------------------------------------------
+# Tables: Subscription actions
+# ---------------------------------------------------------------------------
+
+[tables.subscription_actions]
+comment = "Ordered action pipeline for a subscription. Each action processes matched events."
+
+[tables.subscription_actions.columns.id]
+type = "id"
+
+[tables.subscription_actions.columns.subscription_id]
+type = "ref"
+
+[tables.subscription_actions.columns.position]
+type = "int"
+comment = "Execution order within the subscription"
+
+[tables.subscription_actions.columns.action_type]
+type = "str"
+comment = "Action type identifier (e.g. script, log, webhook)"
+
+[tables.subscription_actions.columns.action_config]
+type = "json"
+default = "{}"
+comment = "Action-specific configuration"
+
+[tables.subscription_actions.columns.accumulator_config]
+type = "jsonb_nullable"
+comment = "Accumulator settings (batch size, flush interval, etc.)"
+
+[tables.subscription_actions.columns.created_at]
+type = "timestamp"
+
+[tables.subscription_actions.fks.fk_subscription_actions_sub]
+columns = ["subscription_id"]
+ref_table = "subscriptions"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.subscription_actions.indexes.idx_subscription_actions_sub]
+columns = ["subscription_id"]
+
+[tables.subscription_actions.unique.uq_subscription_actions_position]
+columns = ["subscription_id", "position"]
+
+# ---------------------------------------------------------------------------
+# Tables: Accumulator buffer
+# ---------------------------------------------------------------------------
+
+[tables.accumulator_buffer]
+comment = "Buffered events awaiting batch delivery for accumulator-enabled actions."
+
+[tables.accumulator_buffer.columns.id]
+type = "id"
+
+[tables.accumulator_buffer.columns.subscription_action_id]
+type = "ref"
+
+[tables.accumulator_buffer.columns.event_id]
+type = "ref"
+comment = "Reference to the trace events table"
+
+[tables.accumulator_buffer.columns.created_at]
+type = "timestamp"
+
+[tables.accumulator_buffer.fks.fk_accumulator_buffer_action]
+columns = ["subscription_action_id"]
+ref_table = "subscription_actions"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.accumulator_buffer.fks.fk_accumulator_buffer_event]
+columns = ["event_id"]
+ref_table = "events"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.accumulator_buffer.indexes.idx_accumulator_buffer_action]
+columns = ["subscription_action_id"]
+
+[tables.accumulator_buffer.indexes.idx_accumulator_buffer_event]
+columns = ["event_id"]

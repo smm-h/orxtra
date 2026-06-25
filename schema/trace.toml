@@ -1,0 +1,829 @@
+# trace module PostgreSQL schema
+# Single owner: the trace module. No other module writes to these tables directly.
+# All primary keys use the built-in `id` type (uuid, NOT NULL).
+# Default uses pg-uuidv7 extension function for time-ordered UUIDs. No v4 fallback.
+# Immutable tables (events, transcripts, notepad_entries) enforce append-only
+# via deny-mutation triggers (pgdesign append_only = true).
+
+[meta]
+version = 19
+schema = "public"
+
+# ---------------------------------------------------------------------------
+# Scalar types
+# ---------------------------------------------------------------------------
+
+[types.str]
+kind = "scalar"
+base_type = "text"
+comment = "Generic NOT NULL text column"
+
+[types.str_nullable]
+kind = "scalar"
+base_type = "text"
+not_null = false
+comment = "Nullable text column"
+
+[types.amount]
+kind = "scalar"
+base_type = "numeric"
+default = "0"
+comment = "Numeric amount (USD cost, budget)"
+
+[types.int]
+kind = "scalar"
+base_type = "integer"
+comment = "Integer column"
+
+[types.jsonb_nullable]
+kind = "scalar"
+base_type = "jsonb"
+not_null = false
+comment = "Nullable JSONB column"
+
+[types.duration]
+kind = "scalar"
+base_type = "float8"
+not_null = false
+comment = "Duration in seconds (nullable)"
+
+[types.uuid_val]
+kind = "scalar"
+base_type = "uuid"
+comment = "Non-FK UUID column (NOT NULL)"
+
+[types.uuid_val_nullable]
+kind = "scalar"
+base_type = "uuid"
+not_null = false
+comment = "Nullable non-FK UUID column"
+
+# ---------------------------------------------------------------------------
+# Enum types
+# ---------------------------------------------------------------------------
+
+[types.run_status]
+kind = "enum"
+values = ["created", "running", "paused", "completed", "failed", "aborted"]
+default = "created"
+comment = "Run lifecycle status"
+
+[types.task_state]
+kind = "enum"
+values = ["created", "prechecking", "active", "postchecking", "completed", "precheck_failed", "postcheck_failed", "escalated", "cancelled"]
+default = "created"
+comment = "Task lifecycle status"
+
+[types.attempt_status]
+kind = "enum"
+values = ["running", "completed", "failed"]
+default = "running"
+comment = "Attempt lifecycle status"
+
+[types.task_type]
+kind = "enum"
+values = ["agent", "callable", "workflow", "decision_point", "wait_for"]
+comment = "Type of task"
+
+[types.entry_type]
+kind = "enum"
+values = ["learning", "decision", "issue"]
+comment = "Notepad entry category"
+
+[types.inbox_status]
+kind = "enum"
+values = ["pending", "answered", "skipped", "expired", "rejected"]
+default = "pending"
+comment = "Human inbox item lifecycle status"
+
+[types.constraint_tier]
+kind = "enum"
+values = ["mechanical", "advisory"]
+comment = "Constraint enforcement level"
+
+[types.assumption_scope]
+kind = "enum"
+values = ["understanding", "decomposition", "task"]
+comment = "Scope at which an assumption was made"
+
+[types.autonomy_level]
+kind = "enum"
+values = ["low", "medium", "high", "max"]
+comment = "Run autonomy setting"
+
+[types.workflow_health]
+kind = "enum"
+values = ["healthy", "degraded", "failing"]
+comment = "Overseer assessment of workflow health"
+
+# ---------------------------------------------------------------------------
+# Tables: Run state
+# ---------------------------------------------------------------------------
+
+[tables.runs]
+comment = "Top-level run records. One run per intent execution."
+
+[tables.runs.columns.id]
+type = "id"
+
+[tables.runs.columns.intent]
+type = "str"
+comment = "The user's original intent"
+
+[tables.runs.columns.status]
+type = "run_status"
+
+[tables.runs.columns.autonomy_level]
+type = "autonomy_level"
+
+[tables.runs.columns.config_snapshot]
+type = "json"
+comment = "Fully resolved configuration: categories, budgets, tool registry names, agent definitions"
+
+[tables.runs.columns.created_at]
+type = "timestamp"
+
+[tables.runs.columns.finished_at]
+type = "timestamp_optional"
+
+[tables.runs.columns.total_input_tokens]
+type = "counter"
+
+[tables.runs.columns.total_output_tokens]
+type = "counter"
+
+[tables.runs.columns.total_reasoning_tokens]
+type = "counter"
+
+[tables.runs.columns.total_cache_read_tokens]
+type = "counter"
+
+[tables.runs.columns.total_cache_write_tokens]
+type = "counter"
+
+[tables.runs.columns.total_cost_usd]
+type = "amount"
+comment = "Best-effort USD from orxtra internal pricing table"
+
+[tables.runs.columns.coherence_summary]
+type = "str_nullable"
+comment = "Overseer end-of-run assessment of intent fulfillment"
+
+# ---------------------------------------------------------------------------
+
+[tables.tasks]
+comment = "Recursive task hierarchy within a run. Replaces the old workflows + steps tables."
+
+[tables.tasks.columns.id]
+type = "id"
+
+[tables.tasks.columns.run_id]
+type = "ref"
+
+[tables.tasks.columns.parent_task_id]
+type = "ref"
+nullable = true
+comment = "Parent task for nested task hierarchies"
+
+[tables.tasks.columns.name]
+type = "str"
+
+[tables.tasks.columns.task_type]
+type = "task_type"
+
+[tables.tasks.columns.status]
+type = "task_state"
+
+[tables.tasks.columns.config]
+type = "json"
+default = "{}"
+comment = "Task configuration"
+
+[tables.tasks.columns.created_at]
+type = "timestamp"
+
+[tables.tasks.fks.fk_tasks_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.tasks.fks.fk_tasks_parent]
+columns = ["parent_task_id"]
+ref_table = "tasks"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.tasks.indexes.idx_tasks_run_id]
+columns = ["run_id"]
+
+[tables.tasks.indexes.idx_tasks_parent_id]
+columns = ["parent_task_id"]
+
+# ---------------------------------------------------------------------------
+
+[tables.task_attempts]
+comment = "Per-attempt results for tasks. Retries create new rows, never overwrite."
+
+[tables.task_attempts.columns.id]
+type = "id"
+
+[tables.task_attempts.columns.task_id]
+type = "ref"
+
+[tables.task_attempts.columns.attempt]
+type = "int"
+comment = "Attempt number"
+
+[tables.task_attempts.columns.status]
+type = "attempt_status"
+
+[tables.task_attempts.columns.agent_output]
+type = "str_nullable"
+comment = "Full text output from the agent (never truncated)"
+
+[tables.task_attempts.columns.structured_output]
+type = "jsonb_nullable"
+comment = "Validated JSON if output_schema was set on the task"
+
+[tables.task_attempts.columns.check_result]
+type = "jsonb_nullable"
+comment = "Check runner result"
+
+[tables.task_attempts.columns.check_verdict]
+type = "str_nullable"
+comment = "Check verdict text"
+
+[tables.task_attempts.columns.session_id]
+type = "uuid_val_nullable"
+comment = "Transport session UUID for this attempt"
+
+[tables.task_attempts.columns.input_tokens]
+type = "counter"
+
+[tables.task_attempts.columns.output_tokens]
+type = "counter"
+
+[tables.task_attempts.columns.reasoning_tokens]
+type = "counter"
+
+[tables.task_attempts.columns.cache_read_tokens]
+type = "counter"
+
+[tables.task_attempts.columns.cache_write_tokens]
+type = "counter"
+
+[tables.task_attempts.columns.cost_usd]
+type = "amount"
+
+[tables.task_attempts.columns.duration_seconds]
+type = "duration"
+
+[tables.task_attempts.columns.created_at]
+type = "timestamp"
+
+[tables.task_attempts.fks.fk_task_attempts_task]
+columns = ["task_id"]
+ref_table = "tasks"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.task_attempts.indexes.idx_task_attempts_task_id]
+columns = ["task_id"]
+
+[tables.task_attempts.unique.uq_task_attempts_task_attempt]
+columns = ["task_id", "attempt"]
+
+# ---------------------------------------------------------------------------
+
+[tables.task_iterations]
+comment = "Per-iteration state for iterating tasks."
+
+[tables.task_iterations.columns.id]
+type = "id"
+
+[tables.task_iterations.columns.task_id]
+type = "ref"
+
+[tables.task_iterations.columns.iteration_index]
+type = "int"
+comment = "Zero-based iteration index"
+
+[tables.task_iterations.columns.item_value]
+type = "json"
+comment = "The item being iterated over"
+
+[tables.task_iterations.columns.status]
+type = "attempt_status"
+
+[tables.task_iterations.columns.output]
+type = "str_nullable"
+
+[tables.task_iterations.columns.structured_output]
+type = "jsonb_nullable"
+
+[tables.task_iterations.columns.check_results]
+type = "jsonb_nullable"
+
+[tables.task_iterations.columns.started_at]
+type = "timestamp"
+
+[tables.task_iterations.columns.finished_at]
+type = "timestamp_optional"
+
+[tables.task_iterations.fks.fk_task_iterations_task]
+columns = ["task_id"]
+ref_table = "tasks"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.task_iterations.indexes.idx_task_iterations_task_id]
+columns = ["task_id"]
+
+[tables.task_iterations.unique.uq_task_iterations_task_index]
+columns = ["task_id", "iteration_index"]
+
+# ---------------------------------------------------------------------------
+# Tables: Immutable audit log
+# ---------------------------------------------------------------------------
+
+[tables.events]
+comment = "Append-only audit log. Immutability enforced by trigger."
+append_only = true
+
+[tables.events.columns.id]
+type = "id"
+
+[tables.events.columns.run_id]
+type = "ref"
+nullable = true
+
+[tables.events.columns.task_id]
+type = "ref"
+nullable = true
+
+[tables.events.columns.source]
+type = "str"
+default = "'internal'"
+comment = "Event source: internal (scheduler/trace) or external (MCP/CLI)"
+
+[tables.events.columns.event_type]
+type = "str"
+comment = "e.g. run.started, task.status_changed, inbox.item_answered"
+
+[tables.events.columns.data]
+type = "json"
+default = "{}"
+comment = "Event-specific payload"
+
+[tables.events.columns.created_at]
+type = "timestamp"
+
+[tables.events.fks.fk_events_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.events.fks.fk_events_task]
+columns = ["task_id"]
+ref_table = "tasks"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.events.indexes.idx_events_run_created]
+columns = ["run_id", "created_at DESC"]
+
+[tables.events.indexes.idx_events_type_created]
+columns = ["event_type", "created_at DESC"]
+
+[tables.events.indexes.idx_events_source_created]
+columns = ["source", "created_at DESC"]
+
+# ---------------------------------------------------------------------------
+# Tables: Session transcripts
+# ---------------------------------------------------------------------------
+
+[tables.transcripts]
+comment = "Full conversation history per transport session. Immutability enforced by trigger."
+append_only = true
+
+[tables.transcripts.columns.id]
+type = "id"
+
+[tables.transcripts.columns.session_id]
+type = "uuid_val"
+comment = "Transport session UUID"
+
+[tables.transcripts.columns.run_id]
+type = "ref"
+
+[tables.transcripts.columns.turn]
+type = "int"
+
+[tables.transcripts.columns.role]
+type = "str"
+comment = "user, assistant, or tool_result"
+
+[tables.transcripts.columns.content]
+type = "str"
+comment = "Full content (never truncated)"
+
+[tables.transcripts.columns.tool_calls]
+type = "jsonb_nullable"
+comment = "For assistant turns: [{name, input, output}]"
+
+[tables.transcripts.columns.tokens]
+type = "jsonb_nullable"
+comment = "Token usage for this turn"
+
+[tables.transcripts.columns.created_at]
+type = "timestamp"
+
+[tables.transcripts.fks.fk_transcripts_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.transcripts.indexes.idx_transcripts_session]
+columns = ["session_id", "turn"]
+
+[tables.transcripts.indexes.idx_transcripts_run]
+columns = ["run_id"]
+
+# ---------------------------------------------------------------------------
+# Tables: Cross-agent context
+# ---------------------------------------------------------------------------
+
+[tables.notepad_entries]
+comment = "Cross-agent context sharing within a run. Immutability enforced by trigger."
+append_only = true
+
+[tables.notepad_entries.columns.id]
+type = "id"
+
+[tables.notepad_entries.columns.run_id]
+type = "ref"
+
+[tables.notepad_entries.columns.task_name]
+type = "str"
+
+[tables.notepad_entries.columns.agent_name]
+type = "str"
+
+[tables.notepad_entries.columns.entry_type]
+type = "entry_type"
+
+[tables.notepad_entries.columns.text]
+type = "str"
+
+[tables.notepad_entries.columns.created_at]
+type = "timestamp"
+
+[tables.notepad_entries.fks.fk_notepad_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.notepad_entries.indexes.idx_notepad_run]
+columns = ["run_id"]
+
+# ---------------------------------------------------------------------------
+# Tables: Human inbox
+# ---------------------------------------------------------------------------
+
+[tables.inbox_items]
+comment = "Human inbox. Items created by the Overseer. Tags for triage, five-status lifecycle (pending/answered/skipped/expired/rejected), answer events for wait-for task integration."
+
+[tables.inbox_items.columns.id]
+type = "id"
+
+[tables.inbox_items.columns.run_id]
+type = "ref"
+
+[tables.inbox_items.columns.status]
+type = "inbox_status"
+
+[tables.inbox_items.columns.decision_type]
+type = "str"
+comment = "Decision type that emitted this item (e.g., retry_strategy, budget_reallocation)"
+
+[tables.inbox_items.columns.question]
+type = "str"
+
+[tables.inbox_items.columns.options]
+type = "json"
+default = "[]"
+comment = "Options considered by the Overseer"
+
+[tables.inbox_items.columns.assumed_option]
+type = "str_nullable"
+comment = "Which option the Overseer assumed"
+
+[tables.inbox_items.columns.work_proceeding]
+type = "str_nullable"
+comment = "What work continues under the assumption"
+
+[tables.inbox_items.columns.contradiction_impact]
+type = "str_nullable"
+comment = "What happens if the human picks differently"
+
+[tables.inbox_items.columns.tags]
+type = "json"
+default = "[]"
+comment = "Framework auto-injects decision_type; Overseer may add free-form tags"
+
+[tables.inbox_items.columns.deadline]
+type = "timestamp_optional"
+
+[tables.inbox_items.columns.answer]
+type = "str_nullable"
+comment = "Human response text"
+
+[tables.inbox_items.columns.answer_event]
+type = "str_nullable"
+comment = "Event name fired when answered, for wait-for tasks to await"
+
+[tables.inbox_items.columns.rejection_reason]
+type = "str_nullable"
+comment = "Why the human rejected this item (requires re-investigation and a new item)"
+
+[tables.inbox_items.columns.answered_at]
+type = "timestamp_optional"
+
+[tables.inbox_items.columns.created_at]
+type = "timestamp"
+
+[tables.inbox_items.fks.fk_inbox_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.inbox_items.indexes.idx_inbox_run_pending]
+columns = ["run_id", "status", "created_at"]
+
+# ---------------------------------------------------------------------------
+# Tables: Context assembly diffs
+# ---------------------------------------------------------------------------
+
+[tables.context_diffs]
+comment = "Pre- and post-Overseer-refinement context per task attempt."
+
+[tables.context_diffs.columns.id]
+type = "id"
+
+[tables.context_diffs.columns.attempt_id]
+type = "ref"
+
+[tables.context_diffs.columns.pre_refinement]
+type = "str"
+comment = "Mechanically assembled context (layers 1+2)"
+
+[tables.context_diffs.columns.refinement_diff]
+type = "str"
+comment = "Unified diff of Overseer's context changes"
+
+[tables.context_diffs.columns.created_at]
+type = "timestamp"
+
+[tables.context_diffs.fks.fk_context_diffs_attempt]
+columns = ["attempt_id"]
+ref_table = "task_attempts"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.context_diffs.indexes.idx_context_diffs_attempt]
+columns = ["attempt_id"]
+
+# ---------------------------------------------------------------------------
+# Tables: Overseer memory
+# ---------------------------------------------------------------------------
+
+[tables.decisions]
+comment = "Overseer decision records. Every decision is recorded with its type, choice, and rationale."
+
+[tables.decisions.columns.id]
+type = "id"
+
+[tables.decisions.columns.run_id]
+type = "ref"
+
+[tables.decisions.columns.decision_type]
+type = "str"
+comment = "What kind of decision (e.g., retry_strategy, budget_reallocation)"
+
+[tables.decisions.columns.choice]
+type = "str"
+comment = "Decision choice"
+
+[tables.decisions.columns.rationale]
+type = "str_nullable"
+
+[tables.decisions.columns.created_at]
+type = "timestamp"
+
+[tables.decisions.fks.fk_decisions_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.decisions.indexes.idx_decisions_run]
+columns = ["run_id"]
+
+# ---------------------------------------------------------------------------
+
+[tables.constraints]
+comment = "Constraints accumulated by the Overseer. Mechanical ones are checked by the scheduler after each task."
+
+[tables.constraints.columns.id]
+type = "id"
+
+[tables.constraints.columns.run_id]
+type = "ref"
+
+[tables.constraints.columns.text]
+type = "str"
+comment = "Human-readable description of the constraint"
+
+[tables.constraints.columns.tier]
+type = "constraint_tier"
+
+[tables.constraints.columns.kind]
+type = "str"
+comment = "Constraint kind from vocabulary (mechanical) or free-form identifier (advisory)"
+
+[tables.constraints.columns.args]
+type = "jsonb_nullable"
+comment = "Structured arguments for mechanical constraints (e.g., {glob: 'src/**/*.py'})"
+
+[tables.constraints.columns.created_at]
+type = "timestamp"
+
+[tables.constraints.fks.fk_constraints_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.constraints.indexes.idx_constraints_run]
+columns = ["run_id"]
+
+# ---------------------------------------------------------------------------
+
+[tables.assumptions]
+comment = "Assumptions made by the Overseer when information is unavailable."
+
+[tables.assumptions.columns.id]
+type = "id"
+
+[tables.assumptions.columns.run_id]
+type = "ref"
+
+[tables.assumptions.columns.text]
+type = "str"
+
+[tables.assumptions.columns.scope]
+type = "assumption_scope"
+
+[tables.assumptions.columns.inbox_item_id]
+type = "ref"
+nullable = true
+comment = "Inbox item created for this assumption (if escalated)"
+
+[tables.assumptions.columns.created_at]
+type = "timestamp"
+
+[tables.assumptions.fks.fk_assumptions_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.assumptions.fks.fk_assumptions_inbox]
+columns = ["inbox_item_id"]
+ref_table = "inbox_items"
+ref_columns = ["id"]
+on_delete = "SET NULL"
+
+[tables.assumptions.indexes.idx_assumptions_run]
+columns = ["run_id"]
+
+[tables.assumptions.indexes.idx_assumptions_inbox]
+columns = ["inbox_item_id"]
+
+# ---------------------------------------------------------------------------
+
+[tables.lessons]
+comment = "Cross-run knowledge base. Primary store for learned facts."
+
+[tables.lessons.columns.id]
+type = "id"
+
+[tables.lessons.columns.run_id]
+type = "ref"
+
+[tables.lessons.columns.text]
+type = "str"
+
+[tables.lessons.columns.relevance_tags]
+type = "json"
+default = "[]"
+comment = "Relevance tags for flat SQL queries"
+
+[tables.lessons.columns.permanent]
+type = "flag"
+default = "false"
+comment = "True for consumer knowledge; never expires"
+
+[tables.lessons.columns.source_files]
+type = "jsonb_nullable"
+comment = "File paths for git-based staleness detection (any file changing flags the lesson as potentially stale)"
+
+[tables.lessons.columns.created_at]
+type = "timestamp"
+
+[tables.lessons.fks.fk_lessons_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.lessons.indexes.idx_lessons_run]
+columns = ["run_id"]
+
+# ---------------------------------------------------------------------------
+
+[tables.overseer_workflow_status]
+comment = "Overseer view of workflow health. Overwritten as the Overseer updates its assessment."
+pk = ["workflow_id"]
+
+[tables.overseer_workflow_status.columns.workflow_id]
+type = "uuid_val"
+comment = "Workflow identifier (no FK)"
+
+[tables.overseer_workflow_status.columns.current_step]
+type = "str"
+
+[tables.overseer_workflow_status.columns.health]
+type = "workflow_health"
+
+[tables.overseer_workflow_status.columns.updated_at]
+type = "timestamp"
+
+# ---------------------------------------------------------------------------
+
+[tables.run_heartbeats]
+comment = "Heartbeat tracking for active runs."
+pk = ["run_id"]
+
+[tables.run_heartbeats.columns.run_id]
+type = "ref"
+
+[tables.run_heartbeats.columns.last_heartbeat]
+type = "timestamp"
+
+[tables.run_heartbeats.fks.fk_run_heartbeats_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+# ---------------------------------------------------------------------------
+# Tables: Knowledge file hashes
+# ---------------------------------------------------------------------------
+
+[tables.knowledge_hashes]
+comment = "Content hashes for knowledge files. Used to skip reloading unchanged files."
+
+[tables.knowledge_hashes.columns.id]
+type = "id"
+
+[tables.knowledge_hashes.columns.run_id]
+type = "ref"
+
+[tables.knowledge_hashes.columns.path]
+type = "str"
+comment = "Filesystem path of the knowledge file"
+
+[tables.knowledge_hashes.columns.file_hash]
+type = "str"
+comment = "SHA-256 content hash"
+
+[tables.knowledge_hashes.columns.created_at]
+type = "timestamp"
+
+[tables.knowledge_hashes.fks.fk_knowledge_hashes_run]
+columns = ["run_id"]
+ref_table = "runs"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.knowledge_hashes.unique.uq_knowledge_hashes_run_path]
+columns = ["run_id", "path"]
+
+[tables.knowledge_hashes.indexes.idx_knowledge_hashes_run]
+columns = ["run_id"]
