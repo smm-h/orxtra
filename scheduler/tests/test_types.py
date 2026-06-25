@@ -1,17 +1,9 @@
 from __future__ import annotations
 
 import pytest
+from orxtra.protocols._task import TaskSpec
 from orxtra.scheduler._types import (
-    AgentExecution,
-    AttemptSummary,
-    EscalationPayload,
-    Execution,
-    ScriptExecution,
     ServiceConfig,
-    TaskContext,
-    TaskResult,
-    TaskSpec,
-    TaskState,
     WorkflowConfig,
 )
 from pydantic import ValidationError
@@ -106,21 +98,3 @@ class TestServiceConfig:
         assert config.ready_timeout == 30
         assert config.health_check_command is None
         assert config.port is None
-
-
-class TestProtocolReexports:
-    def test_reexports_work(self) -> None:
-        assert TaskContext is not None
-        assert TaskResult is not None
-        assert AttemptSummary is not None
-        assert EscalationPayload is not None
-        assert TaskSpec is not None
-        assert TaskState is not None
-        assert Execution is not None
-        assert AgentExecution is not None
-        assert ScriptExecution is not None
-
-    def test_task_state_values(self) -> None:
-        assert TaskState.CREATED == "created"
-        assert TaskState.ACTIVE == "active"
-        assert TaskState.COMPLETED == "completed"

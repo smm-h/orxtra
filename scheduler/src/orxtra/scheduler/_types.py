@@ -2,16 +2,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from orxtra.protocols._execution import AgentExecution, ScriptExecution
-from orxtra.protocols._task import (
-    AttemptSummary,
-    EscalationPayload,
-    Execution,
-    TaskContext,
-    TaskResult,
-    TaskSpec,
-    TaskState,
-)
+from orxtra.protocols._task import TaskSpec
 from pydantic import BaseModel, ConfigDict
 
 
@@ -48,16 +39,7 @@ class ServiceConfig(BaseModel):
 
 
 __all__ = [
-    "AgentExecution",
-    "AttemptSummary",
-    "EscalationPayload",
     "EscalationPolicy",
-    "Execution",
-    "ScriptExecution",
     "ServiceConfig",
-    "TaskContext",
-    "TaskResult",
-    "TaskSpec",
-    "TaskState",
     "WorkflowConfig",
 ]
