@@ -525,17 +525,6 @@ class Scheduler(
                 task.add_done_callback(
                     self._background_tasks.discard,
                 )
-            else:
-                task = asyncio.create_task(
-                    self._event_registry.fire(
-                        event_type,
-                        msg.get("data"),
-                    ),
-                )
-                self._background_tasks.add(task)
-                task.add_done_callback(
-                    self._background_tasks.discard,
-                )
 
         await pg_listener_conn.add_listener(
             "orxtra_events", _on_notification,
