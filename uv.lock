@@ -538,6 +538,7 @@ name = "orxtra-dispatch"
 version = "0.1.1"
 source = { editable = "dispatch" }
 dependencies = [
+    { name = "asyncpg" },
     { name = "orxtra-protocols" },
     { name = "pydantic" },
     { name = "uuid6" },
@@ -550,6 +551,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "asyncpg" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "pydantic", specifier = ">=2" },
     { name = "uuid6" },
