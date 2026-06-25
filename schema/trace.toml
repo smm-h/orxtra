@@ -8,10 +8,18 @@
 [meta]
 version = 19
 schema = "public"
+extensions = ["pg_uuidv7"]
 
 # ---------------------------------------------------------------------------
 # Scalar types
 # ---------------------------------------------------------------------------
+
+[types.id]
+kind = "scalar"
+base_type = "uuid"
+not_null = true
+default_expr = "uuid_generate_v7()"
+comment = "Shadow builtin id: time-ordered UUIDs via pg_uuidv7 extension"
 
 [types.str]
 kind = "scalar"
@@ -26,7 +34,7 @@ comment = "Nullable text column"
 
 [types.amount]
 kind = "scalar"
-base_type = "numeric"
+base_type = "numeric(12, 6)"
 default = "0"
 comment = "Numeric amount (USD cost, budget)"
 
@@ -827,3 +835,33 @@ columns = ["run_id", "path"]
 
 [tables.knowledge_hashes.indexes.idx_knowledge_hashes_run]
 columns = ["run_id"]
+
+# ---------------------------------------------------------------------------
+# Functions: LISTEN/NOTIFY for real-time event streaming
+# ---------------------------------------------------------------------------
+
+[functions.notify_orxtra_event]
+language = "plpgsql"
+returns = "trigger"
+depends_on = ["events"]
+body = """
+BEGIN
+    PERFORM pg_notify('orxtra_events', json_build_object(
+        'event_id', NEW.id,
+        'run_id', NEW.run_id,
+        'source', NEW.source,
+        'event_type', NEW.event_type
+    )::text);
+    RETURN NEW;
+END;
+"""
+
+# ---------------------------------------------------------------------------
+# Triggers: Event notification
+# ---------------------------------------------------------------------------
+
+[tables.events.triggers.trg_notify_event]
+function = "notify_orxtra_event"
+events = ["INSERT"]
+timing = "AFTER"
+for_each = "ROW"
