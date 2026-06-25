@@ -10,7 +10,15 @@ except PackageNotFoundError:
 from orxtra.services._actions import ServicesActionExecutor, execute_service_action
 from orxtra.services._ask import ask, ask_structured, sync_ask
 from orxtra.services._config import dump_config, show_pricing
-from orxtra.services._dispatch import list_subscriptions, subscribe, unsubscribe
+from orxtra.services._dispatch import (
+    create_source,
+    delete_source,
+    get_source,
+    list_sources,
+    list_subscriptions,
+    subscribe,
+    unsubscribe,
+)
 from orxtra.services._providers import build_transport_registry
 from orxtra.services._events import event_stream, fire_blocking, fire_event
 from orxtra.services._flush import AsyncioFlushScheduler
@@ -55,6 +63,8 @@ __all__ = [
     "RunConfig",
     "abort_run",
     "build_transport_registry",
+    "create_source",
+    "delete_source",
     "dump_config",
     "event_stream",
     "execute_service_action",
@@ -63,10 +73,12 @@ __all__ = [
     "get_inbox_item",
     "get_notepad",
     "get_run",
+    "get_source",
     "get_task_attempts",
     "get_transcript",
     "list_inbox",
     "list_runs",
+    "list_sources",
     "list_subscriptions",
     "list_tasks",
     "pause_run",

@@ -12,6 +12,7 @@ from orxtra.protocols import (
     FilterPredicate,
     LogAction,
     ScriptAction,
+    Source,
     Subscription,
     SubscriptionAction,
     WorkflowAction,
@@ -102,3 +103,50 @@ async def list_subscriptions(
 ) -> list[Subscription]:
     """List subscriptions, optionally filtering to enabled only."""
     return await backend.list_subscriptions(enabled_only=enabled_only)
+
+
+# -- Source CRUD --
+
+
+async def create_source(
+    backend: DispatchBackend,
+    slug: str,
+    name: str,
+    *,
+    auth_method: str | None = None,
+    auth_config: dict[str, Any] | None = None,
+) -> UUID:
+    """Create a new event source."""
+    now = datetime.now(tz=UTC)
+    source = Source(
+        id=uuid7(),
+        slug=slug,
+        name=name,
+        auth_method=auth_method,
+        auth_config=auth_config,
+        created_at=now,
+    )
+    return await backend.create_source(source)
+
+
+async def get_source(
+    backend: DispatchBackend,
+    source_id: UUID,
+) -> Source | None:
+    """Get a source by ID, or None if not found."""
+    return await backend.get_source(source_id)
+
+
+async def list_sources(
+    backend: DispatchBackend,
+) -> list[Source]:
+    """List all registered sources."""
+    return await backend.list_sources()
+
+
+async def delete_source(
+    backend: DispatchBackend,
+    source_id: UUID,
+) -> None:
+    """Delete a source by ID."""
+    await backend.delete_source(source_id)
