@@ -7,6 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
+from orxtra.dispatch._delivery import TransientEventDelivery
 from orxtra.dispatch._memory_backend import InMemoryDispatchBackend
 from orxtra.dispatch._protocols import (
     AccumulatorStorage,
@@ -32,4 +33,5 @@ __all__ = [
     "Subscription",
     "SubscriptionAction",
     "SubscriptionStorage",
+    "TransientEventDelivery",
 ]
