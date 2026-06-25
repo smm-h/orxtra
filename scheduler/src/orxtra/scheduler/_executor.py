@@ -398,9 +398,6 @@ class Scheduler(
         await self._trace_writer.subscribe_run_control(
             self._run_id, self._handle_control_signal,
         )
-        # Bridge trace events to EventRegistry
-        await self._bridge_trace_to_events()
-
         pg_listener_task, pg_listener_conn, on_notification = (
             await self._setup_pg_listener()
         )
@@ -873,35 +870,6 @@ class Scheduler(
             await self.abort()
         elif new_status == "paused":
             await self.pause()
-
-    async def _bridge_trace_to_events(self) -> None:
-        """Bridge trace event callbacks to the EventRegistry.
-
-        When the TraceWriter has an event_callback, this wraps it
-        so that events also fire on the in-process EventRegistry.
-        This makes wait-for tasks work when fire_event inserts
-        an event row via the trace layer.
-        """
-        writer = self._trace_writer
-        original_callback = getattr(writer, "_event_callback", None)
-
-        async def _bridged_callback(
-            event_id: UUID,
-            run_id: UUID | None,
-            event_type: str,
-            data: dict[str, Any],
-        ) -> None:
-            if original_callback is not None:
-                await original_callback(
-                    event_id, run_id, event_type, data,
-                )
-            # Forward to EventRegistry for wait-for tasks
-            await self._event_registry.fire(
-                event_type, data,
-            )
-
-        # Both TraceWriter and InMemoryBackend have _event_callback
-        setattr(writer, "_event_callback", _bridged_callback)  # noqa: B010
 
     async def _handle_headless_event(
         self, event: OverseerEvent,
