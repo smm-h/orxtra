@@ -5,6 +5,7 @@ from __future__ import annotations
 from orxtra.protocols import (
     AccumulatorEntry,
     FilterPredicate,
+    Source,
     Subscription,
     SubscriptionAction,
 )
@@ -12,6 +13,7 @@ from orxtra.protocols import (
 __all__ = [
     "AccumulatorEntry",
     "FilterPredicate",
+    "Source",
     "Subscription",
     "SubscriptionAction",
 ]

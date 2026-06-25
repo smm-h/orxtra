@@ -25,6 +25,7 @@ from orxtra.protocols._contracts import (
     OverseerProtocol,
     Renderer,
     SessionProtocol,
+    SourceStorage,
     SubscriptionStorage,
 )
 from orxtra.protocols._types import (
@@ -188,6 +189,7 @@ __all__ = [
     "SessionProtocol",
     "Severity",
     "Source",
+    "SourceStorage",
     "StatResult",
     "StructuralAdvisory",
     "Subscription",

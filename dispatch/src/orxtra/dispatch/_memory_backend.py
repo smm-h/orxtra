@@ -2,17 +2,48 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from orxtra.dispatch._types import AccumulatorEntry, Subscription, SubscriptionAction
+from orxtra.dispatch._types import (
+    AccumulatorEntry,
+    Source,
+    Subscription,
+    SubscriptionAction,
+)
 
 
 class InMemoryDispatchBackend:
     """Dict-based in-memory implementation of DispatchBackend."""
 
     def __init__(self) -> None:
+        self._sources: dict[UUID, Source] = {}
         self._subscriptions: dict[UUID, Subscription] = {}
         self._actions: dict[UUID, SubscriptionAction] = {}
         self._accumulator: dict[UUID, AccumulatorEntry] = {}
         self._claimed: set[UUID] = set()
+
+    # -- SourceStorage --
+
+    async def create_source(self, source: Source) -> UUID:
+        for existing in self._sources.values():
+            if existing.slug == source.slug:
+                msg = f"Source with slug {source.slug!r} already exists"
+                raise ValueError(msg)
+        self._sources[source.id] = source
+        return source.id
+
+    async def get_source(self, source_id: UUID) -> Source | None:
+        return self._sources.get(source_id)
+
+    async def get_source_by_slug(self, slug: str) -> Source | None:
+        for source in self._sources.values():
+            if source.slug == slug:
+                return source
+        return None
+
+    async def list_sources(self) -> list[Source]:
+        return list(self._sources.values())
+
+    async def delete_source(self, source_id: UUID) -> None:
+        self._sources.pop(source_id, None)
 
     # -- SubscriptionStorage --
 
