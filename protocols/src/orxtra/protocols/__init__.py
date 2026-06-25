@@ -9,8 +9,10 @@ from orxtra.protocols._autonomy import (
     AutonomyLevel,
 )
 from orxtra.protocols._contracts import (
+    ActionExecutor,
     CheckExecutor,
     EventDelivery,
+    EventFireCallback,
     FlushScheduler,
     HealthMonitorProtocol,
     OverseerProtocol,
@@ -101,6 +103,7 @@ __all__ = [
     "EXPENSIVE_CONSTRAINTS",
     "SEVERITY_ORDER",
     "Action",
+    "ActionExecutor",
     "AddConstraintParams",
     "AddConstraintResult",
     "AgentExecution",
@@ -135,6 +138,7 @@ __all__ = [
     "EscalationPayload",
     "EventAction",
     "EventDelivery",
+    "EventFireCallback",
     "ExecResult",
     "Execution",
     "FileContent",

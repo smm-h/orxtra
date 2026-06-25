@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from orxtra.dispatch import ActionExecutor, execute_action
-from orxtra.protocols import Action, EventAction, WorkflowAction
+from orxtra.dispatch import execute_action
+from orxtra.protocols import Action, ActionExecutor, EventAction, EventFireCallback, WorkflowAction
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -60,8 +60,6 @@ async def execute_service_action(
     and an event fire callback, then delegates to dispatch's
     ``execute_action``.
     """
-    from orxtra.dispatch._action_executor import EventFireCallback
-
     executor: ServicesActionExecutor | None = None
     if pool is not None:
         executor = ServicesActionExecutor(pool, intent_prefix=intent_prefix)

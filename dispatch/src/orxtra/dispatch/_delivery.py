@@ -7,13 +7,9 @@ from typing import Any
 
 from uuid6 import uuid7
 
-from orxtra.protocols import Action, FlushScheduler
+from orxtra.protocols import Action, ActionExecutor, EventFireCallback, FlushScheduler
 
-from orxtra.dispatch._action_executor import (
-    ActionExecutor,
-    EventFireCallback,
-    execute_action,
-)
+from orxtra.dispatch._action_executor import execute_action
 from orxtra.dispatch._protocols import DispatchBackend
 from orxtra.dispatch._types import AccumulatorEntry, FilterPredicate
 
