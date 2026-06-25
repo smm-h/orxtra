@@ -1,11 +1,13 @@
 {
-  "generated_at": "2026-06-24T10:11:03Z",
-  "package_count": 17,
+  "generated_at": "2026-06-25T17:39:06Z",
+  "package_count": 18,
   "packages": {
     "protocols": {
       "path": "protocols",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Shared types: Execution, task lifecycle, event descriptors, action tool schemas",
       "deps": [],
       "rdeps": [
@@ -14,6 +16,7 @@
         "verify",
         "session",
         "scheduler",
+        "dispatch",
         "overseer",
         "services"
       ],
@@ -24,8 +27,10 @@
     },
     "secrets": {
       "path": "secrets",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Secret registry, substitution, and scrubbing",
       "deps": [],
       "rdeps": [
@@ -39,8 +44,10 @@
     },
     "write-safety": {
       "path": "write-safety",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Write queue, stale-write detection, atomic replace, transient replay",
       "deps": [],
       "rdeps": [
@@ -54,8 +61,10 @@
     },
     "transport": {
       "path": "transport",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Typed LLM client via Provider protocol",
       "deps": [
         "protocols"
@@ -73,8 +82,10 @@
     },
     "agent": {
       "path": "agent",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Agent definition loader (TOML + composable .md prompts)",
       "deps": [],
       "rdeps": [
@@ -88,8 +99,10 @@
     },
     "tool": {
       "path": "tool",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Tool registry with granular constructors",
       "deps": [
         "protocols",
@@ -107,8 +120,10 @@
     },
     "verify": {
       "path": "verify",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Check runner (pre/post-check Execution dispatch)",
       "deps": [
         "protocols"
@@ -123,8 +138,10 @@
     },
     "trace": {
       "path": "trace",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "PG schema owner (events, task results, transcripts, inbox, state machines)",
       "deps": [],
       "rdeps": [
@@ -143,8 +160,10 @@
     },
     "notepad": {
       "path": "notepad",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Append-only cross-agent context sharing",
       "deps": [
         "trace"
@@ -159,8 +178,10 @@
     },
     "session": {
       "path": "session",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Session lifecycle, token tracking, cross-restart resumption",
       "deps": [
         "protocols",
@@ -179,13 +200,16 @@
     },
     "scheduler": {
       "path": "scheduler",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Task executor (recursive hierarchy, budgets, constraints)",
       "deps": [
         "protocols",
         "write-safety",
         "agent",
+        "dispatch",
         "tool",
         "session",
         "trace",
@@ -202,10 +226,31 @@
       "releasable_flag": true,
       "test_only": false
     },
+    "dispatch": {
+      "path": "dispatch",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.1.1",
+      "description": "Event delivery: subscriptions, action dispatch, accumulator flush",
+      "deps": [
+        "protocols"
+      ],
+      "rdeps": [
+        "scheduler",
+        "services"
+      ],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
     "overseer": {
       "path": "overseer",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Persistent LLM with action tools, PG memory, session handoff",
       "deps": [
         "protocols",
@@ -224,11 +269,14 @@
     },
     "services": {
       "path": "services",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "Shared business logic for all frontends",
       "deps": [
         "agent",
+        "dispatch",
         "protocols",
         "scheduler",
         "session",
@@ -247,8 +295,10 @@
     },
     "cli": {
       "path": "cli",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "strictcli CLI frontend (agents are the primary users)",
       "deps": [
         "services",
@@ -262,8 +312,10 @@
     },
     "mcp": {
       "path": "mcp",
-      "targets": [],
-      "version": null,
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.6.0",
       "description": "MCP server (human interface via dashboard/AI client)",
       "deps": [
         "services",
@@ -325,6 +377,7 @@
       "agent",
       "npm",
       "protocols",
+      "dispatch",
       "schema",
       "secrets",
       "trace",
