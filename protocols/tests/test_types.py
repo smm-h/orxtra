@@ -5,13 +5,18 @@ from decimal import Decimal
 import pytest
 from orxtra.protocols import (
     SEVERITY_ORDER,
+    Action,
     BudgetExhaustionPolicy,
     CheckResult,
     ErrorCategory,
+    EventAction,
+    LogAction,
+    ScriptAction,
     ScriptExecution,
     Severity,
     TaskSpec,
     TaskState,
+    WorkflowAction,
     WorkflowExecution,
 )
 from pydantic import ValidationError
@@ -239,5 +244,115 @@ class TestCheckResultFrozen:
         cr = CheckResult(passed=True, message="ok")
         with pytest.raises(AttributeError):
             cr.passed = False  # type: ignore[misc]
+
+
+# -- Action type hierarchy tests --
+
+
+class TestScriptAction:
+    def test_valid(self) -> None:
+        a = ScriptAction(callable="my.module:run")
+        assert a.callable == "my.module:run"
+
+    def test_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            ScriptAction(callable="x", extra="y")  # type: ignore[call-arg]
+
+    def test_frozen(self) -> None:
+        a = ScriptAction(callable="x")
+        with pytest.raises(ValidationError):
+            a.callable = "y"  # type: ignore[misc]
+
+    def test_missing_callable(self) -> None:
+        with pytest.raises(ValidationError):
+            ScriptAction()  # type: ignore[call-arg]
+
+
+class TestLogAction:
+    def test_valid_with_defaults(self) -> None:
+        a = LogAction(message="hello")
+        assert a.message == "hello"
+        assert a.level == "info"
+
+    def test_custom_level(self) -> None:
+        a = LogAction(message="oops", level="error")
+        assert a.level == "error"
+
+    def test_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            LogAction(message="x", extra="y")  # type: ignore[call-arg]
+
+    def test_frozen(self) -> None:
+        a = LogAction(message="x")
+        with pytest.raises(ValidationError):
+            a.message = "y"  # type: ignore[misc]
+
+
+class TestWorkflowAction:
+    def test_valid_with_defaults(self) -> None:
+        a = WorkflowAction(workflow_path="workflows/deploy.toml")
+        assert a.workflow_path == "workflows/deploy.toml"
+        assert a.config == {}
+
+    def test_custom_config(self) -> None:
+        a = WorkflowAction(
+            workflow_path="w.toml",
+            config={"env": "prod", "retries": 3},
+        )
+        assert a.config == {"env": "prod", "retries": 3}
+
+    def test_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            WorkflowAction(workflow_path="x", extra="y")  # type: ignore[call-arg]
+
+    def test_frozen(self) -> None:
+        a = WorkflowAction(workflow_path="x")
+        with pytest.raises(ValidationError):
+            a.workflow_path = "y"  # type: ignore[misc]
+
+
+class TestEventAction:
+    def test_valid_with_defaults(self) -> None:
+        a = EventAction(event_type="task.completed")
+        assert a.event_type == "task.completed"
+        assert a.data == {}
+        assert a.source == "internal"
+
+    def test_custom_fields(self) -> None:
+        a = EventAction(
+            event_type="deploy.done",
+            data={"version": "1.0"},
+            source="ci",
+        )
+        assert a.event_type == "deploy.done"
+        assert a.data == {"version": "1.0"}
+        assert a.source == "ci"
+
+    def test_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            EventAction(event_type="x", extra="y")  # type: ignore[call-arg]
+
+    def test_frozen(self) -> None:
+        a = EventAction(event_type="x")
+        with pytest.raises(ValidationError):
+            a.event_type = "y"  # type: ignore[misc]
+
+
+class TestActionTypeAlias:
+    def test_isinstance_script(self) -> None:
+        a: Action = ScriptAction(callable="mod:fn")
+        assert isinstance(a, ScriptAction)
+
+    def test_isinstance_log(self) -> None:
+        a: Action = LogAction(message="hi")
+        assert isinstance(a, LogAction)
+
+    def test_isinstance_workflow(self) -> None:
+        a: Action = WorkflowAction(workflow_path="w.toml")
+        assert isinstance(a, WorkflowAction)
+
+    def test_isinstance_event(self) -> None:
+        a: Action = EventAction(event_type="evt")
+        assert isinstance(a, EventAction)
 
 

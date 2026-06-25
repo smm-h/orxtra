@@ -8,6 +8,38 @@ from orxtra.protocols._types._enums import ConstraintTier
 from orxtra.protocols._types._task import Execution
 from pydantic import BaseModel, ConfigDict
 
+# -- Action type hierarchy --
+
+
+class ScriptAction(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    callable: str  # "module.path:function" format, resolved via importlib
+
+
+class LogAction(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    message: str
+    level: str = "info"
+
+
+class WorkflowAction(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    workflow_path: str
+    config: dict[str, Any] = {}
+
+
+class EventAction(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    event_type: str
+    data: dict[str, Any] = {}
+    source: str = "internal"
+
+
+type Action = ScriptAction | LogAction | WorkflowAction | EventAction
+
+
+# -- Action tool params/results --
+
 
 class CreateWorkflowParams(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
