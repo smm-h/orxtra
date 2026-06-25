@@ -10,10 +10,11 @@ from orxtra.dispatch import (
     AccumulatorEntry,
     FilterPredicate,
     InMemoryDispatchBackend,
+    Source,
     Subscription,
     SubscriptionAction,
 )
-from orxtra.protocols import ScriptAction
+from orxtra.protocols import DispatchBackend, ScriptAction
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 LATER = datetime(2025, 7, 1, 12, 5, 0, tzinfo=UTC)
@@ -44,6 +45,24 @@ def _action(
         subscription_id=sub_id,
         position=position,
         action=ScriptAction(callable="my.module:handler"),
+        created_at=NOW,
+    )
+
+
+def _source(
+    *,
+    source_id: UUID | None = None,
+    slug: str = "github",
+    name: str = "GitHub",
+    auth_method: str | None = None,
+    auth_config: dict[str, object] | None = None,
+) -> Source:
+    return Source(
+        id=source_id or uuid7(),
+        slug=slug,
+        name=name,
+        auth_method=auth_method,
+        auth_config=auth_config,
         created_at=NOW,
     )
 
@@ -315,3 +334,77 @@ class TestAccumulatorLifecycle:
         self, backend: InMemoryDispatchBackend,
     ) -> None:
         assert await backend.pending_count(uuid7()) == 0
+
+
+# -- Source CRUD --
+
+
+class TestSourceCRUD:
+    @pytest.mark.asyncio
+    async def test_create_and_get(self, backend: InMemoryDispatchBackend) -> None:
+        src = _source()
+        result_id = await backend.create_source(src)
+        assert result_id == src.id
+
+        fetched = await backend.get_source(src.id)
+        assert fetched is not None
+        assert fetched.id == src.id
+        assert fetched.slug == "github"
+        assert fetched.name == "GitHub"
+
+    @pytest.mark.asyncio
+    async def test_get_nonexistent(self, backend: InMemoryDispatchBackend) -> None:
+        result = await backend.get_source(uuid7())
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_by_slug(self, backend: InMemoryDispatchBackend) -> None:
+        src = _source(slug="webhook-a")
+        await backend.create_source(src)
+
+        fetched = await backend.get_source_by_slug("webhook-a")
+        assert fetched is not None
+        assert fetched.id == src.id
+
+        missing = await backend.get_source_by_slug("nonexistent")
+        assert missing is None
+
+    @pytest.mark.asyncio
+    async def test_list(self, backend: InMemoryDispatchBackend) -> None:
+        await backend.create_source(_source(slug="a", name="A"))
+        await backend.create_source(_source(slug="b", name="B"))
+
+        sources = await backend.list_sources()
+        assert len(sources) == 2
+
+    @pytest.mark.asyncio
+    async def test_delete(self, backend: InMemoryDispatchBackend) -> None:
+        src = _source()
+        await backend.create_source(src)
+        await backend.delete_source(src.id)
+
+        result = await backend.get_source(src.id)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_delete_nonexistent_is_noop(
+        self, backend: InMemoryDispatchBackend,
+    ) -> None:
+        # Should not raise.
+        await backend.delete_source(uuid7())
+
+    @pytest.mark.asyncio
+    async def test_duplicate_slug_raises(
+        self, backend: InMemoryDispatchBackend,
+    ) -> None:
+        await backend.create_source(_source(slug="dup"))
+        with pytest.raises(ValueError, match="already exists"):
+            await backend.create_source(_source(slug="dup"))
+
+
+# -- DispatchBackend protocol conformance --
+
+
+class TestDispatchBackendProtocol:
+    def test_isinstance_check(self) -> None:
+        assert isinstance(InMemoryDispatchBackend(), DispatchBackend)

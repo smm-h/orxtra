@@ -6,6 +6,7 @@ from orxtra.protocols import (
     AccumulatorStorage,
     ActionStorage,
     DispatchBackend,
+    SourceStorage,
     SubscriptionStorage,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "AccumulatorStorage",
     "ActionStorage",
     "DispatchBackend",
+    "SourceStorage",
     "SubscriptionStorage",
 ]

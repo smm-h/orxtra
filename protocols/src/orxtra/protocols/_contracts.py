@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from orxtra.protocols._types._checks import CheckResult
     from orxtra.protocols._types._dispatch import (
         AccumulatorEntry,
+        Source,
         Subscription,
         SubscriptionAction,
     )
@@ -142,6 +143,15 @@ class FlushScheduler(Protocol):
 
 
 @runtime_checkable
+class SourceStorage(Protocol):
+    async def create_source(self, source: Source) -> UUID: ...
+    async def get_source(self, source_id: UUID) -> Source | None: ...
+    async def get_source_by_slug(self, slug: str) -> Source | None: ...
+    async def list_sources(self) -> list[Source]: ...
+    async def delete_source(self, source_id: UUID) -> None: ...
+
+
+@runtime_checkable
 class SubscriptionStorage(Protocol):
     async def create_subscription(self, subscription: Subscription) -> UUID: ...
     async def get_subscription(self, sub_id: UUID) -> Subscription | None: ...
@@ -173,7 +183,7 @@ class AccumulatorStorage(Protocol):
 
 @runtime_checkable
 class DispatchBackend(
-    SubscriptionStorage, ActionStorage, AccumulatorStorage, Protocol,
+    SourceStorage, SubscriptionStorage, ActionStorage, AccumulatorStorage, Protocol,
 ): ...
 
 
