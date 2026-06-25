@@ -39,6 +39,8 @@ class TransientEventDelivery:
         self,
         event_name: str,
         payload: dict[str, object] | None = None,
+        *,
+        source: str | None = None,
     ) -> None:
         futures = self._listeners.pop(event_name, [])
         for fut in futures:
