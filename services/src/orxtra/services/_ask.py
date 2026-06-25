@@ -4,20 +4,9 @@ import asyncio
 import json
 from typing import Any
 
-from orxtra.transport import Result, RetryPolicy, Transport
-from orxtra.transport.providers import AnthropicProvider, OpenAIProvider
+from orxtra.transport import Result, Transport
 
-_DEFAULT_RETRY_POLICY = RetryPolicy(
-    max_retries=3,
-    backoff_base_seconds=1.0,
-    backoff_max_seconds=30.0,
-    jitter=True,
-)
-
-_PROVIDER_TYPES = {
-    "anthropic": AnthropicProvider,
-    "openai": OpenAIProvider,
-}
+from orxtra.services._providers import _DEFAULT_RETRY_POLICY, _PROVIDER_TYPES
 
 
 def _build_transport(
