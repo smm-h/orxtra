@@ -36,7 +36,7 @@ from orxtra.services import (
     skip_inbox_item,
     start_run_from_file,
 )
-from orxtra.trace import PgEventBus
+from orxtra.protocols import EventBus
 from pydantic import BaseModel
 
 _PARSE_ERROR = -32700
@@ -93,8 +93,9 @@ ToolHandler = Callable[
 
 
 class MCPServer:
-    def __init__(self, pool: Any) -> None:
+    def __init__(self, pool: Any, event_bus: EventBus | None = None) -> None:
         self._pool = pool
+        self._event_bus = event_bus
         self._handlers: dict[
             str,
             Callable[
@@ -288,10 +289,9 @@ class MCPServer:
 
         async def _listen() -> None:
             while True:
-                bus = PgEventBus(self._pool)
                 try:
                     async for event in event_stream(
-                        bus, channel="orxtra_events",
+                        self._event_bus, channel="orxtra_events",
                     ):
                         notification = {
                             "jsonrpc": "2.0",
@@ -303,9 +303,7 @@ class MCPServer:
                         )
                         await writer.drain()
                 except Exception:  # noqa: BLE001
-                    # Connection dropped or bus error - clean up and retry
-                    with contextlib.suppress(Exception):
-                        await bus.close()
+                    # Connection dropped or bus error - retry after delay
                     await asyncio.sleep(1)
 
         return asyncio.create_task(_listen())
@@ -323,9 +321,9 @@ class MCPServer:
             transport_out, protocol, reader, loop
         )
 
-        # Start event stream listener if pool is available
+        # Start event stream listener if event bus is available
         event_listener_task: asyncio.Task[Any] | None = None
-        if self._pool is not None:
+        if self._event_bus is not None:
             event_listener_task = await self._start_event_listener(writer)
 
         while True:
