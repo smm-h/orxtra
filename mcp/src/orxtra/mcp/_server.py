@@ -16,6 +16,7 @@ from orxtra.mcp._tools import get_tool_definitions
 from orxtra.services import (
     abort_run,
     dump_config,
+    event_stream,
     fire_event,
     get_inbox_item,
     get_notepad,
@@ -35,6 +36,7 @@ from orxtra.services import (
     skip_inbox_item,
     start_run_from_file,
 )
+from orxtra.trace import PgEventBus
 from pydantic import BaseModel
 
 _PARSE_ERROR = -32700
@@ -278,54 +280,32 @@ class MCPServer:
             "content": [{"type": "text", "text": text}],
         }
 
-    async def _start_pg_listener(
+    async def _start_event_listener(
         self, writer: asyncio.StreamWriter,
     ) -> asyncio.Task[Any]:
-        """Start a background task that listens for PG notifications
+        """Start a background task that streams events via services event_stream
         and forwards them as JSON-RPC notifications."""
 
         async def _listen() -> None:
-            drain_tasks: set[asyncio.Task[None]] = set()
             while True:
-                conn = None
+                bus = PgEventBus(self._pool)
                 try:
-                    conn = await self._pool.acquire()
-
-                    def _on_notification(
-                        _conn: Any,
-                        _pid: int,
-                        _channel: str,
-                        payload: Any,
-                    ) -> None:
-                        try:
-                            data = json.loads(str(payload))
-                        except (json.JSONDecodeError, TypeError):
-                            data = {"raw": str(payload)}
+                    async for event in event_stream(
+                        bus, channel="orxtra_events",
+                    ):
                         notification = {
                             "jsonrpc": "2.0",
                             "method": "notifications/event",
-                            "params": data,
+                            "params": event,
                         }
                         writer.write(
                             (json.dumps(notification) + "\n").encode(),
                         )
-                        # drain is async; prevent GC
-                        task = asyncio.ensure_future(writer.drain())
-                        drain_tasks.add(task)
-                        task.add_done_callback(drain_tasks.discard)
-
-                    await conn.add_listener(
-                        "orxtra_events", _on_notification,
-                    )
-
-                    # Block forever until connection drops
-                    stop = asyncio.Event()
-                    await stop.wait()
+                        await writer.drain()
                 except Exception:  # noqa: BLE001
-                    # Connection dropped - wait and retry
-                    if conn is not None:
-                        with contextlib.suppress(Exception):
-                            await self._pool.release(conn)
+                    # Connection dropped or bus error - clean up and retry
+                    with contextlib.suppress(Exception):
+                        await bus.close()
                     await asyncio.sleep(1)
 
         return asyncio.create_task(_listen())
@@ -343,10 +323,10 @@ class MCPServer:
             transport_out, protocol, reader, loop
         )
 
-        # Start PG event listener if pool is available
-        pg_listener_task: asyncio.Task[Any] | None = None
+        # Start event stream listener if pool is available
+        event_listener_task: asyncio.Task[Any] | None = None
         if self._pool is not None:
-            pg_listener_task = await self._start_pg_listener(writer)
+            event_listener_task = await self._start_event_listener(writer)
 
         while True:
             line = await reader.readline()
@@ -375,7 +355,7 @@ class MCPServer:
                 writer.write((json.dumps(response) + "\n").encode())
                 await writer.drain()
 
-        if pg_listener_task is not None:
-            pg_listener_task.cancel()
+        if event_listener_task is not None:
+            event_listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
-                await pg_listener_task
+                await event_listener_task

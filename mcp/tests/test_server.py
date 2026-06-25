@@ -6,15 +6,12 @@ import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 import pytest
 from orxtra.mcp._server import MCPServer, _serialize
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 # pytest-asyncio auto mode (asyncio_mode = "auto" in root pyproject.toml)
 # detects async test functions automatically -- no @pytest.mark.asyncio needed.
@@ -547,13 +544,17 @@ def test_serialize_empty_containers() -> None:
 
 
 # ------------------------------------------------------------------
-# PG listener
+# Event stream listener
 # ------------------------------------------------------------------
 
 
-async def test_pg_listener_forwards_notifications() -> None:
-    """PG notifications are forwarded as JSON-RPC notifications."""
-    # Create mock writer
+@patch("orxtra.mcp._server.event_stream")
+@patch("orxtra.mcp._server.PgEventBus")
+async def test_event_listener_forwards_notifications(
+    mock_bus_cls: Any,  # noqa: ANN401
+    mock_event_stream: Any,  # noqa: ANN401
+) -> None:
+    """Events from services event_stream are forwarded as JSON-RPC notifications."""
     written: list[bytes] = []
 
     class MockWriter:
@@ -562,49 +563,42 @@ async def test_pg_listener_forwards_notifications() -> None:
         async def drain(self) -> None:
             pass
 
-    # Create mock connection that captures the listener callback
-    callbacks: list[Any] = []
+    # Set up the async iterator to yield one event then stop
+    events = [{"event_type": "task_completed", "run_id": "abc"}]
 
-    class MockConn:
-        async def add_listener(
-            self, channel: str,
-            callback: Callable[..., object],
-        ) -> None:
-            callbacks.append((channel, callback))
+    async def _fake_stream(
+        bus: Any, *, channel: str = "events",  # noqa: ANN401
+    ) -> Any:
+        for event in events:
+            yield event
+        # After yielding, block forever so the task stays alive
+        await asyncio.Event().wait()
 
-    class MockPool:
-        async def acquire(self) -> MockConn:
-            return MockConn()
-        async def release(self, conn: MockConn) -> None:
-            pass
+    mock_event_stream.side_effect = _fake_stream
 
-    server = MCPServer(pool=MockPool())
+    server = MCPServer(pool=AsyncMock())
     writer = MockWriter()
 
-    # Start the listener
-    task = await server._start_pg_listener(writer)  # noqa: SLF001
+    task = await server._start_event_listener(writer)  # noqa: SLF001
 
-    # Give it time to acquire and register
+    # Give it time to iterate
     await asyncio.sleep(0.05)
 
-    # Verify callback was registered
-    assert len(callbacks) == 1
-    assert callbacks[0][0] == "orxtra_events"
-
-    # Simulate a notification
-    callback_fn = callbacks[0][1]
-    callback_fn(None, 0, "orxtra_events", '{"event_type": "task_completed"}')
-
-    # Give drain time to complete
-    await asyncio.sleep(0.05)
-
-    # Check output
     assert len(written) == 1
     notification = json.loads(written[0].decode())
     assert notification["jsonrpc"] == "2.0"
     assert notification["method"] == "notifications/event"
     assert notification["params"]["event_type"] == "task_completed"
+    assert notification["params"]["run_id"] == "abc"
     assert "id" not in notification
+
+    # Verify PgEventBus was constructed with the pool
+    mock_bus_cls.assert_called_once()
+
+    # Verify event_stream was called with channel="orxtra_events"
+    mock_event_stream.assert_called_once()
+    call_kwargs = mock_event_stream.call_args
+    assert call_kwargs[1]["channel"] == "orxtra_events"
 
     task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
