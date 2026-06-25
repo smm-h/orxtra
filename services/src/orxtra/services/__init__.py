@@ -7,6 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
+from orxtra.services._actions import ServicesActionExecutor, execute_service_action
 from orxtra.services._ask import ask, ask_structured, sync_ask
 from orxtra.services._config import dump_config, show_pricing
 from orxtra.services._dispatch import list_subscriptions, subscribe, unsubscribe
@@ -47,6 +48,7 @@ from orxtra.services._validate import (
 __all__ = [
     "__version__",
     "AsyncioFlushScheduler",
+    "ServicesActionExecutor",
     "ask",
     "ask_structured",
     "sync_ask",
@@ -55,6 +57,7 @@ __all__ = [
     "build_transport_registry",
     "dump_config",
     "event_stream",
+    "execute_service_action",
     "fire_blocking",
     "fire_event",
     "get_inbox_item",
