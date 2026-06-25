@@ -7,3 +7,4 @@
 {"commits":["39b2211524c5c4d312b6e3cf9bc3c3a205fd45ef"],"user_facing":false,"packages":["scheduler","services","session"]}
 {"commits":["44be634a3b81c3a2ecdad80b1f57cf8e58ddeb27"],"user_facing":false,"packages":["trace"]}
 {"commits":["ba603eca9f05d7012667dce251de6d95d5bd6d00"],"user_facing":false,"packages":["scheduler"]}
+{"commits":["137df55406d7f4c8a2125875b88a52b78944cb54"],"user_facing":false,"packages":["protocols"]}
