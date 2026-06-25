@@ -87,6 +87,7 @@ releasable = "orxtra"
 path = "dispatch"
 description = "Event delivery: subscriptions, action dispatch, accumulator flush"
 depends_on = ["protocols"]
+library = true
 releasable = "orxtra"
 
 # --- Intelligence layer ---
