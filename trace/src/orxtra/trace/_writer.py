@@ -25,7 +25,7 @@ class TraceWriter:
         self,
         pool: asyncpg.Pool,
         event_callback: Callable[
-            [UUID, UUID, str, dict[str, Any]],
+            [UUID, UUID | None, str, dict[str, Any]],
             Awaitable[None],
         ]
         | None = None,
@@ -94,11 +94,12 @@ class TraceWriter:
                 "reason": reason,
             }
             await conn.execute(
-                "INSERT INTO events (id, run_id, task_id, event_type, data)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                "INSERT INTO events (id, run_id, task_id, source, event_type, data)"
+                " VALUES ($1, $2, $3, $4, $5, $6)",
                 event_id,
                 run_id,
                 None,
+                "internal",
                 "run_transition",
                 json.dumps(event_data),
             )
@@ -157,11 +158,12 @@ class TraceWriter:
                 "reason": reason,
             }
             await conn.execute(
-                "INSERT INTO events (id, run_id, task_id, event_type, data)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                "INSERT INTO events (id, run_id, task_id, source, event_type, data)"
+                " VALUES ($1, $2, $3, $4, $5, $6)",
                 event_id,
                 run_id,
                 task_id,
+                "internal",
                 "task_transition",
                 json.dumps(event_data),
             )
@@ -273,19 +275,21 @@ class TraceWriter:
 
     async def write_event(
         self,
-        run_id: UUID,
+        run_id: UUID | None,
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
+        source: str = "internal",
     ) -> UUID:
         event_id = uuid6.uuid7()
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
-                "INSERT INTO events (id, run_id, task_id, event_type, data)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                "INSERT INTO events (id, run_id, task_id, source, event_type, data)"
+                " VALUES ($1, $2, $3, $4, $5, $6)",
                 event_id,
                 run_id,
                 task_id,
+                source,
                 event_type,
                 json.dumps(data),
             )

@@ -97,10 +97,11 @@ class EventStorage(Protocol):
 
     async def write_event(
         self,
-        run_id: UUID,
+        run_id: UUID | None,
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
+        source: str = "internal",
     ) -> UUID: ...
 
     async def write_transcript_entry(

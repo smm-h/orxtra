@@ -71,7 +71,7 @@ class InMemoryBackend:
         self._knowledge_hashes: dict[UUID, dict[str, str]] = {}
         # Event callback (mirrors TraceWriter pattern)
         self._event_callback: (
-            Callable[[UUID, UUID, str, dict[str, Any]], Awaitable[None]] | None
+            Callable[[UUID, UUID | None, str, dict[str, Any]], Awaitable[None]] | None
         ) = None
 
     # ── TaskStorage ──
@@ -120,6 +120,7 @@ class InMemoryBackend:
             "id": event_id,
             "run_id": run_id,
             "task_id": task_id,
+            "source": "internal",
             "event_type": "task_transition",
             "data": event_data,
             "created_at": _now(),
@@ -255,16 +256,18 @@ class InMemoryBackend:
 
     async def write_event(
         self,
-        run_id: UUID,
+        run_id: UUID | None,
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
+        source: str = "internal",
     ) -> UUID:
         event_id = uuid6.uuid7()
         self._events.append({
             "id": event_id,
             "run_id": run_id,
             "task_id": task_id,
+            "source": source,
             "event_type": event_type,
             "data": data,
             "created_at": _now(),
@@ -342,6 +345,7 @@ class InMemoryBackend:
             "id": event_id,
             "run_id": run_id,
             "task_id": None,
+            "source": "internal",
             "event_type": "run_transition",
             "data": event_data,
             "created_at": _now(),
@@ -948,6 +952,7 @@ class InMemoryBackend:
                     "id": uuid6.uuid7(),
                     "run_id": task["run_id"],
                     "task_id": task["id"],
+                    "source": "internal",
                     "event_type": "crash_recovery",
                     "data": {"action": "reclaim_interrupted"},
                     "created_at": _now(),
@@ -983,6 +988,7 @@ class InMemoryBackend:
                     "id": uuid6.uuid7(),
                     "run_id": run_id,
                     "task_id": None,
+                    "source": "internal",
                     "event_type": "crash_recovery",
                     "data": {"action": "clean_orphaned"},
                     "created_at": _now(),
