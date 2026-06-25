@@ -80,6 +80,8 @@ class EventDelivery(Protocol):
         self,
         event_name: str,
         payload: dict[str, object] | None = None,
+        *,
+        source: str | None = None,
     ) -> None: ...
 
     async def wait_for(
