@@ -56,7 +56,7 @@ if TYPE_CHECKING:
         OverseerInterface,
     )
     from orxtra.scheduler._types import WorkflowConfig
-    from orxtra.secrets._registry import SecretRegistry
+    from orxtra.secrets import SecretRegistry
     from orxtra.session import Session
     from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport

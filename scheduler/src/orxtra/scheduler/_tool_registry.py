@@ -155,7 +155,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     # -- Read tools (fs.read, readonly) --
 
     def _read_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._read_tools import make_read_tool  # noqa: PLC0415
+        from orxtra.tool import make_read_tool  # noqa: PLC0415
         return make_read_tool(
             deps.read_root,
             deps.preview_threshold,
@@ -171,7 +171,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _list_dir_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._read_tools import make_list_dir_tool  # noqa: PLC0415
+        from orxtra.tool import make_list_dir_tool  # noqa: PLC0415
         return make_list_dir_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -182,7 +182,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _glob_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._read_tools import make_glob_tool  # noqa: PLC0415
+        from orxtra.tool import make_glob_tool  # noqa: PLC0415
         return make_glob_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -193,7 +193,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _grep_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._read_tools import make_grep_tool  # noqa: PLC0415
+        from orxtra.tool import make_grep_tool  # noqa: PLC0415
         return make_grep_tool(
             deps.read_root,
             deps.preview_threshold,
@@ -208,7 +208,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _stat_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._read_tools import make_stat_tool  # noqa: PLC0415
+        from orxtra.tool import make_stat_tool  # noqa: PLC0415
         return make_stat_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -219,7 +219,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _diff_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._read_tools import make_diff_tool  # noqa: PLC0415
+        from orxtra.tool import make_diff_tool  # noqa: PLC0415
         return make_diff_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -232,7 +232,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     # -- Write tools (fs.write, mutation) --
 
     def _write_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_write_tool  # noqa: PLC0415
+        from orxtra.tool import make_write_tool  # noqa: PLC0415
         return make_write_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -247,7 +247,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _edit_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_edit_tool  # noqa: PLC0415
+        from orxtra.tool import make_edit_tool  # noqa: PLC0415
         return make_edit_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -262,7 +262,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _multi_edit_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_multi_edit_tool  # noqa: PLC0415
+        from orxtra.tool import make_multi_edit_tool  # noqa: PLC0415
         return make_multi_edit_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -277,7 +277,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _mkdir_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_mkdir_tool  # noqa: PLC0415
+        from orxtra.tool import make_mkdir_tool  # noqa: PLC0415
         return make_mkdir_tool(deps.read_root, deps.write_scope)
 
     entries.append(ToolEntry(
@@ -288,7 +288,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _move_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_move_tool  # noqa: PLC0415
+        from orxtra.tool import make_move_tool  # noqa: PLC0415
         return make_move_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -303,7 +303,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _copy_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_copy_tool  # noqa: PLC0415
+        from orxtra.tool import make_copy_tool  # noqa: PLC0415
         return make_copy_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -318,7 +318,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _delete_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_delete_tool  # noqa: PLC0415
+        from orxtra.tool import make_delete_tool  # noqa: PLC0415
         return make_delete_tool(deps.read_root, deps.write_scope)
 
     entries.append(ToolEntry(
@@ -329,7 +329,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     ))
 
     def _set_executable_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._write_tools import make_set_executable_tool  # noqa: PLC0415
+        from orxtra.tool import make_set_executable_tool  # noqa: PLC0415
         return make_set_executable_tool(
             deps.read_root, deps.write_scope,
         )
@@ -344,7 +344,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     # -- Notepad (io.notepad, mutation) --
 
     def _notepad_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._notepad_tool import make_notepad_tool  # noqa: PLC0415
+        from orxtra.tool import make_notepad_tool  # noqa: PLC0415
         return make_notepad_tool(
             deps.trace_writer,
             str(deps.run_id),
@@ -362,7 +362,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
     # -- HTTP (io.http, readonly+mutation) --
 
     def _http_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool._http_tool import make_http_tool  # noqa: PLC0415
+        from orxtra.tool import make_http_tool  # noqa: PLC0415
         _ = deps
         return make_http_tool(allowed_hosts="allow_all")
 

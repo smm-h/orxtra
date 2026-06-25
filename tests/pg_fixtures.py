@@ -51,7 +51,7 @@ def pg_container() -> Iterator[Any]:
 async def pg_pool(pg_container: Any) -> AsyncIterator[asyncpg.Pool]:  # noqa: ANN401
     """Create an asyncpg pool with the full orxtra trace schema."""
     import asyncpg as _asyncpg  # noqa: PLC0415
-    from orxtra.trace._schema import ALL_CREATE_STATEMENTS  # noqa: PLC0415
+    from orxtra.trace import ALL_CREATE_STATEMENTS  # noqa: PLC0415
 
     # testcontainers gives psycopg2-style URL; convert to plain postgresql://
     url = pg_container.get_connection_url().replace(

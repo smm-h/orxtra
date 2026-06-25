@@ -13,12 +13,12 @@ from orxtra.overseer._tools import (
 )
 from orxtra.overseer._format import format_event
 from orxtra.protocols._overseer_protocols import OverseerEvent
-from orxtra.tool._notepad_tool import make_notepad_tool
-from orxtra.tool._read_tools import (
+from orxtra.tool import (
     make_diff_tool,
     make_glob_tool,
     make_grep_tool,
     make_list_dir_tool,
+    make_notepad_tool,
     make_read_tool,
     make_stat_tool,
 )

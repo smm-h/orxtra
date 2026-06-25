@@ -12,12 +12,13 @@ class RunLockError(Exception):
     pass
 
 
-def _lock_key(run_id: UUID) -> int:
+def lock_key(run_id: UUID) -> int:
+    """Compute the advisory lock key for a run ID."""
     return int(run_id.hex[:16], 16) & 0x7FFFFFFFFFFFFFFF
 
 
 async def acquire_run_lock(pool: asyncpg.Pool, run_id: UUID) -> None:
-    key = _lock_key(run_id)
+    key = lock_key(run_id)
     acquired: bool = await pool.fetchval(
         "SELECT pg_try_advisory_lock($1)", key
     )
@@ -27,7 +28,7 @@ async def acquire_run_lock(pool: asyncpg.Pool, run_id: UUID) -> None:
 
 
 async def release_run_lock(pool: asyncpg.Pool, run_id: UUID) -> None:
-    key = _lock_key(run_id)
+    key = lock_key(run_id)
     await pool.execute("SELECT pg_advisory_unlock($1)", key)
 
 

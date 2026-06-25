@@ -10,7 +10,7 @@ import pytest
 from orxtra.protocols._task import TaskResult, TaskSpec
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._types import WorkflowConfig
-from orxtra.trace._memory_backend import InMemoryBackend, InMemoryEventBus
+from orxtra.trace import InMemoryBackend, InMemoryEventBus
 
 
 # A simple callable that returns a TaskResult.

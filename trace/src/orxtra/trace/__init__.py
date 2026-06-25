@@ -11,6 +11,7 @@ from orxtra.trace._lock import (
     RunLockError,
     acquire_run_lock,
     is_lock_stale,
+    lock_key,
     release_run_lock,
     update_heartbeat,
 )
@@ -57,6 +58,7 @@ from orxtra.trace._reader import (
     read_workflow_status,
     search_transcript,
 )
+from orxtra.trace._schema import ALL_CREATE_STATEMENTS, TABLE_NAMES
 from orxtra.trace._recovery import (
     clean_orphaned,
     reclaim_interrupted,
@@ -79,6 +81,8 @@ from orxtra.trace._types import (
 from orxtra.trace._writer import TraceWriter
 
 __all__ = [
+    "ALL_CREATE_STATEMENTS",
+    "TABLE_NAMES",
     "__version__",
     "EventBus",
     "EventStorage",
@@ -112,6 +116,7 @@ __all__ = [
     "is_lock_stale",
     "list_iterations",
     "list_runs",
+    "lock_key",
     "list_tasks",
     "query_events",
     "query_lessons",

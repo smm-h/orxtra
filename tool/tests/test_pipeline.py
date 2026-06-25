@@ -9,7 +9,7 @@ from uuid import UUID
 import pytest
 from orxtra.protocols._results import ToolOutput
 from orxtra.protocols._tool import Tool, ToolError
-from orxtra.secrets._registry import SecretRegistry
+from orxtra.secrets import SecretRegistry
 from orxtra.tool._pipeline import compose, wrap_tool_with_pipeline, wrap_tools_for_session
 
 # ---------------------------------------------------------------------------
