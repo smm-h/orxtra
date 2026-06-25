@@ -34,7 +34,6 @@ from orxtra.services import (
     validate_categories,
     validate_workflow,
 )
-from orxtra.trace import TraceWriter
 
 # -- Helpers --
 
@@ -428,8 +427,7 @@ def cmd_event_fire(
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
-            writer = TraceWriter(pool)
-            event_id = await fire_event(writer, rid, event_name, parsed_payload)
+            event_id = await fire_event(pool, rid, event_name, parsed_payload)
             if not quiet:
                 print(f"event {event_name!r} fired for run {rid} (id={event_id})")
         finally:
