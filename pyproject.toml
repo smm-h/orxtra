@@ -44,6 +44,7 @@ include = [
     "services/src/",
     "cli/src/",
     "mcp/src/",
+    "dispatch/src/",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
@@ -62,6 +63,7 @@ include = [
 "services/src/orxtra/services" = "orxtra/services"
 "cli/src/orxtra/cli" = "orxtra/cli"
 "mcp/src/orxtra/mcp" = "orxtra/mcp"
+"dispatch/src/orxtra/dispatch" = "orxtra/dispatch"
 
 [tool.uv.workspace]
 members = [
@@ -80,6 +82,7 @@ members = [
     "services",
     "cli",
     "mcp",
+    "dispatch",
 ]
 
 [tool.uv.sources]
@@ -98,6 +101,7 @@ orxtra-overseer = { workspace = true }
 orxtra-services = { workspace = true }
 orxtra-cli = { workspace = true }
 orxtra-mcp = { workspace = true }
+orxtra-dispatch = { workspace = true }
 
 [dependency-groups]
 dev = [
