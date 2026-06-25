@@ -35,7 +35,6 @@ from orxtra.services import (
     skip_inbox_item,
     start_run_from_file,
 )
-from orxtra.trace import TraceWriter
 from pydantic import BaseModel
 
 _PARSE_ERROR = -32700
@@ -181,9 +180,8 @@ class MCPServer:
             return await get_notepad(pool, run_id=UUID(p["run_id"]))
 
         async def _fire_event(p: dict[str, Any]) -> Any:
-            writer = TraceWriter(pool)
             return await fire_event(
-                writer,
+                pool,
                 run_id=UUID(p["run_id"]),
                 event_name=str(p["event_name"]),
                 payload=p.get("payload"),

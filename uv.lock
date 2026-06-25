@@ -523,14 +523,12 @@ version = "0.1.1"
 source = { editable = "cli" }
 dependencies = [
     { name = "orxtra-services" },
-    { name = "orxtra-trace" },
     { name = "strictcli" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "orxtra-services", editable = "services" },
-    { name = "orxtra-trace", editable = "trace" },
     { name = "strictcli" },
 ]
 

@@ -235,13 +235,11 @@ async def test_tools_call_reject_inbox_item(
     )
 
 
-@patch("orxtra.mcp._server.TraceWriter")
 @patch("orxtra.mcp._server.fire_event", new_callable=AsyncMock)
 async def test_tools_call_fire_event(
-    mock_fn: AsyncMock, mock_writer_cls: Any, server: MCPServer, mock_pool: Any  # noqa: ANN401
+    mock_fn: AsyncMock, server: MCPServer, mock_pool: Any  # noqa: ANN401
 ) -> None:
     mock_fn.return_value = uuid4()
-    mock_writer = mock_writer_cls.return_value
     run_id = str(uuid4())
     payload = {"key": "value"}
     resp = await server.handle_request(
@@ -258,9 +256,8 @@ async def test_tools_call_fire_event(
         )
     )
     assert "error" not in resp
-    mock_writer_cls.assert_called_once_with(mock_pool)
     mock_fn.assert_awaited_once_with(
-        mock_writer, run_id=UUID(run_id), event_name="deploy", payload=payload
+        mock_pool, run_id=UUID(run_id), event_name="deploy", payload=payload
     )
 
 

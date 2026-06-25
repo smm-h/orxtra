@@ -7,7 +7,6 @@ requires-python = ">=3.12"
 dependencies = [
     "strictcli",
     "orxtra-services",
-    "orxtra-trace",
 ]
 keywords = ["rlsbl"]
 
@@ -23,4 +22,3 @@ packages = ["src/orxtra"]
 
 [tool.uv.sources]
 orxtra-services = { workspace = true }
-orxtra-trace = { workspace = true }
