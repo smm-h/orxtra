@@ -4,18 +4,23 @@ from __future__ import annotations
 # This file is a hand-maintained Python DDL that will be replaced by pgdesign
 # codegen once that capability exists. Known divergences from pgdesign output:
 #
-# - UUID generation: pgdesign emits gen_random_uuid(); this file uses
-#   uuid_generate_v7() (pg-uuidv7 extension) for time-ordered UUIDs.
+# RESOLVED:
+# - UUID generation: pgdesign now emits uuid_generate_v7() via shadowed id
+#   type and pg_uuidv7 extension. Both sources agree.
+# - NUMERIC precision: pgdesign now emits numeric(12, 6) for amount type.
+#   Both sources agree.
+# - NOTIFY trigger: pgdesign now emits notify_orxtra_event() function and
+#   trg_notify_event trigger on the events table. Both sources agree.
+#
+# REMAINING:
 # - Enum columns: pgdesign emits proper CREATE TYPE ... AS ENUM and uses
 #   the enum type on columns; this file uses TEXT for all enum columns.
-# - NUMERIC precision: pgdesign emits bare "numeric"; this file specifies
-#   NUMERIC(12, 6) for cost columns.
 # - Default values: pgdesign emits explicit defaults on config_snapshot
 #   ('{}'::jsonb) and item_value ('{}'::jsonb); this file omits some.
 # - Indexes: pgdesign emits indexes for all tables; this file only has
 #   events indexes. Other tables rely on PK/UNIQUE for query patterns.
 # - Immutability: pgdesign uses deny-mutation triggers (append_only = true);
-#   this file uses REVOKE UPDATE, DELETE plus a LISTEN/NOTIFY trigger.
+#   this file uses REVOKE UPDATE, DELETE.
 # - FK definitions: pgdesign emits ALTER TABLE ... ADD CONSTRAINT; this
 #   file uses inline REFERENCES in CREATE TABLE.
 
