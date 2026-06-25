@@ -8,6 +8,41 @@
   "base_url": "https://orxtra.smmh.dev",
   "pages": [
     {
+      "path": "cli-config.md",
+      "title": "orxtra config",
+      "type": "doc"
+    },
+    {
+      "path": "cli-event.md",
+      "title": "orxtra event",
+      "type": "doc"
+    },
+    {
+      "path": "cli-inbox.md",
+      "title": "orxtra inbox",
+      "type": "doc"
+    },
+    {
+      "path": "cli-index.md",
+      "title": "orxtra CLI Reference",
+      "type": "doc"
+    },
+    {
+      "path": "cli-run.md",
+      "title": "orxtra run",
+      "type": "doc"
+    },
+    {
+      "path": "cli-trace.md",
+      "title": "orxtra trace",
+      "type": "doc"
+    },
+    {
+      "path": "cli-validate.md",
+      "title": "orxtra validate",
+      "type": "doc"
+    },
+    {
       "path": "gen-index.md",
       "title": "API Reference",
       "type": "doc"
@@ -19,5 +54,5 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-06-22T20:11:55.110208+00:00"
+  "last_gen": "2026-06-25T16:49:29.719770+00:00"
 }
