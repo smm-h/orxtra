@@ -6,7 +6,7 @@
 # via deny-mutation triggers (pgdesign append_only = true).
 
 [meta]
-version = 18
+version = 19
 schema = "public"
 
 # ---------------------------------------------------------------------------
@@ -356,10 +356,16 @@ type = "id"
 
 [tables.events.columns.run_id]
 type = "ref"
+nullable = true
 
 [tables.events.columns.task_id]
 type = "ref"
 nullable = true
+
+[tables.events.columns.source]
+type = "str"
+default = "'internal'"
+comment = "Event source: internal (scheduler/trace) or external (MCP/CLI)"
 
 [tables.events.columns.event_type]
 type = "str"
@@ -390,6 +396,9 @@ columns = ["run_id", "created_at DESC"]
 
 [tables.events.indexes.idx_events_type_created]
 columns = ["event_type", "created_at DESC"]
+
+[tables.events.indexes.idx_events_source_created]
+columns = ["source", "created_at DESC"]
 
 # ---------------------------------------------------------------------------
 # Tables: Session transcripts
