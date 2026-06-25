@@ -32,7 +32,6 @@ from orxtra.protocols._events import (
     StructuralAdvisory,
     TaskEscalated,
     TaskFailed,
-    format_event,
 )
 from orxtra.protocols._overseer_protocols import (
     HealthMonitorProtocol,
@@ -140,7 +139,6 @@ __all__ = [
     "OverseerProtocol",
     "ToolOutput",
     "WorkflowExecution",
-    "format_event",
     "is_autonomous",
     "requires_approval",
 ]

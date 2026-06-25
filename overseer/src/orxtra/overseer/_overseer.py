@@ -11,7 +11,7 @@ from orxtra.overseer._tools import (
     make_update_workflow_status_tool,
     make_write_lesson_tool,
 )
-from orxtra.protocols import format_event
+from orxtra.overseer._format import format_event
 from orxtra.protocols._overseer_protocols import OverseerEvent
 from orxtra.tool._notepad_tool import make_notepad_tool
 from orxtra.tool._read_tools import (
