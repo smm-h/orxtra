@@ -138,6 +138,55 @@ def _is_import_allowed(source_layer: str, target_layer: str) -> bool:
     return target_order < source_order
 
 
+def _collect_private_protocol_imports(
+    tree: ast.Module,
+) -> list[tuple[int, str]]:
+    """Collect runtime imports of private protocols modules.
+
+    Returns (line_number, full_module_path) for any import matching
+    ``from orxtra.protocols._*`` (any private sub-module).
+    Skips imports inside TYPE_CHECKING blocks.
+    """
+    results: list[tuple[int, str]] = []
+
+    def _walk_body(body: list[ast.stmt], in_type_checking: bool = False) -> None:
+        for node in body:
+            if isinstance(node, ast.If) and _is_type_checking_block(node):
+                _walk_body(node.body, in_type_checking=True)
+                _walk_body(node.orelse, in_type_checking=True)
+                continue
+
+            if isinstance(node, ast.ImportFrom) and not in_type_checking:
+                if (
+                    node.module is not None
+                    and node.module.startswith("orxtra.protocols._")
+                ):
+                    results.append((node.lineno, node.module))
+
+            if isinstance(node, ast.Import) and not in_type_checking:
+                for alias in node.names:
+                    if alias.name.startswith("orxtra.protocols._"):
+                        results.append((node.lineno, alias.name))
+
+            # Recurse into nested blocks
+            if isinstance(node, ast.If):
+                _walk_body(node.body, in_type_checking)
+                _walk_body(node.orelse, in_type_checking)
+            elif hasattr(node, "body") and isinstance(node.body, list):
+                _walk_body(node.body, in_type_checking)
+                if hasattr(node, "orelse") and isinstance(node.orelse, list):
+                    _walk_body(node.orelse, in_type_checking)
+                if hasattr(node, "finalbody") and isinstance(node.finalbody, list):
+                    _walk_body(node.finalbody, in_type_checking)
+                if hasattr(node, "handlers") and isinstance(node.handlers, list):
+                    for handler in node.handlers:
+                        if hasattr(handler, "body") and isinstance(handler.body, list):
+                            _walk_body(handler.body, in_type_checking)
+
+    _walk_body(tree.body)
+    return results
+
+
 def _module_name_from_path(py_file: Path) -> str | None:
     """Extract the orxtra sub-module name from a file path.
 
@@ -207,6 +256,18 @@ def main() -> int:  # noqa: C901
                     f"VIOLATION: {py_file}:{lineno} - "
                     f"{source_module} ({source_layer}) imports "
                     f"{target_module} ({target_layer})"
+                )
+                violations.append(msg)
+
+        # Check for private protocol imports from outside protocols
+        if source_module != "protocols":
+            private_imports = _collect_private_protocol_imports(tree)
+            for lineno, full_path in private_imports:
+                msg = (
+                    f"VIOLATION: {py_file}:{lineno} - "
+                    f"{source_module} imports private protocol "
+                    f"module '{full_path}' (use orxtra.protocols "
+                    f"public API instead)"
                 )
                 violations.append(msg)
 
