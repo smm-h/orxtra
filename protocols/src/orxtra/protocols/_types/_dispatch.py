@@ -37,6 +37,16 @@ class SubscriptionAction(BaseModel):
     created_at: datetime
 
 
+class Source(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    id: UUID
+    slug: str
+    name: str
+    auth_method: str | None = None
+    auth_config: dict[str, Any] | None = None
+    created_at: datetime
+
+
 class AccumulatorEntry(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
     id: UUID
