@@ -6,3 +6,4 @@
 {"commits":["f17ae9ce25e91e35cfdf57ee989a298067ffdc27","98710485bd2f987b3dfcefd921e882e00fb0dedc","1a44602a8804419b973668f7434d215b22bf8ac6"],"user_facing":true,"description":"**ActionExecutor, DispatchBackend, and EventBus protocols moved to orxtra-protocols.** Import paths changed from orxtra.dispatch and orxtra.scheduler to orxtra.protocols.","type":"breaking","packages":["dispatch","protocols","services","trace"]}
 {"commits":["39b2211524c5c4d312b6e3cf9bc3c3a205fd45ef"],"user_facing":false,"packages":["scheduler","services","session"]}
 {"commits":["44be634a3b81c3a2ecdad80b1f57cf8e58ddeb27"],"user_facing":false,"packages":["trace"]}
+{"commits":["ba603eca9f05d7012667dce251de6d95d5bd6d00"],"user_facing":false,"packages":["scheduler"]}
