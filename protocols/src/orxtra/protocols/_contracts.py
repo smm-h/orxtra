@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
@@ -88,3 +88,20 @@ class EventDelivery(Protocol):
         *,
         deadline_seconds: float,
     ) -> dict[str, object] | None: ...
+
+
+@runtime_checkable
+class FlushScheduler(Protocol):
+    """Schedules deferred flush callbacks with a deadline.
+
+    Used by the write-safety module to schedule and cancel
+    flush operations without depending on a concrete scheduler.
+    """
+
+    def schedule_flush(
+        self,
+        deadline: float,
+        callback: Callable[[], Awaitable[None]],
+    ) -> object: ...  # returns a handle for cancellation
+
+    def cancel_flush(self, handle: object) -> None: ...
