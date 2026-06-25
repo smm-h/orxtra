@@ -5,8 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from orxtra.dispatch import ActionExecutor
-from orxtra.protocols import EventAction, LogAction, ScriptAction, WorkflowAction
+from orxtra.protocols import ActionExecutor, EventAction, LogAction, ScriptAction, WorkflowAction
 from orxtra.services._actions import (
     ServicesActionExecutor,
     execute_service_action,

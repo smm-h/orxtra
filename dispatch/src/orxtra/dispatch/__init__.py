@@ -9,6 +9,7 @@ except PackageNotFoundError:
 
 from orxtra.dispatch._action_executor import (
     ActionExecutor,
+    EventFireCallback,
     execute_action,
     execute_actions_bounded,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "AccumulatorStorage",
     "ActionExecutor",
     "ActionStorage",
+    "EventFireCallback",
     "DispatchBackend",
     "DualPhaseEventDelivery",
     "FilterPredicate",

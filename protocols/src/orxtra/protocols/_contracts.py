@@ -13,6 +13,31 @@ T_contra = TypeVar("T_contra", contravariant=True)
 
 
 @runtime_checkable
+class ActionExecutor(Protocol):
+    """Injected executor for WorkflowAction dispatch.
+
+    The dispatch module cannot start workflows directly (that would
+    create a downward dependency to the scheduler). Callers inject an
+    executor that bridges the gap.
+    """
+
+    async def execute_workflow(
+        self,
+        workflow_path: str,
+        config: dict[str, object],
+        events: list[dict[str, object]],
+    ) -> None: ...
+
+
+# Callback type for EventAction: fire a new event back into the delivery
+# engine without creating a circular import.
+type EventFireCallback = Callable[
+    [str, dict[str, object] | None],
+    Awaitable[None],
+]
+
+
+@runtime_checkable
 class Renderer(Protocol[T_contra]):
     """Converts a typed result into a text string for the LLM."""
 

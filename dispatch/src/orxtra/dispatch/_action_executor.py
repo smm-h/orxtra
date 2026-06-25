@@ -3,43 +3,18 @@ from __future__ import annotations
 import asyncio
 import importlib
 import logging
-from collections.abc import Awaitable, Callable
-from typing import Protocol, runtime_checkable
 
 from orxtra.protocols import (
     Action,
+    ActionExecutor,
     EventAction,
+    EventFireCallback,
     LogAction,
     ScriptAction,
     WorkflowAction,
 )
 
 logger = logging.getLogger(__name__)
-
-
-@runtime_checkable
-class ActionExecutor(Protocol):
-    """Injected executor for WorkflowAction dispatch.
-
-    The dispatch module cannot start workflows directly (that would
-    create a downward dependency to the scheduler). Callers inject an
-    executor that bridges the gap.
-    """
-
-    async def execute_workflow(
-        self,
-        workflow_path: str,
-        config: dict[str, object],
-        events: list[dict[str, object]],
-    ) -> None: ...
-
-
-# Callback type for EventAction: fire a new event back into the delivery
-# engine without creating a circular import.
-type EventFireCallback = Callable[
-    [str, dict[str, object] | None],
-    Awaitable[None],
-]
 
 
 async def execute_action(
