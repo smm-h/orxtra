@@ -83,6 +83,12 @@ description = "Task executor (recursive hierarchy, budgets, constraints)"
 depends_on = ["protocols", "agent", "tool", "write-safety", "session", "trace", "verify", "notepad", "secrets", "transport"]
 releasable = "orxtra"
 
+[[projects]]
+path = "dispatch"
+description = "Event delivery: subscriptions, action dispatch, accumulator flush"
+depends_on = ["protocols"]
+releasable = "orxtra"
+
 # --- Intelligence layer ---
 
 [[projects]]
@@ -132,6 +138,6 @@ order = ["foundation", "orchestration", "intelligence", "interfaces"]
 
 [layers.assignments]
 foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
-orchestration = ["scheduler"]
+orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 interfaces = ["services", "cli", "mcp"]
