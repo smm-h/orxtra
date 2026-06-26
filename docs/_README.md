@@ -1,5 +1,11 @@
 # orxtra
 
+![CI](https://github.com/smm-h/orxtra/actions/workflows/ci-router.yml/badge.svg)
+![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
+![BUSL-1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg)
+
+:-: var key="project.version"
+
 Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
 
 ## The problem
@@ -12,34 +18,67 @@ orxtra applies structured programming to AI workflows. Every piece of work is a 
 
 ## What makes it different
 
-**Every tool call requires an active task.** There is no way to do untracked work. Every file read, every edit, every git operation happens inside a task with a budget, a trace, and verification boundaries. If an agent tries to call a tool outside a task, it gets a hard error.
+<details>
+<summary><b>Every tool call requires an active task.</b></summary>
 
-**Verification is structural, not bolted on.** Pre-checks gate entry. Post-checks gate exit. A check can be a Python script, a read-only AI agent that produces a structured verdict, or an entire sub-workflow. Failed post-checks let the agent retry. Exhausted retries escalate to the parent. The system does not trust agents to self-report quality.
+There is no way to do untracked work. Every file read, every edit, every git operation happens inside a task with a budget, a trace, and verification boundaries. If an agent tries to call a tool outside a task, it gets a hard error.
+</details>
 
-**The Overseer is a persistent LLM brain that acts only through typed action tools.** It can create workflows, add constraints, record decisions, create inbox items for human review — but only through a fixed vocabulary of actions. Every action is recorded in the trace. The Overseer cannot perform side effects outside its action tool set. It reasons and decides; the scheduler executes.
+<details>
+<summary><b>Verification is structural, not bolted on.</b></summary>
 
-**Budgets are denominated in USD.** Every task has a cost ceiling. Token usage is tracked per-task and converted to dollars using an internal pricing table. When a task exceeds its budget, execution stops — no silent overruns.
+Pre-checks gate entry. Post-checks gate exit. A check can be a Python script, a read-only AI agent that produces a structured verdict, or an entire sub-workflow. Failed post-checks let the agent retry. Exhausted retries escalate to the parent. The system does not trust agents to self-report quality.
+</details>
 
-**Agents cannot bypass safety mechanisms.** There is no bash tool. Git mutations go through safegit (concurrency-safe). File deletion goes through saferm (audited, recoverable). Write safety enforces per-path locking and stale-write detection. The system is designed so that agents cannot take shortcuts even if they want to.
+<details>
+<summary><b>The Overseer is a persistent LLM brain that acts only through typed action tools.</b></summary>
 
-**Events are first-class.** Subscriptions with typed filter predicates, per-subscription action chains, accumulator buffering with count and time thresholds. External systems write events into the same store and subscribe to patterns. Dual-phase delivery: in-process futures for zero-latency task waking, PG-backed subscriptions for durable cross-process reactions.
+It can create workflows, add constraints, record decisions, create inbox items for human review — but only through a fixed vocabulary of actions. Every action is recorded in the trace. The Overseer cannot perform side effects outside its action tool set. It reasons and decides; the scheduler executes.
+</details>
 
-**Each module works standalone.** Use just the LLM client. Or just the task scheduler. Or just the event system. Or the full stack. 16 modules across five layers, strict dependency direction, no circular imports.
+<details>
+<summary><b>Budgets are denominated in USD.</b></summary>
+
+Every task has a cost ceiling. Token usage is tracked per-task and converted to dollars using an internal pricing table. When a task exceeds its budget, execution stops — no silent overruns.
+</details>
+
+<details>
+<summary><b>Agents cannot bypass safety mechanisms.</b></summary>
+
+There is no bash tool. Git mutations go through [safegit](https://github.com/smm-h/safegit) (concurrency-safe). File deletion goes through [saferm](https://github.com/smm-h/saferm) (audited, recoverable). Write safety enforces per-path locking and stale-write detection. The system is designed so that agents cannot take shortcuts even if they want to.
+</details>
+
+<details>
+<summary><b>Events are first-class.</b></summary>
+
+Subscriptions with typed filter predicates, per-subscription action chains, accumulator buffering with count and time thresholds. External systems write events into the same store and subscribe to patterns. Dual-phase delivery: in-process futures for zero-latency task waking, PG-backed subscriptions for durable cross-process reactions.
+</details>
+
+<details>
+<summary><b>Each module works standalone.</b></summary>
+
+Use just the LLM client. Or just the task scheduler. Or just the event system. Or the full stack. 16 modules across five layers, strict dependency direction, no circular imports.
+</details>
 
 ## Modules
 
+> [!TIP]
+> Each module installs independently. Start with what you need; add more as your requirements grow.
+
 | Use case | Module | Install |
 |---|---|---|
-| Typed LLM client with streaming and tool calls | `transport` | `pip install orxtra-transport` |
-| Agent definitions from TOML + composable markdown prompts | `agent` | `pip install orxtra-agent` |
-| Tool registry with path enforcement and write safety | `tool` | `pip install orxtra-tool` |
-| Pre/post-check execution (scripts, agents, workflows) | `verify` | `pip install orxtra-verify` |
-| Deterministic task execution with budgets and constraints | `scheduler` | `pip install orxtra-scheduler` |
-| Reactive event subscriptions with actions and accumulators | `dispatch` | `pip install orxtra-dispatch` |
-| Persistent AI brain with action tools and memory | `overseer` | `pip install orxtra-overseer` |
-| PG event store with crash recovery and state machines | `trace` | `pip install orxtra-trace` |
-| Full CLI for agents and humans | `cli` | `pip install orxtra-cli` |
-| MCP server for dashboard integration | `mcp` | `pip install orxtra-mcp` |
+| Typed LLM client with streaming and tool calls | [`transport`](transport/) | `pip install orxtra-transport` |
+| Agent definitions from TOML + composable markdown prompts | [`agent`](agent/) | `pip install orxtra-agent` |
+| Tool registry with path enforcement and write safety | [`tool`](tool/) | `pip install orxtra-tool` |
+| Pre/post-check execution (scripts, agents, workflows) | [`verify`](verify/) | `pip install orxtra-verify` |
+| Deterministic task execution with budgets and constraints | [`scheduler`](scheduler/) | `pip install orxtra-scheduler` |
+| Reactive event subscriptions with actions and accumulators | [`dispatch`](dispatch/) | `pip install orxtra-dispatch` |
+| Persistent AI brain with action tools and memory | [`overseer`](overseer/) | `pip install orxtra-overseer` |
+| PG event store with crash recovery and state machines | [`trace`](trace/) | `pip install orxtra-trace` |
+| Full CLI for agents and humans | [`cli`](cli/) | `pip install orxtra-cli` |
+| MCP server for dashboard integration | [`mcp`](mcp/) | `pip install orxtra-mcp` |
+
+Six more foundation modules ([`protocols`](protocols/), [`secrets`](secrets/), [`write-safety`](write-safety/), [`notepad`](notepad/), [`session`](session/), [`services`](services/)) are installed as dependencies when you need them.
 
 ## Quick start
 
@@ -72,3 +111,14 @@ run_id = await start_run(
     ),
 )
 ```
+
+## Examples
+
+- [`basic_agent.toml`](examples/basic_agent.toml) — minimal agent definition
+- [`simple_workflow.toml`](examples/simple_workflow.toml) — workflow with dependencies and post-checks
+- [`categories.toml`](examples/categories.toml) — multi-provider model routing
+- [`coder_agent.toml`](examples/coder_agent.toml) — agent with exec capabilities
+
+---
+
+[CLAUDE.md](CLAUDE.md) — full technical reference | [CHANGELOG.md](CHANGELOG.md) — release history
