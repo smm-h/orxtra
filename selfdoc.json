@@ -13,6 +13,10 @@
     "docs/_CLAUDE.md",
     "docs/_README.md"
   ],
+  "directives": {
+    "rlsbl-version": "scripts/selfdoc_version.py",
+    "project-count": "scripts/selfdoc_project_count.py"
+  },
   "gen": {
     "exclude": [
       "*"
