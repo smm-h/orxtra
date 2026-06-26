@@ -4,7 +4,7 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation. Monorepo with 16 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
+Active implementation (v:-: var key="project.version"). Monorepo with 16 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
 
 ## Philosophy
 
@@ -25,37 +25,7 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 
 ## Monorepo structure
 
-```
-orxtra/
-    .rlsbl-monorepo/           # Monorepo workspace config
-        workspace.toml
-    schema/                     # pgdesign database schema (trace.toml + dispatch.toml)
-    examples/                   # Agent definitions, workflows, categories
-    knowledge/                  # Consumer domain knowledge (.md and .toml)
-    docs/                       # selfdoc templates
-    todo/
-    scripts/
-
-    protocols/                  # Foundation: shared types and interfaces
-    secrets/                    # Foundation: secret registry + scrubbing
-    write-safety/               # Foundation: write queue + stale detection
-    transport/                  # Foundation: typed LLM client
-    agent/                      # Foundation: TOML+md agent loader
-    tool/                       # Foundation: tool registry + constructors
-    verify/                     # Foundation: check runner (pre/post-check execution)
-    trace/                      # Foundation: PG schema owner
-    notepad/                    # Foundation: cross-agent IPC
-    session/                    # Foundation: session lifecycle
-
-    scheduler/                  # Orchestration: task executor
-    dispatch/                   # Orchestration: event delivery + subscriptions
-
-    overseer/                   # Intelligence: persistent LLM brain
-
-    services/                   # Composition: canonical async API
-    cli/                        # Interface: strictcli CLI
-    mcp/                        # Interface: MCP server
-```
+:-: list-tree path="." depth="1"
 
 Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 
