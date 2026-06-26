@@ -28,34 +28,47 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ## Monorepo structure
 
 ```
-orxtra/
-    .rlsbl-monorepo/           # Monorepo workspace config
-        workspace.toml
-    schema/                     # pgdesign database schema
-    knowledge/                  # Consumer domain knowledge (.md and .toml)
-    docs/                       # selfdoc templates
-    todo/
-    scripts/
-
-    protocols/                  # Foundation: shared types and interfaces
-    secrets/                    # Foundation: secret registry + scrubbing
-    write-safety/               # Foundation: write queue + stale detection
-    transport/                  # Foundation: typed LLM client
-    agent/                      # Foundation: TOML+md agent loader
-    tool/                       # Foundation: tool registry + constructors
-    verify/                     # Foundation: check runner (pre/post-check execution)
-    trace/                      # Foundation: PG schema owner
-    notepad/                    # Foundation: cross-agent IPC
-    session/                    # Foundation: session lifecycle
-
-    scheduler/                  # Orchestration: task executor
-    dispatch/                   # Orchestration: event delivery + subscriptions
-
-    overseer/                   # Intelligence: persistent LLM brain
-
-    services/                   # Composition: shared business logic
-    cli/                        # Interface: strictcli CLI
-    mcp/                        # Interface: MCP server
+./
+├── .claude/
+├── .env
+├── .github/
+├── .gitignore
+├── .rlsbl-monorepo/
+├── .ruff_cache/
+├── .selfdoc/
+├── .strictcli/
+├── .venv/
+├── CHANGELOG.md
+├── CLAUDE.md
+├── LICENSE
+├── README.md
+├── agent/
+├── cli/
+├── dispatch/
+├── docs/
+├── examples/
+├── knowledge/
+├── mcp/
+├── notepad/
+├── npm/
+├── overseer/
+├── protocols/
+├── pyproject.toml
+├── scheduler/
+├── schema/
+├── scripts/
+├── secrets/
+├── selfdoc.json
+├── services/
+├── session/
+├── tests/
+├── todo/
+├── tool/
+├── trace/
+├── transport/
+├── uv.lock
+├── verify/
+└── write-safety/
 ```
 
 Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
@@ -64,32 +77,39 @@ Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 
 | Layer | Sub-projects | Dependencies |
 |---|---|---|
-| Foundation | protocols, secrets, write-safety, transport, agent, tool, verify, trace, notepad, session | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols) |
-| Orchestration | scheduler, dispatch | scheduler depends on all foundation modules; dispatch depends on protocols + trace |
-| Intelligence | overseer | Depends on foundation (not orchestration -- shared protocols at the seam) |
-| Composition | services | Depends on orchestration + intelligence; provides concrete implementations (ActionExecutor, FlushScheduler) and service functions |
-| Interfaces | cli, mcp | Depends on composition |
+| Foundation | [protocols](protocols/), [secrets](secrets/), [write-safety](write-safety/), [transport](transport/), [agent](agent/), [tool](tool/), [verify](verify/), [trace](trace/), [notepad](notepad/), [session](session/) | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols) |
+| Orchestration | [scheduler](scheduler/), [dispatch](dispatch/) | scheduler depends on all foundation modules; dispatch depends on protocols + trace |
+| Intelligence | [overseer](overseer/) | Depends on foundation (not orchestration -- shared protocols at the seam) |
+| Composition | [services](services/) | Depends on orchestration + intelligence; provides concrete implementations (ActionExecutor, FlushScheduler) and service functions |
+| Interfaces | [cli](cli/), [mcp](mcp/) | Depends on composition |
 
 Higher layers can depend on lower layers. Lower layers cannot depend on higher layers. The Overseer and scheduler share types via the protocols module but never import each other.
 
 ## Key concepts
 
-- **Write-safety** owns the write queue, stale-write detection, atomic replace, and transient replay. Used by tool (enforcement) and scheduler (lifecycle).
-- **Secrets** owns the secret registry, substitution (`{{secret:NAME}}` -> real values in tool args), and scrubbing (real values -> placeholders in results and trace).
-- **Protocols** defines shared types and behavioral contracts. Types: Tool, ToolOutput, result types (FileContent, GrepResult, etc.), TaskSpec, TaskState, Execution variants, event dataclasses, Action types (ScriptAction, LogAction, WorkflowAction, EventAction), dispatch types (Subscription, FilterPredicate, Source). Contracts: EventDelivery, StorageBackend, OverseerProtocol, DispatchBackend, ActionExecutor, FlushScheduler, EventBus, SessionProtocol, Renderer. Also provides `run_sync()` for event-loop-aware sync-to-async bridging.
-- **Transport** is a standalone typed LLM client. Provider protocol, raw httpx, streaming events, tool-call loop, auto-retry.
-- **Agent** is a standalone TOML+md agent definition loader. Strict validation, prompt composition, category resolution.
-- **Tool** is a standalone tool registry. Granular constructors (read, write, edit, git, exec, http, etc.), path enforcement, write safety, task lifecycle tools (start_task, end_task, create_task, create_workflow). No bash tool. Git mutations wrap safegit; file deletion wraps saferm.
-- **Verify** is the check runner. Runs pre-checks and post-checks for tasks. Checks are Executions: scripts (Python callables), agents (read-only, structured verdicts), or workflows (recursive task trees).
-- **Trace** is a standalone PG event store. Schema owner for event-store tables (events, runs, tasks, transcripts, decisions, constraints, etc.). State machines, LISTEN/NOTIFY, append-only tables, crash recovery. Provides PgBackend and InMemoryBackend implementing the StorageBackend protocol. Events support nullable run_id and a source column for external event ingestion.
-- **Notepad** is PG-backed append-only cross-agent IPC.
-- **Session** wraps transport with token tracking, transcript persistence, cross-restart resumption.
-- **Scheduler** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints. Accepts an EventDelivery implementation (defaults to dispatch's TransientEventDelivery) for wait_for task waking. Control signals (pause/abort) flow through trace's subscribe_run_control, not through dispatch.
-- **Dispatch** is the event delivery engine. Subscriptions with filter predicates, per-subscription action chains, accumulator buffering with count/time thresholds, dual-phase delivery (transient futures + persistent subscriptions). ActionExecutor protocol for injecting workflow execution without downward dependencies.
-- **Overseer** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent.
-- **Services** is the composition layer: shared business logic consumed by CLI, MCP, and the Python API. Provides concrete implementations of dispatch protocols (ServicesActionExecutor, AsyncioFlushScheduler) and thin service functions for subscriptions, events, runs, inbox, and trace queries.
-- **CLI** is a strictcli frontend. Agents are the primary users.
-- **MCP** is an MCP server for human interface via dashboard/AI client.
+- **[Write-safety](write-safety/)** owns the write queue, stale-write detection, atomic replace, and transient replay. Used by tool (enforcement) and scheduler (lifecycle).
+- **[Secrets](secrets/)** owns the secret registry, substitution (`{{secret:NAME}}` -> real values in tool args), and scrubbing (real values -> placeholders in results and trace).
+- **[Protocols](protocols/)** defines shared types and behavioral contracts. Types: Tool, ToolOutput, result types (FileContent, GrepResult, etc.), TaskSpec, TaskState, Execution variants, event dataclasses, Action types (ScriptAction, LogAction, WorkflowAction, EventAction), dispatch types (Subscription, FilterPredicate, Source). Contracts: EventDelivery, StorageBackend, OverseerProtocol, DispatchBackend, ActionExecutor, FlushScheduler, EventBus, SessionProtocol, Renderer. Also provides `run_sync()` for event-loop-aware sync-to-async bridging.
+- **[Transport](transport/)** is a standalone typed LLM client. Provider protocol, raw httpx, streaming events, tool-call loop, auto-retry.
+- **[Agent](agent/)** is a standalone TOML+md agent definition loader. Strict validation, prompt composition, category resolution.
+- **[Tool](tool/)** is a standalone tool registry. Granular constructors (read, write, edit, git, exec, http, etc.), path enforcement, write safety, task lifecycle tools (start_task, end_task, create_task, create_workflow). No bash tool. Git mutations wrap [safegit](https://github.com/smm-h/safegit); file deletion wraps [saferm](https://github.com/smm-h/saferm).
+- **[Verify](verify/)** is the check runner. Runs pre-checks and post-checks for tasks. Checks are Executions: scripts (Python callables), agents (read-only, structured verdicts), or workflows (recursive task trees).
+- **[Trace](trace/)** is a standalone PG event store. Schema owner for event-store tables (events, runs, tasks, transcripts, decisions, constraints, etc.). State machines, LISTEN/NOTIFY, append-only tables, crash recovery. Provides PgBackend and InMemoryBackend implementing the StorageBackend protocol. Events support nullable run_id and a source column for external event ingestion.
+- **[Notepad](notepad/)** is PG-backed append-only cross-agent IPC.
+- **[Session](session/)** wraps transport with token tracking, transcript persistence, cross-restart resumption.
+- **[Scheduler](scheduler/)** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints. Accepts an EventDelivery implementation (defaults to dispatch's TransientEventDelivery) for wait_for task waking. Control signals (pause/abort) flow through trace's subscribe_run_control, not through dispatch.
+- **[Dispatch](dispatch/)** is the event delivery engine. Subscriptions with filter predicates, per-subscription action chains, accumulator buffering with count/time thresholds, dual-phase delivery (transient futures + persistent subscriptions). ActionExecutor protocol for injecting workflow execution without downward dependencies.
+- **[Overseer](overseer/)** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent.
+- **[Services](services/)** is the composition layer: shared business logic consumed by CLI, MCP, and the Python API. Provides concrete implementations of dispatch protocols (ServicesActionExecutor, AsyncioFlushScheduler) and thin service functions for subscriptions, events, runs, inbox, and trace queries.
+- **[CLI](cli/)** is a [strictcli](https://github.com/smm-h/strictcli) frontend. Agents are the primary users.
+- **[MCP](mcp/)** is an MCP server for human interface via dashboard/AI client.
+
+## Examples
+
+- [`basic_agent.toml`](examples/basic_agent.toml) -- minimal agent definition
+- [`simple_workflow.toml`](examples/simple_workflow.toml) -- workflow with dependencies and post-checks
+- [`categories.toml`](examples/categories.toml) -- multi-provider model routing
+- [`coder_agent.toml`](examples/coder_agent.toml) -- agent with exec capabilities
 
 ## Tooling
 
@@ -105,12 +125,12 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 
 The following are all projects under `~/Projects/`, maintained by us. Any feature gap, bug, or shortcoming identified during orxtra development can be filed as a todo in the respective project's `todo/` directory and will be addressed -- these are not external dependencies we're stuck with, they're internal tools that evolve with our needs.
 
-- **safegit** (`~/Projects/safegit`) -- concurrency-safe git operations. The git tool's mutation subcommands wrap safegit, not raw git.
-- **saferm** (`~/Projects/saferm`) -- audited file deletion with mandatory descriptions, audit trail, and recovery. The delete tool wraps saferm, not raw rm.
-- **rlsbl** (`~/Projects/rlsbl`) -- release orchestration, changelog enforcement, CI scaffolding, monorepo workspace management.
-- **strictcli** (`~/Projects/strictcli`) -- schema-driven CLI framework. No implicit flags.
-- **pgdesign** (`~/Projects/pgdesign`) -- PostgreSQL schema compiler. Owns `schema/trace.toml` and `schema/dispatch.toml`.
-- **selfdoc** (`~/Projects/selfdoc`) -- documentation generation from templates.
+- **[safegit](https://github.com/smm-h/safegit)** (`~/Projects/safegit`) -- concurrency-safe git operations. The git tool's mutation subcommands wrap safegit, not raw git.
+- **[saferm](https://github.com/smm-h/saferm)** (`~/Projects/saferm`) -- audited file deletion with mandatory descriptions, audit trail, and recovery. The delete tool wraps saferm, not raw rm.
+- **[rlsbl](https://github.com/smm-h/rlsbl)** (`~/Projects/rlsbl`) -- release orchestration, changelog enforcement, CI scaffolding, monorepo workspace management.
+- **[strictcli](https://github.com/smm-h/strictcli)** (`~/Projects/strictcli`) -- schema-driven CLI framework. No implicit flags.
+- **[pgdesign](https://github.com/smm-h/pgdesign)** (`~/Projects/pgdesign`) -- PostgreSQL schema compiler. Owns `schema/trace.toml` and `schema/dispatch.toml`.
+- **[selfdoc](https://github.com/smm-h/selfdoc)** (`~/Projects/selfdoc`) -- documentation generation from templates.
 
 
 ## Conventions
@@ -120,10 +140,10 @@ The following are all projects under `~/Projects/`, maintained by us. Any featur
 - Variable substitution is strict both ways.
 - No implicit defaults for provider, model, database URL, timeout, or retry behavior.
 - No silent degradation. If something is configured, it must work. No fallback to alternative strategies at runtime.
-- Each module owns its own PG schema. Trace owns event-store tables (events, runs, tasks, etc.). Dispatch owns subscription tables (sources, subscriptions, subscription_actions, accumulator_buffer). pgdesign manages both via `schema/trace.toml` and `schema/dispatch.toml`.
+- Each module owns its own PG schema. Trace owns event-store tables (events, runs, tasks, etc.). Dispatch owns subscription tables (sources, subscriptions, subscription_actions, accumulator_buffer). [pgdesign](https://github.com/smm-h/pgdesign) manages both via `schema/trace.toml` and `schema/dispatch.toml`.
 - Budgets denominated in USD with orxtra-maintained internal pricing table.
 - No bash tool. Granular purpose-built tools with typed parameters.
-- Git mutations wrap safegit; file deletion wraps saferm. Agents cannot bypass these -- there is no raw git or rm.
+- Git mutations wrap [safegit](https://github.com/smm-h/safegit); file deletion wraps [saferm](https://github.com/smm-h/saferm). Agents cannot bypass these -- there is no raw git or rm.
 - Write safety: atomic replace, per-path write queue, transient-only replay, stale-write detection.
 - No truncation. Tool output always persisted in full; large results return a preview with opt-in full retrieval.
 - No downward dependencies between layers. Overseer and scheduler share types via protocols, not imports.
