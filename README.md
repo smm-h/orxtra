@@ -6,8 +6,6 @@
 ![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![BUSL-1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg)
 
-0.7.0
-
 Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
 
 ## The problem
