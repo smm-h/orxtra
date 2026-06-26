@@ -28,47 +28,35 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ## Monorepo structure
 
 ```
-./
-├── .claude/
-├── .env
-├── .github/
-├── .gitignore
-├── .rlsbl-monorepo/
-├── .ruff_cache/
-├── .selfdoc/
-├── .strictcli/
-├── .venv/
-├── CHANGELOG.md
-├── CLAUDE.md
-├── LICENSE
-├── README.md
-├── agent/
-├── cli/
-├── dispatch/
-├── docs/
-├── examples/
-├── knowledge/
-├── mcp/
-├── notepad/
-├── npm/
-├── overseer/
-├── protocols/
-├── pyproject.toml
-├── scheduler/
-├── schema/
-├── scripts/
-├── secrets/
-├── selfdoc.json
-├── services/
-├── session/
-├── tests/
-├── todo/
-├── tool/
-├── trace/
-├── transport/
-├── uv.lock
-├── verify/
-└── write-safety/
+orxtra/
+    .rlsbl-monorepo/           # Monorepo workspace config
+        workspace.toml
+    schema/                     # pgdesign database schema (trace.toml + dispatch.toml)
+    examples/                   # Agent definitions, workflows, categories
+    knowledge/                  # Consumer domain knowledge (.md and .toml)
+    docs/                       # selfdoc templates
+    todo/
+    scripts/
+
+    protocols/                  # Foundation: shared types and interfaces
+    secrets/                    # Foundation: secret registry + scrubbing
+    write-safety/               # Foundation: write queue + stale detection
+    transport/                  # Foundation: typed LLM client
+    agent/                      # Foundation: TOML+md agent loader
+    tool/                       # Foundation: tool registry + constructors
+    verify/                     # Foundation: check runner (pre/post-check execution)
+    trace/                      # Foundation: PG schema owner
+    notepad/                    # Foundation: cross-agent IPC
+    session/                    # Foundation: session lifecycle
+
+    scheduler/                  # Orchestration: task executor
+    dispatch/                   # Orchestration: event delivery + subscriptions
+
+    overseer/                   # Intelligence: persistent LLM brain
+
+    services/                   # Composition: canonical async API
+    cli/                        # Interface: strictcli CLI
+    mcp/                        # Interface: MCP server
 ```
 
 Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
