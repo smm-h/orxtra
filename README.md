@@ -14,11 +14,19 @@ orxtra applies structured programming to AI workflows. Every piece of work is a 
 
 ## What makes it different
 
-- **Every tool call requires an active task.** No untracked work. No side effects outside task boundaries. Every action is attributable and budgeted.
-- **Pre/post-checks gate every task boundary.** Checks can be scripts, AI agents, or entire sub-workflows. Verification is structural, not bolted on.
-- **The Overseer acts only through typed action tools.** Create workflows, add constraints, record decisions — all through a fixed vocabulary of actions. No free-form side effects.
-- **Each module works standalone.** Use just the LLM client, or just the task scheduler, or just the event system, or the full orchestration stack. 16 modules, pick what you need.
-- **Events are first-class.** Subscriptions with filter predicates, action chains, accumulator buffering, dual-phase delivery. External systems can write events into the same store and subscribe to patterns.
+**Every tool call requires an active task.** There is no way to do untracked work. Every file read, every edit, every git operation happens inside a task with a budget, a trace, and verification boundaries. If an agent tries to call a tool outside a task, it gets a hard error.
+
+**Verification is structural, not bolted on.** Pre-checks gate entry. Post-checks gate exit. A check can be a Python script, a read-only AI agent that produces a structured verdict, or an entire sub-workflow. Failed post-checks let the agent retry. Exhausted retries escalate to the parent. The system does not trust agents to self-report quality.
+
+**The Overseer is a persistent LLM brain that acts only through typed action tools.** It can create workflows, add constraints, record decisions, create inbox items for human review — but only through a fixed vocabulary of actions. Every action is recorded in the trace. The Overseer cannot perform side effects outside its action tool set. It reasons and decides; the scheduler executes.
+
+**Budgets are denominated in USD.** Every task has a cost ceiling. Token usage is tracked per-task and converted to dollars using an internal pricing table. When a task exceeds its budget, execution stops — no silent overruns.
+
+**Agents cannot bypass safety mechanisms.** There is no bash tool. Git mutations go through safegit (concurrency-safe). File deletion goes through saferm (audited, recoverable). Write safety enforces per-path locking and stale-write detection. The system is designed so that agents cannot take shortcuts even if they want to.
+
+**Events are first-class.** Subscriptions with typed filter predicates, per-subscription action chains, accumulator buffering with count and time thresholds. External systems write events into the same store and subscribe to patterns. Dual-phase delivery: in-process futures for zero-latency task waking, PG-backed subscriptions for durable cross-process reactions.
+
+**Each module works standalone.** Use just the LLM client. Or just the task scheduler. Or just the event system. Or the full stack. 16 modules across five layers, strict dependency direction, no circular imports.
 
 ## Modules
 
@@ -33,9 +41,7 @@ orxtra applies structured programming to AI workflows. Every piece of work is a 
 | Persistent AI brain with action tools and memory | `overseer` | `pip install orxtra-overseer` |
 | PG event store with crash recovery and state machines | `trace` | `pip install orxtra-trace` |
 | Full CLI for agents and humans | `cli` | `pip install orxtra-cli` |
-| MCP server for dashboard and AI client integration | `mcp` | `pip install orxtra-mcp` |
-
-Six more foundation modules (`protocols`, `secrets`, `write-safety`, `notepad`, `session`, `services`) are installed as dependencies when you need them.
+| MCP server for dashboard integration | `mcp` | `pip install orxtra-mcp` |
 
 ## Quick start
 
@@ -68,23 +74,3 @@ run_id = await start_run(
     ),
 )
 ```
-
-## Architecture
-
-Five layers, strict dependency direction (each layer depends only on layers below it):
-
-| Layer | What it does |
-|---|---|
-| **Foundation** | Standalone building blocks: LLM client, tool registry, agent loader, PG store, secrets, write safety |
-| **Orchestration** | Task execution (scheduler) and reactive event delivery (dispatch) |
-| **Intelligence** | The Overseer: a persistent LLM that makes decisions via typed action tools |
-| **Composition** | Service functions that wire everything together into a usable API |
-| **Interfaces** | CLI for agents, MCP server for humans |
-
-## Status
-
-Active implementation. 16 sub-projects, v0.7.0. Foundation, orchestration, intelligence, and composition layers are functional. Production PG integration and end-to-end hardening in progress.
-
-## License
-
-BUSL-1.1
