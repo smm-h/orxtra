@@ -4,65 +4,86 @@
 
 Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
 
-Every piece of work is a task with explicit boundaries, entry conditions, and exit conditions. Tasks nest recursively. Failure propagates up the hierarchy.
+## The problem
+
+AI agent orchestration today is unstructured. Agents spawn agents, there are no verification boundaries, no budget enforcement, and no systematic way to know if work was done correctly. Free-form agent delegation is the `goto` of AI workflows — it produces results, but they are fragile, opaque, and unverifiable.
+
+## The solution
+
+orxtra applies structured programming to AI workflows. Every piece of work is a task with explicit entry conditions (pre-checks), exit conditions (post-checks), and a budget ceiling. Tasks nest recursively. Failure propagates up the hierarchy. The system verifies work at every boundary — not after the fact, but as a structural guarantee.
+
+## What makes it different
+
+- **Every tool call requires an active task.** No untracked work. No side effects outside task boundaries. Every action is attributable and budgeted.
+- **Pre/post-checks gate every task boundary.** Checks can be scripts, AI agents, or entire sub-workflows. Verification is structural, not bolted on.
+- **The Overseer acts only through typed action tools.** Create workflows, add constraints, record decisions — all through a fixed vocabulary of actions. No free-form side effects.
+- **Each module works standalone.** Use just the LLM client, or just the task scheduler, or just the event system, or the full orchestration stack. 16 modules, pick what you need.
+- **Events are first-class.** Subscriptions with filter predicates, action chains, accumulator buffering, dual-phase delivery. External systems can write events into the same store and subscribe to patterns.
 
 ## Modules
 
-| Layer | Module | What it does |
+| Use case | Module | Install |
 |---|---|---|
-| Foundation | `protocols` | Shared types (Tool, TaskSpec, Action) and behavioral contracts (EventDelivery, StorageBackend, DispatchBackend) |
-| Foundation | `secrets` | Secret registry, `{{secret:NAME}}` substitution in tool args, scrubbing from output |
-| Foundation | `write-safety` | Per-path write queue, stale-write detection, atomic file replace |
-| Foundation | `transport` | Typed LLM client with provider protocol, httpx, streaming, tool-call loop |
-| Foundation | `agent` | TOML+md agent definition loader with strict validation and prompt composition |
-| Foundation | `tool` | Tool registry with granular constructors (read, write, edit, git, exec, http), path enforcement, write safety |
-| Foundation | `verify` | Check runner for pre/post-checks (scripts, agents, workflows) |
-| Foundation | `trace` | PG event store: schema owner, state machines, LISTEN/NOTIFY, crash recovery |
-| Foundation | `notepad` | PG-backed append-only cross-agent IPC |
-| Foundation | `session` | Session lifecycle: token tracking, transcript persistence, resumption |
-| Orchestration | `scheduler` | Task executor: recursive hierarchy, pre/post-checks, budgets, constraints |
-| Orchestration | `dispatch` | Event delivery: subscriptions with filters, action chains, accumulator flush, dual-phase fire |
-| Intelligence | `overseer` | Persistent LLM brain: action tools, PG memory, health monitoring, session handoff |
-| Composition | `services` | Canonical async API: runs, events, inbox, subscriptions, trace queries |
-| Interface | `cli` | strictcli CLI frontend (agents are the primary users) |
-| Interface | `mcp` | MCP server for human interface via dashboard/AI client |
+| Typed LLM client with streaming and tool calls | `transport` | `pip install orxtra-transport` |
+| Agent definitions from TOML + composable markdown prompts | `agent` | `pip install orxtra-agent` |
+| Tool registry with path enforcement and write safety | `tool` | `pip install orxtra-tool` |
+| Pre/post-check execution (scripts, agents, workflows) | `verify` | `pip install orxtra-verify` |
+| Deterministic task execution with budgets and constraints | `scheduler` | `pip install orxtra-scheduler` |
+| Reactive event subscriptions with actions and accumulators | `dispatch` | `pip install orxtra-dispatch` |
+| Persistent AI brain with action tools and memory | `overseer` | `pip install orxtra-overseer` |
+| PG event store with crash recovery and state machines | `trace` | `pip install orxtra-trace` |
+| Full CLI for agents and humans | `cli` | `pip install orxtra-cli` |
+| MCP server for dashboard and AI client integration | `mcp` | `pip install orxtra-mcp` |
 
-## Pick what you need
+Six more foundation modules (`protocols`, `secrets`, `write-safety`, `notepad`, `session`, `services`) are installed as dependencies when you need them.
 
-A typed LLM client with streaming and tools:
-```
-pip install orxtra-transport
-```
+## Quick start
 
-Deterministic task execution (no AI brain, consumer provides task trees):
-```
-pip install orxtra-scheduler
-```
+One-shot LLM call, no orchestration:
 
-Reactive event processing with subscriptions and actions:
-```
-pip install orxtra-dispatch
+```python
+from orxtra.services import ask
+
+result = await ask(
+    prompt="Summarize this document.",
+    provider_type="anthropic",
+    model="claude-sonnet-4-20250514",
+    api_key="sk-...",
+)
 ```
 
-Full autonomous system with Overseer, verification, and human inbox:
-```
-pip install orxtra-cli
+Structured workflow with verification:
+
+```python
+from orxtra.services import start_run, RunConfig
+
+run_id = await start_run(
+    pool=pg_pool,
+    workflow_path="workflows/review.toml",
+    config=RunConfig(
+        provider_type="anthropic",
+        model="claude-sonnet-4-20250514",
+        api_key="sk-...",
+        autonomy_level="medium",
+    ),
+)
 ```
 
-## Design principles
+## Architecture
 
-- **Structured programming for AI workflows.** Tasks nest recursively with pre/post-checks. No unstructured delegation.
-- **Each module is independently useful.** Foundation modules have zero intra-workspace dependencies. Higher layers depend on lower layers via concrete types.
-- **Five layers, no downward dependencies.** Foundation, Orchestration, Intelligence, Composition, Interfaces. Each layer can depend on layers below it, never above.
-- **No bash tool.** Granular tools (read, write, edit, git, exec, http) with typed parameters and path enforcement.
-- **PostgreSQL backbone.** All state in PG. Append-only immutable tables. LISTEN/NOTIFY. Advisory locks.
-- **The Overseer acts via tools.** Action tools enforce structure. Every action recorded in trace.
-- **No implicit defaults.** Provider, model, database, timeout -- all must be explicit.
-- **No silent degradation.** If something is configured, it must work. No fallback to alternative strategies at runtime.
+Five layers, strict dependency direction (each layer depends only on layers below it):
+
+| Layer | What it does |
+|---|---|
+| **Foundation** | Standalone building blocks: LLM client, tool registry, agent loader, PG store, secrets, write safety |
+| **Orchestration** | Task execution (scheduler) and reactive event delivery (dispatch) |
+| **Intelligence** | The Overseer: a persistent LLM that makes decisions via typed action tools |
+| **Composition** | Service functions that wire everything together into a usable API |
+| **Interfaces** | CLI for agents, MCP server for humans |
 
 ## Status
 
-Active implementation. 16 sub-projects, v0.7.0.
+Active implementation. 16 sub-projects, v0.7.0. Foundation, orchestration, intelligence, and composition layers are functional. Production PG integration and end-to-end hardening in progress.
 
 ## License
 
