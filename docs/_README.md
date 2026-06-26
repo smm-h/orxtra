@@ -6,23 +6,24 @@ Every piece of work is a task with explicit boundaries, entry conditions, and ex
 
 ## Modules
 
-| Layer | Module | Standalone use case |
+| Layer | Module | What it does |
 |---|---|---|
-| Foundation | `protocols/` | Shared types: Execution, task lifecycle, event descriptors |
-| Foundation | `secrets/` | Secret registry, substitution, and scrubbing |
-| Foundation | `write-safety/` | Write queue, stale-write detection, atomic replace |
-| Foundation | `transport/` | Typed LLM client: Provider protocol, raw httpx, streaming events, tool-call loop |
-| Foundation | `agent/` | Agent definition loader: TOML + composable .md prompts, strict validation |
-| Foundation | `tool/` | Tool registry: granular constructors, path enforcement, write safety |
-| Foundation | `verify/` | Check runner: pre/post-check execution (scripts, agents, workflows) |
-| Foundation | `trace/` | PG event store: schema owner, state machines, LISTEN/NOTIFY, crash recovery |
-| Foundation | `notepad/` | Cross-agent IPC: append-only PG-backed context sharing |
-| Foundation | `session/` | Session lifecycle: token tracking, transcript persistence, resumption |
-| Orchestration | `scheduler/` | Task executor: recursive task hierarchy, budgets, constraints |
-| Intelligence | `overseer/` | Persistent LLM brain: action tools, PG memory, session handoff |
-| Interface | `services/` | Shared business logic for all frontends |
-| Interface | `cli/` | strictcli CLI (agents are the primary users) |
-| Interface | `mcp/` | MCP server (human interface via dashboard/AI client) |
+| Foundation | `protocols` | Shared types (Tool, TaskSpec, Action) and behavioral contracts (EventDelivery, StorageBackend, DispatchBackend) |
+| Foundation | `secrets` | Secret registry, `{{secret:NAME}}` substitution in tool args, scrubbing from output |
+| Foundation | `write-safety` | Per-path write queue, stale-write detection, atomic file replace |
+| Foundation | `transport` | Typed LLM client with provider protocol, httpx, streaming, tool-call loop |
+| Foundation | `agent` | TOML+md agent definition loader with strict validation and prompt composition |
+| Foundation | `tool` | Tool registry with granular constructors (read, write, edit, git, exec, http), path enforcement, write safety |
+| Foundation | `verify` | Check runner for pre/post-checks (scripts, agents, workflows) |
+| Foundation | `trace` | PG event store: schema owner, state machines, LISTEN/NOTIFY, crash recovery |
+| Foundation | `notepad` | PG-backed append-only cross-agent IPC |
+| Foundation | `session` | Session lifecycle: token tracking, transcript persistence, resumption |
+| Orchestration | `scheduler` | Task executor: recursive hierarchy, pre/post-checks, budgets, constraints |
+| Orchestration | `dispatch` | Event delivery: subscriptions with filters, action chains, accumulator flush, dual-phase fire |
+| Intelligence | `overseer` | Persistent LLM brain: action tools, PG memory, health monitoring, session handoff |
+| Composition | `services` | Canonical async API: runs, events, inbox, subscriptions, trace queries |
+| Interface | `cli` | strictcli CLI frontend (agents are the primary users) |
+| Interface | `mcp` | MCP server for human interface via dashboard/AI client |
 
 ## Pick what you need
 
@@ -36,6 +37,11 @@ Deterministic task execution (no AI brain, consumer provides task trees):
 pip install orxtra-scheduler
 ```
 
+Reactive event processing with subscriptions and actions:
+```
+pip install orxtra-dispatch
+```
+
 Full autonomous system with Overseer, verification, and human inbox:
 ```
 pip install orxtra-cli
@@ -43,16 +49,19 @@ pip install orxtra-cli
 
 ## Design principles
 
-- **Structured programming for AI workflows.** Tasks nest recursively with pre/post-checks. No unstructured delegation. No `goto`.
+- **Structured programming for AI workflows.** Tasks nest recursively with pre/post-checks. No unstructured delegation.
 - **Each module is independently useful.** Foundation modules have zero intra-workspace dependencies. Higher layers depend on lower layers via concrete types.
+- **Five layers, no downward dependencies.** Foundation, Orchestration, Intelligence, Composition, Interfaces. Each layer can depend on layers below it, never above.
 - **No bash tool.** Granular tools (read, write, edit, git, exec, http) with typed parameters and path enforcement.
 - **PostgreSQL backbone.** All state in PG. Append-only immutable tables. LISTEN/NOTIFY. Advisory locks.
 - **The Overseer acts via tools.** Action tools enforce structure. Every action recorded in trace.
 - **No implicit defaults.** Provider, model, database, timeout -- all must be explicit.
 - **No silent degradation.** If something is configured, it must work. No fallback to alternative strategies at runtime.
 
-See each module's `DESIGN.md` for the full spec.
-
 ## Status
 
-Active implementation.
+Active implementation. 16 sub-projects, v0.7.0.
+
+## License
+
+BUSL-1.1
