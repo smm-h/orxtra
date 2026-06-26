@@ -1,10 +1,10 @@
 # orxtra -- single publishable package
 # Sub-projects remain as workspace members for development but are never published separately.
-# hatch force-include maps all 15 sub-project source dirs into the wheel.
+# hatch force-include maps all 16 sub-project source dirs into the wheel.
 
 [project]
 name = "orxtra"
-version = "0.1.0"
+version = "0.7.0"
 license = "BUSL-1.1"
 description = "Autonomous multi-agent AI workflows"
 requires-python = ">=3.12"
