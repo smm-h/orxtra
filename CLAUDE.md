@@ -6,7 +6,7 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation (v0.1.0). Monorepo with 16 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
+Active implementation (v0.7.0). Monorepo with 16 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
 
 ## Philosophy
 
