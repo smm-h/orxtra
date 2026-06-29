@@ -14,5 +14,9 @@ def resolve(attrs: dict, config: dict, body: str) -> str:
         return "unknown"
     data = tomllib.loads(workspace_file.read_text())
     projects = data.get("projects", [])
-    count = sum(1 for p in projects if not p.get("dev_node", False))
+    count = sum(
+        1
+        for p in projects
+        if not p.get("dev_node", False) and p.get("path") != "."
+    )
     return str(count)
