@@ -372,7 +372,7 @@ nullable = true
 
 [tables.events.columns.source]
 type = "str"
-default = "'internal'"
+default = "internal"
 comment = "Event source: internal (scheduler/trace) or external (MCP/CLI)"
 
 [tables.events.columns.event_type]
