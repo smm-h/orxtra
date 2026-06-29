@@ -8,6 +8,28 @@
 [[releasables]]
 name = "orxtra"
 
+# --- Root package ---
+
+[[projects]]
+path = "."
+description = "Root package — single publishable wheel aggregating all sub-projects"
+releasable = "orxtra"
+watch = [
+    "pyproject.toml",
+    "selfdoc.json",
+    "docs/**",
+    "scripts/**",
+    "examples/**",
+    "knowledge/**",
+    "tests/**",
+    ".github/**",
+    "todo/**",
+    "CLAUDE.md",
+    "LICENSE",
+    ".env",
+    ".gitignore",
+]
+
 # --- Foundation layer ---
 
 [[projects]]
