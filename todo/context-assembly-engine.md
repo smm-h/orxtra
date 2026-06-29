@@ -28,8 +28,20 @@ A context package manager for AI agents. Three provider layers, each with differ
 - **System prompt fragments**: The current use case -- text injected into the agent's system prompt
 - **Pre-prompt hooks**: Run before each agent turn (validation, context refresh)
 - **Post-prompt hooks**: Run after each agent turn (commit checks, format enforcement)
-- **Tool declarations**: MCP servers, CLI wrappers the agent should know about
+- **MCP server declarations**: A tool can ship an MCP server config fragment (transport type, command, args, env) that the assembly engine composes into the agent runtime's MCP configuration. For CC, this means generating or merging into `.mcp.json`. For OpenCode, merging into the `mcp` section of `opencode.json`. The tool declares the server; the engine wires it into whichever runtime is active.
+- **Tool declarations**: CLI wrappers, custom tool definitions the agent should know about
 - **Constraints**: Hard rules the agent must follow with the tool (enforced, not advisory)
+
+### Multi-channel delivery
+
+Different agent runtimes accept context through different channels, and a single runtime may have multiple channels with different characteristics:
+
+- **System prompt channel**: Static, session-scoped, benefits from prompt caching. Best for stable tool knowledge.
+- **Messages/context channel**: Per-turn, dynamic, no caching benefit. Best for state-dependent context (current branch, active tasks).
+- **Hook-injected channel**: Middleware that runs per-event, can inject context conditionally. Best for reactive context (inject lint rules only when editing code).
+- **MCP/tool registration channel**: Structural, not textual. Registers capabilities the agent can invoke.
+
+The assembly engine should be channel-aware: each fragment declares which channel(s) it targets. A tool might ship a system prompt fragment (how to use it), a hook (validation before each turn), and an MCP server config (its runtime API) -- all as part of a single context package.
 
 ### Tag-based composition
 
