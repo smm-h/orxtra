@@ -7,6 +7,7 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 ## Status
 
 Active implementation. Monorepo with 16 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
+Current version: 0.7.0.
 
 ## Philosophy
 
@@ -35,6 +36,7 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── .gitignore
 ├── .rlsbl-monorepo/
 ├── .ruff_cache/
+├── .safegit/
 ├── .selfdoc/
 ├── .strictcli/
 ├── .venv/
