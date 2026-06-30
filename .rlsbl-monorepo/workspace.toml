@@ -104,6 +104,13 @@ depends_on = ["protocols"]
 library = true
 releasable = "orxtra"
 
+[[projects]]
+path = "a2ui"
+description = "Agent-to-UI surface rendering. Template registry, fragment library, data-bound component engine."
+depends_on = ["protocols"]
+library = true
+releasable = "orxtra"
+
 # --- Orchestration layer ---
 
 [[projects]]
@@ -169,7 +176,7 @@ releasable = false
 order = ["foundation", "orchestration", "intelligence", "composition", "interfaces"]
 
 [layers.assignments]
-foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session", "auth"]
+foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session", "auth", "a2ui"]
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]
