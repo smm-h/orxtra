@@ -67,6 +67,14 @@ from orxtra.protocols._types._events import (
     TaskEscalated,
     TaskFailed,
 )
+from orxtra.protocols._types._surfaces import (
+    CreateSurface,
+    DeleteSurface,
+    SurfaceOperation,
+    SurfaceSpec,
+    UpdateComponents,
+    UpdateDataModel,
+)
 from orxtra.protocols._types._results import (
     Confirmation,
     ConsultResponse,
@@ -126,6 +134,7 @@ __all__ = [
     "ConsultResponse",
     "CreateInboxItemParams",
     "CreateInboxItemResult",
+    "CreateSurface",
     "CreateTaskParams",
     "CreateTaskResult",
     "CreateWaitForParams",
@@ -133,6 +142,7 @@ __all__ = [
     "CreateWorkflowParams",
     "CreateWorkflowResult",
     "CriterionReview",
+    "DeleteSurface",
     "DiffResult",
     "DirEntry",
     "DirListing",
@@ -170,6 +180,8 @@ __all__ = [
     "Severity",
     "StatResult",
     "StructuralAdvisory",
+    "SurfaceOperation",
+    "SurfaceSpec",
     "TaskContext",
     "TaskEscalated",
     "TaskFailed",
@@ -181,6 +193,8 @@ __all__ = [
     "ToolError",
     "ToolOutput",
     "TrustTier",
+    "UpdateComponents",
+    "UpdateDataModel",
     "UpdateWorkflowStatusParams",
     "WorkflowAction",
     "WorkflowExecution",
