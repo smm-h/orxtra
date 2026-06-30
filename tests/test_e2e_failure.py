@@ -260,6 +260,7 @@ class TestTimeoutCancelsTask:
                 if "start_task" in tool_map:
                     result = await tool_map["start_task"].execute(start_args)
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input=start_args,
                         output=result,
@@ -519,6 +520,7 @@ class TestExceptionDuringSession:
                     if "start_task" in tool_map:
                         result = await tool_map["start_task"].execute(start_args)
                         yield ToolUse(
+                            tool_use_id="tu_start",
                             tool_name="start_task",
                             input=start_args,
                             output=result,
@@ -531,6 +533,7 @@ class TestExceptionDuringSession:
                 if "start_task" in tool_map:
                     result = await tool_map["start_task"].execute(start_args)
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input=start_args,
                         output=result,
@@ -541,6 +544,7 @@ class TestExceptionDuringSession:
                         {"message": "recovered"},
                     )
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "recovered"},
                         output=result,

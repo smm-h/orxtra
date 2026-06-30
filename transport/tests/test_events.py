@@ -105,11 +105,13 @@ class TestThinking:
 class TestToolUse:
     def test_construction(self) -> None:
         event = ToolUse(
+            tool_use_id="tu_1",
             tool_name="read_file",
             input={"path": "/foo"},
             output="file contents",
             status="success",
         )
+        assert event.tool_use_id == "tu_1"
         assert event.tool_name == "read_file"
         assert event.input == {"path": "/foo"}
         assert event.output == "file contents"
@@ -119,6 +121,7 @@ class TestToolUse:
 
     def test_error_fields(self) -> None:
         event = ToolUse(
+            tool_use_id="tu_2",
             tool_name="write",
             input={},
             output="",
@@ -131,7 +134,7 @@ class TestToolUse:
         assert event.duration_ms == 42
 
     def test_frozen(self) -> None:
-        event = ToolUse(tool_name="t", input={}, output="", status="success")
+        event = ToolUse(tool_use_id="tu_3", tool_name="t", input={}, output="", status="success")
         with pytest.raises(dataclasses.FrozenInstanceError):
             event.status = "error"  # type: ignore[misc]
 

@@ -245,6 +245,7 @@ class Transport:
             tool = ctx.tool_map.get(tool_name)
             if tool is None:
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_input,
                     output="",
@@ -263,6 +264,7 @@ class Transport:
             validation_error = _validate_tool_args(tool_input, tool.parameters)
             if validation_error is not None:
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_input,
                     output="",
@@ -278,13 +280,14 @@ class Transport:
                 )
                 continue
 
-            yield ToolExecuting(tool_name=tool_name, tool_input=tool_input)
+            yield ToolExecuting(tool_use_id=tool_use_id, tool_name=tool_name, tool_input=tool_input)
             start = time.monotonic_ns()
             try:
                 result = await tool.execute(tool_input)
                 result_text = result.text
                 duration_ms = (time.monotonic_ns() - start) // 1_000_000
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_input,
                     output=result_text,
@@ -303,6 +306,7 @@ class Transport:
                 duration_ms = (time.monotonic_ns() - start) // 1_000_000
                 error_msg = str(e)
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_input,
                     output="",
@@ -521,6 +525,7 @@ class Transport:
             if tool is None:
                 events.append(
                     ToolUse(
+                        tool_use_id=tool_use_id,
                         tool_name=tool_name,
                         input=tool_input,
                         output="",
@@ -541,6 +546,7 @@ class Transport:
             if validation_error is not None:
                 events.append(
                     ToolUse(
+                        tool_use_id=tool_use_id,
                         tool_name=tool_name,
                         input=tool_input,
                         output="",
@@ -559,7 +565,7 @@ class Transport:
 
             # Emit ToolExecuting before execution
             events.append(
-                ToolExecuting(tool_name=tool_name, tool_input=tool_input),
+                ToolExecuting(tool_use_id=tool_use_id, tool_name=tool_name, tool_input=tool_input),
             )
 
             # Check for suspension BEFORE execution
@@ -571,6 +577,7 @@ class Transport:
                     duration_ms = (time.monotonic_ns() - start) // 1_000_000
                     events.append(
                         ToolUse(
+                            tool_use_id=tool_use_id,
                             tool_name=tool_name,
                             input=tool_input,
                             output=result_text,
@@ -591,6 +598,7 @@ class Transport:
                     error_msg = str(e)
                     events.append(
                         ToolUse(
+                            tool_use_id=tool_use_id,
                             tool_name=tool_name,
                             input=tool_input,
                             output="",
@@ -620,6 +628,7 @@ class Transport:
                 duration_ms = (time.monotonic_ns() - start) // 1_000_000
                 events.append(
                     ToolUse(
+                        tool_use_id=tool_use_id,
                         tool_name=tool_name,
                         input=tool_input,
                         output=result_text,
@@ -640,6 +649,7 @@ class Transport:
                 error_msg = str(e)
                 events.append(
                     ToolUse(
+                        tool_use_id=tool_use_id,
                         tool_name=tool_name,
                         input=tool_input,
                         output="",

@@ -63,6 +63,7 @@ class StreamUsage:
 
 @dataclass(frozen=True)
 class ToolUse:
+    tool_use_id: str
     tool_name: str
     input: dict[str, Any]
     output: str
@@ -151,6 +152,7 @@ class RateLimit:
 class ToolExecuting:
     """Emitted immediately before a tool begins execution."""
 
+    tool_use_id: str
     tool_name: str
     tool_input: dict[str, Any]
 

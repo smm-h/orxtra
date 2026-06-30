@@ -60,6 +60,7 @@ class StreamingTransport:
             except ToolError as e:
                 sr = f"Error: {e}"
             yield ToolUse(
+                tool_use_id="tu_start",
                 tool_name="start_task",
                 input={"task_id": task_id_str},
                 output=sr,
@@ -78,6 +79,7 @@ class StreamingTransport:
             except ToolError as e:
                 er = f"Error: {e}"
             yield ToolUse(
+                tool_use_id="tu_end",
                 tool_name="end_task",
                 input={"message": "streaming done"},
                 output=er,

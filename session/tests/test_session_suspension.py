@@ -51,6 +51,7 @@ class TestSessionSendYieldsSuspended:
         events_from_transport = [
             StepStart(session_id=sid),
             ToolUse(
+                tool_use_id="tu_1",
                 tool_name="await_tool",
                 input={"x": "request"},
                 output="waiting",
@@ -105,6 +106,7 @@ class TestSessionResumeContinuesNormally:
         send_events = [
             StepStart(session_id=sid),
             ToolUse(
+                tool_use_id="tu_1",
                 tool_name="await_tool",
                 input={"x": "1"},
                 output="waiting",
@@ -233,6 +235,7 @@ class TestTranscriptForSuspendedSession:
         send_events = [
             StepStart(session_id=sid),
             ToolUse(
+                tool_use_id="tu_1",
                 tool_name="await_tool",
                 input={"x": "1"},
                 output="waiting",

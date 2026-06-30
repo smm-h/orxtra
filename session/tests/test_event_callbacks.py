@@ -141,6 +141,7 @@ class TestEventCallbacks:
         events = [
             StepStart(session_id=sid),
             ToolUse(
+                tool_use_id="tu_1",
                 tool_name="read_file",
                 input={"path": "/test"},
                 output="file data",

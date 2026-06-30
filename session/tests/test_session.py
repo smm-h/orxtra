@@ -186,6 +186,7 @@ class TestTokenAccumulation:
             StepStart(session_id=sid),
             StepFinish(reason="tool_use", input_tokens=50, output_tokens=30),
             ToolUse(
+                tool_use_id="tu_1",
                 tool_name="read_file",
                 input={"path": "/tmp/test"},  # noqa: S108
                 output="file contents",
@@ -272,6 +273,7 @@ class TestEventPassthrough:
         run_id: uuid.UUID,
     ) -> None:
         tool_use = ToolUse(
+            tool_use_id="tu_1",
             tool_name="read_file",
             input={"path": "/test"},
             output="contents",
@@ -359,6 +361,7 @@ class TestTranscriptPersistence:
         events = [
             StepStart(session_id=sid),
             ToolUse(
+                tool_use_id="tu_1",
                 tool_name="read_file",
                 input={"path": "/test"},
                 output="file data",

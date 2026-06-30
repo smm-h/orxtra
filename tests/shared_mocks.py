@@ -385,6 +385,7 @@ class MockTransport:
                 except ToolError as e:
                     start_result = f"Error: {e}"
                 yield ToolUse(
+                    tool_use_id="tu_start",
                     tool_name="start_task",
                     input={"task_id": task_id_str},
                     output=start_result,
@@ -402,6 +403,7 @@ class MockTransport:
                 except ToolError as e:
                     end_result = f"Error: {e}"
                 yield ToolUse(
+                    tool_use_id="tu_end",
                     tool_name="end_task",
                     input={
                         "message": self._response_text,

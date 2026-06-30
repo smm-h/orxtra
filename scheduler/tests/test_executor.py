@@ -315,6 +315,7 @@ class TestAgentToolCallPath:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=start_result,
@@ -326,6 +327,7 @@ class TestAgentToolCallPath:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=end_result,
@@ -797,6 +799,7 @@ class TestRetry:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -807,6 +810,7 @@ class TestRetry:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -908,6 +912,7 @@ class TestRetry:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -918,6 +923,7 @@ class TestRetry:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -1020,6 +1026,7 @@ class TestRetry:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -1030,6 +1037,7 @@ class TestRetry:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -1214,6 +1222,7 @@ class TestAccumulateCostError:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -1224,6 +1233,7 @@ class TestAccumulateCostError:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -1392,6 +1402,7 @@ class TestForEach:
                             "start_task"
                         ].execute({"task_id": task_id_str})
                         yield ToolUse(
+                            tool_use_id="tu_start",
                             tool_name="start_task",
                             input={"task_id": task_id_str},
                             output=r,
@@ -1402,6 +1413,7 @@ class TestForEach:
                             "end_task"
                         ].execute({"message": "ok"})
                         yield ToolUse(
+                            tool_use_id="tu_end",
                             tool_name="end_task",
                             input={"message": "ok"},
                             output=r,
@@ -1481,6 +1493,7 @@ class TestForEach:
                             "start_task"
                         ].execute({"task_id": task_id_str})
                         yield ToolUse(
+                            tool_use_id="tu_start",
                             tool_name="start_task",
                             input={"task_id": task_id_str},
                             output=r,
@@ -1491,6 +1504,7 @@ class TestForEach:
                             "end_task"
                         ].execute({"message": "ok"})
                         yield ToolUse(
+                            tool_use_id="tu_end",
                             tool_name="end_task",
                             input={"message": "ok"},
                             output=r,
@@ -1572,6 +1586,7 @@ class TestForEach:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -1583,6 +1598,7 @@ class TestForEach:
                         "end_task"
                     ].execute({"message": "ok"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "ok"},
                         output=r,
@@ -1668,6 +1684,7 @@ class TestTaskOutputPropagation:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -1678,6 +1695,7 @@ class TestTaskOutputPropagation:
                         "end_task"
                     ].execute({"message": "result-a"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "result-a"},
                         output=r,
@@ -1943,6 +1961,7 @@ class TestPreRetryCallback:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -1953,6 +1972,7 @@ class TestPreRetryCallback:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -2072,6 +2092,7 @@ class TestPreRetryCallback:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -2082,6 +2103,7 @@ class TestPreRetryCallback:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -2201,6 +2223,7 @@ class TestRetryResume:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -2211,6 +2234,7 @@ class TestRetryResume:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -2322,6 +2346,7 @@ class TestRetryInjectFailure:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -2332,6 +2357,7 @@ class TestRetryInjectFailure:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,

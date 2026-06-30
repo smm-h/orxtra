@@ -268,6 +268,7 @@ class TestContextAssembly:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -278,6 +279,7 @@ class TestContextAssembly:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -356,6 +358,7 @@ class TestContextAssembly:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -366,6 +369,7 @@ class TestContextAssembly:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,
@@ -471,6 +475,7 @@ class TestContextAssembly:
                         "start_task"
                     ].execute({"task_id": task_id_str})
                     yield ToolUse(
+                        tool_use_id="tu_start",
                         tool_name="start_task",
                         input={"task_id": task_id_str},
                         output=r,
@@ -481,6 +486,7 @@ class TestContextAssembly:
                         "end_task"
                     ].execute({"message": "done"})
                     yield ToolUse(
+                        tool_use_id="tu_end",
                         tool_name="end_task",
                         input={"message": "done"},
                         output=r,

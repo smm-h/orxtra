@@ -125,9 +125,11 @@ class IntegrationMockTransport:
             else:
                 tool_args = raw_tool_args
 
+            tool_use_id = f"tu_{executed_count}"
             tool = tool_map.get(tool_name)
             if tool is None:
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output="",
@@ -139,6 +141,7 @@ class IntegrationMockTransport:
             try:
                 tool_output = await tool.execute(tool_args)
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output=tool_output.text,
@@ -146,6 +149,7 @@ class IntegrationMockTransport:
                 )
             except ToolError as e:
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output="",
@@ -154,6 +158,7 @@ class IntegrationMockTransport:
                 )
             except Exception as e:  # noqa: BLE001
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output="",
@@ -288,9 +293,11 @@ class MultiAgentMockTransport:
             else:
                 tool_args = raw_tool_args
 
+            tool_use_id = f"tu_{executed_count}"
             tool = tool_map.get(tool_name)
             if tool is None:
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output="",
@@ -302,6 +309,7 @@ class MultiAgentMockTransport:
             try:
                 tool_output = await tool.execute(tool_args)
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output=tool_output.text,
@@ -309,6 +317,7 @@ class MultiAgentMockTransport:
                 )
             except ToolError as e:
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output="",
@@ -317,6 +326,7 @@ class MultiAgentMockTransport:
                 )
             except Exception as e:  # noqa: BLE001
                 yield ToolUse(
+                    tool_use_id=tool_use_id,
                     tool_name=tool_name,
                     input=tool_args,
                     output="",

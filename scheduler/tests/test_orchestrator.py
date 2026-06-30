@@ -245,6 +245,7 @@ class TestOrchestratorSuspension:
                     })).text
                     child_task_id_holder.append(child_id)
                     yield ToolUse(
+                        tool_use_id="tu_create",
                         tool_name="create_task",
                         input={"name": "child-work"},
                         output=child_id,
@@ -257,6 +258,7 @@ class TestOrchestratorSuspension:
                         {"task_id": child_task_id_holder[0]},
                     )).text
                     yield ToolUse(
+                        tool_use_id="tu_await",
                         tool_name="await_task",
                         input={"task_id": child_task_id_holder[0]},
                         output=await_result,
@@ -375,6 +377,7 @@ class TestOrchestratorSuspension:
                             {"task_id": task_id_str},
                         )).text
                         yield ToolUse(
+                            tool_use_id="tu_start",
                             tool_name="start_task",
                             input={"task_id": task_id_str},
                             output=sr,
@@ -385,6 +388,7 @@ class TestOrchestratorSuspension:
                             {"message": "child done"},
                         )).text
                         yield ToolUse(
+                            tool_use_id="tu_end",
                             tool_name="end_task",
                             input={"message": "child done"},
                             output=er,
@@ -532,6 +536,7 @@ class TestOrchestratorMultiChild:
                     })).text
                     child_ids.append(child_id)
                     yield ToolUse(
+                        tool_use_id="tu_create",
                         tool_name="create_task",
                         input={"name": "child-A"},
                         output=child_id,
@@ -541,6 +546,7 @@ class TestOrchestratorMultiChild:
                         "await_task"
                     ].execute({"task_id": child_id})).text
                     yield ToolUse(
+                        tool_use_id="tu_await",
                         tool_name="await_task",
                         input={"task_id": child_id},
                         output=await_result,
@@ -576,6 +582,7 @@ class TestOrchestratorMultiChild:
                             "start_task"
                         ].execute({"task_id": task_id_str})).text
                         yield ToolUse(
+                            tool_use_id="tu_start",
                             tool_name="start_task",
                             input={"task_id": task_id_str},
                             output=sr,
@@ -592,6 +599,7 @@ class TestOrchestratorMultiChild:
                             {"message": f"child {child_label} done"},
                         )).text
                         yield ToolUse(
+                            tool_use_id="tu_end",
                             tool_name="end_task",
                             input={
                                 "message": (
@@ -653,6 +661,7 @@ class TestOrchestratorMultiChild:
                     })).text
                     child_ids.append(child_id)
                     yield ToolUse(
+                        tool_use_id="tu_create",
                         tool_name="create_task",
                         input={"name": "child-B"},
                         output=child_id,
@@ -662,6 +671,7 @@ class TestOrchestratorMultiChild:
                         "await_task"
                     ].execute({"task_id": child_id})).text
                     yield ToolUse(
+                        tool_use_id="tu_await",
                         tool_name="await_task",
                         input={"task_id": child_id},
                         output=await_result,
@@ -905,6 +915,7 @@ class TestOrchestratorMultiChild:
                     })).text
                     child_id_holder.append(child_id)
                     yield ToolUse(
+                        tool_use_id="tu_create",
                         tool_name="create_task",
                         input={"name": "slow-child"},
                         output=child_id,
@@ -914,6 +925,7 @@ class TestOrchestratorMultiChild:
                         "await_task"
                     ].execute({"task_id": child_id})).text
                     yield ToolUse(
+                        tool_use_id="tu_await",
                         tool_name="await_task",
                         input={"task_id": child_id},
                         output=await_result,
@@ -1073,6 +1085,7 @@ class TestOrchestratorMultiChild:
                         })).text
                         child_ids.append(cid)
                         yield ToolUse(
+                            tool_use_id=f"tu_create_{i}",
                             tool_name="create_task",
                             input={"name": f"child-{i}"},
                             output=cid,
@@ -1086,6 +1099,7 @@ class TestOrchestratorMultiChild:
                         {"task_id": child_ids[0]},
                     )).text
                     yield ToolUse(
+                        tool_use_id="tu_await",
                         tool_name="await_task",
                         input={"task_id": child_ids[0]},
                         output=await_result,
@@ -1125,6 +1139,7 @@ class TestOrchestratorMultiChild:
                             {"task_id": task_id_str},
                         )).text
                         yield ToolUse(
+                            tool_use_id="tu_start",
                             tool_name="start_task",
                             input={
                                 "task_id": task_id_str,
@@ -1139,6 +1154,7 @@ class TestOrchestratorMultiChild:
                             {"message": f"child {child_idx} done"},
                         )).text
                         yield ToolUse(
+                            tool_use_id="tu_end",
                             tool_name="end_task",
                             input={
                                 "message": (
@@ -1192,6 +1208,7 @@ class TestOrchestratorMultiChild:
                         {"task_id": child_ids[idx]},
                     )).text
                     yield ToolUse(
+                        tool_use_id="tu_await",
                         tool_name="await_task",
                         input={
                             "task_id": child_ids[idx],
