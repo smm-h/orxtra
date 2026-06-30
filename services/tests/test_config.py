@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from .conftest import FakeRecord
-from orxtra.services._config import dump_config, show_pricing
+from orxtra.services._config import show_config, show_pricing
 from orxtra.session import PRICING_TABLE
 
 if TYPE_CHECKING:
@@ -14,26 +14,26 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-async def test_dump_config_returns_snapshot(
+async def test_show_config_returns_snapshot(
     mock_pool: AsyncMock, mock_conn: AsyncMock, sample_run_id: UUID
 ) -> None:
     config_data = {"agents_dir": "/agents", "budget": "10.00"}
     record = FakeRecord({"config_snapshot": json.dumps(config_data)})
     mock_conn.fetchrow = AsyncMock(return_value=record)
 
-    result = await dump_config(mock_pool, sample_run_id)
+    result = await show_config(mock_pool, sample_run_id)
 
     assert result == config_data
     mock_conn.fetchrow.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_dump_config_unknown_run(
+async def test_show_config_unknown_run(
     mock_pool: AsyncMock, mock_conn: AsyncMock, sample_run_id: UUID
 ) -> None:
     mock_conn.fetchrow = AsyncMock(return_value=None)
 
-    result = await dump_config(mock_pool, sample_run_id)
+    result = await show_config(mock_pool, sample_run_id)
 
     assert result is None
 

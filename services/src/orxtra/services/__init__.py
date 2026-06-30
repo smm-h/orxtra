@@ -9,7 +9,7 @@ except PackageNotFoundError:
 
 from orxtra.services._actions import ServicesActionExecutor, execute_service_action
 from orxtra.services._ask import ask, ask_structured, sync_ask
-from orxtra.services._config import dump_config, show_pricing
+from orxtra.services._config import show_config, show_pricing
 from orxtra.services._dispatch import (
     create_source,
     delete_source,
@@ -47,6 +47,8 @@ from orxtra.services._trace import (
     query_events,
     search_transcript,
 )
+from orxtra.services._dispatcher import DispatchContext, dispatch
+from orxtra.services._registry import get_capabilities, get_capability, get_capability_fn
 from orxtra.services._validate import (
     validate_agent,
     validate_categories,
@@ -65,7 +67,7 @@ __all__ = [
     "build_transport_registry",
     "create_source",
     "delete_source",
-    "dump_config",
+    "show_config",
     "event_stream",
     "execute_service_action",
     "fire_blocking",
@@ -96,4 +98,9 @@ __all__ = [
     "validate_agent",
     "validate_categories",
     "validate_workflow",
+    "DispatchContext",
+    "dispatch",
+    "get_capabilities",
+    "get_capability",
+    "get_capability_fn",
 ]

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     import asyncpg
 
 
-async def dump_config(
+async def show_config(
     pool: asyncpg.Pool, run_id: UUID
 ) -> dict[str, Any] | None:
     return await _read_run_config(pool, run_id)
