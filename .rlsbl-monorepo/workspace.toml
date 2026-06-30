@@ -156,6 +156,12 @@ description = "MCP server (human interface via dashboard/AI client)"
 depends_on = ["services"]
 releasable = "orxtra"
 
+[[projects]]
+path = "agui"
+description = "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots."
+depends_on = ["services"]
+releasable = "orxtra"
+
 # --- Infrastructure ---
 
 [[projects]]
@@ -180,4 +186,4 @@ foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "too
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]
-interfaces = ["cli", "mcp"]
+interfaces = ["cli", "mcp", "agui"]

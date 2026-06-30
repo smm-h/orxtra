@@ -9,9 +9,14 @@ license = "BUSL-1.1"
 description = "Autonomous multi-agent AI workflows"
 requires-python = ">=3.12"
 dependencies = [
+    "a2a-sdk[http-server]",
+    "ag-ui-protocol",
     "asyncpg",
+    "fastware",
     "httpx",
+    "jsonpatch",
     "jsonschema",
+    "mcp>=1.27,<2",
     "pathspec",
     "pydantic>=2",
     "strictcli",
@@ -47,6 +52,8 @@ include = [
     "dispatch/src/",
     "auth/src/",
     "a2ui/src/",
+    "a2a/src/",
+    "agui/src/",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
@@ -68,6 +75,8 @@ include = [
 "dispatch/src/orxtra/dispatch" = "orxtra/dispatch"
 "auth/src/orxtra/auth" = "orxtra/auth"
 "a2ui/src/orxtra/a2ui" = "orxtra/a2ui"
+"a2a/src/orxtra/a2a" = "orxtra/a2a"
+"agui/src/orxtra/agui" = "orxtra/agui"
 
 [tool.uv.workspace]
 members = [
@@ -89,6 +98,8 @@ members = [
     "dispatch",
     "auth",
     "a2ui",
+    "a2a",
+    "agui",
 ]
 
 [tool.uv.sources]
@@ -110,6 +121,8 @@ orxtra-mcp = { workspace = true }
 orxtra-dispatch = { workspace = true }
 orxtra-auth = { workspace = true }
 orxtra-a2ui = { workspace = true }
+orxtra-a2a = { workspace = true }
+orxtra-agui = { workspace = true }
 
 [dependency-groups]
 dev = [

@@ -1,0 +1,29 @@
+[project]
+name = "orxtra-agui"
+version = "0.7.0"
+license = "BUSL-1.1"
+description = "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots."
+requires-python = ">=3.12"
+dependencies = [
+    "ag-ui-protocol",
+    "jsonpatch",
+    "fastware",
+    "orxtra-services",
+]
+keywords = ["rlsbl"]
+
+[dependency-groups]
+dev = ["pytest-asyncio>=1.4.0"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/orxtra"]
+
+[tool.uv.sources]
+orxtra-services = { workspace = true }
