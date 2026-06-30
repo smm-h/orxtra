@@ -147,7 +147,7 @@ releasable = "orxtra"
 [[projects]]
 path = "cli"
 description = "strictcli CLI frontend (agents are the primary users)"
-depends_on = ["services", "trace"]
+depends_on = ["services", "trace", "api"]
 releasable = "orxtra"
 
 [[projects]]
@@ -166,6 +166,12 @@ releasable = "orxtra"
 path = "agui"
 description = "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots."
 depends_on = ["services"]
+releasable = "orxtra"
+
+[[projects]]
+path = "api"
+description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
+depends_on = ["mcp", "a2a", "agui", "services", "auth"]
 releasable = "orxtra"
 
 # --- Infrastructure ---
@@ -192,4 +198,4 @@ foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "too
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]
-interfaces = ["cli", "mcp", "a2a", "agui"]
+interfaces = ["cli", "mcp", "a2a", "agui", "api"]

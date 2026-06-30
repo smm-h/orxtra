@@ -54,6 +54,7 @@ include = [
     "a2ui/src/",
     "a2a/src/",
     "agui/src/",
+    "api/src/",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
@@ -77,6 +78,7 @@ include = [
 "a2ui/src/orxtra/a2ui" = "orxtra/a2ui"
 "a2a/src/orxtra/a2a" = "orxtra/a2a"
 "agui/src/orxtra/agui" = "orxtra/agui"
+"api/src/orxtra/api" = "orxtra/api"
 
 [tool.uv.workspace]
 members = [
@@ -100,6 +102,7 @@ members = [
     "a2ui",
     "a2a",
     "agui",
+    "api",
 ]
 
 [tool.uv.sources]
@@ -123,6 +126,8 @@ orxtra-auth = { workspace = true }
 orxtra-a2ui = { workspace = true }
 orxtra-a2a = { workspace = true }
 orxtra-agui = { workspace = true }
+orxtra-api = { workspace = true }
+fastware = { path = "/home/m/Projects/fastware", editable = true }
 
 [dependency-groups]
 dev = [

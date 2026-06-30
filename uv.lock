@@ -15,6 +15,7 @@ members = [
     "orxtra-a2ui",
     "orxtra-agent",
     "orxtra-agui",
+    "orxtra-api",
     "orxtra-auth",
     "orxtra-cli",
     "orxtra-dispatch",
@@ -449,14 +450,38 @@ wheels = [
 [[package]]
 name = "fastware"
 version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../fastware" }
 dependencies = [
     { name = "granian" },
     { name = "msgspec" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/57/5a90b3deb107162aa11b3fbded2704552e93e0ae1498c965d61fe22f67c4/fastware-0.1.0.tar.gz", hash = "sha256:205eacc5de8c9c6dd86e06d6d42878e066c880e252f486ff6a7b243e7ee66a9c", size = 162896, upload-time = "2026-06-30T15:17:52.777Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/88/e7efee399dfb9b971b8aeb357ceec85d2907edededc3437ed297467a48bc/fastware-0.1.0-py3-none-any.whl", hash = "sha256:6d57a6ed47874365e2041a339718f931bc309ea729410e5cb2d9d043112234d6", size = 48656, upload-time = "2026-06-30T15:17:51.303Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "bcrypt", marker = "extra == 'auth'" },
+    { name = "fastware", extras = ["auth"], marker = "extra == 'all'" },
+    { name = "fastware", extras = ["dev"], marker = "extra == 'all'" },
+    { name = "fastware", extras = ["logging"], marker = "extra == 'all'" },
+    { name = "fastware", extras = ["mcp"], marker = "extra == 'all'" },
+    { name = "fastware", extras = ["pydantic"], marker = "extra == 'all'" },
+    { name = "fastware", extras = ["testing"], marker = "extra == 'all'" },
+    { name = "granian", specifier = ">=2.7.4" },
+    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28" },
+    { name = "httpx", marker = "extra == 'testing'", specifier = ">=0.28" },
+    { name = "mcp", marker = "extra == 'mcp'" },
+    { name = "msgspec", specifier = ">=0.21.1" },
+    { name = "pydantic", marker = "extra == 'pydantic'" },
+    { name = "pyjwt", marker = "extra == 'auth'" },
+    { name = "structlog", marker = "extra == 'logging'" },
+    { name = "watchfiles", marker = "extra == 'dev'" },
+    { name = "websockets", marker = "extra == 'dev'" },
+]
+provides-extras = ["auth", "logging", "dev", "testing", "mcp", "pydantic", "all"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pytest" },
 ]
 
 [[package]]
@@ -895,7 +920,7 @@ requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"] },
     { name = "ag-ui-protocol" },
     { name = "asyncpg" },
-    { name = "fastware" },
+    { name = "fastware", editable = "../fastware" },
     { name = "httpx" },
     { name = "jsonpatch" },
     { name = "jsonschema" },
@@ -1003,8 +1028,41 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ag-ui-protocol" },
-    { name = "fastware" },
+    { name = "fastware", editable = "../fastware" },
     { name = "jsonpatch" },
+    { name = "orxtra-services", editable = "services" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxtra-api"
+version = "0.7.0"
+source = { editable = "api" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "fastware" },
+    { name = "orxtra-a2a" },
+    { name = "orxtra-agui" },
+    { name = "orxtra-auth" },
+    { name = "orxtra-mcp" },
+    { name = "orxtra-services" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg" },
+    { name = "fastware", editable = "../fastware" },
+    { name = "orxtra-a2a", editable = "a2a" },
+    { name = "orxtra-agui", editable = "agui" },
+    { name = "orxtra-auth", editable = "auth" },
+    { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-services", editable = "services" },
 ]
 
@@ -1039,12 +1097,14 @@ name = "orxtra-cli"
 version = "0.7.0"
 source = { editable = "cli" }
 dependencies = [
+    { name = "orxtra-api" },
     { name = "orxtra-services" },
     { name = "strictcli" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "orxtra-api", editable = "api" },
     { name = "orxtra-services", editable = "services" },
     { name = "strictcli" },
 ]
