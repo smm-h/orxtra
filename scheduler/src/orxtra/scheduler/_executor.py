@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxtra.agent import Agent
-    from orxtra.protocols import Execution, Tool
+    from orxtra.protocols import EventSink, Execution, Tool
     from orxtra.scheduler._overseer import (
         OverseerEvent,
         OverseerInterface,
@@ -149,6 +149,7 @@ class Scheduler(
             dict[str, Callable[..., Tool]] | None
         ) = None,
         event_delivery: EventDelivery | None = None,
+        overseer_sinks: list[EventSink[OverseerEvent]] | None = None,
     ) -> None:
         # When a StorageBackend is provided, use it as the trace writer
         # (it implements all the same write methods).
@@ -171,6 +172,7 @@ class Scheduler(
         self._secret_registry = secret_registry
         self._constraint_checkers = constraint_checkers or {}
         self._custom_tools = custom_tools or {}
+        self._overseer_sinks: list[EventSink[OverseerEvent]] = overseer_sinks or []
 
         # Build tool registry once per Scheduler lifetime.
         from orxtra.scheduler._tool_registry import (  # noqa: PLC0415
@@ -895,6 +897,7 @@ class Scheduler(
         verify-then-accept retry loop."""
         if self._overseer_interface is None:
             await self._handle_headless_event(event)
+            await self._dispatch_to_overseer_sinks(event)
             return
 
         event_type = type(event).__name__
@@ -925,6 +928,7 @@ class Scheduler(
                     trace_writer=self._trace_writer,
                     run_id=self._run_id,
                 )
+            await self._dispatch_to_overseer_sinks(event)
             return
 
         max_attempts = 3
@@ -970,8 +974,28 @@ class Scheduler(
                 errors,
             )
 
+        await self._dispatch_to_overseer_sinks(event)
+
         # Check session handoff after event
         await self._check_session_handoff()
+
+    async def _dispatch_to_overseer_sinks(
+        self, event: OverseerEvent,
+    ) -> None:
+        """Dispatch an OverseerEvent to all registered sinks.
+
+        Errors in individual sinks are logged but do not
+        crash the scheduler.
+        """
+        for sink in self._overseer_sinks:
+            try:
+                await sink.on_event(event)
+            except Exception:  # noqa: BLE001
+                _logger.exception(
+                    "Overseer sink %s failed for %s",
+                    type(sink).__name__,
+                    type(event).__name__,
+                )
 
     async def _write_coherence_summary(self) -> None:
         """Ask the Overseer for a coherence summary

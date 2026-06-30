@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         BudgetExhaustionPolicy,
         CheckResult,
         EventDelivery,
+        EventSink,
         Execution,
         TaskContext,
         TaskResult,
@@ -102,6 +103,7 @@ class SchedulerBase(ABC):
     _budget_blocked: bool
     _custom_tools: dict[str, Callable[..., Tool]]
     _tool_registry: ToolRegistry
+    _overseer_sinks: list[EventSink[OverseerEvent]]
 
     # ------------------------------------------------------------------
     # Cross-mixin methods (from _executor.py)
