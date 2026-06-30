@@ -1,4 +1,8 @@
 from orxtra.protocols._autonomy import AutonomyLevel
+from orxtra.protocols._types._auth import (
+    Principal,
+    TrustTier,
+)
 from orxtra.protocols._types._actions import (
     Action,
     AddConstraintParams,
@@ -152,6 +156,7 @@ __all__ = [
     "OnSuccessCallback",
     "OverseerEvent",
     "PreRetryCallback",
+    "Principal",
     "RecordAssumptionParams",
     "RecordAssumptionResult",
     "RecordDecisionParams",
@@ -175,6 +180,7 @@ __all__ = [
     "Tool",
     "ToolError",
     "ToolOutput",
+    "TrustTier",
     "UpdateWorkflowStatusParams",
     "WorkflowAction",
     "WorkflowExecution",
