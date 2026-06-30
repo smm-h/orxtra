@@ -34,6 +34,9 @@ from orxtra.protocols._types._dispatch import (
     Subscription,
     SubscriptionAction,
 )
+from orxtra.protocols._types._capability import (
+    Capability,
+)
 from orxtra.protocols._types._checks import (
     AgentExecution,
     CheckAgentContext,
@@ -123,6 +126,7 @@ __all__ = [
     "BudgetExhausted",
     "BudgetExhaustionPolicy",
     "BudgetThresholdCrossed",
+    "Capability",
     "CheckAgentContext",
     "CheckContext",
     "CheckIssue",
