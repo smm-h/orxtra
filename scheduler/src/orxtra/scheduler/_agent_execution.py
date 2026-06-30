@@ -72,155 +72,158 @@ class AgentExecutionMixin(SchedulerBase):
         # create_task/await_task can find the active task
         self._active_tasks[session_id_str] = task_id
 
-        prompt = self._resolve_prompt(
-            task.task_prompt or "",
-            variables or {},
-        )
-
-        output_text = ""
-        continuation = None
-
-        async for event in session.send(prompt):
-            if isinstance(event, SessionSuspended):
-                continuation = event.continuation
-                break
-            if isinstance(event, Result):
-                output_text = event.text or ""
-
-        while continuation is not None:
-            child_task_id_str = self._pending_await.pop(
-                session_id_str, None,
-            )
-            if child_task_id_str is None:
-                break
-
-            child_task_id = UUID(child_task_id_str)
-            child_spec = self._task_specs.get(child_task_id)
-            if child_spec is None:
-                break
-
-            self._task_states[task_id] = TaskState.SUSPENDED
-            await self._trace_writer.transition_task(
-                task_id,
-                TaskState.SUSPENDED.value,
-                "awaiting child task",
+        try:
+            prompt = self._resolve_prompt(
+                task.task_prompt or "",
+                variables or {},
             )
 
-            child_result = await self.execute_task(
-                child_spec, task_id,
-                task_id=child_task_id,
-            )
-
-            self._task_states[task_id] = TaskState.ACTIVE
-            await self._trace_writer.transition_task(
-                task_id,
-                TaskState.ACTIVE.value,
-                "child task completed",
-            )
-
-            resume_msg = (
-                f"Child task {child_task_id_str} completed."
-                f" Result: {child_result.output or 'no output'}"
-            )
-
-            current_cont = continuation
+            output_text = ""
             continuation = None
-            async for ev in session.resume(
-                current_cont,
-                resume_msg,
-            ):
-                if isinstance(ev, SessionSuspended):
-                    continuation = ev.continuation
+
+            async for event in session.send(prompt):
+                if isinstance(event, SessionSuspended):
+                    continuation = event.continuation
                     break
-                if isinstance(ev, Result):
-                    output_text = ev.text or ""
+                if isinstance(event, Result):
+                    output_text = event.text or ""
 
-        # Run postchecks if defined
-        if task.postchecks:
-            self._task_states[task_id] = TaskState.POSTCHECKING
-            await self._trace_writer.transition_task(
-                task_id, TaskState.POSTCHECKING.value,
-            )
-
-            postcheck_results = await self._run_postchecks(
-                task, task_id,
-            )
-            if not all(cr.passed for cr in postcheck_results):
-                self._task_states[task_id] = (
-                    TaskState.POSTCHECK_FAILED
+            while continuation is not None:
+                child_task_id_str = self._pending_await.pop(
+                    session_id_str, None,
                 )
+                if child_task_id_str is None:
+                    break
+
+                child_task_id = UUID(child_task_id_str)
+                child_spec = self._task_specs.get(child_task_id)
+                if child_spec is None:
+                    break
+
+                self._task_states[task_id] = TaskState.SUSPENDED
                 await self._trace_writer.transition_task(
                     task_id,
-                    TaskState.POSTCHECK_FAILED.value,
+                    TaskState.SUSPENDED.value,
+                    "awaiting child task",
                 )
-                # Orchestrator session has ended, can't retry.
-                # Escalate immediately.
-                self._task_states[task_id] = (
-                    TaskState.ESCALATED
+
+                child_result = await self.execute_task(
+                    child_spec, task_id,
+                    task_id=child_task_id,
                 )
+
+                self._task_states[task_id] = TaskState.ACTIVE
                 await self._trace_writer.transition_task(
                     task_id,
-                    TaskState.ESCALATED.value,
+                    TaskState.ACTIVE.value,
+                    "child task completed",
                 )
 
-                from orxtra.protocols import (  # noqa: PLC0415
-                    TaskEscalated,
+                resume_msg = (
+                    f"Child task {child_task_id_str} completed."
+                    f" Result: {child_result.output or 'no output'}"
                 )
 
-                escalation = EscalationPayload(
-                    task_name=task.name,
-                    task_id=task_id,
-                    agent_name=task.agent,
-                    attempts=1,
-                    failed_checks=[
-                        cr for cr in postcheck_results
-                        if not cr.passed
-                    ],
-                    agent_summary=(
-                        "Orchestrator postchecks failed"
-                    ),
-                    context=self._make_task_context(
-                        task, task_id, parent_task_id,
-                        1, [], variables,
-                    ),
+                current_cont = continuation
+                continuation = None
+                async for ev in session.resume(
+                    current_cont,
+                    resume_msg,
+                ):
+                    if isinstance(ev, SessionSuspended):
+                        continuation = ev.continuation
+                        break
+                    if isinstance(ev, Result):
+                        output_text = ev.text or ""
+
+            # Run postchecks if defined
+            if task.postchecks:
+                self._task_states[task_id] = TaskState.POSTCHECKING
+                await self._trace_writer.transition_task(
+                    task_id, TaskState.POSTCHECKING.value,
                 )
-                await self._send_overseer_event(
-                    TaskEscalated(
-                        task_id=task_id,
+
+                postcheck_results = await self._run_postchecks(
+                    task, task_id,
+                )
+                if not all(cr.passed for cr in postcheck_results):
+                    self._task_states[task_id] = (
+                        TaskState.POSTCHECK_FAILED
+                    )
+                    await self._trace_writer.transition_task(
+                        task_id,
+                        TaskState.POSTCHECK_FAILED.value,
+                    )
+                    # Orchestrator session has ended, can't retry.
+                    # Escalate immediately.
+                    self._task_states[task_id] = (
+                        TaskState.ESCALATED
+                    )
+                    await self._trace_writer.transition_task(
+                        task_id,
+                        TaskState.ESCALATED.value,
+                    )
+
+                    from orxtra.protocols import (  # noqa: PLC0415
+                        TaskEscalated,
+                    )
+
+                    escalation = EscalationPayload(
                         task_name=task.name,
-                        from_child_task_id=task_id,
-                        payload=escalation,
-                    ),
-                )
+                        task_id=task_id,
+                        agent_name=task.agent,
+                        attempts=1,
+                        failed_checks=[
+                            cr for cr in postcheck_results
+                            if not cr.passed
+                        ],
+                        agent_summary=(
+                            "Orchestrator postchecks failed"
+                        ),
+                        context=self._make_task_context(
+                            task, task_id, parent_task_id,
+                            1, [], variables,
+                        ),
+                    )
+                    await self._send_overseer_event(
+                        TaskEscalated(
+                            task_id=task_id,
+                            task_name=task.name,
+                            from_child_task_id=task_id,
+                            payload=escalation,
+                        ),
+                    )
 
+                    return TaskResult(
+                        output=None,
+                        structured_output=None,
+                        check_results=postcheck_results,
+                    )
+
+                # Postchecks passed
+                self._task_states[task_id] = TaskState.COMPLETED
+                await self._trace_writer.transition_task(
+                    task_id, TaskState.COMPLETED.value,
+                )
                 return TaskResult(
-                    output=None,
+                    output=output_text,
                     structured_output=None,
                     check_results=postcheck_results,
                 )
 
-            # Postchecks passed
+            # No postchecks: complete directly
             self._task_states[task_id] = TaskState.COMPLETED
             await self._trace_writer.transition_task(
                 task_id, TaskState.COMPLETED.value,
             )
+
             return TaskResult(
                 output=output_text,
                 structured_output=None,
-                check_results=postcheck_results,
+                check_results=[],
             )
-
-        # No postchecks: complete directly
-        self._task_states[task_id] = TaskState.COMPLETED
-        await self._trace_writer.transition_task(
-            task_id, TaskState.COMPLETED.value,
-        )
-
-        return TaskResult(
-            output=output_text,
-            structured_output=None,
-            check_results=[],
-        )
+        finally:
+            await session.close()
 
     async def _execute_orchestrator_or_agent_task(
         self,
