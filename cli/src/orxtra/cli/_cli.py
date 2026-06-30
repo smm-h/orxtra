@@ -417,6 +417,13 @@ def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_no_pool("show_pricing", {}, format)
 
 
+# -- Serve command (from orxtra.api) --
+
+from orxtra.api._cli import register_serve_command
+
+register_serve_command(app)
+
+
 # -- Entry point --
 
 def main() -> None:
