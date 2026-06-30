@@ -3,50 +3,19 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from pathlib import Path
 from typing import Any, NoReturn
-from uuid import UUID
 
 import asyncpg
 import strictcli
 from orxtra.cli._formatters import format_output
-from orxtra.services import (
-    abort_run,
-    dump_config,
-    fire_event,
-    get_inbox_item,
-    get_notepad,
-    get_run,
-    get_transcript,
-    list_inbox,
-    list_runs,
-    list_tasks,
-    pause_run,
-    query_events,
-    reject_inbox_item,
-    respond_to_inbox,
-    resume_run,
-    search_transcript,
-    show_pricing,
-    skip_inbox_item,
-    start_run_from_file,
-    validate_agent,
-    validate_categories,
-    validate_workflow,
-)
+from orxtra.services import DispatchContext, dispatch
+
 
 # -- Helpers --
 
 def _die(message: str) -> NoReturn:
     print(message, file=sys.stderr)
     sys.exit(1)
-
-
-def _parse_uuid(raw: str, label: str) -> UUID:
-    try:
-        return UUID(raw)
-    except ValueError:
-        _die(f"invalid {label}: {raw!r}")
 
 
 def _require_db(db: str) -> str:
@@ -57,6 +26,60 @@ def _require_db(db: str) -> str:
 
 def _print(data: Any, fmt: str) -> None:  # noqa: ANN401
     print(format_output(data, fmt))
+
+
+def _dispatch_and_print(
+    db_url: str,
+    capability: str,
+    args: dict[str, Any],
+    fmt: str,
+) -> None:
+    """Run a capability through the dispatcher and print the result."""
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            ctx = DispatchContext(pool=pool)
+            result = await dispatch(ctx, capability, args)
+            _print(result, fmt)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+def _dispatch_quiet(
+    db_url: str,
+    capability: str,
+    args: dict[str, Any],
+    quiet: bool,
+    success_msg: str,
+) -> None:
+    """Run a mutating capability and print a confirmation unless quiet."""
+    async def _run() -> None:
+        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
+        try:
+            ctx = DispatchContext(pool=pool)
+            await dispatch(ctx, capability, args)
+            if not quiet:
+                print(success_msg)
+        finally:
+            await pool.close()
+
+    asyncio.run(_run())
+
+
+def _dispatch_no_pool(
+    capability: str,
+    args: dict[str, Any],
+    fmt: str,
+) -> None:
+    """Run a capability that does not require a database pool."""
+    async def _run() -> None:
+        ctx = DispatchContext()
+        result = await dispatch(ctx, capability, args)
+        _print(result, fmt)
+
+    asyncio.run(_run())
 
 
 # -- App --
@@ -100,7 +123,11 @@ def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> No
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
-            run_id = await start_run_from_file(pool, intent, Path(config))
+            ctx = DispatchContext(pool=pool)
+            run_id = await dispatch(ctx, "start_run", {
+                "config_path": config,
+                "intent": intent,
+            })
             print(run_id)
         finally:
             await pool.close()
@@ -110,31 +137,21 @@ def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> No
 
 @run_group.command(name="list", help="List all runs, newest first.")
 def cmd_run_list(*, db: str, format: str, **_kwargs: object) -> None:  # noqa: A002
-    db_url = _require_db(db)
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await list_runs(pool)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(_require_db(db), "list_runs", {}, format)
 
 
 @run_group.command(name="show", help="Show a run's full report.")
 @strictcli.arg(name="run_id", help="Run ID.")
 def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
 
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
-            result = await get_run(pool, rid)
+            ctx = DispatchContext(pool=pool)
+            result = await dispatch(ctx, "get_run", {"run_id": run_id})
             if result is None:
-                _die(f"run {rid} not found")
+                _die(f"run {run_id} not found")
             _print(result, format)
         finally:
             await pool.close()
@@ -145,55 +162,28 @@ def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> Non
 @run_group.command(name="abort", help="Signal a running run to abort.")
 @strictcli.arg(name="run_id", help="Run ID.")
 def cmd_run_abort(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
-    db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            await abort_run(pool, rid)
-            if not quiet:
-                print(f"run {rid} aborted")
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_quiet(
+        _require_db(db), "abort_run", {"run_id": run_id},
+        quiet, f"run {run_id} aborted",
+    )
 
 
 @run_group.command(name="pause", help="Pause a running run.")
 @strictcli.arg(name="run_id", help="Run ID.")
 def cmd_run_pause(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
-    db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            await pause_run(pool, rid)
-            if not quiet:
-                print(f"run {rid} paused")
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_quiet(
+        _require_db(db), "pause_run", {"run_id": run_id},
+        quiet, f"run {run_id} paused",
+    )
 
 
 @run_group.command(name="resume", help="Resume a paused run.")
 @strictcli.arg(name="run_id", help="Run ID.")
 def cmd_run_resume(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
-    db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            await resume_run(pool, rid)
-            if not quiet:
-                print(f"run {rid} resumed")
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_quiet(
+        _require_db(db), "resume_run", {"run_id": run_id},
+        quiet, f"run {run_id} resumed",
+    )
 
 
 # -- Inbox group --
@@ -207,36 +197,16 @@ inbox_group = app.group("inbox", help="Human inbox commands.")
 def cmd_inbox_list(
     *, db: str, format: str, run: str, status: str, **_kwargs: object,  # noqa: A002
 ) -> None:
-    db_url = _require_db(db)
-    rid = _parse_uuid(run, "run_id")
-    status_filter = status or None
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await list_inbox(pool, rid, status_filter)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    args: dict[str, Any] = {"run_id": run}
+    if status:
+        args["status"] = status
+    _dispatch_and_print(_require_db(db), "list_inbox", args, format)
 
 
 @inbox_group.command(name="show", help="Show a single inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
 def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
-    db_url = _require_db(db)
-    iid = _parse_uuid(item_id, "item_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await get_inbox_item(pool, iid)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(_require_db(db), "get_inbox_item", {"item_id": item_id}, format)
 
 
 @inbox_group.command(name="respond", help="Answer an inbox item.")
@@ -245,35 +215,16 @@ def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> 
 def cmd_inbox_respond(
     *, db: str, format: str, item_id: str, answer: str, **_kwargs: object,  # noqa: A002
 ) -> None:
-    db_url = _require_db(db)
-    iid = _parse_uuid(item_id, "item_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await respond_to_inbox(pool, iid, answer)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(
+        _require_db(db), "respond_to_inbox",
+        {"item_id": item_id, "answer": answer}, format,
+    )
 
 
 @inbox_group.command(name="skip", help="Skip an inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
 def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
-    db_url = _require_db(db)
-    iid = _parse_uuid(item_id, "item_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await skip_inbox_item(pool, iid)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(_require_db(db), "skip_inbox_item", {"item_id": item_id}, format)
 
 
 @inbox_group.command(name="reject", help="Reject an inbox item (options insufficient).")
@@ -282,18 +233,10 @@ def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> 
 def cmd_inbox_reject(
     *, db: str, format: str, item_id: str, reason: str, **_kwargs: object,  # noqa: A002
 ) -> None:
-    db_url = _require_db(db)
-    iid = _parse_uuid(item_id, "item_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await reject_inbox_item(pool, iid, reason)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(
+        _require_db(db), "reject_inbox_item",
+        {"item_id": item_id, "reason": reason}, format,
+    )
 
 
 # -- Trace group --
@@ -308,19 +251,10 @@ trace_group = app.group("trace", help="Trace and event query commands.")
 def cmd_trace_events(
     *, db: str, format: str, run_id: str, type: str, limit: int, **_kwargs: object,  # noqa: A002
 ) -> None:
-    db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
-    event_type = type or None
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await query_events(pool, rid, event_type=event_type, limit=limit)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    args: dict[str, Any] = {"run_id": run_id, "limit": limit}
+    if type:
+        args["event_type"] = type
+    _dispatch_and_print(_require_db(db), "query_events", args, format)
 
 
 @trace_group.command(name="transcript", help="Show a session's full transcript.")
@@ -328,18 +262,9 @@ def cmd_trace_events(
 def cmd_trace_transcript(
     *, db: str, format: str, session_id: str, **_kwargs: object,  # noqa: A002
 ) -> None:
-    db_url = _require_db(db)
-    sid = _parse_uuid(session_id, "session_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await get_transcript(pool, sid)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(
+        _require_db(db), "get_transcript", {"session_id": session_id}, format,
+    )
 
 
 @trace_group.command(
@@ -351,52 +276,22 @@ def cmd_trace_transcript(
 def cmd_trace_search(
     *, db: str, format: str, session_id: str, query: str, **_kwargs: object,  # noqa: A002
 ) -> None:
-    db_url = _require_db(db)
-    sid = _parse_uuid(session_id, "session_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await search_transcript(pool, sid, query)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(
+        _require_db(db), "search_transcript",
+        {"session_id": session_id, "query": query}, format,
+    )
 
 
 @trace_group.command(name="tasks", help="Show task statuses and attempt counts.")
 @strictcli.arg(name="run_id", help="Run ID.")
 def cmd_trace_tasks(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
-    db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await list_tasks(pool, rid)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(_require_db(db), "list_tasks", {"run_id": run_id}, format)
 
 
 @trace_group.command(name="notepad", help="Show notepad entries.")
 @strictcli.arg(name="run_id", help="Run ID.")
 def cmd_trace_notepad(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
-    db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
-
-    async def _run() -> None:
-        pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
-        try:
-            result = await get_notepad(pool, rid)
-            _print(result, format)
-        finally:
-            await pool.close()
-
-    asyncio.run(_run())
+    _dispatch_and_print(_require_db(db), "get_notepad", {"run_id": run_id}, format)
 
 
 # -- Event group --
@@ -413,7 +308,6 @@ def cmd_event_fire(
     event_name: str, payload: str, **_kwargs: object,
 ) -> None:
     db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
     parsed_payload: dict[str, Any] | None = None
     if payload:
         try:
@@ -427,9 +321,14 @@ def cmd_event_fire(
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
-            event_id = await fire_event(pool, rid, event_name, parsed_payload)
+            ctx = DispatchContext(pool=pool)
+            event_id = await dispatch(ctx, "fire_event", {
+                "run_id": run_id,
+                "event_name": event_name,
+                "payload": parsed_payload,
+            })
             if not quiet:
-                print(f"event {event_name!r} fired for run {rid} (id={event_id})")
+                print(f"event {event_name!r} fired for run {run_id} (id={event_id})")
         finally:
             await pool.close()
 
@@ -445,7 +344,8 @@ validate_group = app.group("validate", help="Validate configuration files.")
 @strictcli.arg(name="path", help="Path to agent TOML file.")
 def cmd_validate_agent(*, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
-        errors = await validate_agent(Path(path))
+        ctx = DispatchContext()
+        errors = await dispatch(ctx, "validate_agent", {"path": path})
         if errors:
             for err in errors:
                 print(err, file=sys.stderr)
@@ -460,7 +360,8 @@ def cmd_validate_agent(*, quiet: bool, path: str, **_kwargs: object) -> None:
 @strictcli.arg(name="path", help="Path to workflow TOML file.")
 def cmd_validate_workflow(*, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
-        errors = await validate_workflow(Path(path))
+        ctx = DispatchContext()
+        errors = await dispatch(ctx, "validate_workflow", {"path": path})
         if errors:
             for err in errors:
                 print(err, file=sys.stderr)
@@ -475,7 +376,8 @@ def cmd_validate_workflow(*, quiet: bool, path: str, **_kwargs: object) -> None:
 @strictcli.arg(name="path", help="Path to categories TOML file.")
 def cmd_validate_categories(*, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
-        errors = await validate_categories(Path(path))
+        ctx = DispatchContext()
+        errors = await dispatch(ctx, "validate_categories", {"path": path})
         if errors:
             for err in errors:
                 print(err, file=sys.stderr)
@@ -495,14 +397,14 @@ config_group = app.group("config", help="Configuration commands.")
 @strictcli.arg(name="run_id", help="Run ID.")
 def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
-    rid = _parse_uuid(run_id, "run_id")
 
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
-            result = await dump_config(pool, rid)
+            ctx = DispatchContext(pool=pool)
+            result = await dispatch(ctx, "show_config", {"run_id": run_id})
             if result is None:
-                _die(f"run {rid} not found")
+                _die(f"run {run_id} not found")
             _print(result, format)
         finally:
             await pool.close()
@@ -512,11 +414,7 @@ def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> 
 
 @config_group.command(name="pricing", help="Show the current internal pricing table.")
 def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:  # noqa: A002
-    async def _run() -> None:
-        result = await show_pricing()
-        _print(result, format)
-
-    asyncio.run(_run())
+    _dispatch_no_pool("show_pricing", {}, format)
 
 
 # -- Entry point --

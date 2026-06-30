@@ -7,8 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
-from orxtra.mcp._server import MCPServer
-from orxtra.mcp._tools import get_tool_definitions
+from orxtra.mcp._server import MCPServer, get_tool_definitions
 
 __all__ = [
     "__version__",

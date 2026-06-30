@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# ruff: noqa: ANN401, C901, PLR0911
+# ruff: noqa: ANN401
 import asyncio
 import contextlib
 import json
@@ -12,31 +12,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from orxtra.mcp._tools import get_tool_definitions
-from orxtra.services import (
-    abort_run,
-    dump_config,
-    event_stream,
-    fire_event,
-    get_inbox_item,
-    get_notepad,
-    get_run,
-    get_task_attempts,
-    get_transcript,
-    list_inbox,
-    list_runs,
-    list_tasks,
-    pause_run,
-    query_events,
-    reject_inbox_item,
-    respond_to_inbox,
-    resume_run,
-    search_transcript,
-    show_pricing,
-    skip_inbox_item,
-    start_run_from_file,
-)
-from orxtra.protocols import EventBus
+from orxtra.protocols import Capability, EventBus
+from orxtra.services import DispatchContext, dispatch, event_stream, get_capabilities
 from pydantic import BaseModel
 
 _PARSE_ERROR = -32700
@@ -44,6 +21,75 @@ _INVALID_REQUEST = -32600
 _METHOD_NOT_FOUND = -32601
 _INVALID_PARAMS = -32602
 _INTERNAL_ERROR = -32603
+
+# Capabilities exposed as MCP tools. Validation tools are excluded
+# because they require local filesystem access that MCP clients don't have.
+_MCP_EXCLUDED_NAMESPACES: frozenset[str] = frozenset({
+    "validate",
+    "dispatch",
+})
+
+
+def _project_tools(capabilities: list[Capability]) -> list[dict[str, object]]:
+    """Project capabilities into MCP tool definition dicts."""
+    tools: list[dict[str, object]] = []
+    for cap in capabilities:
+        schema = cap.params_model.model_json_schema()
+        # Simplify the pydantic JSON schema to the MCP-expected format
+        input_schema = _simplify_schema(schema)
+        tools.append({
+            "name": cap.name,
+            "description": cap.description,
+            "inputSchema": input_schema,
+        })
+    return tools
+
+
+def _simplify_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Convert a pydantic JSON schema to the MCP tool inputSchema format.
+
+    Strips pydantic-specific keys and normalizes nullable types.
+    """
+    result: dict[str, Any] = {"type": "object"}
+    props = schema.get("properties", {})
+    required = list(schema.get("required", []))
+    simplified_props: dict[str, Any] = {}
+
+    for name, prop in props.items():
+        simplified: dict[str, Any] = {}
+
+        if "anyOf" in prop:
+            # Pydantic uses anyOf for Optional[T]; extract the non-null type
+            non_null = [t for t in prop["anyOf"] if t.get("type") != "null"]
+            if len(non_null) == 1:
+                for k, v in non_null[0].items():
+                    if k != "title":
+                        simplified[k] = v
+        else:
+            for k, v in prop.items():
+                if k in ("title", "description"):
+                    continue
+                simplified[k] = v
+
+        # Propagate format from top level (pydantic puts it there for
+        # fields with json_schema_extra={"format": ...})
+        if "format" in prop and "format" not in simplified:
+            simplified["format"] = prop["format"]
+
+        simplified_props[name] = simplified
+
+    result["properties"] = simplified_props
+    result["required"] = required
+    return result
+
+
+def get_tool_definitions() -> list[dict[str, object]]:
+    """Return MCP tool definitions projected from capabilities."""
+    caps = [
+        c for c in get_capabilities()
+        if c.namespace not in _MCP_EXCLUDED_NAMESPACES
+    ]
+    return _project_tools(caps)
 
 
 def _serialize(obj: Any) -> Any:
@@ -93,9 +139,20 @@ ToolHandler = Callable[
 
 
 class MCPServer:
-    def __init__(self, pool: Any, event_bus: EventBus | None = None) -> None:
+    def __init__(
+        self,
+        pool: Any,
+        event_bus: EventBus | None = None,
+        dispatch_context: DispatchContext | None = None,
+    ) -> None:
         self._pool = pool
         self._event_bus = event_bus
+        # Build a DispatchContext from the pool if not provided explicitly
+        self._dispatch_context = dispatch_context or DispatchContext(pool=pool)
+        self._tool_names: set[str] = {
+            c.name for c in get_capabilities()
+            if c.namespace not in _MCP_EXCLUDED_NAMESPACES
+        }
         self._handlers: dict[
             str,
             Callable[
@@ -106,117 +163,6 @@ class MCPServer:
             "initialize": self._handle_initialize,
             "tools/list": self._handle_tools_list,
             "tools/call": self._handle_tools_call,
-        }
-        self._tool_dispatch: dict[str, ToolHandler] = self._build_dispatch()
-
-    def _build_dispatch(self) -> dict[str, ToolHandler]:
-        pool = self._pool
-
-        async def _start_run(p: dict[str, Any]) -> Any:
-            return await start_run_from_file(
-                pool, intent=str(p["intent"]), config_path=Path(p["config_path"])
-            )
-
-        async def _list_runs(_p: dict[str, Any]) -> Any:
-            return await list_runs(pool)
-
-        async def _get_run(p: dict[str, Any]) -> Any:
-            return await get_run(pool, run_id=UUID(p["run_id"]))
-
-        async def _abort_run(p: dict[str, Any]) -> Any:
-            return await abort_run(pool, run_id=UUID(p["run_id"]))
-
-        async def _pause_run(p: dict[str, Any]) -> Any:
-            return await pause_run(pool, run_id=UUID(p["run_id"]))
-
-        async def _resume_run(p: dict[str, Any]) -> Any:
-            return await resume_run(pool, run_id=UUID(p["run_id"]))
-
-        async def _list_inbox(p: dict[str, Any]) -> Any:
-            return await list_inbox(
-                pool, run_id=UUID(p["run_id"]), status=p.get("status")
-            )
-
-        async def _get_inbox_item(p: dict[str, Any]) -> Any:
-            return await get_inbox_item(pool, item_id=UUID(p["item_id"]))
-
-        async def _respond_to_inbox(p: dict[str, Any]) -> Any:
-            return await respond_to_inbox(
-                pool, item_id=UUID(p["item_id"]), answer=str(p["answer"])
-            )
-
-        async def _skip_inbox_item(p: dict[str, Any]) -> Any:
-            return await skip_inbox_item(pool, item_id=UUID(p["item_id"]))
-
-        async def _reject_inbox_item(p: dict[str, Any]) -> Any:
-            return await reject_inbox_item(
-                pool, item_id=UUID(p["item_id"]), reason=str(p["reason"])
-            )
-
-        async def _query_events(p: dict[str, Any]) -> Any:
-            since: datetime | None = None
-            if "since" in p:
-                since = datetime.fromisoformat(p["since"])
-            return await query_events(
-                pool,
-                run_id=UUID(p["run_id"]),
-                event_type=p.get("event_type"),
-                since=since,
-                limit=int(p.get("limit", 100)),
-            )
-
-        async def _get_transcript(p: dict[str, Any]) -> Any:
-            return await get_transcript(pool, session_id=UUID(p["session_id"]))
-
-        async def _search_transcript(p: dict[str, Any]) -> Any:
-            return await search_transcript(
-                pool, session_id=UUID(p["session_id"]), query=str(p["query"])
-            )
-
-        async def _list_tasks(p: dict[str, Any]) -> Any:
-            return await list_tasks(pool, run_id=UUID(p["run_id"]))
-
-        async def _get_task_attempts(p: dict[str, Any]) -> Any:
-            return await get_task_attempts(pool, task_id=UUID(p["task_id"]))
-
-        async def _get_notepad(p: dict[str, Any]) -> Any:
-            return await get_notepad(pool, run_id=UUID(p["run_id"]))
-
-        async def _fire_event(p: dict[str, Any]) -> Any:
-            return await fire_event(
-                pool,
-                run_id=UUID(p["run_id"]),
-                event_name=str(p["event_name"]),
-                payload=p.get("payload"),
-            )
-
-        async def _show_config(p: dict[str, Any]) -> Any:
-            return await dump_config(pool, run_id=UUID(p["run_id"]))
-
-        async def _show_pricing(_p: dict[str, Any]) -> Any:
-            return await show_pricing()
-
-        return {
-            "start_run": _start_run,
-            "list_runs": _list_runs,
-            "get_run": _get_run,
-            "abort_run": _abort_run,
-            "pause_run": _pause_run,
-            "resume_run": _resume_run,
-            "list_inbox": _list_inbox,
-            "get_inbox_item": _get_inbox_item,
-            "respond_to_inbox": _respond_to_inbox,
-            "skip_inbox_item": _skip_inbox_item,
-            "reject_inbox_item": _reject_inbox_item,
-            "query_events": _query_events,
-            "get_transcript": _get_transcript,
-            "search_transcript": _search_transcript,
-            "list_tasks": _list_tasks,
-            "get_task_attempts": _get_task_attempts,
-            "get_notepad": _get_notepad,
-            "fire_event": _fire_event,
-            "show_config": _show_config,
-            "show_pricing": _show_pricing,
         }
 
     async def handle_request(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -266,14 +212,13 @@ class MCPServer:
             msg = "Missing tool name"
             raise TypeError(msg)
 
-        arguments: dict[str, Any] = params.get("arguments") or {}
-
-        dispatch_fn = self._tool_dispatch.get(tool_name)
-        if dispatch_fn is None:
+        if tool_name not in self._tool_names:
             msg = f"Unknown tool: {tool_name}"
             raise ValueError(msg)
 
-        result = await dispatch_fn(arguments)
+        arguments: dict[str, Any] = params.get("arguments") or {}
+
+        result = await dispatch(self._dispatch_context, tool_name, arguments)
         serialized = _serialize(result)
         text = json.dumps(serialized)
 
