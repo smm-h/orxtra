@@ -1,0 +1,96 @@
+# auth module PostgreSQL schema
+# Single owner: the auth module. No other module writes to these tables directly.
+# Consumers are API clients; credentials link to consumers for authentication.
+
+[meta]
+version = 1
+schema = "public"
+extensions = ["pg_uuidv7"]
+
+# ---------------------------------------------------------------------------
+# Enum types
+# ---------------------------------------------------------------------------
+
+[types.trust_tier]
+kind = "enum"
+values = ["anonymous", "identified", "verified", "system"]
+comment = "Consumer trust level"
+
+[types.credential_type]
+kind = "enum"
+values = ["api_key", "bearer"]
+comment = "Credential authentication mechanism"
+
+# ---------------------------------------------------------------------------
+# Tables: Consumers
+# ---------------------------------------------------------------------------
+
+[tables.consumers]
+comment = "API consumers with trust tiers and scope grants."
+
+[tables.consumers.columns.id]
+type = "id"
+
+[tables.consumers.columns.name]
+type = "str"
+comment = "Human-readable consumer name"
+
+[tables.consumers.columns.trust_tier]
+type = "trust_tier"
+
+[tables.consumers.columns.scope_grants]
+type = "json"
+default = "[]"
+comment = "JSON array of granted scope strings"
+
+[tables.consumers.columns.disabled_at]
+type = "timestamp_optional"
+comment = "Non-null means the consumer is disabled"
+
+[tables.consumers.columns.created_at]
+type = "timestamp"
+
+# ---------------------------------------------------------------------------
+# Tables: Credentials
+# ---------------------------------------------------------------------------
+
+[tables.credentials]
+comment = "Hashed credentials linked to consumers."
+
+[tables.credentials.columns.id]
+type = "id"
+
+[tables.credentials.columns.consumer_id]
+type = "ref"
+
+[tables.credentials.columns.credential_type]
+type = "credential_type"
+
+[tables.credentials.columns.credential_hash]
+type = "str"
+comment = "SHA-256 hash of the raw credential value"
+
+[tables.credentials.columns.algorithm]
+type = "str"
+default = "sha256"
+comment = "Hash algorithm used"
+
+[tables.credentials.columns.metadata]
+type = "json"
+default = "{}"
+comment = "Additional credential metadata"
+
+[tables.credentials.columns.created_at]
+type = "timestamp"
+
+[tables.credentials.fks.fk_credentials_consumer]
+columns = ["consumer_id"]
+ref_table = "consumers"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.credentials.indexes.idx_credentials_consumer_id]
+columns = ["consumer_id"]
+
+[tables.credentials.indexes.idx_credentials_hash]
+columns = ["credential_hash"]
