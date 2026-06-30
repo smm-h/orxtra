@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import uuid
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Self
@@ -7,11 +9,13 @@ from typing import TYPE_CHECKING, Any, Self
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
 
-    from orxtra.protocols import Tool
+    from orxtra.protocols import EventSink, Tool
     from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import TransportEvent, Transport
 
 from orxtra.transport import Continuation, Result, SessionSuspended, StepFinish, ToolUse
+
+_logger = logging.getLogger("orxtra.session")
 
 
 class Session:
@@ -24,6 +28,7 @@ class Session:
         trace_writer: TraceWriter | StorageBackend,
         run_id: uuid.UUID,
         session_id: str | None = None,
+        sinks: list[EventSink[TransportEvent]] | None = None,
     ) -> None:
         self._transport = transport
         self._model = model
@@ -32,6 +37,8 @@ class Session:
         self._trace_writer = trace_writer
         self._run_id = run_id
         self._session_id = session_id
+        self._sinks: list[EventSink[TransportEvent]] = sinks or []
+        self._sink_tasks: set[asyncio.Task[Any]] = set()
         self.total_input_tokens: int = 0
         self.total_output_tokens: int = 0
         self.total_reasoning_tokens: int = 0
@@ -72,6 +79,23 @@ class Session:
         """Call registered handlers for the given event's type."""
         for handler in self._event_handlers.get(type(event), []):
             handler(event)
+
+    def _dispatch_to_sinks(self, event: TransportEvent) -> None:
+        """Dispatch event to all registered sinks asynchronously."""
+        for sink in self._sinks:
+            task = asyncio.create_task(sink.on_event(event))
+            self._sink_tasks.add(task)
+            task.add_done_callback(self._sink_task_done)
+
+    def _sink_task_done(self, task: asyncio.Task[Any]) -> None:
+        """Remove completed sink task and log any errors."""
+        self._sink_tasks.discard(task)
+        if not task.cancelled():
+            exc = task.exception()
+            if exc is not None:
+                _logger.error(
+                    "EventSink.on_event failed: %s", exc,
+                )
 
     def _accumulate_tokens(self, event: StepFinish) -> None:
         """Add token counts from a step-finish event to session totals."""
@@ -174,6 +198,7 @@ class Session:
 
             yield event
             self._dispatch_handlers(event)
+            self._dispatch_to_sinks(event)
 
         # Write assistant transcript entry
         if self._session_id is not None and session_id_captured:
@@ -223,6 +248,7 @@ class Session:
 
             yield event
             self._dispatch_handlers(event)
+            self._dispatch_to_sinks(event)
 
         # Write transcript entries for the resume turn
         if self._session_id is not None:
@@ -250,11 +276,18 @@ class Session:
         return self._session_id
 
     async def close(self) -> None:
-        """Write final transcript entry and clean up."""
-        # No-op if no session exists
-        if self._session_id is None:
-            return
-        # Could write a final transcript marker here
+        """Await pending sink tasks and clean up."""
+        if self._sink_tasks:
+            results = await asyncio.gather(
+                *self._sink_tasks, return_exceptions=True,
+            )
+            for result in results:
+                if isinstance(result, BaseException):
+                    _logger.error(
+                        "EventSink.on_event failed during close: %s",
+                        result,
+                    )
+            self._sink_tasks.clear()
 
     async def __aenter__(self) -> Self:
         return self

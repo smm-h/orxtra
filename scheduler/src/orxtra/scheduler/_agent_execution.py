@@ -350,6 +350,7 @@ class AgentExecutionMixin(SchedulerBase):
                         task_id,
                     )
             except TimeoutError:
+                await session.close()
                 await self._fail_attempt_timeout(
                     attempt_id, session, task_id,
                 )
@@ -364,6 +365,7 @@ class AgentExecutionMixin(SchedulerBase):
                     ],
                 )
             except Exception as exc:  # noqa: BLE001
+                await session.close()
                 from orxtra.scheduler._executor import classify_error  # noqa: PLC0415
                 category = classify_error(exc)
                 await self._trace_writer.write_event(
@@ -402,6 +404,9 @@ class AgentExecutionMixin(SchedulerBase):
                     continue
                 # Fall through to escalation
                 break
+
+            # Drain pending sink tasks after successful session run
+            await session.close()
 
             _ = time.monotonic() - start_time
             self._accumulate_cost(

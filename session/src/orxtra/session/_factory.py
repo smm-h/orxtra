@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import asyncpg
-    from orxtra.protocols import Tool
+    from orxtra.protocols import EventSink, Tool
     from orxtra.trace import StorageBackend, TraceWriter
-    from orxtra.transport import Transport
+    from orxtra.transport import Transport, TransportEvent
 
 from orxtra.session._session import Session
 
@@ -52,6 +52,7 @@ async def create_session(  # noqa: PLR0913
     session_id: str | None = None,
     pool: asyncpg.Pool | None = None,
     backend: StorageBackend | None = None,
+    sinks: list[EventSink[TransportEvent]] | None = None,
 ) -> Session:
     session = Session(
         transport=transport,
@@ -61,6 +62,7 @@ async def create_session(  # noqa: PLR0913
         trace_writer=trace_writer,
         run_id=run_id,
         session_id=session_id,
+        sinks=sinks,
     )
 
     if session_id is not None and (backend is not None or pool is not None):
