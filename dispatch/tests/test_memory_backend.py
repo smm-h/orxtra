@@ -54,15 +54,13 @@ def _source(
     source_id: UUID | None = None,
     slug: str = "github",
     name: str = "GitHub",
-    auth_method: str | None = None,
-    auth_config: dict[str, object] | None = None,
+    credential_id: UUID | None = None,
 ) -> Source:
     return Source(
         id=source_id or uuid7(),
         slug=slug,
         name=name,
-        auth_method=auth_method,
-        auth_config=auth_config,
+        credential_id=credential_id,
         created_at=NOW,
     )
 

@@ -31,8 +31,7 @@ CREATE TABLE sources (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     slug TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
-    auth_method TEXT,
-    auth_config JSONB,
+    credential_id UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 """

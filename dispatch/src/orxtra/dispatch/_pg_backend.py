@@ -58,29 +58,23 @@ class PgDispatchBackend:
     # -- SourceStorage --
 
     async def create_source(self, source: Source) -> UUID:
-        auth_config_json = (
-            json.dumps(source.auth_config)
-            if source.auth_config is not None
-            else None
-        )
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO sources"
-                " (id, slug, name, auth_method, auth_config)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                " (id, slug, name, credential_id)"
+                " VALUES ($1, $2, $3, $4)",
                 source.id,
                 source.slug,
                 source.name,
-                source.auth_method,
-                auth_config_json,
+                source.credential_id,
             )
         return source.id
 
     async def get_source(self, source_id: UUID) -> Source | None:
         async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
-                "SELECT id, slug, name, auth_method,"
-                " auth_config, created_at"
+                "SELECT id, slug, name, credential_id,"
+                " created_at"
                 " FROM sources WHERE id = $1",
                 source_id,
             )
@@ -91,8 +85,8 @@ class PgDispatchBackend:
     async def get_source_by_slug(self, slug: str) -> Source | None:
         async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
-                "SELECT id, slug, name, auth_method,"
-                " auth_config, created_at"
+                "SELECT id, slug, name, credential_id,"
+                " created_at"
                 " FROM sources WHERE slug = $1",
                 slug,
             )
@@ -103,8 +97,8 @@ class PgDispatchBackend:
     async def list_sources(self) -> list[Source]:
         async with self._pool.acquire() as conn, conn.transaction():
             rows = await conn.fetch(
-                "SELECT id, slug, name, auth_method,"
-                " auth_config, created_at"
+                "SELECT id, slug, name, credential_id,"
+                " created_at"
                 " FROM sources ORDER BY created_at",
             )
         return [_row_to_source(r) for r in rows]
@@ -292,15 +286,11 @@ class PgDispatchBackend:
 
 
 def _row_to_source(row: asyncpg.Record) -> Source:
-    auth_config = row["auth_config"]
-    if isinstance(auth_config, str):
-        auth_config = json.loads(auth_config)
     return Source(
         id=row["id"],
         slug=row["slug"],
         name=row["name"],
-        auth_method=row["auth_method"],
-        auth_config=auth_config,
+        credential_id=row["credential_id"],
         created_at=row["created_at"],
     )
 

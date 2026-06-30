@@ -42,8 +42,7 @@ class Source(BaseModel):
     id: UUID
     slug: str
     name: str
-    auth_method: str | None = None
-    auth_config: dict[str, Any] | None = None
+    credential_id: UUID | None = None
     created_at: datetime
 
 

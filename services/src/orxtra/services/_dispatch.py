@@ -113,8 +113,7 @@ async def create_source(
     slug: str,
     name: str,
     *,
-    auth_method: str | None = None,
-    auth_config: dict[str, Any] | None = None,
+    credential_id: UUID | None = None,
 ) -> UUID:
     """Create a new event source."""
     now = datetime.now(tz=UTC)
@@ -122,8 +121,7 @@ async def create_source(
         id=uuid7(),
         slug=slug,
         name=name,
-        auth_method=auth_method,
-        auth_config=auth_config,
+        credential_id=credential_id,
         created_at=now,
     )
     return await backend.create_source(source)

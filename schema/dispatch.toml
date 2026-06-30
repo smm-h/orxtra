@@ -28,13 +28,9 @@ comment = "URL-safe unique identifier"
 type = "str"
 comment = "Human-readable source name"
 
-[tables.sources.columns.auth_method]
-type = "str_nullable"
-comment = "Authentication method (e.g. hmac, bearer, none)"
-
-[tables.sources.columns.auth_config]
-type = "jsonb_nullable"
-comment = "Auth configuration (secrets referenced by name, never raw values)"
+[tables.sources.columns.credential_id]
+type = "uuid_val_nullable"
+comment = "FK to auth.credentials for source authentication"
 
 [tables.sources.columns.created_at]
 type = "timestamp"

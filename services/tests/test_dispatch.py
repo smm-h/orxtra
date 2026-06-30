@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from uuid6 import uuid7
 
 from orxtra.dispatch import FilterPredicate, InMemoryDispatchBackend
 from orxtra.services._dispatch import (
@@ -216,23 +217,23 @@ async def test_create_source(backend: InMemoryDispatchBackend) -> None:
     assert source is not None
     assert source.slug == "github"
     assert source.name == "GitHub"
-    assert source.auth_method is None
-    assert source.auth_config is None
+    assert source.credential_id is None
 
 
 @pytest.mark.asyncio
-async def test_create_source_with_auth(backend: InMemoryDispatchBackend) -> None:
+async def test_create_source_with_credential(
+    backend: InMemoryDispatchBackend,
+) -> None:
+    cred_id = uuid7()
     source_id = await create_source(
         backend,
         "webhook",
         "Webhook",
-        auth_method="hmac",
-        auth_config={"secret": "s3cret"},
+        credential_id=cred_id,
     )
     source = await backend.get_source(source_id)
     assert source is not None
-    assert source.auth_method == "hmac"
-    assert source.auth_config == {"secret": "s3cret"}
+    assert source.credential_id == cred_id
 
 
 @pytest.mark.asyncio

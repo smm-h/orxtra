@@ -298,26 +298,24 @@ class TestSourceStorage:
         assert args[0] == src.id
         assert args[1] == "github"
         assert args[2] == "GitHub Webhooks"
-        # auth_method and auth_config are None
+        # credential_id is None
         assert args[3] is None
-        assert args[4] is None
 
-    async def test_create_source_with_auth(
+    async def test_create_source_with_credential(
         self, pg_backend: PgDispatchBackend, mock_pool: MockPool,
     ) -> None:
+        cred_id = uuid7()
         src = Source(
             id=uuid7(),
             slug="stripe",
             name="Stripe",
-            auth_method="hmac",
-            auth_config={"secret": "whsec_xxx"},
+            credential_id=cred_id,
             created_at=NOW,
         )
         await pg_backend.create_source(src)
 
         _, args = mock_pool.conn.executed[0]
-        assert args[3] == "hmac"
-        assert json.loads(args[4]) == {"secret": "whsec_xxx"}
+        assert args[3] == cred_id
 
     async def test_get_source_found(
         self, pg_backend: PgDispatchBackend, mock_pool: MockPool,
@@ -327,8 +325,7 @@ class TestSourceStorage:
             "id": source_id,
             "slug": "gh",
             "name": "GitHub",
-            "auth_method": None,
-            "auth_config": None,
+            "credential_id": None,
             "created_at": NOW,
         })
         result = await pg_backend.get_source(source_id)
@@ -355,8 +352,7 @@ class TestSourceStorage:
             "id": source_id,
             "slug": "stripe",
             "name": "Stripe",
-            "auth_method": None,
-            "auth_config": None,
+            "credential_id": None,
             "created_at": NOW,
         })
         result = await pg_backend.get_source_by_slug("stripe")
@@ -373,12 +369,12 @@ class TestSourceStorage:
         mock_pool.conn.queue_fetch([
             {
                 "id": uuid7(), "slug": "a", "name": "A",
-                "auth_method": None, "auth_config": None,
+                "credential_id": None,
                 "created_at": NOW,
             },
             {
                 "id": uuid7(), "slug": "b", "name": "B",
-                "auth_method": None, "auth_config": None,
+                "credential_id": None,
                 "created_at": NOW,
             },
         ])
