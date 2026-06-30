@@ -15,6 +15,7 @@ from orxtra.protocols._contracts import (
     AccumulatorStorage,
     ActionExecutor,
     ActionStorage,
+    CardContributor,
     CheckExecutor,
     DispatchBackend,
     EventBus,
@@ -28,6 +29,7 @@ from orxtra.protocols._contracts import (
     SessionProtocol,
     SourceStorage,
     SubscriptionStorage,
+    SurfaceGenerator,
 )
 from orxtra.protocols._types import (
     ALWAYS_ACTIVE_CONSTRAINTS,
@@ -140,6 +142,7 @@ __all__ = [
     "BudgetExhaustionPolicy",
     "BudgetThresholdCrossed",
     "Capability",
+    "CardContributor",
     "CheckAgentContext",
     "CheckContext",
     "CheckExecutor",
@@ -207,6 +210,7 @@ __all__ = [
     "SourceStorage",
     "StatResult",
     "StructuralAdvisory",
+    "SurfaceGenerator",
     "SurfaceOperation",
     "SurfaceSpec",
     "Subscription",

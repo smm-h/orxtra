@@ -14,6 +14,7 @@ if TYPE_CHECKING:
         SubscriptionAction,
     )
     from orxtra.protocols._types._events import OverseerEvent
+    from orxtra.protocols._types._surfaces import SurfaceSpec
     from orxtra.protocols._types._task import Execution
     from orxtra.protocols._types._tool import Tool
 
@@ -204,3 +205,17 @@ class EventBus(Protocol):
     ) -> None: ...
 
     async def publish(self, channel: str, payload: str) -> None: ...
+
+
+@runtime_checkable
+class SurfaceGenerator(Protocol):
+    """Generates A2UI surface specs from model types."""
+
+    def generate(self, model_type: type) -> SurfaceSpec: ...
+
+
+@runtime_checkable
+class CardContributor(Protocol):
+    """Contributes a fragment to an A2A Agent Card."""
+
+    def card_fragment(self) -> dict[str, Any]: ...
