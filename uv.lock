@@ -10,6 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "orxtra",
+    "orxtra-a2ui",
     "orxtra-agent",
     "orxtra-auth",
     "orxtra-cli",
@@ -499,6 +500,29 @@ dev = [
     { name = "ruff" },
     { name = "testcontainers", extras = ["postgres"] },
 ]
+
+[[package]]
+name = "orxtra-a2ui"
+version = "0.7.0"
+source = { editable = "a2ui" }
+dependencies = [
+    { name = "orxtra-protocols" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-agent"
