@@ -34,14 +34,9 @@ class PgBackend:
     def __init__(
         self,
         pool: asyncpg.Pool,
-        event_callback: Callable[
-            [UUID, UUID | None, str, dict[str, Any]],
-            Awaitable[None],
-        ]
-        | None = None,
     ) -> None:
         self._pool = pool
-        self._writer = TraceWriter(pool, event_callback)
+        self._writer = TraceWriter(pool)
 
     # -- TaskStorage --
 

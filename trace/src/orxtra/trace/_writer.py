@@ -24,14 +24,8 @@ class TraceWriter:
     def __init__(
         self,
         pool: asyncpg.Pool,
-        event_callback: Callable[
-            [UUID, UUID | None, str, dict[str, Any]],
-            Awaitable[None],
-        ]
-        | None = None,
     ) -> None:
         self._pool = pool
-        self._event_callback = event_callback
         self._control_callbacks: dict[UUID, Callable[[UUID, str], Awaitable[None]]] = {}
 
     async def subscribe_run_control(
@@ -103,8 +97,6 @@ class TraceWriter:
                 "run_transition",
                 json.dumps(event_data),
             )
-        if self._event_callback is not None:
-            await self._event_callback(event_id, run_id, "run_transition", event_data)
         if run_id in self._control_callbacks:
             await self._control_callbacks[run_id](run_id, new_status)
 
@@ -167,8 +159,6 @@ class TraceWriter:
                 "task_transition",
                 json.dumps(event_data),
             )
-        if self._event_callback is not None:
-            await self._event_callback(event_id, run_id, "task_transition", event_data)
 
     async def create_task_attempt(self, task_id: UUID, attempt: int) -> UUID:
         attempt_id = uuid6.uuid7()
@@ -293,8 +283,6 @@ class TraceWriter:
                 event_type,
                 json.dumps(data),
             )
-        if self._event_callback is not None:
-            await self._event_callback(event_id, run_id, event_type, data)
         return event_id
 
     async def write_transcript_entry(

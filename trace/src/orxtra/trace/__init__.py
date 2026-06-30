@@ -79,6 +79,7 @@ from orxtra.trace._types import (
     TaskAttempt,
     TaskSummary,
 )
+from orxtra.trace._trace_sink import TraceSink
 from orxtra.trace._writer import TraceWriter
 
 __all__ = [
@@ -111,6 +112,7 @@ __all__ = [
     "TaskAttempt",
     "TaskStorage",
     "TaskSummary",
+    "TraceSink",
     "TraceWriter",
     "acquire_run_lock",
     "clean_orphaned",

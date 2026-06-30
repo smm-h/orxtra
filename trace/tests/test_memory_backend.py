@@ -854,41 +854,6 @@ class TestInMemoryEventBus:
 # ── Event callback ──
 
 
-class TestEventCallback:
-    @pytest.mark.asyncio
-    async def test_event_callback_fires_on_write_event(
-        self, backend: InMemoryBackend,
-    ) -> None:
-        received: list[dict[str, Any]] = []
-
-        async def cb(
-            event_id: Any, run_id: Any, event_type: str, data: dict[str, Any],
-        ) -> None:
-            received.append({"event_type": event_type, "data": data})
-
-        backend._event_callback = cb
-        run_id = await backend.create_run("test", {}, "max")
-        await backend.write_event(run_id, "custom", {"k": "v"})
-        assert len(received) == 1
-        assert received[0]["event_type"] == "custom"
-
-    @pytest.mark.asyncio
-    async def test_event_callback_fires_on_transition(
-        self, backend: InMemoryBackend,
-    ) -> None:
-        received: list[str] = []
-
-        async def cb(
-            event_id: Any, run_id: Any, event_type: str, data: dict[str, Any],
-        ) -> None:
-            received.append(event_type)
-
-        backend._event_callback = cb
-        run_id = await backend.create_run("test", {}, "max")
-        await backend.transition_run(run_id, "running")
-        assert "run_transition" in received
-
-
 # ── KnowledgeHashStorage ──
 
 

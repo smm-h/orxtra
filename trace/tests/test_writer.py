@@ -82,28 +82,6 @@ class TestTransitionRun:
         ), pytest.raises(InvalidTransitionError):
             await writer.transition_run(RUN_ID, "completed")
 
-    async def test_transition_run_callback(
-        self, mock_pool: MockPool,
-    ) -> None:
-        callback = AsyncMock()
-        writer = TraceWriter(
-            mock_pool,  # type: ignore[arg-type]
-            event_callback=callback,
-        )
-        mock_pool.conn.queue_fetchrow({"status": "created"})
-
-        with patch(
-            "orxtra.trace._writer.uuid6.uuid7",
-            return_value=TEST_UUID,
-        ):
-            await writer.transition_run(RUN_ID, "running")
-
-        callback.assert_called_once_with(
-            TEST_UUID, RUN_ID, "run_transition",
-            {"old_status": "created", "new_status": "running",
-             "reason": None},
-        )
-
     async def test_transition_run_not_found(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
@@ -196,30 +174,6 @@ class TestTransitionTask:
         assert "select status, run_id from tasks" in calls[0][0].lower()
         assert "update tasks set status" in calls[1][0].lower()
         assert "insert into events" in calls[2][0].lower()
-
-    async def test_transition_task_callback(
-        self, mock_pool: MockPool,
-    ) -> None:
-        callback = AsyncMock()
-        writer = TraceWriter(
-            mock_pool,  # type: ignore[arg-type]
-            event_callback=callback,
-        )
-        mock_pool.conn.queue_fetchrow(
-            {"status": "created", "run_id": RUN_ID},
-        )
-
-        with patch(
-            "orxtra.trace._writer.uuid6.uuid7",
-            return_value=TEST_UUID,
-        ):
-            await writer.transition_task(TASK_ID, "prechecking")
-
-        callback.assert_called_once_with(
-            TEST_UUID, RUN_ID, "task_transition",
-            {"task_id": str(TASK_ID), "old_status": "created",
-             "new_status": "prechecking", "reason": None},
-        )
 
     async def test_transition_task_invalid(
         self, writer: TraceWriter, mock_pool: MockPool,
@@ -363,26 +317,6 @@ class TestWriteEvent:
             "test_event", json.dumps({"key": "value"}),
         )
 
-    async def test_write_event_callback(
-        self, mock_pool: MockPool,
-    ) -> None:
-        callback = AsyncMock()
-        writer_with_cb = TraceWriter(
-            mock_pool,  # type: ignore[arg-type]
-            event_callback=callback,
-        )
-
-        with patch(
-            "orxtra.trace._writer.uuid6.uuid7",
-            return_value=TEST_UUID,
-        ):
-            await writer_with_cb.write_event(
-                RUN_ID, "test_event", {"key": "value"},
-            )
-
-        callback.assert_called_once_with(
-            TEST_UUID, RUN_ID, "test_event", {"key": "value"},
-        )
 
 
 class TestTranscript:

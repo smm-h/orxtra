@@ -20,7 +20,6 @@ class MockTraceWriter:
         self.calls: list[tuple[str, dict[str, Any]]] = []
         self._run_statuses: dict[uuid.UUID, str] = {}
         self._task_statuses: dict[uuid.UUID, str] = {}
-        self._event_callback: Any = None
         self._control_callback: Any = None
 
     def _record(
