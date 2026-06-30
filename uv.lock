@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "orxtra",
     "orxtra-agent",
+    "orxtra-auth",
     "orxtra-cli",
     "orxtra-dispatch",
     "orxtra-mcp",
@@ -517,6 +518,29 @@ requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.0" }]
+
+[[package]]
+name = "orxtra-auth"
+version = "0.7.0"
+source = { editable = "auth" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "orxtra-protocols" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg" },
+    { name = "orxtra-protocols", editable = "protocols" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-cli"
