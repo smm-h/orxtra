@@ -18,7 +18,7 @@ from orxtra.transport._events import (
 )
 
 if TYPE_CHECKING:
-    from orxtra.transport._events import Event
+    from orxtra.transport._events import TransportEvent
 
 
 @dataclass(frozen=True)
@@ -91,7 +91,7 @@ class GoogleProvider:
     async def parse_stream(
         self,
         byte_stream: AsyncIterator[bytes],
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         buffer = ""
         async for chunk in byte_stream:
             buffer += chunk.decode("utf-8")

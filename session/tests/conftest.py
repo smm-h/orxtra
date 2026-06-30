@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from orxtra.session._session import Session
-from orxtra.transport import Event, Result, StepFinish, StepStart
+from orxtra.transport import TransportEvent, Result, StepFinish, StepStart
 
 import importlib.util as _ilu
 from pathlib import Path
@@ -56,7 +56,7 @@ def make_standard_events(  # noqa: PLR0913
     reasoning_tokens: int = 0,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
-) -> list[Event]:
+) -> list[TransportEvent]:
     return [
         StepStart(session_id=session_id),
         StepFinish(

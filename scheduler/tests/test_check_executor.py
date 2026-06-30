@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from orxtra.protocols import Tool
-    from orxtra.transport import Event
+    from orxtra.transport import TransportEvent
 
 
 class TestRunConsult:
@@ -72,7 +72,7 @@ class TestRunConsult:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 _ = model, system_prompt, tools
                 self.received_message = message
                 sid = session_id or str(uuid6.uuid7())
@@ -126,7 +126,7 @@ class TestRunConsult:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 _ = message, model, system_prompt
                 self.received_tools = tools
                 sid = session_id or str(uuid6.uuid7())
@@ -217,7 +217,7 @@ class TestRunConsult:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 _ = message, model, tools
                 self.received_system_prompt = system_prompt
                 sid = session_id or str(uuid6.uuid7())
@@ -379,7 +379,7 @@ class TestCheckExecutorIntegration:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 _ = message, model, system_prompt, tools
                 sid = session_id or str(uuid6.uuid7())
                 yield StepFinish(

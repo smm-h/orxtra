@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxtra.transport import Event
+    from orxtra.transport import TransportEvent
 
 
 class StreamingTransport:
@@ -37,7 +37,7 @@ class StreamingTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         _ = model, system_prompt
         self.send_called = True
         sid = session_id or str(uuid6.uuid7())
@@ -182,7 +182,7 @@ class TestOrchestratorIgnoresDeltas:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 _ = model, system_prompt
                 sid = session_id or str(uuid6.uuid7())
 

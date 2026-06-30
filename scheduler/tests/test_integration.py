@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxtra.transport import Event
+    from orxtra.transport import TransportEvent
 
 
 # -- helpers --
@@ -250,7 +250,7 @@ class TestContextAssembly:
         class CapturingTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -338,7 +338,7 @@ class TestContextAssembly:
         class CapturingTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -453,7 +453,7 @@ class TestContextAssembly:
         class CapturingTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}

@@ -19,7 +19,7 @@ from orxtra.transport._events import (
 )
 
 if TYPE_CHECKING:
-    from orxtra.transport._events import Event
+    from orxtra.transport._events import TransportEvent
 
 
 @dataclass(frozen=True)
@@ -81,7 +81,7 @@ class AnthropicProvider:
     async def parse_stream(  # noqa: C901, PLR0912
         self,
         byte_stream: AsyncIterator[bytes],
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         buffer = b""
         event_type = ""
         # Tool use accumulation state

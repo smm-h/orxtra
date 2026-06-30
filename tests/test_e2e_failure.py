@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from orxtra.protocols import Tool
-    from orxtra.transport import Event
+    from orxtra.transport import TransportEvent
 
 
 def _extract_task_id(message: str) -> str | None:
@@ -246,7 +246,7 @@ class TestTimeoutCancelsTask:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 _ = model, system_prompt
                 import uuid6  # noqa: PLC0415
 
@@ -502,7 +502,7 @@ class TestExceptionDuringSession:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 _ = model, system_prompt
                 nonlocal send_count
                 send_count += 1

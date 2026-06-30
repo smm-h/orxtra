@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     import uuid
     from collections.abc import AsyncIterator
 
-    from orxtra.transport import Event
+    from orxtra.transport import TransportEvent
 
 
 from tests.shared_mocks import MockTraceWriter
@@ -74,7 +74,7 @@ class IntegrationMockTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         self.send_calls.append({
             "message": message,
             "model": model,
@@ -233,7 +233,7 @@ class MultiAgentMockTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         self.send_calls.append({
             "message": message,
             "model": model,

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from ._events import ContentBlock, Event, Usage
+    from ._events import ContentBlock, TransportEvent, Usage
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class Provider(Protocol):
     def parse_stream(
         self,
         byte_stream: AsyncIterator[bytes],
-    ) -> AsyncIterator[Event]: ...
+    ) -> AsyncIterator[TransportEvent]: ...
 
     def extract_usage(self, response: dict[str, Any]) -> Usage: ...
 

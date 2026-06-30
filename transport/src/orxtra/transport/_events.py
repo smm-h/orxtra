@@ -165,7 +165,7 @@ class ContextWarning:
     context_limit: int
 
 
-Event = (
+TransportEvent = (
     StepStart
     | Text
     | StreamDelta

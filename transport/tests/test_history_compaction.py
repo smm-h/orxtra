@@ -6,7 +6,7 @@ import httpx
 import respx
 from orxtra.transport._events import (
     ContentBlock,
-    Event,
+    TransportEvent,
     Result,
     Usage,
 )
@@ -35,7 +35,7 @@ def _retry_policy() -> RetryPolicy:
 
 async def _collect(
     transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
-) -> list[Event]:
+) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
 

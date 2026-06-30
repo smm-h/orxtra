@@ -7,7 +7,7 @@ import respx
 from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,
-    Event,
+    TransportEvent,
     RateLimit,
     Result,
     Usage,
@@ -42,7 +42,7 @@ def _retry_policy(
 
 async def _collect(
     transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
-) -> list[Event]:
+) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
 

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
     from orxtra.protocols import Tool
     from orxtra.trace import StorageBackend, TraceWriter
-    from orxtra.transport import Event, Transport
+    from orxtra.transport import TransportEvent, Transport
 
 from orxtra.transport import Continuation, Result, SessionSuspended, StepFinish, ToolUse
 
@@ -68,7 +68,7 @@ class Session:
         """
         self._event_handlers[event_type].append(handler)
 
-    def _dispatch_handlers(self, event: Event) -> None:
+    def _dispatch_handlers(self, event: TransportEvent) -> None:
         """Call registered handlers for the given event's type."""
         for handler in self._event_handlers.get(type(event), []):
             handler(event)
@@ -132,7 +132,7 @@ class Session:
 
     async def send(
         self, message: str,
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         self.turn_count += 1
         current_turn = self.turn_count
 
@@ -189,7 +189,7 @@ class Session:
 
     async def resume(
         self, continuation: Continuation, result: str
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         """Resume from suspension. Delegates to transport.resume()."""
         self.turn_count += 1
         current_turn = self.turn_count

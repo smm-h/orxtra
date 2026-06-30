@@ -13,7 +13,7 @@ from ._events import (
     ApiRetry,
     ContentBlock,
     Error,
-    Event,
+    TransportEvent,
     LivenessWarning,
     RateLimit,
     Result,
@@ -138,7 +138,7 @@ class Transport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         if session_id is None:
             session_id = str(uuid6.uuid7())
 
@@ -196,7 +196,7 @@ class Transport:
         model: str,
         system_prompt: str,
         tools: list[Tool],
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         """Resume from suspension.
 
         Executes remaining tools, then continues the API loop.
@@ -344,7 +344,7 @@ class Transport:
         self,
         state: TransportState,
         ctx: _StepContext,
-    ) -> tuple[TransportState, list[Event]]:
+    ) -> tuple[TransportState, list[TransportEvent]]:
         """Execute one state transition. Returns (next_state, events)."""
         if state == TransportState.CALLING_API:
             return await self._step_calling_api(ctx)
@@ -395,7 +395,7 @@ class Transport:
         ctx: _StepContext,
         usage: Usage,
         text_blocks: list[ContentBlock],
-    ) -> list[Event]:
+    ) -> list[TransportEvent]:
         """Build StepFinish and Result events for a text-only response."""
         full_text = " ".join(
             block.text for block in text_blocks if block.text is not None
@@ -424,8 +424,8 @@ class Transport:
     async def _step_calling_api(
         self,
         ctx: _StepContext,
-    ) -> tuple[TransportState, list[Event]]:
-        events: list[Event] = []
+    ) -> tuple[TransportState, list[TransportEvent]]:
+        events: list[TransportEvent] = []
 
         request = self._provider.build_request(
             messages=ctx.history,
@@ -507,8 +507,8 @@ class Transport:
     async def _step_executing_tools(
         self,
         ctx: _StepContext,
-    ) -> tuple[TransportState, list[Event]]:
-        events: list[Event] = []
+    ) -> tuple[TransportState, list[TransportEvent]]:
+        events: list[TransportEvent] = []
         tool_results: list[dict[str, Any]] = []
 
         for i, block in enumerate(ctx.pending_tool_blocks):
@@ -703,7 +703,7 @@ class Transport:
         json_body: dict[str, Any],
         health_threshold: float = 30.0,
         stuck_threshold: float = 120.0,
-    ) -> tuple[list[Event] | None, list[Event]]:
+    ) -> tuple[list[TransportEvent] | None, list[TransportEvent]]:
         """Send a streaming request and collect parsed events.
 
         Returns (stream_events, retry_events) where stream_events is a list of
@@ -711,7 +711,7 @@ class Transport:
         ApiRetry, Error, LivenessWarning, or StuckDetected events from the
         retry loop.
         """
-        retry_events: list[Event] = []
+        retry_events: list[TransportEvent] = []
         last_error: str = ""
         last_status: int = 0
 
@@ -729,7 +729,7 @@ class Transport:
                             health_threshold=health_threshold,
                             stuck_threshold=stuck_threshold,
                         )
-                        collected: list[Event] = []
+                        collected: list[TransportEvent] = []
                         warning_emitted = False
                         stuck = False
                         stream = self._provider.parse_stream(

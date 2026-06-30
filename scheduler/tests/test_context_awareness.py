@@ -289,8 +289,8 @@ class TestContextWarningEvent:
             warning.session_id = "other"  # type: ignore[misc]
 
     def test_context_warning_in_event_union(self) -> None:
-        """ContextWarning is part of the Event union type."""
-        from orxtra.transport import ContextWarning, Event
+        """ContextWarning is part of the TransportEvent union type."""
+        from orxtra.transport import ContextWarning, TransportEvent
 
         warning = ContextWarning(
             session_id="sess-1",
@@ -298,6 +298,6 @@ class TestContextWarningEvent:
             tokens_used=171_000,
             context_limit=200_000,
         )
-        # This should type-check as Event
-        event: Event = warning
+        # This should type-check as TransportEvent
+        event: TransportEvent = warning
         assert isinstance(event, ContextWarning)

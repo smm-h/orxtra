@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 import uuid6
 from orxtra.protocols import Tool, ToolError
-from orxtra.transport import Continuation, Event, Result, StepFinish, ToolUse
+from orxtra.transport import Continuation, TransportEvent, Result, StepFinish, ToolUse
 
 if TYPE_CHECKING:
     import uuid
@@ -319,8 +319,8 @@ class MockTransport:
     ) -> None:
         self.calls: list[dict[str, Any]] = []
         self.resume_calls: list[dict[str, Any]] = []
-        self._event_sequences: list[list[Event]] = []
-        self._resume_event_sequences: list[list[Event]] = []
+        self._event_sequences: list[list[TransportEvent]] = []
+        self._resume_event_sequences: list[list[TransportEvent]] = []
         self._response_text = response_text
         self._auto_execute_tools = auto_execute_tools
         self._call_count = 0
@@ -332,10 +332,10 @@ class MockTransport:
         """Mock of Transport.inject_history for session resume tests."""
         self._sessions[session_id] = list(messages)
 
-    def set_events(self, *sequences: list[Event]) -> None:
+    def set_events(self, *sequences: list[TransportEvent]) -> None:
         self._event_sequences = list(sequences)
 
-    def set_resume_events(self, *sequences: list[Event]) -> None:
+    def set_resume_events(self, *sequences: list[TransportEvent]) -> None:
         self._resume_event_sequences = list(sequences)
 
     async def send(  # noqa: PLR0913
@@ -346,7 +346,7 @@ class MockTransport:
         system_prompt: str,
         tools: list[Tool],
         session_id: str | None = None,
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         self.calls.append({
             "message": message,
             "model": model,
@@ -458,7 +458,7 @@ class MockTransport:
         model: str,
         system_prompt: str,
         tools: list[Tool],
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         self.resume_calls.append({
             "continuation": continuation,
             "await_result": await_result,

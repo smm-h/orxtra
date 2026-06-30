@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from pathlib import Path
 
-    from orxtra.transport import Event
+    from orxtra.transport import TransportEvent
 
 from tests.conftest import (
     MockTraceWriter,
@@ -296,7 +296,7 @@ class TestAgentToolCallPath:
                 self,
                 message: str,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 self._sends += 1
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -780,7 +780,7 @@ class TestRetry:
         class RetryTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
                 task_id_match = re.search(
@@ -891,7 +891,7 @@ class TestRetry:
         class RetryTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
                 task_id_match = re.search(
@@ -1003,7 +1003,7 @@ class TestRetry:
         class RetryTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
                 task_id_match = re.search(
@@ -1100,7 +1100,7 @@ class TestTaskTimeout:
         class SlowTransport:
             async def send(  # type: ignore[override]
                 self, message: str, **kwargs: object,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 await asyncio.sleep(10)
                 yield Result(  # pragma: no cover
                     text="late",
@@ -1197,7 +1197,7 @@ class TestAccumulateCostError:
 
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
                 task_id_match = re.search(
@@ -1368,7 +1368,7 @@ class TestForEach:
         class FailingTransport:
             async def send(
                 self, message: str, **kwargs: object,
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 nonlocal call_count
                 call_count += 1
                 tools = kwargs.get("tools", [])
@@ -1460,7 +1460,7 @@ class TestForEach:
         class FailSecondTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 nonlocal call_count
                 call_count += 1
                 tools = kwargs.get("tools", [])
@@ -1550,7 +1550,7 @@ class TestForEach:
         class TrackedTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 nonlocal concurrent_count, max_concurrent
                 concurrent_count += 1
                 max_concurrent = max(
@@ -1650,7 +1650,7 @@ class TestTaskOutputPropagation:
         class CapturingTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -1926,7 +1926,7 @@ class TestPreRetryCallback:
         class RetryTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
                 task_id_match = re.search(
@@ -2055,7 +2055,7 @@ class TestPreRetryCallback:
         class RetryTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
                 task_id_match = re.search(
@@ -2182,7 +2182,7 @@ class TestRetryResume:
         class TrackingTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 sid = kwargs.get("session_id")
                 session_ids_seen.append(sid)
                 tools = kwargs.get("tools", [])
@@ -2304,7 +2304,7 @@ class TestRetryInjectFailure:
         class CapturingTransport:
             async def send(
                 self, message: str, **kwargs: Any,  # noqa: ANN401
-            ) -> AsyncIterator[Event]:
+            ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}

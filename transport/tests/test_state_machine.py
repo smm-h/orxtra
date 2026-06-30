@@ -7,7 +7,7 @@ import respx
 from orxtra.protocols import Confirmation, Tool, ToolOutput
 from orxtra.transport._events import (
     ContentBlock,
-    Event,
+    TransportEvent,
     Result,
     SessionSuspended,
     StepStart,
@@ -56,7 +56,7 @@ class MockProvider:
 
     async def parse_stream(  # type: ignore[override]
         self, byte_stream: AsyncIterator[bytes],
-    ) -> AsyncIterator[Event]:
+    ) -> AsyncIterator[TransportEvent]:
         # Drain the byte stream (required by httpx)
         async for _ in byte_stream:
             pass
@@ -183,7 +183,7 @@ def _make_tool(
 
 async def _collect(
     transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
-) -> list[Event]:
+) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
 
@@ -192,7 +192,7 @@ async def _collect_resume(
     continuation: Continuation,
     await_result: str,
     **kwargs: Any,  # noqa: ANN401
-) -> list[Event]:
+) -> list[TransportEvent]:
     return [
         event
         async for event in transport.resume(continuation, await_result, **kwargs)

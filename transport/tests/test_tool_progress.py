@@ -7,7 +7,7 @@ import respx
 from orxtra.protocols import Tool, ToolOutput
 from orxtra.transport._events import (
     ContentBlock,
-    Event,
+    TransportEvent,
     ToolExecuting,
     ToolUse,
     Usage,
@@ -59,7 +59,7 @@ def _make_tool(
 
 async def _collect(
     transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
-) -> list[Event]:
+) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
 

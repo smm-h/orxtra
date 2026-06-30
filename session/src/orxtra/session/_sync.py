@@ -6,7 +6,7 @@ from orxtra.protocols import run_sync
 
 if TYPE_CHECKING:
     from orxtra.session._session import Session
-    from orxtra.transport import Event
+    from orxtra.transport import TransportEvent
 
 
 class SyncSession:
@@ -20,8 +20,8 @@ class SyncSession:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def send(self, prompt: str, **kwargs: Any) -> list[Event]:
-        events: list[Event] = []
+    def send(self, prompt: str, **kwargs: Any) -> list[TransportEvent]:
+        events: list[TransportEvent] = []
 
         async def _collect() -> None:
             async for event in self._session.send(
