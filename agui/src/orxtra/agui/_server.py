@@ -52,9 +52,9 @@ def create_agui_router(
 
     async def events_handler(request: Request) -> StreamResponse:
         """SSE endpoint at /events?run_id=...&thread_id=..."""
-        run_id = request.query.get("run_id", "")
-        thread_id = request.query.get("thread_id", run_id)
-        thinking = request.query.get("thinking", "silent")
+        run_id = request.query("run_id", "")
+        thread_id = request.query("thread_id", run_id)
+        thinking = request.query("thinking", "silent")
 
         if not run_id:
             from fastware import TextResponse
