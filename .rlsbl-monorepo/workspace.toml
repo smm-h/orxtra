@@ -157,6 +157,12 @@ depends_on = ["services"]
 releasable = "orxtra"
 
 [[projects]]
+path = "a2a"
+description = "A2A (Agent-to-Agent) protocol server"
+depends_on = ["services"]
+releasable = "orxtra"
+
+[[projects]]
 path = "agui"
 description = "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots."
 depends_on = ["services"]
@@ -186,4 +192,4 @@ foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "too
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]
-interfaces = ["cli", "mcp", "agui"]
+interfaces = ["cli", "mcp", "a2a", "agui"]
