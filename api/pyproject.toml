@@ -1,0 +1,36 @@
+[project]
+name = "orxtra-api"
+version = "0.7.0"
+license = "BUSL-1.1"
+description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
+requires-python = ">=3.12"
+dependencies = [
+    "fastware",
+    "orxtra-auth",
+    "orxtra-mcp",
+    "orxtra-a2a",
+    "orxtra-agui",
+    "orxtra-services",
+    "asyncpg",
+]
+keywords = ["rlsbl"]
+
+[dependency-groups]
+dev = ["pytest-asyncio>=1.4.0"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/orxtra"]
+
+[tool.uv.sources]
+orxtra-auth = { workspace = true }
+orxtra-mcp = { workspace = true }
+orxtra-a2a = { workspace = true }
+orxtra-agui = { workspace = true }
+orxtra-services = { workspace = true }
