@@ -97,6 +97,13 @@ depends_on = ["protocols", "transport", "trace"]
 library = true
 releasable = "orxtra"
 
+[[projects]]
+path = "auth"
+description = "Authentication and authorization. Consumer registry, credential hashing, ASGI middleware."
+depends_on = ["protocols"]
+library = true
+releasable = "orxtra"
+
 # --- Orchestration layer ---
 
 [[projects]]
@@ -162,7 +169,7 @@ releasable = false
 order = ["foundation", "orchestration", "intelligence", "composition", "interfaces"]
 
 [layers.assignments]
-foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session"]
+foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session", "auth"]
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]

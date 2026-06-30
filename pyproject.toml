@@ -45,6 +45,7 @@ include = [
     "cli/src/",
     "mcp/src/",
     "dispatch/src/",
+    "auth/src/",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
@@ -64,6 +65,7 @@ include = [
 "cli/src/orxtra/cli" = "orxtra/cli"
 "mcp/src/orxtra/mcp" = "orxtra/mcp"
 "dispatch/src/orxtra/dispatch" = "orxtra/dispatch"
+"auth/src/orxtra/auth" = "orxtra/auth"
 
 [tool.uv.workspace]
 members = [
@@ -83,6 +85,7 @@ members = [
     "cli",
     "mcp",
     "dispatch",
+    "auth",
 ]
 
 [tool.uv.sources]
@@ -102,6 +105,7 @@ orxtra-services = { workspace = true }
 orxtra-cli = { workspace = true }
 orxtra-mcp = { workspace = true }
 orxtra-dispatch = { workspace = true }
+orxtra-auth = { workspace = true }
 
 [dependency-groups]
 dev = [
