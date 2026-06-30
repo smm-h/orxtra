@@ -215,6 +215,8 @@ class TestCheckAgentContext:
         session.total_cache_read_tokens = 0
         session.total_cache_write_tokens = 0
         session.turn_count = 5
+        session._sinks = []
+        session._sink_tasks = set()
         from collections import defaultdict
         session._event_handlers = defaultdict(list)
 
