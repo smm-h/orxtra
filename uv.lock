@@ -31,6 +31,7 @@ members = [
     "orxtra-trace",
     "orxtra-transport",
     "orxtra-verify",
+    "orxtra-worker",
     "orxtra-write-safety",
 ]
 
@@ -1430,6 +1431,39 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "orxtra-protocols", editable = "protocols" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxtra-worker"
+version = "0.7.0"
+source = { editable = "worker" }
+dependencies = [
+    { name = "fastware" },
+    { name = "orxtra-auth" },
+    { name = "orxtra-protocols" },
+    { name = "orxtra-secrets" },
+    { name = "orxtra-tool" },
+    { name = "orxtra-write-safety" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastware", editable = "../fastware" },
+    { name = "orxtra-auth", editable = "auth" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-secrets", editable = "secrets" },
+    { name = "orxtra-tool", editable = "tool" },
+    { name = "orxtra-write-safety", editable = "write-safety" },
     { name = "pydantic", specifier = ">=2" },
 ]
 
