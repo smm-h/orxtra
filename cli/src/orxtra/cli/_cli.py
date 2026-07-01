@@ -424,6 +424,13 @@ from orxtra.api._cli import register_serve_command
 register_serve_command(app)
 
 
+# -- Worker commands (from orxtra.worker) --
+
+from orxtra.worker._cli import register_worker_commands
+
+register_worker_commands(app)
+
+
 # -- Entry point --
 
 def main() -> None:

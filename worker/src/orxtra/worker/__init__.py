@@ -12,6 +12,8 @@ from orxtra.worker._brain import (
     ToolCallTimeoutError,
     WorkerDisconnectedError,
 )
+from orxtra.worker._docker import ContainerExitError, DockerNotFoundError, DockerWorker
+from orxtra.worker._native import NativeWorker, build_worker_tools
 from orxtra.worker._pipeline_split import wrap_tool_for_remote, wrap_tools_for_remote
 from orxtra.worker._protocol import (
     ExecuteToolCall,
@@ -24,9 +26,13 @@ from orxtra.worker._registry import WorkerConflictError, WorkerInfo, WorkerRegis
 
 __all__ = [
     "BrainWorkerBridge",
+    "ContainerExitError",
+    "DockerNotFoundError",
+    "DockerWorker",
     "ExecuteToolCall",
     "Heartbeat",
     "HeartbeatAck",
+    "NativeWorker",
     "ToolCallResult",
     "ToolCallTimeoutError",
     "WorkerConflictError",
@@ -35,6 +41,7 @@ __all__ = [
     "WorkerRegistration",
     "WorkerRegistry",
     "__version__",
+    "build_worker_tools",
     "wrap_tool_for_remote",
     "wrap_tools_for_remote",
 ]

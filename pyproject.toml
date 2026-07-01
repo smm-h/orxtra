@@ -21,6 +21,7 @@ dependencies = [
     "pydantic>=2",
     "strictcli",
     "uuid6",
+    "websockets",
 ]
 keywords = ["rlsbl"]
 

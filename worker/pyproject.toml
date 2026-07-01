@@ -12,6 +12,7 @@ dependencies = [
     "orxtra-secrets",
     "fastware",
     "pydantic>=2",
+    "websockets",
 ]
 keywords = ["rlsbl"]
 
