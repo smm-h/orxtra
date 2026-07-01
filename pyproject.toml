@@ -55,6 +55,7 @@ include = [
     "a2a/src/",
     "agui/src/",
     "api/src/",
+    "worker/src/",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
@@ -79,6 +80,7 @@ include = [
 "a2a/src/orxtra/a2a" = "orxtra/a2a"
 "agui/src/orxtra/agui" = "orxtra/agui"
 "api/src/orxtra/api" = "orxtra/api"
+"worker/src/orxtra/worker" = "orxtra/worker"
 
 [tool.uv.workspace]
 members = [
@@ -103,6 +105,7 @@ members = [
     "a2a",
     "agui",
     "api",
+    "worker",
 ]
 
 [tool.uv.sources]
@@ -127,6 +130,7 @@ orxtra-a2ui = { workspace = true }
 orxtra-a2a = { workspace = true }
 orxtra-agui = { workspace = true }
 orxtra-api = { workspace = true }
+orxtra-worker = { workspace = true }
 fastware = { path = "/home/m/Projects/fastware", editable = true }
 
 [dependency-groups]
@@ -168,6 +172,7 @@ ignore = [
 "**/_types.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
 "**/_actions.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
 "**/_checks.py" = ["TC002", "TC003"]  # pydantic models/check types need runtime imports
+"**/_protocol.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
 "**/_events.py" = ["TC003"]  # dataclass field annotations need runtime imports
 "**/_tool.py" = ["UP046"]  # ToolOutput uses Generic[T] (matches original code)
 "**/_writer.py" = ["PLR0913"]  # DB write methods have many columns

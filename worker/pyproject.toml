@@ -1,0 +1,37 @@
+[project]
+name = "orxtra-worker"
+version = "0.7.0"
+license = "BUSL-1.1"
+description = "Brain-worker protocol: remote tool execution over WebSocket."
+requires-python = ">=3.12"
+dependencies = [
+    "orxtra-protocols",
+    "orxtra-tool",
+    "orxtra-write-safety",
+    "orxtra-auth",
+    "orxtra-secrets",
+    "fastware",
+    "pydantic>=2",
+]
+keywords = ["rlsbl"]
+
+[dependency-groups]
+dev = ["pytest-asyncio>=1.4.0"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/orxtra"]
+
+[tool.uv.sources]
+orxtra-protocols = { workspace = true }
+orxtra-tool = { workspace = true }
+orxtra-write-safety = { workspace = true }
+orxtra-auth = { workspace = true }
+orxtra-secrets = { workspace = true }
+fastware = { path = "/home/m/Projects/fastware", editable = true }

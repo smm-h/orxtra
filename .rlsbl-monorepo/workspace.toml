@@ -169,6 +169,13 @@ depends_on = ["services"]
 releasable = "orxtra"
 
 [[projects]]
+path = "worker"
+description = "Brain-worker protocol: remote tool execution over WebSocket."
+depends_on = ["protocols", "tool", "write-safety", "auth", "secrets"]
+library = true
+releasable = "orxtra"
+
+[[projects]]
 path = "api"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
 depends_on = ["mcp", "a2a", "agui", "services", "auth"]
@@ -194,7 +201,7 @@ releasable = false
 order = ["foundation", "orchestration", "intelligence", "composition", "interfaces"]
 
 [layers.assignments]
-foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session", "auth", "a2ui"]
+foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session", "auth", "a2ui", "worker"]
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]
