@@ -104,6 +104,7 @@ app = strictcli.App(
         strictcli.Flag(
             name="quiet",
             type=bool,
+            default=False,
             help="Suppress non-essential output.",
         ),
     ],
