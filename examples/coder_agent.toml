@@ -1,14 +1,32 @@
 # A coding agent with git and exec capabilities.
-# Agents are TOML files with an associated .md prompt file.
+# Agents are TOML files with an associated .md prompt file (the `prompt`
+# key in [agent] is a path relative to this file).
+# Each [[exec]] entry defines one purpose-built executable tool; the
+# "exec" entry in the allow list gates them.
 
+[agent]
 name = "coder"
 description = "Agent that writes code, runs tests, and commits changes."
+prompt = "coder_agent.md"
 category = "default"
+
+[tools]
 allow = ["read", "write", "edit", "git", "exec", "start_task", "end_task"]
 
-[exec]
-allowed_commands = ["pytest", "ruff", "mypy"]
-timeout_seconds = 120
+[[exec]]
+name = "pytest"
+executable = "pytest"
+description = "Run the test suite"
+timeout_ceiling = 120
 
-[prompt]
-file = "coder_agent.md"
+[[exec]]
+name = "ruff"
+executable = "ruff"
+description = "Run the ruff linter"
+timeout_ceiling = 120
+
+[[exec]]
+name = "mypy"
+executable = "mypy"
+description = "Run the mypy type checker"
+timeout_ceiling = 120
