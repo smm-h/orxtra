@@ -391,13 +391,13 @@ type = "timestamp"
 columns = ["run_id"]
 ref_table = "runs"
 ref_columns = ["id"]
-on_delete = "CASCADE"
+on_delete = "RESTRICT"
 
 [tables.events.fks.fk_events_task]
 columns = ["task_id"]
 ref_table = "tasks"
 ref_columns = ["id"]
-on_delete = "CASCADE"
+on_delete = "RESTRICT"
 
 [tables.events.indexes.idx_events_run_created]
 columns = ["run_id", "created_at DESC"]
@@ -452,7 +452,7 @@ type = "timestamp"
 columns = ["run_id"]
 ref_table = "runs"
 ref_columns = ["id"]
-on_delete = "CASCADE"
+on_delete = "RESTRICT"
 
 [tables.transcripts.indexes.idx_transcripts_session]
 columns = ["session_id", "turn"]
@@ -493,7 +493,7 @@ type = "timestamp"
 columns = ["run_id"]
 ref_table = "runs"
 ref_columns = ["id"]
-on_delete = "CASCADE"
+on_delete = "RESTRICT"
 
 [tables.notepad_entries.indexes.idx_notepad_run]
 columns = ["run_id"]
