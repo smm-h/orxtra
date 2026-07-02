@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -8,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from orxtra.services._run import (
     RunConfig,
+    _serialize_config,
     abort_run,
     get_run,
     list_runs,
@@ -520,6 +522,48 @@ async def test_start_run_from_file_with_workflow_path(
 
         # Verify the workflow_path was parsed and used
         mock_load_wf.assert_called_once_with(Path("/my/workflow.toml"))
+
+
+def test_serialize_config_redacts_credentials() -> None:
+    """Regression: raw credentials must never reach the persisted run record.
+
+    _serialize_config's output is stored verbatim in the runs table via
+    create_run, so api_keys and db_url passwords must be redacted.
+    """
+    sentinel_key = "sk-ant-SENTINEL-API-KEY-12345"
+    sentinel_password = "SENTINEL-DB-PASSWORD"  # noqa: S105
+    config = RunConfig(
+        workflow_path=Path("/workflow.toml"),
+        agents_dir=Path("/agents"),
+        knowledge_dir=Path("/knowledge"),
+        categories_path=Path("/cats.toml"),
+        read_root=Path("/project"),
+        db_url=f"postgres://orxtra:{sentinel_password}@localhost:5432/test",
+        provider_configs={
+            "anthropic": {"type": "anthropic", "api_key": sentinel_key},
+            "openai": {"type": "openai", "api_key": sentinel_key},
+        },
+        budget=Decimal("10.00"),
+        autonomy_level="supervised",
+    )
+
+    serialized = json.dumps(_serialize_config(config))
+
+    assert sentinel_key not in serialized
+    assert sentinel_password not in serialized
+    # Redaction, not omission: the snapshot shape stays honest.
+    assert "[REDACTED]" in serialized
+    data = json.loads(serialized)
+    assert data["provider_configs"]["anthropic"]["api_key"] == "[REDACTED]"
+    assert data["provider_configs"]["anthropic"]["type"] == "anthropic"
+    assert data["provider_configs"]["openai"]["api_key"] == "[REDACTED]"
+    assert data["db_url"] == "postgres://orxtra:[REDACTED]@localhost:5432/test"
+
+
+def test_serialize_config_db_url_without_password_unchanged() -> None:
+    config = _default_config()
+    data = _serialize_config(config)
+    assert data["db_url"] == "postgres://localhost/test"
 
 
 def test_run_config_with_workflow_path() -> None:

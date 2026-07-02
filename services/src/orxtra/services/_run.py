@@ -4,6 +4,7 @@ import tomllib
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit, urlunsplit
 
 from orxtra.agent import load_agents, load_categories
 from orxtra.overseer import load_knowledge_files
@@ -35,7 +36,28 @@ class RunConfig(BaseModel):
     budget_exhaustion_policy: BudgetExhaustionPolicy = BudgetExhaustionPolicy.UNLIMITED
 
 
+_REDACTED = "[REDACTED]"
+
+
+def _redact_db_url(db_url: str) -> str:
+    """Replace the password component of a database URL, if present."""
+    parsed = urlsplit(db_url)
+    if parsed.password is None:
+        return db_url
+    host_port = parsed.hostname or ""
+    if parsed.port is not None:
+        host_port = f"{host_port}:{parsed.port}"
+    netloc = f"{parsed.username or ''}:{_REDACTED}@{host_port}"
+    return urlunsplit(parsed._replace(netloc=netloc))
+
+
 def _serialize_config(config: RunConfig) -> dict[str, Any]:
+    """Serialize a RunConfig for persistence in the run record.
+
+    Credential-bearing values (provider api_keys, db_url password) are
+    redacted to a fixed placeholder -- the snapshot is stored verbatim in
+    PostgreSQL and must never contain plaintext secrets.
+    """
     data = config.model_dump()
     data["agents_dir"] = str(config.agents_dir)
     data["knowledge_dir"] = str(config.knowledge_dir)
@@ -43,6 +65,14 @@ def _serialize_config(config: RunConfig) -> dict[str, Any]:
     data["read_root"] = str(config.read_root)
     data["workflow_path"] = str(config.workflow_path)
     data["budget"] = str(config.budget)
+    data["db_url"] = _redact_db_url(config.db_url)
+    data["provider_configs"] = {
+        name: {
+            key: _REDACTED if key == "api_key" else value
+            for key, value in provider.items()
+        }
+        for name, provider in config.provider_configs.items()
+    }
     return data
 
 
