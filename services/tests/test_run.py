@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from orxtra.services._run import (
     RunConfig,
+    _redact_db_url,
     _serialize_config,
     abort_run,
     get_run,
@@ -564,6 +565,54 @@ def test_serialize_config_db_url_without_password_unchanged() -> None:
     config = _default_config()
     data = _serialize_config(config)
     assert data["db_url"] == "postgres://localhost/test"
+
+
+def test_serialize_config_redacts_query_param_password() -> None:
+    """Regression: asyncpg/libpq accept ?password=... in the URL query."""
+    sentinel_password = "SENTINEL-QUERY-PASSWORD"  # noqa: S105
+    config = RunConfig(
+        workflow_path=Path("/workflow.toml"),
+        agents_dir=Path("/agents"),
+        knowledge_dir=Path("/knowledge"),
+        categories_path=Path("/cats.toml"),
+        read_root=Path("/project"),
+        db_url=(
+            "postgres://localhost:5432/test"
+            f"?sslmode=require&password={sentinel_password}&application_name=orxtra"
+        ),
+        provider_configs={},
+        budget=Decimal("10.00"),
+        autonomy_level="supervised",
+    )
+
+    serialized = json.dumps(_serialize_config(config))
+
+    assert sentinel_password not in serialized
+    data = json.loads(serialized)
+    # Other query params and URL structure preserved verbatim.
+    assert data["db_url"] == (
+        "postgres://localhost:5432/test"
+        "?sslmode=require&password=[REDACTED]&application_name=orxtra"
+    )
+
+
+def test_redact_db_url_ipv6_host_preserves_brackets() -> None:
+    """Regression: the hostname property strips IPv6 brackets on rebuild."""
+    result = _redact_db_url("postgres://user:hunter2@[::1]:5432/db")
+    assert result == "postgres://user:[REDACTED]@[::1]:5432/db"
+
+
+def test_redact_db_url_netloc_preserved_verbatim_except_password() -> None:
+    """Regression: rebuilding netloc from parsed properties mangles it.
+
+    The percent-encoded username and the host (including its case, which
+    the hostname property lowercases) must survive verbatim; only the
+    password is replaced.
+    """
+    result = _redact_db_url(
+        "postgres://user%40corp%3Ax:hunter2@DB.Example.com:5432/db"
+    )
+    assert result == "postgres://user%40corp%3Ax:[REDACTED]@DB.Example.com:5432/db"
 
 
 def test_run_config_with_workflow_path() -> None:

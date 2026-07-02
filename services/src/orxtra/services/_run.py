@@ -4,7 +4,7 @@ import tomllib
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 from orxtra.agent import load_agents, load_categories
 from orxtra.overseer import load_knowledge_files
@@ -39,16 +39,52 @@ class RunConfig(BaseModel):
 _REDACTED = "[REDACTED]"
 
 
+def _redact_netloc(netloc: str) -> str:
+    """Redact the password in a netloc, keeping everything else verbatim.
+
+    Works on the raw string (not parsed properties) so percent-encoded
+    userinfo, IPv6 brackets, and host case survive untouched.  Userinfo is
+    everything before the last ``@``; the password is everything after the
+    first ``:`` within it.
+    """
+    userinfo, sep, host_port = netloc.rpartition("@")
+    if not sep:
+        return netloc
+    user, colon, _password = userinfo.partition(":")
+    if not colon:
+        return netloc
+    return f"{user}:{_REDACTED}@{host_port}"
+
+
+def _redact_query(query: str) -> str:
+    """Redact the value of any ``password`` query parameter.
+
+    Other parameters are preserved verbatim.  Keys are percent-decoded for
+    comparison (libpq decodes URI parameter keys) but emitted as written.
+    """
+    if not query:
+        return query
+    parts = []
+    for part in query.split("&"):
+        key, eq, _value = part.partition("=")
+        if eq and unquote(key) == "password":
+            parts.append(f"{key}={_REDACTED}")
+        else:
+            parts.append(part)
+    return "&".join(parts)
+
+
 def _redact_db_url(db_url: str) -> str:
-    """Replace the password component of a database URL, if present."""
+    """Redact password material in a database URL, if present.
+
+    Covers both the userinfo password (``postgres://u:pw@host/db``) and the
+    libpq/asyncpg query-parameter form (``postgres://host/db?password=pw``).
+    """
     parsed = urlsplit(db_url)
-    if parsed.password is None:
-        return db_url
-    host_port = parsed.hostname or ""
-    if parsed.port is not None:
-        host_port = f"{host_port}:{parsed.port}"
-    netloc = f"{parsed.username or ''}:{_REDACTED}@{host_port}"
-    return urlunsplit(parsed._replace(netloc=netloc))
+    return urlunsplit(parsed._replace(
+        netloc=_redact_netloc(parsed.netloc),
+        query=_redact_query(parsed.query),
+    ))
 
 
 def _serialize_config(config: RunConfig) -> dict[str, Any]:
