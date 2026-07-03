@@ -9,6 +9,7 @@ except PackageNotFoundError:
 
 from orxtra.services._actions import ServicesActionExecutor, execute_service_action
 from orxtra.services._ask import ask, ask_structured, sync_ask
+from orxtra.services._dispatch_worker import create_dispatch_worker
 from orxtra.services._config import show_config, show_pricing
 from orxtra.services._dispatch import (
     create_source,
@@ -72,6 +73,7 @@ __all__ = [
     "AsyncioFlushScheduler",
     "AsyncpgAdapter",
     "AsyncpgTx",
+    "create_dispatch_worker",
     "DispatchContext",
     "RunConfig",
     "SchemaError",

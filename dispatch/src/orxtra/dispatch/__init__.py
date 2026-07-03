@@ -17,6 +17,7 @@ from orxtra.dispatch._delivery import (
     TransientEventDelivery,
     match_subscription,
 )
+from orxtra.dispatch._dispatch_worker import DispatchWorker
 from orxtra.dispatch._memory_backend import InMemoryDispatchBackend
 from orxtra.dispatch._pg_backend import PgDispatchBackend
 from orxtra.dispatch._protocols import (
@@ -40,14 +41,15 @@ __all__ = [
     "AccumulatorStorage",
     "ActionExecutor",
     "ActionStorage",
-    "EventFireCallback",
     "DispatchBackend",
+    "DispatchWorker",
     "DualPhaseEventDelivery",
+    "EventFireCallback",
     "FilterPredicate",
-    "Source",
-    "SourceStorage",
     "InMemoryDispatchBackend",
     "PgDispatchBackend",
+    "Source",
+    "SourceStorage",
     "Subscription",
     "SubscriptionAction",
     "SubscriptionStorage",

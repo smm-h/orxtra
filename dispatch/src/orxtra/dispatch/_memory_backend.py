@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 from orxtra.dispatch._types import (
@@ -19,6 +20,9 @@ class InMemoryDispatchBackend:
         self._actions: dict[UUID, SubscriptionAction] = {}
         self._accumulator: dict[UUID, AccumulatorEntry] = {}
         self._claimed: set[UUID] = set()
+        self._cursors: dict[str, UUID] = {}
+        self._completions: set[tuple[UUID, UUID]] = set()
+        self._events: list[dict[str, Any]] = []
 
     # -- SourceStorage --
 
@@ -126,3 +130,54 @@ class InMemoryDispatchBackend:
             for e in self._accumulator.values()
             if e.subscription_action_id == action_id
         )
+
+    # -- CursorStorage --
+
+    async def get_cursor_position(
+        self, cursor_name: str,
+    ) -> UUID | None:
+        return self._cursors.get(cursor_name)
+
+    async def advance_cursor(
+        self, cursor_name: str, event_id: UUID,
+    ) -> None:
+        self._cursors[cursor_name] = event_id
+
+    # -- CompletionStorage --
+
+    async def is_action_completed(
+        self, event_id: UUID, action_id: UUID,
+    ) -> bool:
+        return (event_id, action_id) in self._completions
+
+    async def record_completion(
+        self,
+        event_id: UUID,
+        action_id: UUID,
+        result_status: str,
+    ) -> None:
+        self._completions.add((event_id, action_id))
+
+    # -- Event polling --
+
+    async def poll_events_since(
+        self,
+        since_id: UUID | None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        if since_id is None:
+            return self._events[:limit]
+        found = False
+        result: list[dict[str, Any]] = []
+        for ev in self._events:
+            if found:
+                result.append(ev)
+                if len(result) >= limit:
+                    break
+            elif ev["id"] == since_id:
+                found = True
+        return result
+
+    def inject_event(self, event: dict[str, Any]) -> None:
+        """Test helper: add an event to the in-memory store."""
+        self._events.append(event)

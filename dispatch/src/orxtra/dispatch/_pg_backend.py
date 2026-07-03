@@ -285,6 +285,102 @@ class PgDispatchBackend:
             )
         return int(count)
 
+    # -- CursorStorage --
+
+    async def get_cursor_position(
+        self, cursor_name: str,
+    ) -> UUID | None:
+        """Return the last_processed_event_id for *cursor_name*, or None."""
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchval(
+                "SELECT last_processed_event_id"
+                " FROM dispatch_cursor WHERE cursor_name = $1",
+                cursor_name,
+            )
+        return row
+
+    async def advance_cursor(
+        self, cursor_name: str, event_id: UUID,
+    ) -> None:
+        """Upsert the cursor position for *cursor_name*."""
+        async with self._pool.acquire() as conn, conn.transaction():
+            await conn.execute(
+                "INSERT INTO dispatch_cursor"
+                " (id, cursor_name, last_processed_event_id, last_processed_at)"
+                " VALUES (uuid_generate_v7(), $1, $2, now())"
+                " ON CONFLICT (cursor_name)"
+                " DO UPDATE SET last_processed_event_id = $2,"
+                "   last_processed_at = now()",
+                cursor_name,
+                event_id,
+            )
+
+    # -- CompletionStorage --
+
+    async def is_action_completed(
+        self, event_id: UUID, action_id: UUID,
+    ) -> bool:
+        """Return True if a completion record exists for this event+action."""
+        async with self._pool.acquire() as conn:
+            count = await conn.fetchval(
+                "SELECT count(*) FROM dispatch_completions"
+                " WHERE event_id = $1 AND subscription_action_id = $2",
+                event_id,
+                action_id,
+            )
+        return int(count) > 0
+
+    async def record_completion(
+        self,
+        event_id: UUID,
+        action_id: UUID,
+        result_status: str,
+    ) -> None:
+        """Insert a completion record (idempotent via unique constraint)."""
+        async with self._pool.acquire() as conn, conn.transaction():
+            await conn.execute(
+                "INSERT INTO dispatch_completions"
+                " (id, event_id, subscription_action_id,"
+                "  result_status, completed_at)"
+                " VALUES (uuid_generate_v7(), $1, $2, $3, now())"
+                " ON CONFLICT (event_id, subscription_action_id)"
+                " DO NOTHING",
+                event_id,
+                action_id,
+                result_status,
+            )
+
+    # -- Event polling --
+
+    async def poll_events_since(
+        self,
+        since_id: UUID | None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Return events after *since_id*, ordered by id (UUIDv7 = time-ordered).
+
+        Each row is returned as a dict with keys:
+        id, run_id, task_id, event_type, source, data, idempotency_key, created_at.
+        """
+        if since_id is not None:
+            query = (
+                "SELECT id, run_id, task_id, event_type, source,"
+                " data, idempotency_key, created_at"
+                " FROM events WHERE id > $1"
+                " ORDER BY id LIMIT $2"
+            )
+            params: list[Any] = [since_id, limit]
+        else:
+            query = (
+                "SELECT id, run_id, task_id, event_type, source,"
+                " data, idempotency_key, created_at"
+                " FROM events ORDER BY id LIMIT $1"
+            )
+            params = [limit]
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(query, *params)
+        return [dict(r) for r in rows]
+
 
 # -- Row -> model helpers --
 

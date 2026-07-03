@@ -437,6 +437,13 @@ from orxtra.cli._db import register_db_commands
 register_db_commands(app)
 
 
+# -- Dispatch commands (from orxtra.dispatch) --
+
+from orxtra.dispatch._cli import register_dispatch_commands
+
+register_dispatch_commands(app)
+
+
 # -- Worker commands (from orxtra.worker) --
 
 from orxtra.worker._cli import register_worker_commands
