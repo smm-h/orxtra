@@ -35,6 +35,10 @@
     "content": "38d3347fed2c2b74316882a3ab2010698f6f15d236369afd4164a739e7b7087e",
     "description": "279085f344a57b5ac01886e0af8ca0e9c2325961e63c067900ede1fae729e671"
   },
+  "en/cli-dispatch.md": {
+    "content": "cfcd2a779bce6bfe19a640fa7252ae09c8a48f4f6820b7a2d716fe5b625c19f4",
+    "description": "5eedc084b575decf1e1df74a70e9925c476c51459baf62f4fd2b102be6b30df4"
+  },
   "en/cli-event.md": {
     "content": "dee78255687fc980a766f59a12951751a619366a14e273ade561fbc04c1d4d94",
     "description": "cb4545b0eca92a0abcf0399c502b02b824322a62c23d46220cba5d408ffbf067"
@@ -44,7 +48,7 @@
     "description": "6b14553db289bce7da01169c5013d49f8ffd121f358cfeaa8d36417f37d28147"
   },
   "en/cli-index.md": {
-    "content": "d119b22b22860c585f8bb156139a9da774781fdb8ce77098a3fc0ae9cd0e5a64",
+    "content": "615c93303532b7fc9e1ee5562af6c17c8ef9f8874cb329d19765328730d5da24",
     "description": "2a078aecbd5d7b1cfdb389e09ccb429c3cccca94b8736b748e6e2b6d71954f28"
   },
   "en/cli-run.md": {

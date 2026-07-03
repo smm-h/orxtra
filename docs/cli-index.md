@@ -27,4 +27,5 @@ Version: 0.8.0
 - [validate](cli-validate.html) -- Validate configuration files.
 - [config](cli-config.html) -- Configuration commands.
 - [db](cli-db.html) -- Database provisioning and migration commands.
+- [dispatch](cli-dispatch.html) -- Dispatch worker commands.
 - [worker](cli-worker.html) -- Worker process commands.

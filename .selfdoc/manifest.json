@@ -18,6 +18,11 @@
       "type": "doc"
     },
     {
+      "path": "cli-dispatch.md",
+      "title": "orxtra dispatch",
+      "type": "doc"
+    },
+    {
       "path": "cli-event.md",
       "title": "orxtra event",
       "type": "doc"
@@ -69,5 +74,5 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-07-03T15:10:33.687800+00:00"
+  "last_gen": "2026-07-03T16:52:25.322983+00:00"
 }
