@@ -38,6 +38,9 @@ async def load_knowledge_files(
     loaded_hashes: dict[str, str] = {}
     if hash_store is not None:
         loaded_hashes = await hash_store.read_knowledge_hashes(run_id)
+    # hash_store=None is valid: files load every run but skip-unchanged
+    # is unavailable. The write_lesson/write_constraint calls still work
+    # on any writer -- only hash persistence requires KnowledgeHashStorage.
 
     for path in sorted(knowledge_dir.iterdir()):  # noqa: ASYNC240
         if path.suffix == ".md":
@@ -84,10 +87,22 @@ async def _load_toml(
     raw = path.read_text(encoding="utf-8")  # noqa: ASYNC240
     data: dict[str, Any] = tomllib.loads(raw)
     constraints: list[dict[str, Any]] = data.get("constraints", [])
-    for constraint in constraints:
+    for idx, constraint in enumerate(constraints):
         text: str = constraint["text"]
-        tier: str = constraint.get("tier", "advisory")
-        kind: str = constraint.get("kind", "knowledge_file")
+        if "tier" not in constraint:
+            msg = (
+                f"Constraint #{idx} in {path} missing"
+                f" required key 'tier'"
+            )
+            raise ValueError(msg)
+        if "kind" not in constraint:
+            msg = (
+                f"Constraint #{idx} in {path} missing"
+                f" required key 'kind'"
+            )
+            raise ValueError(msg)
+        tier: str = constraint["tier"]
+        kind: str = constraint["kind"]
         await trace_writer.write_constraint(
             run_id=run_id,
             text=text,
