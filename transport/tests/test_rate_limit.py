@@ -15,7 +15,7 @@ from orxtra.transport._events import (
 from orxtra.transport._provider import RetryPolicy
 from orxtra.transport._transport import Transport
 
-from .test_transport import MockProvider
+from .helpers import MockProvider
 
 
 # ---------------------------------------------------------------------------
