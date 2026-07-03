@@ -1,0 +1,535 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "schema_version": 1,
+    "app": {
+      "env_prefix": null,
+      "config": false,
+      "global_flags": [],
+      "commands": {},
+      "groups": {},
+      "deprecated": {},
+      "tag_contracts": {}
+    },
+    "flag": {
+      "short": null,
+      "default": null,
+      "env": null,
+      "choices": null,
+      "repeatable": false,
+      "unique": false,
+      "env_separator": null,
+      "negatable": null,
+      "hidden": false
+    },
+    "arg": {
+      "type": "str",
+      "required": true,
+      "default": null,
+      "variadic": false,
+      "choices": null
+    },
+    "command": {
+      "passthrough": false,
+      "flags": [],
+      "args": [],
+      "tags": [],
+      "constraints": [],
+      "hidden": false,
+      "interactive": false
+    },
+    "group": {
+      "commands": {},
+      "groups": {},
+      "deprecated": {},
+      "tags": [],
+      "hidden": false
+    }
+  },
+  "project_id": "orxtra",
+  "name": "orxtra",
+  "version": "0.8.0",
+  "help": "Autonomous multi-agent AI workflows.",
+  "global_flags": [
+    {
+      "name": "db",
+      "type": "str",
+      "help": "PostgreSQL connection URL.",
+      "default": ""
+    },
+    {
+      "name": "format",
+      "type": "str",
+      "help": "Output format.",
+      "default": "table",
+      "choices": [
+        "table",
+        "json"
+      ]
+    },
+    {
+      "name": "quiet",
+      "type": "bool",
+      "help": "Suppress non-essential output.",
+      "default": false,
+      "negatable": true
+    }
+  ],
+  "commands": {
+    "serve": {
+      "name": "serve",
+      "help": "Start the HTTP API server.",
+      "flags": [
+        {
+          "name": "port",
+          "type": "int",
+          "help": "Port to listen on."
+        },
+        {
+          "name": "host",
+          "type": "str",
+          "help": "Host to bind to.",
+          "default": "0.0.0.0"
+        },
+        {
+          "name": "secrets-env",
+          "type": "str",
+          "help": "JSON object mapping secret names to env var names for auth.",
+          "default": ""
+        }
+      ]
+    }
+  },
+  "groups": {
+    "run": {
+      "name": "run",
+      "help": "Run lifecycle commands.",
+      "commands": {
+        "start": {
+          "name": "start",
+          "help": "Start a run from a config file.",
+          "flags": [
+            {
+              "name": "config",
+              "type": "str",
+              "help": "Path to run config file."
+            },
+            {
+              "name": "intent",
+              "type": "str",
+              "help": "Intent description for the run."
+            }
+          ]
+        },
+        "list": {
+          "name": "list",
+          "help": "List all runs, newest first."
+        },
+        "show": {
+          "name": "show",
+          "help": "Show a run's full report.",
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        },
+        "abort": {
+          "name": "abort",
+          "help": "Signal a running run to abort.",
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        },
+        "pause": {
+          "name": "pause",
+          "help": "Pause a running run.",
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        },
+        "resume": {
+          "name": "resume",
+          "help": "Resume a paused run.",
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        }
+      }
+    },
+    "inbox": {
+      "name": "inbox",
+      "help": "Human inbox commands.",
+      "commands": {
+        "list": {
+          "name": "list",
+          "help": "List inbox items.",
+          "flags": [
+            {
+              "name": "run",
+              "type": "str",
+              "help": "Run ID to filter by."
+            },
+            {
+              "name": "status",
+              "type": "str",
+              "help": "Status filter.",
+              "default": ""
+            }
+          ]
+        },
+        "show": {
+          "name": "show",
+          "help": "Show a single inbox item.",
+          "args": [
+            {
+              "name": "item_id",
+              "help": "Inbox item ID."
+            }
+          ]
+        },
+        "respond": {
+          "name": "respond",
+          "help": "Answer an inbox item.",
+          "args": [
+            {
+              "name": "answer",
+              "help": "The answer text."
+            },
+            {
+              "name": "item_id",
+              "help": "Inbox item ID."
+            }
+          ]
+        },
+        "skip": {
+          "name": "skip",
+          "help": "Skip an inbox item.",
+          "args": [
+            {
+              "name": "item_id",
+              "help": "Inbox item ID."
+            }
+          ]
+        },
+        "reject": {
+          "name": "reject",
+          "help": "Reject an inbox item (options insufficient).",
+          "args": [
+            {
+              "name": "reason",
+              "help": "Reason for rejection."
+            },
+            {
+              "name": "item_id",
+              "help": "Inbox item ID."
+            }
+          ]
+        }
+      }
+    },
+    "trace": {
+      "name": "trace",
+      "help": "Trace and event query commands.",
+      "commands": {
+        "events": {
+          "name": "events",
+          "help": "Query events for a run.",
+          "flags": [
+            {
+              "name": "type",
+              "type": "str",
+              "help": "Filter by event type.",
+              "default": ""
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "help": "Maximum events to return.",
+              "default": 100
+            }
+          ],
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        },
+        "transcript": {
+          "name": "transcript",
+          "help": "Show a session's full transcript.",
+          "args": [
+            {
+              "name": "session_id",
+              "help": "Session ID."
+            }
+          ]
+        },
+        "search": {
+          "name": "search",
+          "help": "Search a transcript (case-insensitive substring).",
+          "args": [
+            {
+              "name": "query",
+              "help": "Search query."
+            },
+            {
+              "name": "session_id",
+              "help": "Session ID."
+            }
+          ]
+        },
+        "tasks": {
+          "name": "tasks",
+          "help": "Show task statuses and attempt counts.",
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        },
+        "notepad": {
+          "name": "notepad",
+          "help": "Show notepad entries.",
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        }
+      }
+    },
+    "event": {
+      "name": "event",
+      "help": "Event firing commands.",
+      "commands": {
+        "fire": {
+          "name": "fire",
+          "help": "Fire a named event for wait-for tasks.",
+          "flags": [
+            {
+              "name": "payload",
+              "type": "str",
+              "help": "JSON payload.",
+              "default": ""
+            }
+          ],
+          "args": [
+            {
+              "name": "event_name",
+              "help": "Event name."
+            },
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        }
+      }
+    },
+    "validate": {
+      "name": "validate",
+      "help": "Validate configuration files.",
+      "commands": {
+        "agent": {
+          "name": "agent",
+          "help": "Validate an agent TOML file.",
+          "args": [
+            {
+              "name": "path",
+              "help": "Path to agent TOML file."
+            }
+          ]
+        },
+        "workflow": {
+          "name": "workflow",
+          "help": "Validate a workflow TOML file.",
+          "args": [
+            {
+              "name": "path",
+              "help": "Path to workflow TOML file."
+            }
+          ]
+        },
+        "categories": {
+          "name": "categories",
+          "help": "Validate a categories TOML file.",
+          "args": [
+            {
+              "name": "path",
+              "help": "Path to categories TOML file."
+            }
+          ]
+        }
+      }
+    },
+    "config": {
+      "name": "config",
+      "help": "Configuration commands.",
+      "commands": {
+        "show": {
+          "name": "show",
+          "help": "Show the config snapshot for a run.",
+          "args": [
+            {
+              "name": "run_id",
+              "help": "Run ID."
+            }
+          ]
+        },
+        "pricing": {
+          "name": "pricing",
+          "help": "Show the current internal pricing table."
+        }
+      }
+    },
+    "db": {
+      "name": "db",
+      "help": "Database provisioning and migration commands.",
+      "commands": {
+        "init": {
+          "name": "init",
+          "help": "Create the database schema (idempotent).",
+          "flags": [
+            {
+              "name": "use-extension-stub",
+              "type": "bool",
+              "help": "Use a gen_random_uuid() stub instead of pg_uuidv7 extension.",
+              "default": false,
+              "negatable": true
+            }
+          ]
+        },
+        "verify": {
+          "name": "verify",
+          "help": "Verify the database schema is complete."
+        }
+      },
+      "groups": {
+        "migrate": {
+          "name": "migrate",
+          "help": "Database migration commands (wraps pgdesign).",
+          "commands": {
+            "plan": {
+              "name": "plan",
+              "help": "Preview schema changes without generating files."
+            },
+            "apply": {
+              "name": "apply",
+              "help": "Apply pending migrations to the database.",
+              "flags": [
+                {
+                  "name": "dry-run",
+                  "type": "bool",
+                  "help": "Preview migration SQL without executing.",
+                  "default": false,
+                  "negatable": true
+                }
+              ]
+            },
+            "status": {
+              "name": "status",
+              "help": "Show applied and pending migration status."
+            }
+          }
+        }
+      }
+    },
+    "dispatch": {
+      "name": "dispatch",
+      "help": "Dispatch worker commands.",
+      "commands": {
+        "run": {
+          "name": "run",
+          "help": "Run the persistent dispatch worker.",
+          "flags": [
+            {
+              "name": "cursor",
+              "type": "str",
+              "help": "Cursor name for this worker instance.",
+              "default": "main"
+            },
+            {
+              "name": "poll-interval",
+              "type": "float",
+              "help": "Fallback poll interval in seconds.",
+              "default": 5.0
+            },
+            {
+              "name": "batch-size",
+              "type": "int",
+              "help": "Max events per polling batch.",
+              "default": 100
+            }
+          ]
+        }
+      }
+    },
+    "worker": {
+      "name": "worker",
+      "help": "Worker process commands.",
+      "commands": {
+        "connect": {
+          "name": "connect",
+          "help": "Connect a native worker to a brain.",
+          "flags": [
+            {
+              "name": "brain",
+              "type": "str",
+              "help": "Brain WebSocket URL."
+            },
+            {
+              "name": "root",
+              "type": "str",
+              "help": "Project root directory."
+            },
+            {
+              "name": "key",
+              "type": "str",
+              "help": "API key for authentication."
+            }
+          ]
+        },
+        "docker": {
+          "name": "docker",
+          "help": "Run a worker inside a Docker container.",
+          "flags": [
+            {
+              "name": "brain",
+              "type": "str",
+              "help": "Brain WebSocket URL."
+            },
+            {
+              "name": "image",
+              "type": "str",
+              "help": "Docker image name."
+            },
+            {
+              "name": "root",
+              "type": "str",
+              "help": "Project root directory."
+            },
+            {
+              "name": "key",
+              "type": "str",
+              "help": "API key for authentication."
+            }
+          ]
+        }
+      }
+    }
+  }
+}
