@@ -134,14 +134,49 @@ class TestLoadCustomTools:
 
         assert "mutation" in entries[0].tags
 
-    def test_factory_raises_not_implemented(self, tmp_path: Path) -> None:
+    def test_http_factory_produces_tool(self, tmp_path: Path) -> None:
+        """Http-type entries have a real factory that builds a Tool."""
+        from orxtra.protocols import Tool  # noqa: PLC0415
+
         tools_dir = tmp_path / "tools"
         tools_dir.mkdir()
         (tools_dir / "api.toml").write_text(_VALID_HTTP_TOML)
 
         entries = _load_custom_tools(tools_dir, secret_registry=None)
 
-        with pytest.raises(NotImplementedError, match="my_api_tool"):
+        deps = MagicMock()
+        deps.preview_threshold = 50000
+        deps.preview_lines = 50
+        tool = entries[0].factory(deps)
+        assert isinstance(tool, Tool)
+        assert tool.name == "my_api_tool"
+
+    def test_non_http_factory_raises_not_implemented(
+        self, tmp_path: Path,
+    ) -> None:
+        """Monty/command-type entries still raise NotImplementedError."""
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        monty_toml = """\
+[tool]
+name = "my_monty_tool"
+description = "A monty tool"
+namespace = "custom.monty"
+deferred = false
+
+[execution]
+type = "monty"
+code = "x = 1"
+capabilities = []
+
+[execution.limits]
+max_duration_secs = 30
+"""
+        (tools_dir / "monty.toml").write_text(monty_toml)
+
+        entries = _load_custom_tools(tools_dir, secret_registry=None)
+
+        with pytest.raises(NotImplementedError, match="my_monty_tool"):
             entries[0].factory(MagicMock())
 
 

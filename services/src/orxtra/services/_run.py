@@ -132,9 +132,10 @@ def _load_custom_tools(
 ) -> list[ToolEntry]:
     """Load data-defined tools and convert to ToolEntry objects.
 
-    The factory raises NotImplementedError for now -- actual execution
-    is implemented in phases 3.2 (http) and 3.3 (monty).
+    Http-type definitions get a real factory via ``build_http_tool``.
+    Monty and command types raise NotImplementedError (pending 3.3).
     """
+    from orxtra.tool._data_tool_http import build_http_tool  # noqa: PLC0415
     from orxtra.tool._data_tool_types import (  # noqa: PLC0415
         HttpExecution,
     )
@@ -157,22 +158,40 @@ def _load_custom_tools(
             # at execution time (3.3) -- for now mark as mutation.
             derived_tags.add("mutation")
 
-        def _placeholder_factory(
-            deps: Any,  # noqa: ANN401
-            *,
-            _name: str = defn.name,
-        ) -> Any:  # noqa: ANN401
-            msg = (
-                f"Data-defined tool {_name!r} execution not yet "
-                f"implemented (pending phases 3.2/3.3)"
-            )
-            raise NotImplementedError(msg)
+        if isinstance(defn.execution, HttpExecution):
+            def _http_factory(
+                deps: Any,  # noqa: ANN401
+                *,
+                _defn: Any = defn,  # noqa: ANN401
+                _sr: SecretRegistry | None = secret_registry,
+            ) -> Any:  # noqa: ANN401
+                return build_http_tool(
+                    _defn,
+                    secret_registry=_sr,
+                    preview_threshold=deps.preview_threshold,
+                    preview_lines=deps.preview_lines,
+                )
+
+            factory = _http_factory
+        else:
+            def _placeholder_factory(
+                deps: Any,  # noqa: ANN401
+                *,
+                _name: str = defn.name,
+            ) -> Any:  # noqa: ANN401
+                msg = (
+                    f"Data-defined tool {_name!r} execution not yet "
+                    f"implemented (pending phase 3.3)"
+                )
+                raise NotImplementedError(msg)
+
+            factory = _placeholder_factory
 
         entries.append(ToolEntry(
             name=defn.name,
             namespace=defn.namespace,
             tags=frozenset(derived_tags),
-            factory=_placeholder_factory,
+            factory=factory,
         ))
 
     return entries

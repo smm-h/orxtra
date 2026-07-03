@@ -8,6 +8,7 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
+from orxtra.tool._data_tool_http import build_http_tool
 from orxtra.tool._data_tool_loader import load_tool_definition, load_tool_definitions
 from orxtra.tool._data_tool_types import (
     CommandExecution,
@@ -72,6 +73,7 @@ from orxtra.tool._write_tools import (
 __all__ = [
     "__version__",
     "CONSULT_STRIP_TOOLS",
+    "build_http_tool",
     "CommandExecution",
     "DataToolDefinition",
     "FILE_MUTATION_TOOLS",
