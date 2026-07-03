@@ -24,6 +24,11 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 from orxtra.protocols import Tool, ToolError, ToolOutput
+from orxtra.tool._data_tool_shared import (
+    build_json_schema_params,
+    validate_args,
+    validate_output_schema,
+)
 from orxtra.tool._data_tool_types import DataToolDefinition, HttpExecution, ParamDef
 
 if TYPE_CHECKING:
@@ -38,37 +43,9 @@ def _build_json_schema_params(
 ) -> dict[str, Any]:
     """Build a JSON Schema ``parameters`` dict from ParamDef entries.
 
-    This is the schema the LLM sees for tool-call arguments.
+    Delegates to the shared implementation in ``_data_tool_shared``.
     """
-    properties: dict[str, Any] = {}
-    required: list[str] = []
-
-    type_map = {
-        "string": "string",
-        "integer": "integer",
-        "number": "number",
-        "boolean": "boolean",
-    }
-
-    for name, pdef in params.items():
-        prop: dict[str, Any] = {
-            "type": type_map[pdef.type],
-            "description": pdef.description,
-        }
-        if pdef.pattern is not None:
-            prop["pattern"] = pdef.pattern
-        properties[name] = prop
-        if pdef.required:
-            required.append(name)
-
-    schema: dict[str, Any] = {
-        "type": "object",
-        "properties": properties,
-    }
-    if required:
-        schema["required"] = required
-    schema["additionalProperties"] = False
-    return schema
+    return build_json_schema_params(params)
 
 
 def _substitute_secrets(
@@ -137,23 +114,9 @@ def _validate_output_schema(
 ) -> None:
     """Validate response data against the output JSON Schema.
 
-    Raises ToolError with a descriptive message on validation failure.
+    Delegates to the shared implementation in ``_data_tool_shared``.
     """
-    import jsonschema  # noqa: PLC0415
-
-    try:
-        jsonschema.validate(instance=response_data, schema=schema)
-    except jsonschema.ValidationError as exc:
-        # Build a descriptive message naming the failing field.
-        path = (
-            ".".join(str(p) for p in exc.absolute_path)
-            if exc.absolute_path
-            else "(root)"
-        )
-        msg = (
-            f"Response validation failed at '{path}': {exc.message}"
-        )
-        raise ToolError(msg) from exc
+    validate_output_schema(response_data, schema)
 
 
 def _validate_args(
@@ -162,20 +125,9 @@ def _validate_args(
 ) -> None:
     """Validate that required params are present and types match.
 
-    Raises ToolError on missing required params or unexpected args.
+    Delegates to the shared implementation in ``_data_tool_shared``.
     """
-    # Check for unexpected args.
-    known = set(params.keys())
-    unexpected = set(args.keys()) - known
-    if unexpected:
-        msg = f"Unexpected arguments: {sorted(unexpected)}"
-        raise ToolError(msg)
-
-    # Check required params.
-    for name, pdef in params.items():
-        if pdef.required and name not in args:
-            msg = f"Missing required argument: '{name}'"
-            raise ToolError(msg)
+    validate_args(args, params)
 
 
 def _apply_secret_substitution(

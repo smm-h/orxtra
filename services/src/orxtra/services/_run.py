@@ -133,11 +133,19 @@ def _load_custom_tools(
     """Load data-defined tools and convert to ToolEntry objects.
 
     Http-type definitions get a real factory via ``build_http_tool``.
-    Monty and command types raise NotImplementedError (pending 3.3).
+    Monty and command types use ``build_monty_tool`` and
+    ``build_command_tool`` respectively, with capability-derived tags.
     """
     from orxtra.tool._data_tool_http import build_http_tool  # noqa: PLC0415
+    from orxtra.tool._data_tool_monty import (  # noqa: PLC0415
+        _derive_tags,
+        build_command_tool,
+        build_monty_tool,
+    )
     from orxtra.tool._data_tool_types import (  # noqa: PLC0415
+        CommandExecution,
         HttpExecution,
+        MontyExecution,
     )
 
     definitions = load_tool_definitions(tools_dir, secret_registry)
@@ -147,18 +155,14 @@ def _load_custom_tools(
         derived_tags: set[str] = set()
         if defn.tags:
             derived_tags.update(defn.tags)
-        # Derive effect tags from execution config.
+
         if isinstance(defn.execution, HttpExecution):
+            # HTTP: derive from method.
             if defn.execution.method in {"GET", "HEAD"}:
                 derived_tags.add("readonly")
             else:
                 derived_tags.add("mutation")
-        else:
-            # monty and command: tags are derived from capabilities
-            # at execution time (3.3) -- for now mark as mutation.
-            derived_tags.add("mutation")
 
-        if isinstance(defn.execution, HttpExecution):
             def _http_factory(
                 deps: Any,  # noqa: ANN401
                 *,
@@ -173,19 +177,42 @@ def _load_custom_tools(
                 )
 
             factory = _http_factory
-        else:
-            def _placeholder_factory(
+
+        elif isinstance(defn.execution, MontyExecution):
+            # Monty: derive tags from capabilities.
+            cap_tags = _derive_tags(
+                defn.execution.capabilities, defn.tags,
+            )
+            derived_tags.update(cap_tags)
+
+            def _monty_factory(
                 deps: Any,  # noqa: ANN401
                 *,
-                _name: str = defn.name,
+                _defn: Any = defn,  # noqa: ANN401
             ) -> Any:  # noqa: ANN401
-                msg = (
-                    f"Data-defined tool {_name!r} execution not yet "
-                    f"implemented (pending phase 3.3)"
-                )
-                raise NotImplementedError(msg)
+                return build_monty_tool(_defn, deps)
 
-            factory = _placeholder_factory
+            factory = _monty_factory
+
+        elif isinstance(defn.execution, CommandExecution):
+            # Command: always mutation.
+            derived_tags.add("mutation")
+
+            def _command_factory(
+                deps: Any,  # noqa: ANN401
+                *,
+                _defn: Any = defn,  # noqa: ANN401
+            ) -> Any:  # noqa: ANN401
+                return build_command_tool(_defn, deps)
+
+            factory = _command_factory
+
+        else:
+            msg = (
+                f"Unknown execution type for tool {defn.name!r}: "
+                f"{type(defn.execution).__name__}"
+            )
+            raise ValueError(msg)
 
         entries.append(ToolEntry(
             name=defn.name,

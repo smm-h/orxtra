@@ -151,10 +151,12 @@ class TestLoadCustomTools:
         assert isinstance(tool, Tool)
         assert tool.name == "my_api_tool"
 
-    def test_non_http_factory_raises_not_implemented(
+    def test_monty_factory_produces_tool(
         self, tmp_path: Path,
     ) -> None:
-        """Monty/command-type entries still raise NotImplementedError."""
+        """Monty-type entries have a real factory that builds a Tool."""
+        from orxtra.protocols import Tool  # noqa: PLC0415
+
         tools_dir = tmp_path / "tools"
         tools_dir.mkdir()
         monty_toml = """\
@@ -176,8 +178,14 @@ max_duration_secs = 30
 
         entries = _load_custom_tools(tools_dir, secret_registry=None)
 
-        with pytest.raises(NotImplementedError, match="my_monty_tool"):
-            entries[0].factory(MagicMock())
+        deps = MagicMock()
+        deps.read_root = tmp_path
+        deps.write_scope = None
+        deps.preview_threshold = 50000
+        deps.preview_lines = 50
+        tool = entries[0].factory(deps)
+        assert isinstance(tool, Tool)
+        assert tool.name == "my_monty_tool"
 
 
 # ---------------------------------------------------------------------------

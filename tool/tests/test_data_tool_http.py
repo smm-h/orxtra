@@ -279,7 +279,7 @@ class TestOutputSchemaValidation:
         with (
             patch(_HTTPX_CLIENT, return_value=mock),
             pytest.raises(
-                ToolError, match="Response validation failed",
+                ToolError, match="Output validation failed",
             ),
         ):
             await tool.execute({})

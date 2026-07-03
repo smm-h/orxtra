@@ -9,6 +9,7 @@ dependencies = [
     "jsonschema",
     "pathspec",
     "pydantic>=2",
+    "pydantic-monty==0.0.18",
     "orxtra-protocols",
     "orxtra-secrets",
     "orxtra-write-safety",

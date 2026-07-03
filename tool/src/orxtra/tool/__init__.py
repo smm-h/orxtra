@@ -9,6 +9,7 @@ except PackageNotFoundError:
 
 from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
 from orxtra.tool._data_tool_http import build_http_tool
+from orxtra.tool._data_tool_monty import build_command_tool, build_monty_tool
 from orxtra.tool._data_tool_loader import load_tool_definition, load_tool_definitions
 from orxtra.tool._data_tool_types import (
     CommandExecution,
@@ -34,6 +35,7 @@ from orxtra.tool._pipeline import (
     wrap_tools_for_session,
 )
 from orxtra.tool._scrub import scrub_data, scrub_text, scrub_tool_output
+from orxtra.tool._subprocess import run_subprocess, validate_exec_arg
 from orxtra.tool._preview import (
     FullRetrievalGuard,
     PreviewResult,
@@ -73,7 +75,9 @@ from orxtra.tool._write_tools import (
 __all__ = [
     "__version__",
     "CONSULT_STRIP_TOOLS",
+    "build_command_tool",
     "build_http_tool",
+    "build_monty_tool",
     "CommandExecution",
     "DataToolDefinition",
     "FILE_MUTATION_TOOLS",
@@ -124,6 +128,8 @@ __all__ = [
     "make_stat_tool",
     "make_write_tool",
     "resolve_and_check",
+    "run_subprocess",
+    "validate_exec_arg",
     "tool",
     "safe_read_for_write",
     "safe_write",
