@@ -18,3 +18,4 @@
 {"commits":["df08568e92eef3467901d99353bd84ad1db77226"],"user_facing":false,"packages":["dispatch","trace"]}
 {"commits":["edd4c81f99a4777ae31d8277e2624f057eac7a06"],"user_facing":false,"packages":["services","tool"]}
 {"commits":["5533b42c5d6a29af906d8de841f3b76c435fd488"],"user_facing":false,"packages":["services","tool"]}
+{"commits":["c2d562a6d8d6b25050b15a519a90971bec75c3f5"],"user_facing":true,"description":"**New command group.** `orxtra db` with `init`, `verify`, and `migrate` (plan/apply/status) subcommands for database provisioning and migration.","type":"feature","packages":["cli"]}
