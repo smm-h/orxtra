@@ -24,3 +24,4 @@
 {"commits":["e4911866ae960d40c9f1536e7d139aa1e2ec8dae"],"user_facing":false,"packages":[".","cli"]}
 {"commits":["93ff656026f7479d719e0681fc79ebf5d184fb1a"],"user_facing":true,"description":"**Breaking.** Replace ExecToolConfig/ShellConfig with InlineToolDefinition and `[[tools.define]]` TOML parsing.","type":"breaking","packages":["agent"]}
 {"commits":["f10c25c711f74d739feb2b25c2fdbbd516749ae0"],"user_facing":true,"description":"**Breaking.** Delete `make_exec_tool`/`make_shell_tool` constructors and `CONSULT_STRIP_TOOLS`/`FILE_MUTATION_TOOLS` name-sets. Consult stripping and mutation tracking now use tag-based logic. Agent `[[exec]]`/`[shell]` sections replaced by `[[tools.define]]` inline definitions.","type":"breaking","packages":[".","scheduler","tool","worker"]}
+{"commits":["b197b58bac45122d2e4b7fce799e323169f2bf57"],"user_facing":false,"packages":["services"]}
