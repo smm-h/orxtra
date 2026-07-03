@@ -20,7 +20,8 @@ from uuid import UUID
 import pytest
 import uuid6
 from orxtra.compose import resolve_variables
-from orxtra.notepad import NotepadEntry, format_notepad
+from orxtra.notepad import NotepadEntry
+from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import TaskSpec
 
 from .conftest import (
@@ -286,14 +287,14 @@ class TestPromptAssemblyGolden:
 
 
 class TestNotepadFormatGolden:
-    """Golden-output tests for the notepad format_notepad function.
+    """Golden-output tests for the _render_notepad function.
 
-    Captures the exact rendering so the compose template replacement
-    produces identical output.
+    Captures the exact rendering produced by the compose-path
+    notepad renderer in _prompt_providers.
     """
 
     def test_empty_entries(self) -> None:
-        result = format_notepad([])
+        result = _render_notepad([])
         assert "## Context from previous steps" in result
         assert "### Learnings" in result
         assert "### Decisions" in result
@@ -321,7 +322,7 @@ class TestNotepadFormatGolden:
                 created_at=now,
             ),
         ]
-        result = format_notepad(entries)
+        result = _render_notepad(entries)
 
         assert "- [t1/a1] Learned something" in result
         assert "- [t2/a2] Decided something" in result
@@ -334,57 +335,104 @@ class TestNotepadFormatGolden:
         assert lines[issues_idx + 1] == "- (none)"
 
 
-class TestResolvePromptLenient:
-    """Tests documenting the lenient behavior of _resolve_prompt.
+class TestSchedulerStrictSubstitution:
+    """Integration tests proving the scheduler's prompt assembly
+    uses strict two-way variable substitution.
 
-    These establish the baseline: lenient substitution passes through
-    unknown placeholders and ignores unused variables. After Step 2,
-    equivalent tests should verify that strict substitution raises
-    errors instead.
+    Unknown placeholders in task prompts raise ValueError.
+    Unused variables raise ValueError.
+    Normal substitution works correctly.
     """
 
-    def test_unknown_placeholder_passes_through(
+    async def test_unknown_placeholder_raises(
         self, tmp_path: Any,  # noqa: ANN401
     ) -> None:
-        """Lenient: unknown {placeholder} survives in output."""
-        from orxtra.scheduler._agent_execution import AgentExecutionMixin
-
-        result = AgentExecutionMixin._resolve_prompt(
-            "Hello {unknown} world", {},
+        """Strict: unknown {placeholder} in task_prompt is a hard error."""
+        sched = _make_scheduler(tmp_path)
+        task = TaskSpec(
+            name="strict-unknown",
+            agent="test-agent",
+            task_prompt="Hello {unknown} world",
+            context_refinement=False,
         )
-        assert result == "Hello {unknown} world"
+        task_id = uuid6.uuid7()
+        attempt_id = uuid6.uuid7()
 
-    def test_unused_variable_ignored(
+        with pytest.raises(ValueError, match="Unresolved placeholder"):
+            await sched._assemble_agent_prompt(  # noqa: SLF001
+                task, task_id, {}, 1, attempt_id, [],
+            )
+
+    async def test_unused_variable_raises(
         self, tmp_path: Any,  # noqa: ANN401
     ) -> None:
-        """Lenient: variable with no matching placeholder is silently ignored."""
-        from orxtra.scheduler._agent_execution import AgentExecutionMixin
-
-        result = AgentExecutionMixin._resolve_prompt(
-            "Hello world", {"extra": "value"},
+        """Strict: variable with no matching placeholder is a hard error."""
+        sched = _make_scheduler(tmp_path)
+        task = TaskSpec(
+            name="strict-unused",
+            agent="test-agent",
+            task_prompt="Hello world",
+            context_refinement=False,
         )
-        assert result == "Hello world"
+        task_id = uuid6.uuid7()
+        attempt_id = uuid6.uuid7()
 
-    def test_partial_match(
+        with pytest.raises(ValueError, match="Unused variable"):
+            await sched._assemble_agent_prompt(  # noqa: SLF001
+                task, task_id, {"extra": "value"}, 1, attempt_id, [],
+            )
+
+    async def test_normal_substitution_works(
         self, tmp_path: Any,  # noqa: ANN401
     ) -> None:
-        """Lenient: some variables match, others don't -- both pass."""
-        from orxtra.scheduler._agent_execution import AgentExecutionMixin
-
-        result = AgentExecutionMixin._resolve_prompt(
-            "Use {matched} and {orphan}",
-            {"matched": "found", "unused": "gone"},
+        """Strict: matched variables are substituted correctly."""
+        sched = _make_scheduler(tmp_path)
+        task = TaskSpec(
+            name="strict-ok",
+            agent="test-agent",
+            task_prompt="Process {item} in {mode}",
+            context_refinement=False,
         )
-        assert result == "Use found and {orphan}"
+        task_id = uuid6.uuid7()
+        attempt_id = uuid6.uuid7()
+
+        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+            task, task_id,
+            {"item": "alpha", "mode": "fast"},
+            1, attempt_id, [],
+        )
+
+        assert "Process alpha in fast" in result
+        assert "{item}" not in result
+        assert "{mode}" not in result
+
+    async def test_non_string_values_coerced(
+        self, tmp_path: Any,  # noqa: ANN401
+    ) -> None:
+        """Non-string variable values are coerced to str."""
+        sched = _make_scheduler(tmp_path)
+        task = TaskSpec(
+            name="strict-coerce",
+            agent="test-agent",
+            task_prompt="Count is {count}",
+            context_refinement=False,
+        )
+        task_id = uuid6.uuid7()
+        attempt_id = uuid6.uuid7()
+
+        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+            task, task_id, {"count": 42}, 1, attempt_id, [],
+        )
+
+        assert "Count is 42" in result
 
 
 class TestStrictSubstitutionRejects:
-    """Red tests proving strict substitution hard-errors on
-    constructs that lenient substitution tolerated.
+    """Tests proving strict substitution hard-errors on
+    constructs that lenient substitution would have tolerated.
 
-    These document the behavioral change: the compose engine's
-    resolve_variables raises ValueError where _resolve_prompt
-    would silently pass through or ignore.
+    These test the compose engine's resolve_variables directly,
+    complementing the scheduler integration tests above.
     """
 
     def test_unknown_placeholder_raises(self) -> None:
@@ -742,26 +790,23 @@ class TestPromptTemplateRendering:
         assert first is second  # Same object from cache
 
 
-class TestNotepadRenderingEquivalence:
-    """Verify that the compose-based notepad rendering in
-    _prompt_providers._render_notepad produces output identical
-    to notepad/_reader.format_notepad.
+class TestNotepadRenderingGolden:
+    """Golden tests for _render_notepad standalone output.
+
+    format_notepad has been deleted from the notepad module;
+    _render_notepad in _prompt_providers is the single renderer.
+    These verify its exact output structure.
     """
 
-    def test_empty_entries_equivalent(self) -> None:
-        from orxtra.scheduler._prompt_providers import (
-            _render_notepad,
-        )
+    def test_empty_entries_structure(self) -> None:
+        result = _render_notepad([])
+        assert result.startswith("## Context from previous steps")
+        assert "### Learnings\n- (none)" in result
+        assert "### Decisions\n- (none)" in result
+        assert "### Issues\n- (none)" in result
+        assert result.endswith("\n")
 
-        old_result = format_notepad([])
-        new_result = _render_notepad([])
-        assert old_result == new_result
-
-    def test_populated_entries_equivalent(self) -> None:
-        from orxtra.scheduler._prompt_providers import (
-            _render_notepad,
-        )
-
+    def test_populated_entries_structure(self) -> None:
         run_id = uuid6.uuid7()
         now = datetime.now(UTC)
         entries = [
@@ -790,6 +835,11 @@ class TestNotepadRenderingEquivalence:
                 created_at=now,
             ),
         ]
-        old_result = format_notepad(entries)
-        new_result = _render_notepad(entries)
-        assert old_result == new_result
+        result = _render_notepad(entries)
+
+        assert "- [task-a/coder] Use v2 API" in result
+        assert "- [task-b/reviewer] Skip linting" in result
+        assert "- [task-c/analyst] Missing test coverage" in result
+        # All types populated means no (none) markers
+        assert "(none)" not in result
+        assert result.endswith("\n")

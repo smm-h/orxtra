@@ -20,7 +20,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import uuid6
 from orxtra.agent import Agent
-from orxtra.notepad import NotepadEntry, format_notepad
+from orxtra.notepad import NotepadEntry
+from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import (
     CheckResult,
     CreateTaskParams,
@@ -606,7 +607,7 @@ class TestTaskContext:
         trace_writer: MockTraceWriter,
         run_id: uuid.UUID,
     ) -> None:
-        """TaskContext notepad_content uses format_notepad."""
+        """TaskContext notepad_content uses _render_notepad."""
         entry = NotepadEntry(
             run_id=run_id,
             task_name="prior",
@@ -629,7 +630,7 @@ class TestTaskContext:
         ctx = scheduler._make_task_context(  # noqa: SLF001
             task, task_id, None, 1, [], None,
         )
-        expected = format_notepad([entry])
+        expected = _render_notepad([entry])
         assert ctx.notepad_content == expected
         assert "Use approach B" in ctx.notepad_content
 

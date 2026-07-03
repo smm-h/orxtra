@@ -9,7 +9,8 @@ import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from orxtra.notepad import NotepadEntry, format_notepad
+from orxtra.notepad import NotepadEntry
+from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import (
     AttemptSummary,
     BudgetExhaustionPolicy,
@@ -792,7 +793,7 @@ class Scheduler(
             task_id=task_id,
             attempt=attempt,
             prior_attempts=summaries,
-            notepad_content=format_notepad(
+            notepad_content=_render_notepad(
                 self._notepad_entries,
             ),
             parent_task_id=parent_task_id,

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
-# Entry types and their display headers, matching notepad/_reader.py
+# Entry types and their display headers for notepad rendering
 _ENTRY_TYPES = ("learning", "decision", "issue")
 _TYPE_HEADERS = {
     "learning": "Learnings",
@@ -112,9 +112,8 @@ class ConstraintsProvider:
 class NotepadProvider:
     """Produces the notepad section fragment.
 
-    Renders notepad entries grouped by type, matching the exact format
-    of the old notepad/_reader.py format_notepad function. The notepad
-    module keeps its data-only API; rendering lives here.
+    Renders notepad entries grouped by type. The notepad module
+    provides data-only APIs; all rendering lives here.
 
     Context keys: notepad_entries (list[NotepadEntry])
     """
@@ -137,11 +136,7 @@ class NotepadProvider:
 
 
 def _render_notepad(entries: list[NotepadEntry]) -> str:
-    """Render notepad entries to markdown, matching format_notepad output.
-
-    The output must be character-identical to notepad/_reader.format_notepad
-    to preserve golden-output equivalence.
-    """
+    """Render notepad entries to markdown grouped by type."""
     groups: dict[str, list[NotepadEntry]] = {t: [] for t in _ENTRY_TYPES}
     for entry in entries:
         if entry.entry_type in groups:

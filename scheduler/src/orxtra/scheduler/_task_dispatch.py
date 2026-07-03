@@ -7,7 +7,7 @@ import logging
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from orxtra.notepad import format_notepad
+from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import (
     CheckResult,
     TaskContext,
@@ -148,7 +148,7 @@ class TaskDispatchMixin(SchedulerBase):
             task_id=task_id,
             attempt=1,
             prior_attempts=None,
-            notepad_content=format_notepad(
+            notepad_content=_render_notepad(
                 self._notepad_entries,
             ),
             parent_task_id=parent_task_id,
