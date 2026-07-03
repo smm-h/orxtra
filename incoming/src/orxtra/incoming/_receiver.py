@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any
 from fastware import JSONResponse, Router, TextResponse
 
 from orxtra.auth import AuthenticationError
+from orxtra.services import fire_event
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -107,8 +108,6 @@ def create_incoming_router(
         idempotency_key = _extract_idempotency_key(request, source_config)
 
         # -- Fire event --
-        from orxtra.services import fire_event  # noqa: PLC0415
-
         event_id, inserted = await fire_event(
             pool,
             None,  # run_id -- external events are not tied to a run
