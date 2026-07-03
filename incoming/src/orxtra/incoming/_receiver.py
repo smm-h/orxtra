@@ -12,7 +12,6 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from fastware import JSONResponse, Router, TextResponse
-
 from orxtra.auth import AuthenticationError
 from orxtra.incoming._replay import replay_handler
 from orxtra.incoming._stream import stream_handler
@@ -22,7 +21,6 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-
     from orxtra.auth import Authenticator
     from orxtra.protocols import DispatchBackend, EventBus, Source
 
@@ -32,7 +30,7 @@ log = logging.getLogger(__name__)
 DEFAULT_MAX_BODY_BYTES = 1_048_576
 
 
-def create_incoming_router(
+def create_incoming_router(  # noqa: C901
     *,
     pool: asyncpg.Pool[Any],
     dispatch_backend: DispatchBackend,
@@ -55,7 +53,7 @@ def create_incoming_router(
     """
     router = Router()
 
-    async def webhook_handler(request: Any) -> JSONResponse | TextResponse:  # noqa: ANN401
+    async def webhook_handler(request: Any) -> JSONResponse | TextResponse:  # noqa: ANN401, PLR0911
         """POST /events/{slug} -- receive an external webhook event."""
         slug: str = request.path_params.get("slug", "")
 
@@ -152,7 +150,7 @@ def create_incoming_router(
     # -- SSE stream endpoint (requires event_bus) --
 
     if event_bus is not None:
-        async def _stream_handler(  # noqa: E303
+        async def _stream_handler(
             request: Any,  # noqa: ANN401
         ) -> Any:  # noqa: ANN401
             return await stream_handler(
@@ -224,7 +222,7 @@ def _build_presented_credential(
 
     # Strip "Bearer " prefix if present.
     if auth_value.lower().startswith("bearer "):
-        auth_value = auth_value[7:]  # noqa: PLR2004
+        auth_value = auth_value[7:]
 
     return auth_value
 

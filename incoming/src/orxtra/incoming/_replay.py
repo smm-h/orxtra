@@ -6,19 +6,16 @@ pagination via UUIDv7 event IDs.
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from fastware import JSONResponse, TextResponse
-
 from orxtra.auth import AuthenticationError
 from orxtra.trace import replay
 
 if TYPE_CHECKING:
     import asyncpg
-
     from orxtra.auth import Authenticator
     from orxtra.protocols import DispatchBackend, Source
 

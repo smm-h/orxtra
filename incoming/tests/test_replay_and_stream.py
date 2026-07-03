@@ -21,7 +21,6 @@ import pytest
 import uuid6
 from fastware import Router, create_app
 from fastware.testing import AsyncTestClient
-
 from orxtra.auth import (
     Authenticator,
     HmacCredentialVerifier,
@@ -41,7 +40,7 @@ from orxtra.trace import EVENTS_CHANNEL, InMemoryEventBus
 # ---------------------------------------------------------------------------
 
 SLUG = "test-source"
-BEARER_TOKEN = "test-bearer-token-replay"
+BEARER_TOKEN = "test-bearer-token-replay"  # noqa: S105
 
 
 def _make_event(
@@ -482,7 +481,7 @@ class TestSSEStreamNotRegisteredWithoutEventBus:
 async def _collect_from_generator(
     gen: Any,  # noqa: ANN401
     max_events: int,
-    timeout: float = 2.0,
+    collect_timeout: float = 2.0,
 ) -> list[str]:
     """Collect up to max_events SSE messages from the generator.
 
@@ -490,7 +489,7 @@ async def _collect_from_generator(
     """
     collected: list[str] = []
     try:
-        async with asyncio.timeout(timeout):
+        async with asyncio.timeout(collect_timeout):
             async for sse_msg in gen:
                 # Skip heartbeats.
                 if sse_msg.startswith(": heartbeat"):
@@ -512,6 +511,11 @@ def _parse_sse_data(sse_msg: str) -> dict[str, Any]:
     raise ValueError(msg)
 
 
+# Patch target paths (keep lines short).
+_REPLAY = "orxtra.incoming._stream.replay"
+_READ_EVENT = "orxtra.incoming._stream.read_event"
+
+
 class TestSSEGeneratorNoLoss:
     """No-loss: events fired during the connect window all arrive."""
 
@@ -521,18 +525,21 @@ class TestSSEGeneratorNoLoss:
     ) -> None:
         """Fire events after subscription and verify all arrive."""
         event_ids = [uuid6.uuid7() for _ in range(3)]
-        full_events = {eid: _make_event(eid, data={"i": i}) for i, eid in enumerate(event_ids)}
+        full_events = {
+            eid: _make_event(eid, data={"i": i})
+            for i, eid in enumerate(event_ids)
+        }
 
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, event_id: UUID,  # noqa: ANN401, ARG001
+            pool: Any, event_id: UUID,  # noqa: ANN401
         ) -> dict[str, Any] | None:
             return full_events.get(event_id)
 
         with (
-            patch("orxtra.incoming._stream.replay", new_callable=AsyncMock, return_value=[]),
-            patch("orxtra.incoming._stream.read_event", side_effect=mock_read_event),
+            patch(_REPLAY, new_callable=AsyncMock, return_value=[]),
+            patch(_READ_EVENT, side_effect=mock_read_event),
         ):
             gen = _sse_generator(
                 pool=mock_pool,
@@ -579,17 +586,20 @@ class TestSSEGeneratorLastEventIDResume:
     ) -> None:
         last_seen_id = uuid6.uuid7()
         missed_ids = [uuid6.uuid7(), uuid6.uuid7()]
-        missed_events = [_make_event(eid, data={"missed": i}) for i, eid in enumerate(missed_ids)]
+        missed_events = [
+            _make_event(eid, data={"missed": i})
+            for i, eid in enumerate(missed_ids)
+        ]
 
         mock_pool = AsyncMock()
 
         with (
             patch(
-                "orxtra.incoming._stream.replay",
+                _REPLAY,
                 new_callable=AsyncMock,
                 return_value=missed_events,
             ) as mock_replay,
-            patch("orxtra.incoming._stream.read_event", new_callable=AsyncMock, return_value=None),
+            patch(_READ_EVENT, new_callable=AsyncMock, return_value=None),
         ):
             gen = _sse_generator(
                 pool=mock_pool,
@@ -627,7 +637,7 @@ class TestSSEGeneratorLastEventIDResume:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, event_id: UUID,  # noqa: ANN401, ARG001
+            pool: Any, event_id: UUID,  # noqa: ANN401
         ) -> dict[str, Any] | None:
             if event_id == live_id:
                 return live_event
@@ -635,11 +645,11 @@ class TestSSEGeneratorLastEventIDResume:
 
         with (
             patch(
-                "orxtra.incoming._stream.replay",
+                _REPLAY,
                 new_callable=AsyncMock,
                 return_value=[missed_event],
             ),
-            patch("orxtra.incoming._stream.read_event", side_effect=mock_read_event),
+            patch(_READ_EVENT, side_effect=mock_read_event),
         ):
             gen = _sse_generator(
                 pool=mock_pool,
@@ -695,17 +705,17 @@ class TestSSEGeneratorDeduplication:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, event_id: UUID,  # noqa: ANN401, ARG001
+            pool: Any, event_id: UUID,  # noqa: ANN401
         ) -> dict[str, Any] | None:
             return live_events.get(event_id)
 
         with (
             patch(
-                "orxtra.incoming._stream.replay",
+                _REPLAY,
                 new_callable=AsyncMock,
                 return_value=[catchup_event],
             ),
-            patch("orxtra.incoming._stream.read_event", side_effect=mock_read_event),
+            patch(_READ_EVENT, side_effect=mock_read_event),
         ):
             gen = _sse_generator(
                 pool=mock_pool,
@@ -759,15 +769,15 @@ class TestSSEGeneratorSourceFilter:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, eid: UUID,  # noqa: ANN401, ARG001
+            pool: Any, eid: UUID,  # noqa: ANN401
         ) -> dict[str, Any] | None:
             if eid == our_event_id:
                 return our_event
             return None
 
         with (
-            patch("orxtra.incoming._stream.replay", new_callable=AsyncMock, return_value=[]),
-            patch("orxtra.incoming._stream.read_event", side_effect=mock_read_event),
+            patch(_REPLAY, new_callable=AsyncMock, return_value=[]),
+            patch(_READ_EVENT, side_effect=mock_read_event),
         ):
             gen = _sse_generator(
                 pool=mock_pool,
@@ -872,8 +882,8 @@ class TestSSEGeneratorFetchOnNotify:
         read_event_mock = AsyncMock(return_value=full_event)
 
         with (
-            patch("orxtra.incoming._stream.replay", new_callable=AsyncMock, return_value=[]),
-            patch("orxtra.incoming._stream.read_event", read_event_mock),
+            patch(_REPLAY, new_callable=AsyncMock, return_value=[]),
+            patch(_READ_EVENT, read_event_mock),
         ):
             gen = _sse_generator(
                 pool=mock_pool,
@@ -923,8 +933,8 @@ class TestSSEGeneratorHeartbeat:
 
         # Patch the timeout to be very short so we get a heartbeat quickly.
         with (
-            patch("orxtra.incoming._stream.replay", new_callable=AsyncMock, return_value=[]),
-            patch("orxtra.incoming._stream.read_event", new_callable=AsyncMock),
+            patch(_REPLAY, new_callable=AsyncMock, return_value=[]),
+            patch(_READ_EVENT, new_callable=AsyncMock),
         ):
             gen = _sse_generator(
                 pool=mock_pool,

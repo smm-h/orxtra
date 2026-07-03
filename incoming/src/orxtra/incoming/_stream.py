@@ -17,18 +17,17 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from fastware import StreamResponse, TextResponse
-
 from orxtra.auth import AuthenticationError
 from orxtra.trace import EVENTS_CHANNEL, read_event, replay
 
 if TYPE_CHECKING:
-    import asyncpg
+    from collections.abc import AsyncGenerator
 
+    import asyncpg
     from orxtra.auth import Authenticator
     from orxtra.protocols import DispatchBackend, EventBus, Source
 
@@ -136,6 +135,37 @@ async def stream_handler(
     )
 
 
+async def _fetch_live_event(
+    notification: dict[str, Any],
+    pool: asyncpg.Pool[Any],
+    seen_ids: set[str],
+) -> str | None:
+    """Fetch a full event from DB after a NOTIFY, with deduplication.
+
+    Returns the formatted SSE string, or None if the event should be
+    skipped (already seen, missing, or invalid).
+    """
+    raw_event_id = notification.get("event_id")
+    if raw_event_id is None:
+        return None
+
+    event_id_str = str(raw_event_id)
+    if event_id_str in seen_ids:
+        return None
+
+    try:
+        event_uuid = UUID(event_id_str)
+    except ValueError:
+        return None
+
+    full_event = await read_event(pool, event_uuid)
+    if full_event is None:
+        return None
+
+    seen_ids.add(event_id_str)
+    return _format_sse_event(full_event)
+
+
 async def _sse_generator(
     *,
     pool: asyncpg.Pool[Any],
@@ -151,41 +181,27 @@ async def _sse_generator(
     3. Send catch-up events.
     4. Stream live events, deduplicating against already-sent IDs.
     """
-    # Queue for live NOTIFY events. Subscribe BEFORE replay to avoid gaps.
     live_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
     async def _on_notify(payload: str) -> None:
-        """Callback for LISTEN/NOTIFY -- enqueue notification payloads."""
         try:
             parsed: dict[str, Any] = json.loads(payload)
         except (json.JSONDecodeError, ValueError):
             return
-        # Filter by source at the callback level.
         if parsed.get("source") != slug:
             return
         await live_queue.put(parsed)
 
-    # Step 1: Subscribe to the events channel.
+    # Step 1: Subscribe BEFORE replay to avoid gaps.
     await event_bus.subscribe(EVENTS_CHANNEL, _on_notify)
 
     try:
-        # Step 2: Replay catch-up events.
+        # Step 2+3: Replay catch-up events and track IDs.
         seen_ids: set[str] = set()
-
         if last_event_id is not None:
-            catch_up_events = await replay(
-                pool,
-                source=slug,
-                since_id=last_event_id,
-            )
-        else:
-            catch_up_events = []
-
-        # Step 3: Send catch-up events and track their IDs.
-        for event in catch_up_events:
-            event_id_str = str(event["id"])
-            seen_ids.add(event_id_str)
-            yield _format_sse_event(event)
+            for event in await replay(pool, source=slug, since_id=last_event_id):
+                seen_ids.add(str(event["id"]))
+                yield _format_sse_event(event)
 
         # Step 4: Stream live events with deduplication.
         while True:
@@ -193,36 +209,13 @@ async def _sse_generator(
                 notification = await asyncio.wait_for(
                     live_queue.get(), timeout=15.0,
                 )
-            except asyncio.TimeoutError:
-                # Send heartbeat to keep connection alive.
+            except TimeoutError:
                 yield ": heartbeat\n\n"
                 continue
 
-            # The notification has event_id but not full data.
-            # Fetch-on-notify: get the full event from DB.
-            raw_event_id = notification.get("event_id")
-            if raw_event_id is None:
-                continue
-
-            event_id_str = str(raw_event_id)
-
-            # Dedup: skip events already sent during catch-up.
-            if event_id_str in seen_ids:
-                continue
-
-            # Fetch full event data from DB.
-            try:
-                event_uuid = UUID(event_id_str)
-            except ValueError:
-                continue
-
-            full_event = await read_event(pool, event_uuid)
-            if full_event is None:
-                # Event was deleted or not yet visible; skip.
-                continue
-
-            seen_ids.add(event_id_str)
-            yield _format_sse_event(full_event)
+            sse_msg = await _fetch_live_event(notification, pool, seen_ids)
+            if sse_msg is not None:
+                yield sse_msg
 
     except asyncio.CancelledError:
         return
