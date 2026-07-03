@@ -91,7 +91,7 @@ def test_no_command_shows_help() -> None:
 
 
 def test_all_groups_exist() -> None:
-    expected = {"run", "inbox", "trace", "event", "validate", "config", "db", "worker"}
+    expected = {"run", "inbox", "trace", "event", "validate", "config", "db", "dispatch", "worker"}
     assert set(app._groups.keys()) == expected  # noqa: SLF001
 
 
@@ -418,6 +418,38 @@ def test_db_migrate_missing_subcommand_shows_help() -> None:
     assert "migrate" in stdout.lower()
 
 
+# -- Structure: dispatch commands ---------------------------------------------------
+
+
+def test_dispatch_commands() -> None:
+    cmds = set(app._groups["dispatch"].commands.keys())  # noqa: SLF001
+    assert cmds == {"run"}
+
+
+def test_dispatch_run_has_cursor_flag() -> None:
+    cmd = app._groups["dispatch"].commands["run"]  # noqa: SLF001
+    flag_names = {f.name for f in cmd.flags}
+    assert "cursor" in flag_names
+
+
+def test_dispatch_run_has_poll_interval_flag() -> None:
+    cmd = app._groups["dispatch"].commands["run"]  # noqa: SLF001
+    flag_names = {f.name for f in cmd.flags}
+    assert "poll-interval" in flag_names
+
+
+def test_dispatch_run_has_batch_size_flag() -> None:
+    cmd = app._groups["dispatch"].commands["run"]  # noqa: SLF001
+    flag_names = {f.name for f in cmd.flags}
+    assert "batch-size" in flag_names
+
+
+def test_dispatch_missing_subcommand_shows_help() -> None:
+    stdout, _, code = _test("dispatch")
+    assert code == 0
+    assert "dispatch" in stdout.lower()
+
+
 # -- Structure: worker commands -----------------------------------------------------
 
 
@@ -429,6 +461,6 @@ def test_worker_commands() -> None:
 # -- Total command count -----------------------------------------------------------
 
 
-def test_total_command_count_is_26() -> None:
+def test_total_command_count_is_27() -> None:
     total = sum(len(g.commands) for g in app._groups.values())  # noqa: SLF001
-    assert total == 26
+    assert total == 27
