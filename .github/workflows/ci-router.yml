@@ -35,7 +35,6 @@ jobs:
       agui: ${{ steps.changes.outputs.agui }}
       worker: ${{ steps.changes.outputs.worker }}
       api: ${{ steps.changes.outputs.api }}
-      schema: ${{ steps.changes.outputs.schema }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -64,7 +63,6 @@ jobs:
           agui: 'agui/**'
           worker: 'worker/**'
           api: 'api/**'
-          schema: 'schema/**'
   protocols:
     needs: detect
     if: needs.detect.outputs.protocols == 'true'
@@ -153,7 +151,3 @@ jobs:
     needs: detect
     if: needs.detect.outputs.api == 'true'
     uses: ./.github/workflows/api-ci.yml
-  schema:
-    needs: detect
-    if: needs.detect.outputs.schema == 'true'
-    uses: ./.github/workflows/schema-ci.yml
