@@ -21,3 +21,4 @@
 {"commits":["c2d562a6d8d6b25050b15a519a90971bec75c3f5"],"user_facing":true,"description":"**New command group.** `orxtra db` with `init`, `verify`, and `migrate` (plan/apply/status) subcommands for database provisioning and migration.","type":"feature","packages":["cli"]}
 {"commits":["1f497424b998b640df2fdb2fe054d66e5c6855b8"],"user_facing":false,"packages":["tool"]}
 {"commits":["c986a88cba6134740ea6849061806c5e00e2f624"],"user_facing":false,"packages":["."]}
+{"commits":["e4911866ae960d40c9f1536e7d139aa1e2ec8dae"],"user_facing":false,"packages":[".","cli"]}
