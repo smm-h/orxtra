@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-for mod in protocols secrets write-safety transport agent tool verify trace notepad session scheduler dispatch overseer services auth api worker a2a a2ui agui cli mcp; do
+for mod in protocols secrets write-safety transport agent tool verify trace notepad session compose scheduler dispatch overseer services auth api worker a2a a2ui agui cli mcp; do
   echo "=== $mod ==="
   cd "$REPO_ROOT/$mod"
   MYPYPATH=src uv run --with mypy --with 'pydantic[mypy]' python -m mypy --strict --explicit-package-bases src/orxtra/*/

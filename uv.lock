@@ -18,6 +18,7 @@ members = [
     "orxtra-api",
     "orxtra-auth",
     "orxtra-cli",
+    "orxtra-compose",
     "orxtra-dispatch",
     "orxtra-mcp",
     "orxtra-notepad",
@@ -893,6 +894,7 @@ dev = [
     { name = "orxtra-api" },
     { name = "orxtra-auth" },
     { name = "orxtra-cli" },
+    { name = "orxtra-compose" },
     { name = "orxtra-dispatch" },
     { name = "orxtra-mcp" },
     { name = "orxtra-notepad" },
@@ -943,6 +945,7 @@ dev = [
     { name = "orxtra-api", editable = "api" },
     { name = "orxtra-auth", editable = "auth" },
     { name = "orxtra-cli", editable = "cli" },
+    { name = "orxtra-compose", editable = "compose" },
     { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-notepad", editable = "notepad" },
@@ -1131,6 +1134,25 @@ requires-dist = [
     { name = "orxtra-services", editable = "services" },
     { name = "strictcli" },
 ]
+
+[[package]]
+name = "orxtra-compose"
+version = "0.8.0"
+source = { editable = "compose" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxtra-dispatch"
