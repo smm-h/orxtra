@@ -287,8 +287,7 @@ class TestOrderingGuarantee:
         agent = MagicMock()
         agent.name = "test-agent"
         agent.allow = ["my_api_tool", "start_task", "end_task"]
-        agent.exec_tools = []
-        agent.shell_config = None
+        agent.inline_tools = []
 
         with (
             patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
@@ -331,8 +330,7 @@ class TestOrderingGuarantee:
         agent = MagicMock()
         agent.name = "test-agent"
         agent.allow = ["nonexistent_custom_tool"]
-        agent.exec_tools = []
-        agent.shell_config = None
+        agent.inline_tools = []
 
         with (
             patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
