@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import sys
 import uuid
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -9,6 +11,12 @@ from orxtra.protocols import CheckResult
 
 if TYPE_CHECKING:
     from orxtra.protocols import CheckContext, Execution
+
+# Make sample_checks importable for ScriptExecution tests that use
+# importlib.import_module("sample_checks:<func>") callables.
+_tests_dir = str(Path(__file__).resolve().parent)
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)
 
 
 class MockCheckExecutor:

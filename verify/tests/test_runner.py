@@ -20,7 +20,7 @@ class TestRunChecks:
     async def test_single_passing_check(
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
-        checks = [ScriptExecution(callable="tests.sample_checks:always_pass")]
+        checks = [ScriptExecution(callable="sample_checks:always_pass")]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1
         assert results[0].passed is True
@@ -28,7 +28,7 @@ class TestRunChecks:
     async def test_single_failing_check(
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
-        checks = [ScriptExecution(callable="tests.sample_checks:always_fail")]
+        checks = [ScriptExecution(callable="sample_checks:always_fail")]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1
         assert results[0].passed is False
@@ -37,9 +37,9 @@ class TestRunChecks:
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
         checks = [
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_pass"),
         ]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 3
@@ -49,9 +49,9 @@ class TestRunChecks:
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
         checks = [
-            ScriptExecution(callable="tests.sample_checks:always_fail"),
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_fail"),
+            ScriptExecution(callable="sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_pass"),
         ]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1
@@ -61,9 +61,9 @@ class TestRunChecks:
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
         checks = [
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
-            ScriptExecution(callable="tests.sample_checks:always_fail"),
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_fail"),
+            ScriptExecution(callable="sample_checks:always_pass"),
         ]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 2
@@ -76,7 +76,7 @@ class TestRunChecks:
         # fixable_fail: first call fails with fix, after fix called, second call passes
         # Note: fixable_fail uses global state, so it must be the only fixable check
         # in this test
-        checks = [ScriptExecution(callable="tests.sample_checks:fixable_fail")]
+        checks = [ScriptExecution(callable="sample_checks:fixable_fail")]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1
         assert results[0].passed is True
@@ -85,7 +85,7 @@ class TestRunChecks:
     async def test_fix_callable_recheck_still_fails(
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
-        checks = [ScriptExecution(callable="tests.sample_checks:fixable_still_fails")]
+        checks = [ScriptExecution(callable="sample_checks:fixable_still_fails")]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1
         assert results[0].passed is False
@@ -98,8 +98,8 @@ class TestRunChecks:
         # We verify by checking the result -- if it tried more than once,
         # we'd see multiple results or different behavior
         checks = [
-            ScriptExecution(callable="tests.sample_checks:fixable_still_fails"),
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:fixable_still_fails"),
+            ScriptExecution(callable="sample_checks:always_pass"),
         ]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1  # short-circuited after fix failed
@@ -108,7 +108,7 @@ class TestRunChecks:
     async def test_fix_callable_raises_exception(
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
-        checks = [ScriptExecution(callable="tests.sample_checks:fix_raises")]
+        checks = [ScriptExecution(callable="sample_checks:fix_raises")]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1
         assert results[0].passed is False
@@ -118,7 +118,7 @@ class TestRunChecks:
     ) -> None:
         executor = MockCheckExecutor(consult_response=make_passing_verdict())
         checks = [
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_pass"),
             AgentExecution(
                 agent="reviewer",
                 task="Review the code",
@@ -133,7 +133,7 @@ class TestRunChecks:
     async def test_pre_check_phase_works(
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
-        checks = [ScriptExecution(callable="tests.sample_checks:always_pass")]
+        checks = [ScriptExecution(callable="sample_checks:always_pass")]
         results = await run_checks(checks, ctx, "pre", executor)
         assert len(results) == 1
         assert results[0].passed is True
@@ -141,7 +141,7 @@ class TestRunChecks:
     async def test_post_check_phase_works(
         self, ctx: CheckContext, executor: MockCheckExecutor,
     ) -> None:
-        checks = [ScriptExecution(callable="tests.sample_checks:always_pass")]
+        checks = [ScriptExecution(callable="sample_checks:always_pass")]
         results = await run_checks(checks, ctx, "post", executor)
         assert len(results) == 1
         assert results[0].passed is True
@@ -153,7 +153,7 @@ class TestRunChecks:
             variables={"key": "val"},
             task_name="ctx-test",
         )
-        checks = [ScriptExecution(callable="tests.sample_checks:returns_variables")]
+        checks = [ScriptExecution(callable="sample_checks:returns_variables")]
         results = await run_checks(checks, custom_ctx, "pre", executor)
         assert len(results) == 1
         assert results[0].details is not None
@@ -165,7 +165,7 @@ class TestRunChecks:
     ) -> None:
         executor = MockCheckExecutor(consult_response=make_passing_verdict())
         checks = [
-            ScriptExecution(callable="tests.sample_checks:always_pass"),
+            ScriptExecution(callable="sample_checks:always_pass"),
             AgentExecution(
                 agent="reviewer",
                 task="Review the code",

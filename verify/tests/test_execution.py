@@ -27,7 +27,7 @@ class TestScriptChecks:
         self, ctx: CheckContext,
     ) -> None:
         execution = ScriptExecution(
-            callable="tests.sample_checks:always_pass",
+            callable="sample_checks:always_pass",
         )
         result = await execute_check(
             execution, ctx, MockCheckExecutor(),
@@ -39,7 +39,7 @@ class TestScriptChecks:
         self, ctx: CheckContext,
     ) -> None:
         execution = ScriptExecution(
-            callable="tests.sample_checks:always_fail",
+            callable="sample_checks:always_fail",
         )
         result = await execute_check(
             execution, ctx, MockCheckExecutor(),
@@ -51,7 +51,7 @@ class TestScriptChecks:
         self, ctx: CheckContext,
     ) -> None:
         execution = ScriptExecution(
-            callable="tests.sample_checks:fixable_fail",
+            callable="sample_checks:fixable_fail",
         )
         result = await execute_check(
             execution, ctx, MockCheckExecutor(),
@@ -87,7 +87,7 @@ class TestScriptChecks:
         self, ctx: CheckContext,
     ) -> None:
         execution = ScriptExecution(
-            callable="tests.sample_checks:nonexistent_func",
+            callable="sample_checks:nonexistent_func",
         )
         result = await execute_check(
             execution, ctx, MockCheckExecutor(),
@@ -99,7 +99,7 @@ class TestScriptChecks:
         self, ctx: CheckContext,
     ) -> None:
         execution = ScriptExecution(
-            callable="tests.sample_checks:raises_error",
+            callable="sample_checks:raises_error",
         )
         result = await execute_check(
             execution, ctx, MockCheckExecutor(),
@@ -118,7 +118,7 @@ class TestScriptChecks:
             task_name="custom-task",
         )
         execution = ScriptExecution(
-            callable="tests.sample_checks:returns_variables",
+            callable="sample_checks:returns_variables",
         )
         result = await execute_check(
             execution, custom_ctx, MockCheckExecutor(),
@@ -133,7 +133,7 @@ class TestScriptChecks:
     ) -> None:
         # All sample checks are async, so this verifies async execution
         execution = ScriptExecution(
-            callable="tests.sample_checks:check_with_details",
+            callable="sample_checks:check_with_details",
         )
         result = await execute_check(
             execution, ctx, MockCheckExecutor(),
