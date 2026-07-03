@@ -62,3 +62,4 @@
 {"commits":["c9a78fa50a65a87705ec864be2c2c8f0e6125369"],"user_facing":false,"packages":[".","agui","api","cli","mcp","scheduler","services","tool","worker"]}
 {"commits":["88944fbc0dc3547a7c399cd00ce12bd136572344"],"user_facing":false,"packages":["notepad","scheduler"]}
 {"commits":["0df452ca1486cdabebf3764635ed9802260583a1"],"user_facing":false,"packages":["scheduler"]}
+{"commits":["5d7daf4b2cc72e1e569532a33bb9176c4393939a"],"user_facing":false,"packages":["."]}
