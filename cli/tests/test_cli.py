@@ -68,7 +68,7 @@ def test_no_command_shows_help() -> None:
 
 
 def test_all_groups_exist() -> None:
-    expected = {"run", "inbox", "trace", "event", "validate", "config"}
+    expected = {"run", "inbox", "trace", "event", "validate", "config", "worker"}
     assert set(app._groups.keys()) == expected  # noqa: SLF001
 
 
@@ -342,9 +342,17 @@ def test_config_missing_subcommand_shows_help() -> None:
     assert "config" in stdout.lower()
 
 
+# -- Structure: worker commands -----------------------------------------------------
+
+
+def test_worker_commands() -> None:
+    cmds = set(app._groups["worker"].commands.keys())  # noqa: SLF001
+    assert cmds == {"connect", "docker"}
+
+
 # -- Total command count -----------------------------------------------------------
 
 
-def test_total_command_count_is_22() -> None:
+def test_total_command_count_is_24() -> None:
     total = sum(len(g.commands) for g in app._groups.values())  # noqa: SLF001
-    assert total == 22
+    assert total == 24
