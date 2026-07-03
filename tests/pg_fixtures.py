@@ -64,7 +64,6 @@ async def pg_pool(
     async with pool.acquire() as conn:
         # Drop all tables so each test starts clean.
         await conn.execute("DROP SCHEMA public CASCADE")
-        await conn.execute("CREATE SCHEMA public")
 
         # Apply the full schema (trace -> dispatch -> auth) via the
         # generated executor, substituting the pg_uuidv7 extension
