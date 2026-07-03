@@ -18,8 +18,10 @@ if TYPE_CHECKING:
 
     from orxtra.protocols import Action
 
+type _ActionType = type[ScriptAction] | type[LogAction] | type[WorkflowAction] | type[EventAction]
+
 # Map Action subclass -> DB action_type string.
-_ACTION_TYPE_MAP: dict[type, str] = {
+_ACTION_TYPE_MAP: dict[_ActionType, str] = {
     ScriptAction: "script",
     LogAction: "log",
     WorkflowAction: "workflow",
@@ -27,10 +29,10 @@ _ACTION_TYPE_MAP: dict[type, str] = {
 }
 
 # Reverse: DB action_type string -> Action subclass.
-_ACTION_CLASS_MAP: dict[str, type] = {v: k for k, v in _ACTION_TYPE_MAP.items()}
+_ACTION_CLASS_MAP: dict[str, _ActionType] = {v: k for k, v in _ACTION_TYPE_MAP.items()}
 
 
-def _serialize_action(action: Action) -> tuple[str, str]:
+def _serialize_action(action: ScriptAction | LogAction | WorkflowAction | EventAction) -> tuple[str, str]:
     """Decompose an Action into (action_type, action_config_json)."""
     action_type = _ACTION_TYPE_MAP.get(type(action))
     if action_type is None:

@@ -95,12 +95,13 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
         await ws.close(code=1000)
 
     # -- Build the ASGI app --
-    return create_app(
+    app: Callable[..., Any] = create_app(
         router,
         cors_origins=config.cors_origins or ["*"],
         request_id=True,
         request_timing=True,
     )
+    return app
 
 
 def _build_mcp_app(dispatch_context: DispatchContext) -> Any:  # noqa: ANN401
@@ -162,4 +163,5 @@ def _serialize_agent_card(agent_card: AgentCard) -> dict[str, Any]:
     """Convert an A2A AgentCard protobuf to a JSON-serializable dict."""
     from google.protobuf.json_format import MessageToDict  # noqa: PLC0415
 
-    return MessageToDict(agent_card, preserving_proto_field_name=True)
+    result: dict[str, Any] = MessageToDict(agent_card, preserving_proto_field_name=True)
+    return result

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxtra.protocols import CreateSurface, UpdateComponents, UpdateDataModel
+from orxtra.protocols import CreateSurface, SurfaceOperation, UpdateComponents, UpdateDataModel
 
 
 def _resolve_pointer(data: dict[str, Any], pointer: str) -> object:
@@ -70,7 +70,7 @@ class TemplateEngine:
         *,
         surface_id: str = "default",
         catalog_id: str = "default",
-    ) -> list[CreateSurface | UpdateComponents | UpdateDataModel]:
+    ) -> list[SurfaceOperation]:
         """Take component definitions and a data dict, resolve bindings.
 
         Returns a list of SurfaceOperations: a CreateSurface, an

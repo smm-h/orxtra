@@ -8,11 +8,10 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.dispatch._action_executor import (
-    ActionExecutor,
-    EventFireCallback,
     execute_action,
     execute_actions_bounded,
 )
+from orxtra.protocols import ActionExecutor, EventFireCallback
 from orxtra.dispatch._delivery import (
     DualPhaseEventDelivery,
     TransientEventDelivery,

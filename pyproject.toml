@@ -212,7 +212,35 @@ module = "testcontainers.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = "fastware.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "a2a.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ag_ui.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "google.protobuf.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "orxtra.cli._cli"
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "orxtra.api._cli"
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "orxtra.api._compositor"
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "orxtra.worker._cli"
 disallow_untyped_decorators = false
 
 [tool.pydantic-mypy]

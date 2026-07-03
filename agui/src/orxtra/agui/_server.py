@@ -58,7 +58,7 @@ def create_agui_router(
 
         if not run_id:
             from fastware import TextResponse
-            return TextResponse("run_id query parameter is required", status=400)  # type: ignore[return-value]
+            return TextResponse("run_id query parameter is required", status=400)
 
         translator = AGUITranslator(
             thread_id=thread_id,

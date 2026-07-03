@@ -77,7 +77,7 @@ class OrxtraRequestHandler(RequestHandler):
         task = Task(
             id=task_id,
             context_id=context_id,
-            status=TaskStatus(state=state),
+            status=TaskStatus(state=state),  # type: ignore[arg-type]  # protobuf enum ints
         )
         if message_text is not None:
             task.history.append(
@@ -202,7 +202,7 @@ class OrxtraRequestHandler(RequestHandler):
                     orxtra_state,
                 )
                 if translation.a2a_state is not None:
-                    a2a_state = translation.a2a_state
+                    a2a_state = translation.a2a_state  # type: ignore[assignment]  # protobuf enum ints
 
         return self._make_task(
             task_id=params.id,

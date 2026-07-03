@@ -57,7 +57,7 @@ class AuthBackend:
                 json.dumps(scope_grants),
             )
         assert row is not None  # noqa: S101
-        return row["id"]  # type: ignore[return-value]
+        return row["id"]  # type: ignore[no-any-return]
 
     async def get_consumer(
         self,
@@ -106,7 +106,7 @@ class AuthBackend:
                 credential_hash,
             )
         assert row is not None  # noqa: S101
-        return row["id"]  # type: ignore[return-value]
+        return row["id"]  # type: ignore[no-any-return]
 
     async def get_credential_by_hash(
         self,
