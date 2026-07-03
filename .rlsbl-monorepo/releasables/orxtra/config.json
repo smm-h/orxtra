@@ -24,5 +24,11 @@
   "private": false,
   "targets": [
     "pypi"
-  ]
+  ],
+  "pipelines": {
+    "pypi": {
+      "type": "pypi",
+      "local": false
+    }
+  }
 }
