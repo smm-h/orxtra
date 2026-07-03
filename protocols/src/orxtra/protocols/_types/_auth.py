@@ -36,6 +36,32 @@ class MacVerdict:
 
 
 @dataclass(frozen=True)
+class ConsumerRecord:
+    """A consumer (API client) stored in the auth backend."""
+
+    id: UUID
+    name: str
+    trust_tier: TrustTier
+    scope_grants: list[str]
+    disabled_at: datetime | None
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class CredentialRecord:
+    """A credential stored in the auth backend."""
+
+    id: UUID
+    consumer_id: UUID
+    credential_type: str
+    credential_hash: str
+    algorithm: str
+    metadata: dict[str, object]
+    secret_ref: str | None
+    created_at: datetime
+
+
+@dataclass(frozen=True)
 class Principal:
     id: UUID
     consumer_id: UUID

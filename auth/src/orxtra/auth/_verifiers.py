@@ -22,9 +22,13 @@ from orxtra.protocols import (
 )
 
 if TYPE_CHECKING:
-    from orxtra.auth._backend import AuthBackend, ConsumerRecord, CredentialRecord
-    from orxtra.auth._inmemory import InMemoryAuthBackend
-    from orxtra.protocols import KeyedMacProvider, MacVerdict
+    from orxtra.protocols import (
+        AuthStorage,
+        ConsumerRecord,
+        CredentialRecord,
+        KeyedMacProvider,
+        MacVerdict,
+    )
 
 
 class HashCredentialVerifier:
@@ -37,7 +41,7 @@ class HashCredentialVerifier:
     def __init__(
         self,
         credential_type: str,
-        backend: AuthBackend | InMemoryAuthBackend,
+        backend: AuthStorage,
     ) -> None:
         self._credential_type = credential_type
         self._backend = backend
@@ -85,7 +89,7 @@ class HmacCredentialVerifier:
     def __init__(
         self,
         mac_provider: KeyedMacProvider,
-        backend: AuthBackend | InMemoryAuthBackend,
+        backend: AuthStorage,
     ) -> None:
         self._mac_provider = mac_provider
         self._backend = backend

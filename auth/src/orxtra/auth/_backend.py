@@ -2,38 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from orxtra.protocols import TrustTier
+from orxtra.protocols import ConsumerRecord, CredentialRecord, TrustTier
 
 if TYPE_CHECKING:
-    from datetime import datetime
     from uuid import UUID
 
     import asyncpg
-
-
-@dataclass(frozen=True)
-class ConsumerRecord:
-    id: UUID
-    name: str
-    trust_tier: TrustTier
-    scope_grants: list[str]
-    disabled_at: datetime | None
-    created_at: datetime
-
-
-@dataclass(frozen=True)
-class CredentialRecord:
-    id: UUID
-    consumer_id: UUID
-    credential_type: str
-    credential_hash: str
-    algorithm: str
-    metadata: dict[str, object]
-    secret_ref: str | None
-    created_at: datetime
 
 
 class AuthBackend:

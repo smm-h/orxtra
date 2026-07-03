@@ -21,10 +21,13 @@ from orxtra.auth._exceptions import AuthenticationError
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxtra.auth._backend import AuthBackend, CredentialRecord
-    from orxtra.auth._inmemory import InMemoryAuthBackend
     from orxtra.auth._verifiers import HashCredentialVerifier, HmacCredentialVerifier
-    from orxtra.protocols import EventSink, Principal
+    from orxtra.protocols import (
+        AuthStorage,
+        CredentialRecord,
+        EventSink,
+        Principal,
+    )
 
 _logger = logging.getLogger("orxtra.auth")
 
@@ -52,7 +55,7 @@ class Authenticator:
 
     def __init__(
         self,
-        backend: AuthBackend | InMemoryAuthBackend,
+        backend: AuthStorage,
         verifiers: dict[str, AnyVerifier],
         *,
         audit_sink: EventSink[AuthAuditEvent] | None = None,

@@ -5,7 +5,7 @@ import json
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from orxtra.auth._backend import ConsumerRecord, CredentialRecord
+from orxtra.protocols import ConsumerRecord, CredentialRecord
 from uuid6 import uuid7
 
 if TYPE_CHECKING:

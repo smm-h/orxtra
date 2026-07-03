@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from orxtra.protocols._types._auth import MacVerdict, Principal
+    from orxtra.protocols._types._auth import (
+        ConsumerRecord,
+        CredentialRecord,
+        MacVerdict,
+        Principal,
+    )
     from orxtra.protocols._types._checks import CheckResult
     from orxtra.protocols._types._dispatch import (
         AccumulatorEntry,
@@ -278,7 +283,7 @@ class AuthStorage(Protocol):
     async def get_consumer(
         self,
         consumer_id: UUID,
-    ) -> object | None: ...
+    ) -> ConsumerRecord | None: ...
 
     async def disable_consumer(
         self,
@@ -294,14 +299,19 @@ class AuthStorage(Protocol):
         secret_ref: str | None = None,
     ) -> UUID: ...
 
+    async def get_credential_by_id(
+        self,
+        credential_id: UUID,
+    ) -> CredentialRecord | None: ...
+
     async def get_credential_by_hash(
         self,
         credential_hash: str,
-    ) -> object | None: ...
+    ) -> CredentialRecord | None: ...
 
     async def get_credentials_by_consumer(
         self,
         consumer_id: UUID,
         *,
         credential_type: str | None = None,
-    ) -> list[object]: ...
+    ) -> list[CredentialRecord]: ...
