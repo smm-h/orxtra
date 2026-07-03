@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-03T12:39:40Z",
-  "package_count": 25,
+  "generated_at": "2026-07-03T20:00:30Z",
+  "package_count": 27,
   "packages": {
     ".": {
       "path": ".",
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Root package \u2014 single publishable wheel aggregating all sub-projects",
       "deps": [
         "mcp"
@@ -23,10 +23,11 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Shared types: Execution, task lifecycle, event descriptors, action tool schemas",
       "deps": [],
       "rdeps": [
+        "secrets",
         "transport",
         "tool",
         "verify",
@@ -38,7 +39,8 @@
         "overseer",
         "services",
         "a2a",
-        "worker"
+        "worker",
+        "incoming"
       ],
       "library": true,
       "dev_only": false,
@@ -50,13 +52,16 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Secret registry, substitution, and scrubbing",
-      "deps": [],
+      "deps": [
+        "protocols"
+      ],
       "rdeps": [
         "tool",
         "scheduler",
-        "worker"
+        "worker",
+        "incoming"
       ],
       "library": true,
       "dev_only": false,
@@ -68,7 +73,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Write queue, stale-write detection, atomic replace, transient replay",
       "deps": [],
       "rdeps": [
@@ -86,7 +91,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Typed LLM client via Provider protocol",
       "deps": [
         "protocols"
@@ -107,9 +112,11 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Agent definition loader (TOML + composable .md prompts)",
-      "deps": [],
+      "deps": [
+        "compose"
+      ],
       "rdeps": [
         "scheduler",
         "services"
@@ -124,7 +131,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Tool registry with granular constructors",
       "deps": [
         "protocols",
@@ -146,7 +153,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Check runner (pre/post-check Execution dispatch)",
       "deps": [
         "protocols"
@@ -164,7 +171,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "PG schema owner (events, task results, transcripts, inbox, state machines)",
       "deps": [],
       "rdeps": [
@@ -173,7 +180,8 @@
         "scheduler",
         "overseer",
         "services",
-        "cli"
+        "cli",
+        "incoming"
       ],
       "library": true,
       "dev_only": false,
@@ -185,7 +193,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Append-only cross-agent context sharing",
       "deps": [
         "trace"
@@ -203,7 +211,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Session lifecycle, token tracking, cross-restart resumption",
       "deps": [
         "protocols",
@@ -220,18 +228,36 @@
       "releasable_flag": true,
       "test_only": false
     },
+    "compose": {
+      "path": "compose",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.9.0",
+      "description": "Fragment-based prompt composition engine. Strict variable substitution, include resolution, priority ordering.",
+      "deps": [],
+      "rdeps": [
+        "agent",
+        "scheduler"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
     "auth": {
       "path": "auth",
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Authentication and authorization. Consumer registry, credential hashing, ASGI middleware.",
       "deps": [
         "protocols"
       ],
       "rdeps": [
         "worker",
+        "incoming",
         "api"
       ],
       "library": true,
@@ -244,7 +270,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Agent-to-UI surface rendering. Template registry, fragment library, data-bound component engine.",
       "deps": [
         "protocols"
@@ -260,12 +286,13 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Task executor (recursive hierarchy, budgets, constraints)",
       "deps": [
         "protocols",
         "write-safety",
         "agent",
+        "compose",
         "dispatch",
         "tool",
         "session",
@@ -288,14 +315,16 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Event delivery: subscriptions, action dispatch, accumulator flush",
       "deps": [
         "protocols"
       ],
       "rdeps": [
         "scheduler",
-        "services"
+        "services",
+        "incoming",
+        "api"
       ],
       "library": true,
       "dev_only": false,
@@ -307,7 +336,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Persistent LLM with action tools, PG memory, session handoff",
       "deps": [
         "protocols",
@@ -329,7 +358,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Shared business logic for all frontends",
       "deps": [
         "agent",
@@ -346,6 +375,7 @@
         "mcp",
         "a2a",
         "agui",
+        "incoming",
         "api"
       ],
       "library": false,
@@ -358,7 +388,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "strictcli CLI frontend (agents are the primary users)",
       "deps": [
         "services",
@@ -376,7 +406,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "MCP server (human interface via dashboard/AI client)",
       "deps": [
         "services"
@@ -395,7 +425,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "A2A (Agent-to-Agent) protocol server",
       "deps": [
         "services",
@@ -414,7 +444,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots.",
       "deps": [
         "services"
@@ -432,7 +462,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Brain-worker protocol: remote tool execution over WebSocket.",
       "deps": [
         "protocols",
@@ -447,19 +477,44 @@
       "releasable_flag": true,
       "test_only": false
     },
+    "incoming": {
+      "path": "incoming",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.9.0",
+      "description": "Webhook receiver, event replay, and SSE stream. External event ingestion for the event bus.",
+      "deps": [
+        "protocols",
+        "services",
+        "auth",
+        "trace",
+        "dispatch",
+        "secrets"
+      ],
+      "rdeps": [
+        "api"
+      ],
+      "library": false,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
     "api": {
       "path": "api",
       "targets": [
         "pypi"
       ],
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app.",
       "deps": [
         "auth",
+        "dispatch",
         "mcp",
         "a2a",
         "agui",
-        "services"
+        "services",
+        "incoming"
       ],
       "rdeps": [
         "cli"
@@ -500,11 +555,10 @@
   },
   "graph": {
     "leaf_nodes": [
-      "agent",
+      "compose",
       "npm",
       "protocols",
       "schema",
-      "secrets",
       "trace",
       "write-safety"
     ],
@@ -518,6 +572,7 @@
     ],
     "max_depth": 7,
     "topological_order": [
+      "compose",
       "agent",
       "npm",
       "protocols",
@@ -538,6 +593,7 @@
       "services",
       "a2a",
       "agui",
+      "incoming",
       "mcp",
       ".",
       "api",
