@@ -26,3 +26,5 @@
 {"commits":["f10c25c711f74d739feb2b25c2fdbbd516749ae0"],"user_facing":true,"description":"**Breaking.** Delete `make_exec_tool`/`make_shell_tool` constructors and `CONSULT_STRIP_TOOLS`/`FILE_MUTATION_TOOLS` name-sets. Consult stripping and mutation tracking now use tag-based logic. Agent `[[exec]]`/`[shell]` sections replaced by `[[tools.define]]` inline definitions.","type":"breaking","packages":[".","scheduler","tool","worker"]}
 {"commits":["b197b58bac45122d2e4b7fce799e323169f2bf57"],"user_facing":false,"packages":["services"]}
 {"commits":["1ed9732f3ea2f7bcdab6a738d656dacdf013f414"],"user_facing":false,"packages":[".","cli"]}
+{"commits":["f0e7ac0a65eb8145551752c8fa2ce7b1c6687d0c"],"user_facing":false,"packages":[".","agent"]}
+{"commits":["a2a3399af8949094af70cc0144cc46bf2218d137"],"user_facing":false,"packages":["."]}
