@@ -64,9 +64,15 @@ class TestSchemaCreation:
 
     async def test_all_tables_created(self, pg_pool: asyncpg.Pool) -> None:
         """All expected tables exist after schema creation."""
-        from _generated.tables_auth import TABLE_NAMES as AUTH_TABLES  # noqa: PLC0415
-        from _generated.tables_dispatch import TABLE_NAMES as DISPATCH_TABLES  # noqa: PLC0415
-        from _generated.tables_trace import TABLE_NAMES as TRACE_TABLES  # noqa: PLC0415
+        from _generated.tables_auth import (  # noqa: PLC0415
+            TABLE_NAMES as AUTH_TABLES,
+        )
+        from _generated.tables_dispatch import (  # noqa: PLC0415
+            TABLE_NAMES as DISPATCH_TABLES,
+        )
+        from _generated.tables_trace import (  # noqa: PLC0415
+            TABLE_NAMES as TRACE_TABLES,
+        )
 
         rows = await pg_pool.fetch(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
@@ -321,7 +327,9 @@ class TestAuthTables:
             # Insert a credential linked to the consumer
             cred_id = await conn.fetchval(
                 """
-                INSERT INTO credentials (consumer_id, credential_type, credential_hash, algorithm)
+                INSERT INTO credentials
+                    (consumer_id, credential_type,
+                     credential_hash, algorithm)
                 VALUES ($1, $2, $3, $4)
                 RETURNING id
                 """,
@@ -343,7 +351,8 @@ class TestAuthTables:
 
             # Read back credential
             cred = await conn.fetchrow(
-                "SELECT credential_type, credential_hash FROM credentials WHERE id = $1",
+                "SELECT credential_type, credential_hash "
+                "FROM credentials WHERE id = $1",
                 cred_id,
             )
             assert cred is not None

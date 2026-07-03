@@ -6,11 +6,12 @@ the pgdesign-generated executor.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 import pytest
 
 if TYPE_CHECKING:
+    import types
     from collections.abc import AsyncIterator, Iterator
 
     import asyncpg
@@ -45,7 +46,7 @@ class _AsyncpgTx:
         self._conn = conn
         self._tx: Any = None
 
-    async def __aenter__(self) -> _AsyncpgTx:
+    async def __aenter__(self) -> Self:
         self._tx = self._conn.transaction()
         await self._tx.start()
         return self
@@ -54,7 +55,7 @@ class _AsyncpgTx:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: Any,
+        exc_tb: types.TracebackType | None,
     ) -> None:
         if exc_type is not None:
             await self._tx.rollback()
@@ -109,13 +110,16 @@ $$ LANGUAGE sql;
 
 
 @pytest.fixture
-async def pg_pool(pg_container: Any) -> AsyncIterator[asyncpg.Pool]:  # noqa: ANN401
-    """Create an asyncpg pool with the full orxtra schema (trace + dispatch + auth)."""
+async def pg_pool(
+    pg_container: Any,  # noqa: ANN401
+) -> AsyncIterator[asyncpg.Pool]:
+    """Create an asyncpg pool with the full orxtra schema."""
     import asyncpg as _asyncpg  # noqa: PLC0415
+    from _generated.schema_executor import (  # noqa: PLC0415
+        execute as schema_execute,
+    )
 
-    from _generated.schema_executor import execute as schema_execute  # noqa: PLC0415
-
-    # testcontainers gives psycopg2-style URL; convert to plain postgresql://
+    # testcontainers gives psycopg2-style URL; convert to plain
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://"
     )
@@ -128,8 +132,8 @@ async def pg_pool(pg_container: Any) -> AsyncIterator[asyncpg.Pool]:  # noqa: AN
         await conn.execute("CREATE SCHEMA public")
 
         # Apply the full schema (trace -> dispatch -> auth) via the
-        # generated executor, substituting the pg_uuidv7 extension with
-        # a gen_random_uuid() stub for the testcontainers PG image.
+        # generated executor, substituting the pg_uuidv7 extension
+        # with a gen_random_uuid() stub for testcontainers PG.
         adapter = _AsyncpgAdapter(conn)
         result = await schema_execute(
             adapter,
@@ -137,10 +141,12 @@ async def pg_pool(pg_container: Any) -> AsyncIterator[asyncpg.Pool]:  # noqa: AN
             extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
         )
         if result.errors:
-            msg = "; ".join(
-                f"{kind}.{name}: {err}" for kind, name, err in result.errors
+            err_msg = "; ".join(
+                f"{kind}.{name}: {err}"
+                for kind, name, err in result.errors
             )
-            raise RuntimeError(f"Schema creation failed: {msg}")
+            msg = f"Schema creation failed: {err_msg}"
+            raise RuntimeError(msg)
 
     yield pool
     await pool.close()
