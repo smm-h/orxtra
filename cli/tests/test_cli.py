@@ -16,11 +16,20 @@ _MOCK_MODS = [
     "orxtra.trace",
     "orxtra.trace._writer",
 ]
+_installed_mocks = []
 for _mod in _MOCK_MODS:
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
+        _installed_mocks.append(_mod)
 
 from orxtra.cli._cli import app  # noqa: E402
+
+# Remove the mocks again: orxtra.cli._cli has already bound them, but
+# leaving MagicMocks in sys.modules poisons every test module imported
+# after this one in a combined (workspace-root) pytest run.
+for _mod in _installed_mocks:
+    if isinstance(sys.modules.get(_mod), MagicMock):
+        del sys.modules[_mod]
 
 
 def _test(*args: str) -> tuple[str, str, int]:
