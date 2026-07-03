@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -25,6 +25,8 @@ from orxtra.tool._data_tool_types import (
     OutputConfig,
     ParamDef,
 )
+
+_HTTPX_CLIENT = "orxtra.tool._data_tool_http.httpx.AsyncClient"
 
 
 # ---------------------------------------------------------------------------
@@ -52,7 +54,7 @@ def _mock_client(response: MagicMock) -> AsyncMock:
     return mock
 
 
-def _make_definition(
+def _make_definition(  # noqa: PLR0913
     *,
     name: str = "test_tool",
     description: str = "A test tool",
@@ -74,7 +76,9 @@ def _make_definition(
         headers=headers,
         body_template=body_template,
     )
-    output = OutputConfig(schema_=output_schema) if output_schema else None
+    output = (
+        OutputConfig(schema_=output_schema) if output_schema else None
+    )
     return DataToolDefinition(
         name=name,
         description=description,
@@ -96,7 +100,9 @@ class TestSecretSubstitution:
     """Secrets are substituted at call time; never in Tool metadata."""
 
     @pytest.mark.asyncio
-    async def test_secret_in_header_substituted_at_call_time(self) -> None:
+    async def test_secret_in_header_substituted_at_call_time(
+        self,
+    ) -> None:
         """{{secret:TOKEN}} in headers is replaced with the real value
         in the outgoing request, but NEVER appears in Tool.description
         or Tool.parameters."""
@@ -104,32 +110,35 @@ class TestSecretSubstitution:
         defn = _make_definition(
             method="GET",
             url="https://api.example.com/data",
-            headers={"Authorization": "Bearer {{secret:TOKEN}}"},
+            headers={
+                "Authorization": "Bearer {{secret:TOKEN}}",
+            },
         )
         tool = build_http_tool(defn, secret_registry=registry)
 
         # Tool metadata must NOT contain the real secret value.
         assert "real-secret-abc123" not in tool.description
-        assert "real-secret-abc123" not in json.dumps(tool.parameters)
+        params_json = json.dumps(tool.parameters)
+        assert "real-secret-abc123" not in params_json
         # The placeholder should also not leak into parameters.
-        assert "{{secret:TOKEN}}" not in json.dumps(tool.parameters)
+        assert "{{secret:TOKEN}}" not in params_json
 
-        # Execute and verify the real value reaches the HTTP request.
+        # Execute and verify the real value reaches the request.
         resp = _mock_response(text='{"ok": true}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
+        with patch(_HTTPX_CLIENT, return_value=mock):
             await tool.execute({})
 
         call_kwargs = mock.request.call_args[1]
-        assert call_kwargs["headers"]["Authorization"] == "Bearer real-secret-abc123"
+        assert (
+            call_kwargs["headers"]["Authorization"]
+            == "Bearer real-secret-abc123"
+        )
 
     @pytest.mark.asyncio
-    async def test_secret_in_url_substituted_at_call_time(self) -> None:
+    async def test_secret_in_url_substituted_at_call_time(
+        self,
+    ) -> None:
         """{{secret:API_KEY}} in URL is replaced at call time."""
         registry = SecretRegistry({"API_KEY": "key-xyz"})
         defn = _make_definition(
@@ -143,19 +152,16 @@ class TestSecretSubstitution:
 
         resp = _mock_response(text='{"ok": true}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
+        with patch(_HTTPX_CLIENT, return_value=mock):
             await tool.execute({})
 
         call_kwargs = mock.request.call_args[1]
         assert "key-xyz" in call_kwargs["url"]
 
     @pytest.mark.asyncio
-    async def test_secret_in_body_template_substituted(self) -> None:
+    async def test_secret_in_body_template_substituted(
+        self,
+    ) -> None:
         """{{secret:TOKEN}} in body_template is replaced at call time."""
         registry = SecretRegistry({"TOKEN": "secret-body-val"})
         defn = _make_definition(
@@ -167,29 +173,30 @@ class TestSecretSubstitution:
 
         resp = _mock_response(text='{"ok": true}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
+        with patch(_HTTPX_CLIENT, return_value=mock):
             await tool.execute({})
 
         call_kwargs = mock.request.call_args[1]
         assert "secret-body-val" in call_kwargs["content"]
 
     @pytest.mark.asyncio
-    async def test_secret_placeholder_without_registry_hard_error(self) -> None:
-        """{{secret:...}} with no registry raises ToolError at call time."""
+    async def test_secret_placeholder_without_registry_hard_error(
+        self,
+    ) -> None:
+        """{{secret:...}} with no registry raises ToolError."""
         defn = _make_definition(
             method="GET",
             url="https://api.example.com/data",
-            headers={"Authorization": "Bearer {{secret:TOKEN}}"},
+            headers={
+                "Authorization": "Bearer {{secret:TOKEN}}",
+            },
         )
         # No registry provided.
         tool = build_http_tool(defn, secret_registry=None)
 
-        with pytest.raises(ToolError, match="SecretRegistry was provided"):
+        with pytest.raises(
+            ToolError, match="SecretRegistry was provided",
+        ):
             await tool.execute({})
 
 
@@ -202,7 +209,9 @@ class TestOutputSchemaValidation:
     """Output schema enforced as hard ToolError on mismatch."""
 
     @pytest.mark.asyncio
-    async def test_missing_declared_output_field_is_tool_error(self) -> None:
+    async def test_missing_declared_output_field_is_tool_error(
+        self,
+    ) -> None:
         """Response missing a required output field raises ToolError."""
         defn = _make_definition(
             output_schema={
@@ -219,14 +228,11 @@ class TestOutputSchemaValidation:
         # Response only has temperature, missing humidity.
         resp = _mock_response(text='{"temperature": 22.5}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
+        with (
+            patch(_HTTPX_CLIENT, return_value=mock),
+            pytest.raises(ToolError, match="humidity"),
         ):
-            with pytest.raises(ToolError, match="humidity"):
-                await tool.execute({})
+            await tool.execute({})
 
     @pytest.mark.asyncio
     async def test_matching_output_schema_succeeds(self) -> None:
@@ -247,12 +253,7 @@ class TestOutputSchemaValidation:
             text='{"temperature": 22.5, "city": "Berlin"}',
         )
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
+        with patch(_HTTPX_CLIENT, return_value=mock):
             result = await tool.execute({})
 
         assert result.data["temperature"] == 22.5
@@ -275,29 +276,23 @@ class TestOutputSchemaValidation:
         # count is a string, not an integer.
         resp = _mock_response(text='{"count": "not-a-number"}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
+        with (
+            patch(_HTTPX_CLIENT, return_value=mock),
+            pytest.raises(
+                ToolError, match="Response validation failed",
+            ),
         ):
-            with pytest.raises(ToolError, match="Response validation failed"):
-                await tool.execute({})
+            await tool.execute({})
 
     @pytest.mark.asyncio
     async def test_no_output_schema_skips_validation(self) -> None:
-        """When no output schema is defined, any response is accepted."""
+        """No output schema: any response is accepted."""
         defn = _make_definition(output_schema=None)
         tool = build_http_tool(defn)
 
         resp = _mock_response(text="arbitrary non-json text")
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
+        with patch(_HTTPX_CLIENT, return_value=mock):
             result = await tool.execute({})
 
         assert result.data == "arbitrary non-json text"
@@ -309,7 +304,7 @@ class TestOutputSchemaValidation:
 
 
 class TestParameterInterpolation:
-    """URL parameter interpolation with URL-encoding and pattern validation."""
+    """URL parameter interpolation with URL-encoding and patterns."""
 
     @pytest.mark.asyncio
     async def test_param_interpolated_and_url_encoded(self) -> None:
@@ -328,12 +323,7 @@ class TestParameterInterpolation:
 
         resp = _mock_response(text='{"id": "ABC 123"}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
+        with patch(_HTTPX_CLIENT, return_value=mock):
             await tool.execute({"ticket_id": "ABC 123"})
 
         call_kwargs = mock.request.call_args[1]
@@ -342,7 +332,9 @@ class TestParameterInterpolation:
         assert "ABC 123" not in call_kwargs["url"]
 
     @pytest.mark.asyncio
-    async def test_param_with_pattern_mismatch_is_tool_error(self) -> None:
+    async def test_param_with_pattern_mismatch_is_tool_error(
+        self,
+    ) -> None:
         """Param value not matching its pattern raises ToolError."""
         defn = _make_definition(
             url="https://api.example.com/users/{user_id}",
@@ -378,12 +370,7 @@ class TestParameterInterpolation:
 
         resp = _mock_response(text='{"name": "Alice"}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
+        with patch(_HTTPX_CLIENT, return_value=mock):
             result = await tool.execute({"user_id": "Alice42"})
 
         assert result.data["name"] == "Alice"
@@ -403,7 +390,9 @@ class TestParameterInterpolation:
         )
         tool = build_http_tool(defn)
 
-        with pytest.raises(ToolError, match="Missing required argument"):
+        with pytest.raises(
+            ToolError, match="Missing required argument",
+        ):
             await tool.execute({})
 
     @pytest.mark.asyncio
@@ -484,7 +473,9 @@ class TestToolMetadata:
         assert tool.name == "my_api_tool"
 
     def test_description_matches_definition(self) -> None:
-        defn = _make_definition(description="Fetches data from My API")
+        defn = _make_definition(
+            description="Fetches data from My API",
+        )
         tool = build_http_tool(defn)
         assert tool.description == "Fetches data from My API"
 
@@ -515,13 +506,14 @@ class TestToolMetadata:
             },
         )
         tool = build_http_tool(defn)
+        props = tool.parameters["properties"]
         assert tool.parameters["type"] == "object"
-        assert "query" in tool.parameters["properties"]
-        assert "limit" in tool.parameters["properties"]
+        assert "query" in props
+        assert "limit" in props
         assert tool.parameters["required"] == ["query"]
-        assert tool.parameters["properties"]["query"]["type"] == "string"
-        assert tool.parameters["properties"]["query"]["pattern"] == "^.+$"
-        assert tool.parameters["properties"]["limit"]["type"] == "integer"
+        assert props["query"]["type"] == "string"
+        assert props["query"]["pattern"] == "^.+$"
+        assert props["limit"]["type"] == "integer"
 
 
 # ---------------------------------------------------------------------------
@@ -538,16 +530,14 @@ class TestHttpErrors:
         tool = build_http_tool(defn, timeout_ceiling=5)
 
         mock = AsyncMock()
-        mock.request = AsyncMock(side_effect=httpx.ReadTimeout("timed out"))
+        mock.request = AsyncMock(
+            side_effect=httpx.ReadTimeout("timed out"),
+        )
         mock.__aenter__ = AsyncMock(return_value=mock)
         mock.__aexit__ = AsyncMock(return_value=None)
-        import unittest.mock  # noqa: PLC0415
 
         with (
-            unittest.mock.patch(
-                "orxtra.tool._data_tool_http.httpx.AsyncClient",
-                return_value=mock,
-            ),
+            patch(_HTTPX_CLIENT, return_value=mock),
             pytest.raises(ToolError, match="timed out"),
         ):
             await tool.execute({})
@@ -563,13 +553,9 @@ class TestHttpErrors:
         )
         mock.__aenter__ = AsyncMock(return_value=mock)
         mock.__aexit__ = AsyncMock(return_value=None)
-        import unittest.mock  # noqa: PLC0415
 
         with (
-            unittest.mock.patch(
-                "orxtra.tool._data_tool_http.httpx.AsyncClient",
-                return_value=mock,
-            ),
+            patch(_HTTPX_CLIENT, return_value=mock),
             pytest.raises(ToolError, match="Request failed"),
         ):
             await tool.execute({})
@@ -585,11 +571,13 @@ class TestBodyTemplateInterpolation:
 
     @pytest.mark.asyncio
     async def test_param_in_body_template_substituted(self) -> None:
-        """Parameters in body_template are replaced with arg values."""
+        """Parameters in body_template are replaced with values."""
         defn = _make_definition(
             method="POST",
             url="https://api.example.com/data",
-            body_template='{"name": "{user_name}", "age": {user_age}}',
+            body_template=(
+                '{"name": "{user_name}", "age": {user_age}}'
+            ),
             params={
                 "user_name": ParamDef(
                     type="string",
@@ -607,13 +595,10 @@ class TestBodyTemplateInterpolation:
 
         resp = _mock_response(text='{"ok": true}')
         mock = _mock_client(resp)
-        import unittest.mock  # noqa: PLC0415
-
-        with unittest.mock.patch(
-            "orxtra.tool._data_tool_http.httpx.AsyncClient",
-            return_value=mock,
-        ):
-            await tool.execute({"user_name": "Alice", "user_age": 30})
+        with patch(_HTTPX_CLIENT, return_value=mock):
+            await tool.execute(
+                {"user_name": "Alice", "user_age": 30},
+            )
 
         call_kwargs = mock.request.call_args[1]
         body = call_kwargs["content"]

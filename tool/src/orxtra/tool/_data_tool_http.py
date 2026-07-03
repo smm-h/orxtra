@@ -23,7 +23,6 @@ import urllib.parse
 from typing import TYPE_CHECKING, Any
 
 import httpx
-
 from orxtra.protocols import Tool, ToolError, ToolOutput
 from orxtra.tool._data_tool_types import DataToolDefinition, HttpExecution, ParamDef
 
@@ -106,20 +105,26 @@ def _interpolate_url(
     def _replace(match: re.Match[str]) -> str:
         name = match.group(1)
         if name not in args:
-            msg = f"URL parameter {{{name}}} requires argument '{name}' but it was not provided"
+            msg = (
+                f"URL parameter {{{name}}} requires argument "
+                f"'{name}' but it was not provided"
+            )
             raise ToolError(msg)
         used_params.add(name)
         value = str(args[name])
 
         # Validate against pattern if defined.
         pdef = params.get(name)
-        if pdef is not None and pdef.pattern is not None:
-            if not re.fullmatch(pdef.pattern, value):
-                msg = (
-                    f"Parameter '{name}' value {value!r} does not match "
-                    f"pattern {pdef.pattern!r}"
-                )
-                raise ToolError(msg)
+        if (
+            pdef is not None
+            and pdef.pattern is not None
+            and not re.fullmatch(pdef.pattern, value)
+        ):
+            msg = (
+                f"Parameter '{name}' value {value!r} does not match "
+                f"pattern {pdef.pattern!r}"
+            )
+            raise ToolError(msg)
 
         return urllib.parse.quote(value, safe="")
 
@@ -140,7 +145,11 @@ def _validate_output_schema(
         jsonschema.validate(instance=response_data, schema=schema)
     except jsonschema.ValidationError as exc:
         # Build a descriptive message naming the failing field.
-        path = ".".join(str(p) for p in exc.absolute_path) if exc.absolute_path else "(root)"
+        path = (
+            ".".join(str(p) for p in exc.absolute_path)
+            if exc.absolute_path
+            else "(root)"
+        )
         msg = (
             f"Response validation failed at '{path}': {exc.message}"
         )
@@ -169,6 +178,58 @@ def _validate_args(
             raise ToolError(msg)
 
 
+def _apply_secret_substitution(
+    url_template: str,
+    header_template: dict[str, str] | None,
+    body_tmpl: str | None,
+    secret_registry: SecretRegistry | None,
+) -> tuple[str, dict[str, str] | None, str | None]:
+    """Apply secret substitution to URL, headers, and body template.
+
+    Returns (effective_url, effective_headers, effective_body).
+    """
+    effective_url = _substitute_secrets(url_template, secret_registry)
+    effective_headers: dict[str, str] | None = None
+    if header_template is not None:
+        effective_headers = {
+            k: _substitute_secrets(v, secret_registry)
+            for k, v in header_template.items()
+        }
+    effective_body: str | None = None
+    if body_tmpl is not None:
+        effective_body = _substitute_secrets(body_tmpl, secret_registry)
+    return effective_url, effective_headers, effective_body
+
+
+async def _make_http_request(
+    *,
+    method: str,
+    url: str,
+    headers: dict[str, str] | None,
+    body: str | None,
+    timeout_ceiling: int,
+) -> tuple[httpx.Response, int]:
+    """Execute the HTTP request. Returns (response, elapsed_ms)."""
+    start = time.monotonic()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                method=method,
+                url=url,
+                headers=headers,
+                content=body,
+                timeout=timeout_ceiling,
+            )
+    except httpx.TimeoutException:
+        msg = f"Request timed out after {timeout_ceiling}s"
+        raise ToolError(msg) from None
+    except httpx.RequestError as exc:
+        msg = f"Request failed: {exc}"
+        raise ToolError(msg) from exc
+    elapsed_ms = round((time.monotonic() - start) * 1000)
+    return response, elapsed_ms
+
+
 def build_http_tool(
     definition: DataToolDefinition,
     secret_registry: SecretRegistry | None = None,
@@ -193,7 +254,8 @@ def build_http_tool(
     exec_cfg = definition.execution
     if not isinstance(exec_cfg, HttpExecution):
         msg = (
-            f"Expected HttpExecution config, got {type(exec_cfg).__name__}"
+            f"Expected HttpExecution config, "
+            f"got {type(exec_cfg).__name__}"
         )
         raise TypeError(msg)
 
@@ -201,10 +263,14 @@ def build_http_tool(
     # enter the Tool object or its LLM-visible description/parameters.
     method = exec_cfg.method
     url_template = exec_cfg.url
-    header_template = dict(exec_cfg.headers) if exec_cfg.headers else None
+    header_template = (
+        dict(exec_cfg.headers) if exec_cfg.headers else None
+    )
     body_tmpl = exec_cfg.body_template
     params = dict(definition.params)
-    output_schema = definition.output.schema_ if definition.output else None
+    output_schema = (
+        definition.output.schema_ if definition.output else None
+    )
 
     # Build the LLM-visible parameter schema (no secret values).
     parameters = _build_json_schema_params(params)
@@ -216,74 +282,59 @@ def build_http_tool(
         tags = frozenset({"mutation"})
 
     async def execute(args: dict[str, Any]) -> ToolOutput[Any]:
-        # 1. Validate args.
         _validate_args(args, params)
 
-        # 2. Definition-level secret substitution at CALL TIME.
-        effective_url = _substitute_secrets(url_template, secret_registry)
-        effective_headers: dict[str, str] | None = None
-        if header_template is not None:
-            effective_headers = {
-                k: _substitute_secrets(v, secret_registry)
-                for k, v in header_template.items()
-            }
-        effective_body: str | None = None
-        if body_tmpl is not None:
-            effective_body = _substitute_secrets(body_tmpl, secret_registry)
+        # Secret substitution at CALL TIME.
+        effective_url, effective_headers, effective_body = (
+            _apply_secret_substitution(
+                url_template, header_template, body_tmpl,
+                secret_registry,
+            )
+        )
 
-        # 3. Parameter interpolation in URL.
-        effective_url = _interpolate_url(effective_url, args, params)
+        # Parameter interpolation in URL.
+        effective_url = _interpolate_url(
+            effective_url, args, params,
+        )
 
-        # 4. Parameter interpolation in body template (non-URL-encoded).
+        # Parameter interpolation in body (non-URL-encoded).
         if effective_body is not None:
-            for param_name, param_value in args.items():
+            for pname, pvalue in args.items():
                 effective_body = effective_body.replace(
-                    f"{{{param_name}}}", str(param_value),
+                    f"{{{pname}}}", str(pvalue),
                 )
 
-        # 5. Make the HTTP request.
-        start = time.monotonic()
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.request(
-                    method=method,
-                    url=effective_url,
-                    headers=effective_headers,
-                    content=effective_body,
-                    timeout=timeout_ceiling,
-                )
-        except httpx.TimeoutException:
-            msg = f"Request timed out after {timeout_ceiling}s"
-            raise ToolError(msg) from None
-        except httpx.RequestError as exc:
-            msg = f"Request failed: {exc}"
-            raise ToolError(msg) from exc
-        elapsed_ms = round((time.monotonic() - start) * 1000)
+        # HTTP request.
+        response, elapsed_ms = await _make_http_request(
+            method=method,
+            url=effective_url,
+            headers=effective_headers,
+            body=effective_body,
+            timeout_ceiling=timeout_ceiling,
+        )
 
-        # 6. Parse response body.
+        # Parse and validate response.
         response_body = response.text
         try:
-            response_data = json.loads(response_body)
+            response_data: Any = json.loads(response_body)
         except (json.JSONDecodeError, ValueError):
-            # Non-JSON response -- treat as plain text.
             response_data = response_body
 
-        # 7. Validate against output schema if defined.
         if output_schema is not None:
             _validate_output_schema(response_data, output_schema)
 
-        # 8. Preview large responses.
-        from orxtra.tool._preview import check_and_preview  # noqa: PLC0415
+        from orxtra.tool._preview import (  # noqa: PLC0415
+            check_and_preview,
+        )
 
-        preview_result = check_and_preview(
+        preview = check_and_preview(
             response_body, preview_threshold, preview_lines,
         )
 
-        # 9. Build result.
         result_dict: dict[str, Any] = {
             "status_code": response.status_code,
             "headers": dict(response.headers),
-            "body": preview_result.content,
+            "body": preview.content,
             "elapsed_ms": elapsed_ms,
         }
 
