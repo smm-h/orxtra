@@ -23,6 +23,7 @@ jobs:
       trace: ${{ steps.changes.outputs.trace }}
       notepad: ${{ steps.changes.outputs.notepad }}
       session: ${{ steps.changes.outputs.session }}
+      compose: ${{ steps.changes.outputs.compose }}
       auth: ${{ steps.changes.outputs.auth }}
       a2ui: ${{ steps.changes.outputs.a2ui }}
       scheduler: ${{ steps.changes.outputs.scheduler }}
@@ -51,6 +52,7 @@ jobs:
           trace: 'trace/**'
           notepad: 'notepad/**'
           session: 'session/**'
+          compose: 'compose/**'
           auth: 'auth/**'
           a2ui: 'a2ui/**'
           scheduler: 'scheduler/**'
@@ -103,6 +105,10 @@ jobs:
     needs: detect
     if: needs.detect.outputs.session == 'true'
     uses: ./.github/workflows/session-ci.yml
+  compose:
+    needs: detect
+    if: needs.detect.outputs.compose == 'true'
+    uses: ./.github/workflows/compose-ci.yml
   auth:
     needs: detect
     if: needs.detect.outputs.auth == 'true'
