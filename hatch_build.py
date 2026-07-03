@@ -10,7 +10,7 @@ their individual .pth files, so source edits take effect immediately.
 
 from __future__ import annotations
 
-import os
+import tomllib  # requires-python >= 3.12
 from pathlib import Path
 from typing import Any
 
@@ -21,12 +21,7 @@ def _workspace_members(root: Path) -> list[str]:
     """Parse [tool.uv.workspace].members from pyproject.toml.
 
     Returns the raw member directory names (e.g. "write-safety").
-    Uses a minimal parser to avoid a TOML dependency at build time
-    (hatchling ships tomli only on Python < 3.11; we need 3.12+).
     """
-    # Python 3.11+ has tomllib in stdlib
-    import tomllib
-
     pyproject = root / "pyproject.toml"
     with pyproject.open("rb") as f:
         data = tomllib.load(f)
@@ -62,8 +57,8 @@ def _derive_force_include(root: Path) -> dict[str, str]:
             raise RuntimeError(msg)
 
         pkg_dir = pkg_dirs[0]
-        source = os.path.join(member, "src", "orxtra", pkg_dir.name)
-        target = os.path.join("orxtra", pkg_dir.name)
+        source = str(Path(member) / "src" / "orxtra" / pkg_dir.name)
+        target = str(Path("orxtra") / pkg_dir.name)
         mapping[source] = target
 
     return mapping
