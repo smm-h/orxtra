@@ -36,9 +36,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 _SCHEMA_DIR = _REPO_ROOT / "schema"
 _BASELINE_DIR = _REPO_ROOT / "tests" / "migration_baselines" / "v0.8.0"
 
-# PG_UUIDV7_STUB: gen_random_uuid() stand-in for test containers
-# (duplicated here to avoid importing services in the migration test;
-# the test must be self-contained).
+# PG_UUIDV7_STUB: gen_random_uuid() stand-in for test containers.
 _PG_UUIDV7_STUB = """\
 CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid AS $$
     SELECT gen_random_uuid();
@@ -190,43 +188,7 @@ def _load_baseline_executor() -> Any:  # noqa: ANN401
     return exec_mod
 
 
-class _AsyncpgAdapter:
-    """Minimal asyncpg adapter for the generated schema executor protocol."""
-
-    def __init__(self, conn: Any) -> None:  # noqa: ANN401
-        self._conn = conn
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
-
-    async def fetch(self, query: str) -> list[dict[str, Any]]:
-        rows = await self._conn.fetch(query)
-        return [dict(r) for r in rows]
-
-    def transaction(self) -> _AsyncpgTx:
-        return _AsyncpgTx(self._conn)
-
-
-class _AsyncpgTx:
-    """Minimal asyncpg transaction adapter."""
-
-    def __init__(self, conn: Any) -> None:  # noqa: ANN401
-        self._conn = conn
-        self._tx: Any = None
-
-    async def __aenter__(self) -> _AsyncpgTx:
-        self._tx = self._conn.transaction()
-        await self._tx.start()
-        return self
-
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:  # noqa: ANN401
-        if exc_type is not None:
-            await self._tx.rollback()
-        else:
-            await self._tx.commit()
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
+from orxtra.services import AsyncpgAdapter
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +221,7 @@ async def test_migration_from_v080_baseline(
         await conn.execute("CREATE SCHEMA public")
         await conn.execute(_PG_UUIDV7_STUB)
 
-        adapter = _AsyncpgAdapter(conn)
+        adapter = AsyncpgAdapter(conn)
         result = await baseline_executor.execute(
             adapter,
             idempotent=True,
