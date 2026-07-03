@@ -12,11 +12,11 @@ from orxtra.compose._providers import FileFragmentProvider
 from orxtra.compose._variables import resolve_variables
 
 __all__ = [
-    "__version__",
     "CompositionEngine",
     "FileFragmentProvider",
     "Fragment",
     "FragmentProvider",
+    "__version__",
     "resolve_includes",
     "resolve_variables",
 ]

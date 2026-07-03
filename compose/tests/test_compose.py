@@ -18,7 +18,7 @@ from orxtra.compose import (
     resolve_includes,
     resolve_variables,
 )
-
+from pydantic import ValidationError
 
 # --- Include resolution (ported from agent/tests/test_prompt.py) ---
 
@@ -117,11 +117,11 @@ class TestFragment:
 
     def test_frozen(self) -> None:
         f = Fragment(name="x", content="y", source="s")
-        with pytest.raises(Exception):  # noqa: B017
+        with pytest.raises(ValidationError, match="frozen"):
             f.name = "z"  # type: ignore[misc]
 
     def test_forbids_extra(self) -> None:
-        with pytest.raises(Exception):  # noqa: B017
+        with pytest.raises(ValidationError, match="extra"):
             Fragment(name="x", content="y", source="s", extra="bad")  # type: ignore[call-arg]
 
 
@@ -332,7 +332,7 @@ class TestFileFragmentProvider:
         assert frags == []
 
     def test_satisfies_protocol(self) -> None:
-        provider = FileFragmentProvider(Path("."))
+        provider = FileFragmentProvider(Path())
         assert isinstance(provider, FragmentProvider)
 
     def test_alphabetical_ordering(self, tmp_path: Path) -> None:

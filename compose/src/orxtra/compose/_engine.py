@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from orxtra.compose._fragment import Fragment, FragmentProvider
 from orxtra.compose._variables import resolve_variables
+
+if TYPE_CHECKING:
+    from orxtra.compose._fragment import Fragment, FragmentProvider
 
 _SECTION_SEPARATOR = "\n\n---\n\n"
 

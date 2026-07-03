@@ -25,7 +25,7 @@ class FileFragmentProvider:
         self._directory = directory
         self._priority = priority
 
-    def fragments(self, context: dict[str, Any]) -> list[Fragment]:
+    def fragments(self, context: dict[str, Any]) -> list[Fragment]:  # noqa: ARG002
         if not self._directory.is_dir():
             return []
 
