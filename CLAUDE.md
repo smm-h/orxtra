@@ -6,12 +6,12 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation. Monorepo with 22 sub-projects across five layers, implemented across 170+ source modules and 210+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
+Active implementation. Monorepo with 23 sub-projects across five layers, implemented across 170+ source modules and 210+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
 Current version: 0.8.0.
 
 ## Philosophy
 
-Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 22.
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 23.
 
 ### Structured Programming for AI Workflows
 
@@ -50,6 +50,7 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── api/
 ├── auth/
 ├── cli/
+├── compose/
 ├── conftest.py
 ├── dev-sources.toml.local-only
 ├── dispatch/
@@ -88,7 +89,7 @@ Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 
 | Layer | Sub-projects | Dependencies |
 |---|---|---|
-| Foundation | [protocols](protocols/), [secrets](secrets/), [write-safety](write-safety/), [transport](transport/), [agent](agent/), [tool](tool/), [verify](verify/), [trace](trace/), [notepad](notepad/), [session](session/), [auth](auth/), [a2ui](a2ui/), [worker](worker/) | Zero intra-workspace deps (exceptions: transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols, notepad -> trace, session -> protocols + transport + trace, auth -> protocols, a2ui -> protocols, worker -> protocols + tool + write-safety + auth + secrets) |
+| Foundation | [protocols](protocols/), [secrets](secrets/), [write-safety](write-safety/), [transport](transport/), [agent](agent/), [tool](tool/), [verify](verify/), [trace](trace/), [notepad](notepad/), [session](session/), [compose](compose/), [auth](auth/), [a2ui](a2ui/), [worker](worker/) | Zero intra-workspace deps (exceptions: transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols, notepad -> trace, session -> protocols + transport + trace, auth -> protocols, a2ui -> protocols, worker -> protocols + tool + write-safety + auth + secrets) |
 | Orchestration | [scheduler](scheduler/), [dispatch](dispatch/) | scheduler depends on foundation + dispatch; dispatch depends on protocols |
 | Intelligence | [overseer](overseer/) | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Composition | [services](services/) | Depends on orchestration + intelligence; provides concrete implementations (ActionExecutor, FlushScheduler) and service functions |
@@ -108,6 +109,7 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **[Trace](trace/)** is a standalone PG event store. Schema owner for event-store tables (events, runs, tasks, transcripts, decisions, constraints, etc.). State machines, LISTEN/NOTIFY, append-only tables, crash recovery. Provides PgBackend and InMemoryBackend implementing the StorageBackend protocol. Events support nullable run_id and a source column for external event ingestion.
 - **[Notepad](notepad/)** is PG-backed append-only cross-agent IPC.
 - **[Session](session/)** wraps transport with token tracking, transcript persistence, cross-restart resumption.
+- **[Compose](compose/)** is the fragment-based prompt composition engine. Strict variable substitution, include resolution, priority ordering. Zero intra-workspace deps; defines the FragmentProvider protocol for trace-backed providers above.
 - **[Auth](auth/)** is the authentication and authorization module. Consumer registry, credential hashing, ASGI middleware, Authenticator/Authorizer protocols.
 - **[A2UI](a2ui/)** is the agent-to-UI surface rendering engine. Template registry, fragment library, data-bound component engine.
 - **[Worker](worker/)** is the brain-worker protocol for remote tool execution over WebSocket. Native and Docker workers, pipeline splitting for remote tool calls.
