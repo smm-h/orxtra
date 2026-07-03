@@ -10,6 +10,11 @@ from orxtra.overseer._autonomy import (
 )
 from orxtra.overseer._health import HealthMetrics, HealthMonitor
 from orxtra.overseer._knowledge import load_knowledge_files
+from orxtra.overseer._learning import (
+    check_staleness,
+    filter_stale_lessons,
+    query_relevant_lessons,
+)
 from orxtra.overseer._overseer import Overseer, OverseerEvent, load_overseer_prompt
 
 __all__ = [
@@ -19,6 +24,9 @@ __all__ = [
     "HealthMonitor",
     "Overseer",
     "OverseerEvent",
+    "check_staleness",
+    "filter_stale_lessons",
     "load_knowledge_files",
     "load_overseer_prompt",
+    "query_relevant_lessons",
 ]
