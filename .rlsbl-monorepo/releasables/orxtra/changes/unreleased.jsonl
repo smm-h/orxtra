@@ -59,3 +59,4 @@
 {"commits":["513e49e2d94ba1d7ecd876e532cad04a5ba6820c"],"user_facing":false,"packages":["dispatch","tool"]}
 {"commits":["fb429f2da6889b5415c108f05d577b841cadbcc8"],"user_facing":false,"packages":["auth","protocols"]}
 {"commits":["2c1fcaa9e5115bc4dbf79393ba2da7cd64212e1b"],"user_facing":false,"packages":["."]}
+{"commits":["c9a78fa50a65a87705ec864be2c2c8f0e6125369"],"user_facing":false,"packages":[".","agui","api","cli","mcp","scheduler","services","tool","worker"]}
