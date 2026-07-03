@@ -22,7 +22,8 @@ if TYPE_CHECKING:
 
 from tests.shared_mocks import MockTraceWriter
 
-pytest_plugins = ["tests.pg_fixtures"]
+# pytest_plugins lives in the workspace-root conftest.py -- pytest 8+
+# forbids defining it in non-top-level conftests.
 
 # ---------------------------------------------------------------------------
 # AgentTurn -- defines what tool calls an agent makes in a single turn
