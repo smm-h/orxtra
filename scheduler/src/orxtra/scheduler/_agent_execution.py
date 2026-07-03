@@ -337,6 +337,8 @@ class AgentExecutionMixin(SchedulerBase):
             self._task_sessions[task_id] = session
             self._session_mutations[session_id] = set()
 
+            await self._refresh_injection_data()
+
             prompt = await self._assemble_agent_prompt(
                 task, task_id, variables, attempt,
                 attempt_id, prior_attempts,
@@ -881,6 +883,33 @@ class AgentExecutionMixin(SchedulerBase):
                 task_id=task_id,
             )
 
+        # Build result-appendix callback for advisory
+        # tool-graph suggestions, deduped per session.
+        _suggested: set[str] = set()
+        registry = self._tool_registry
+
+        def _result_appendix(
+            tool_name: str,
+        ) -> str | None:
+            edges = registry.edges_from(tool_name)
+            if not edges:
+                return None
+            # Collect neighbor names not yet suggested.
+            neighbors = []
+            for edge in edges:
+                target = edge.target_tool
+                if target not in _suggested:
+                    neighbors.append(target)
+            if not neighbors:
+                return None
+            # Mark as suggested (dedupe).
+            _suggested.update(neighbors)
+            names_str = ", ".join(sorted(neighbors))
+            return render_template(
+                "tool_suggestion",
+                {"tool_names": names_str},
+            )
+
         # If the agent declares deferred tools, auto-grant
         # load_tools with factory-based lazy building.
         deferred_names = frozenset(agent_def.deferred)
@@ -945,6 +974,7 @@ class AgentExecutionMixin(SchedulerBase):
                     mutation_tracker=(
                         self._session_mutations
                     ),
+                    result_appendix=_result_appendix,
                 )
 
             def _get_tools() -> list[Tool]:
@@ -973,6 +1003,7 @@ class AgentExecutionMixin(SchedulerBase):
             trace_callback=_trace_callback,
             session_id=session_id,
             mutation_tracker=self._session_mutations,
+            result_appendix=_result_appendix,
         )
 
         previous_session_id: str | None = None
@@ -1302,6 +1333,31 @@ class AgentExecutionMixin(SchedulerBase):
                     f"{{{k}}}", str(v),
                 )
         return prompt
+
+    async def _refresh_injection_data(self) -> None:
+        """Refresh constraints, lessons, and notepad from trace.
+
+        Called at the start of each task attempt, before prompt
+        assembly. Each callback replaces the scheduler's in-memory
+        list with fresh data from the storage backend.
+
+        When no callbacks are registered (default), the lists
+        remain as initialized (empty or manually populated).
+        """
+        if self._refresh_constraints is not None:
+            self._active_constraints = (
+                await self._refresh_constraints(
+                    self._run_id,
+                )
+            )
+        if self._refresh_lessons is not None:
+            self._lessons = (
+                await self._refresh_lessons(self._run_id)
+            )
+        if self._refresh_notepad is not None:
+            self._notepad_entries = (
+                await self._refresh_notepad(self._run_id)
+            )
 
     async def _fail_attempt_timeout(
         self,

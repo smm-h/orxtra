@@ -151,6 +151,15 @@ class Scheduler(
         ) = None,
         event_delivery: EventDelivery | None = None,
         overseer_sinks: list[EventSink[OverseerEvent]] | None = None,
+        refresh_constraints: (
+            Callable[[UUID], Awaitable[list[tuple[str, str]]]] | None
+        ) = None,
+        refresh_lessons: (
+            Callable[[UUID], Awaitable[list[dict[str, Any]]]] | None
+        ) = None,
+        refresh_notepad: (
+            Callable[[UUID], Awaitable[list[NotepadEntry]]] | None
+        ) = None,
     ) -> None:
         # When a StorageBackend is provided, use it as the trace writer
         # (it implements all the same write methods).
@@ -221,6 +230,9 @@ class Scheduler(
         self._notepad_entries: list[NotepadEntry] = []
         self._lessons: list[dict[str, Any]] = []
         self._active_constraints: list[tuple[str, str]] = []
+        self._refresh_constraints = refresh_constraints
+        self._refresh_lessons = refresh_lessons
+        self._refresh_notepad = refresh_notepad
         self._mechanical_constraints: list[tuple[str, str]] = []
         self._pending_end_task_message: dict[UUID, str] = {}
         self._file_lock_registry = FileLockRegistry()

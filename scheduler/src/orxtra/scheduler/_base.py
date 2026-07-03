@@ -89,6 +89,9 @@ class SchedulerBase(ABC):
     _notepad_entries: list[NotepadEntry]
     _lessons: list[dict[str, Any]]
     _active_constraints: list[tuple[str, str]]
+    _refresh_constraints: Callable[[UUID], Awaitable[list[tuple[str, str]]]] | None
+    _refresh_lessons: Callable[[UUID], Awaitable[list[dict[str, Any]]]] | None
+    _refresh_notepad: Callable[[UUID], Awaitable[list[NotepadEntry]]] | None
     _constraint_checkers: dict[str, Callable[..., Awaitable[CheckResult]]]
     _mechanical_constraints: list[tuple[str, str]]
     _pending_end_task_message: dict[UUID, str]
