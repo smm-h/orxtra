@@ -6,8 +6,8 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation. Monorepo with 22 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
-Current version: 0.7.0.
+Active implementation. Monorepo with 22 sub-projects across five layers, implemented across 170+ source modules and 210+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
+Current version: 0.8.0.
 
 ## Philosophy
 
@@ -53,8 +53,10 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── conftest.py
 ├── dev-sources.toml.local-only
 ├── dispatch/
+├── dist/
 ├── docs/
 ├── examples/
+├── hatch_build.py
 ├── knowledge/
 ├── mcp/
 ├── notepad/
@@ -86,11 +88,11 @@ Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 
 | Layer | Sub-projects | Dependencies |
 |---|---|---|
-| Foundation | [protocols](protocols/), [secrets](secrets/), [write-safety](write-safety/), [transport](transport/), [agent](agent/), [tool](tool/), [verify](verify/), [trace](trace/), [notepad](notepad/), [session](session/) | Zero intra-workspace deps (exceptions: notepad -> trace, session -> transport + trace, transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols) |
-| Orchestration | [scheduler](scheduler/), [dispatch](dispatch/) | scheduler depends on all foundation modules; dispatch depends on protocols + trace |
+| Foundation | [protocols](protocols/), [secrets](secrets/), [write-safety](write-safety/), [transport](transport/), [agent](agent/), [tool](tool/), [verify](verify/), [trace](trace/), [notepad](notepad/), [session](session/), [auth](auth/), [a2ui](a2ui/), [worker](worker/) | Zero intra-workspace deps (exceptions: transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols, notepad -> trace, session -> protocols + transport + trace, auth -> protocols, a2ui -> protocols, worker -> protocols + tool + write-safety + auth + secrets) |
+| Orchestration | [scheduler](scheduler/), [dispatch](dispatch/) | scheduler depends on foundation + dispatch; dispatch depends on protocols |
 | Intelligence | [overseer](overseer/) | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Composition | [services](services/) | Depends on orchestration + intelligence; provides concrete implementations (ActionExecutor, FlushScheduler) and service functions |
-| Interfaces | [cli](cli/), [mcp](mcp/) | Depends on composition |
+| Interfaces | [cli](cli/), [mcp](mcp/), [a2a](a2a/), [agui](agui/), [api](api/) | Depends on composition |
 
 Higher layers can depend on lower layers. Lower layers cannot depend on higher layers. The Overseer and scheduler share types via the protocols module but never import each other.
 
@@ -106,12 +108,18 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **[Trace](trace/)** is a standalone PG event store. Schema owner for event-store tables (events, runs, tasks, transcripts, decisions, constraints, etc.). State machines, LISTEN/NOTIFY, append-only tables, crash recovery. Provides PgBackend and InMemoryBackend implementing the StorageBackend protocol. Events support nullable run_id and a source column for external event ingestion.
 - **[Notepad](notepad/)** is PG-backed append-only cross-agent IPC.
 - **[Session](session/)** wraps transport with token tracking, transcript persistence, cross-restart resumption.
+- **[Auth](auth/)** is the authentication and authorization module. Consumer registry, credential hashing, ASGI middleware, Authenticator/Authorizer protocols.
+- **[A2UI](a2ui/)** is the agent-to-UI surface rendering engine. Template registry, fragment library, data-bound component engine.
+- **[Worker](worker/)** is the brain-worker protocol for remote tool execution over WebSocket. Native and Docker workers, pipeline splitting for remote tool calls.
 - **[Scheduler](scheduler/)** is the task executor. Manages the recursive task hierarchy, enforces pre/post-checks, handles runtime task creation, routes events to the Overseer, enforces budgets and constraints. Accepts an EventDelivery implementation (defaults to dispatch's TransientEventDelivery) for wait_for task waking. Control signals (pause/abort) flow through trace's subscribe_run_control, not through dispatch.
 - **[Dispatch](dispatch/)** is the event delivery engine. Subscriptions with filter predicates, per-subscription action chains, accumulator buffering with count/time thresholds, dual-phase delivery (transient futures + persistent subscriptions). ActionExecutor protocol for injecting workflow execution without downward dependencies.
 - **[Overseer](overseer/)** is a persistent LLM with action tools (create_workflow, add_constraint, etc.), PG memory, health monitoring, session handoff. The root task's agent.
 - **[Services](services/)** is the composition layer: shared business logic consumed by CLI, MCP, and the Python API. Provides concrete implementations of dispatch protocols (ServicesActionExecutor, AsyncioFlushScheduler) and thin service functions for subscriptions, events, runs, inbox, and trace queries.
 - **[CLI](cli/)** is a [strictcli](https://github.com/smm-h/strictcli) frontend. Agents are the primary users.
 - **[MCP](mcp/)** is an MCP server for human interface via dashboard/AI client.
+- **[A2A](a2a/)** is an A2A (Agent-to-Agent) protocol server. Agent card generation, skill registry, task state bridging.
+- **[AG-UI](agui/)** is the AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots.
+- **[API](api/)** is the HTTP compositor that mounts MCP, A2A, AG-UI, and native routes on a single ASGI app.
 
 ## Examples
 

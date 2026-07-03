@@ -2,7 +2,7 @@
   "schema_version": 1,
   "name": "orxtra",
   "slug": "orxtra",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "",
   "language": "python",
   "base_url": "https://orxtra.smmh.dev",
@@ -64,5 +64,5 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-07-03T12:38:28.079798+00:00"
+  "last_gen": "2026-07-03T13:24:53.603601+00:00"
 }
