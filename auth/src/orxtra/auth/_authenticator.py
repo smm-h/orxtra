@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING
 from orxtra.auth._exceptions import AuthenticationError
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from orxtra.auth._backend import AuthBackend, CredentialRecord
     from orxtra.auth._inmemory import InMemoryAuthBackend
     from orxtra.auth._verifiers import HashCredentialVerifier, HmacCredentialVerifier
@@ -68,6 +70,37 @@ class Authenticator:
                 )
                 raise ValueError(msg)
 
+    async def verify_by_credential_id(
+        self,
+        credential_id: UUID,
+        presented_credential: str,
+    ) -> Principal:
+        """Verify a credential looked up by ID rather than by hash.
+
+        Used by the webhook receiver where the credential_id is known
+        from the source record. The presented_credential format is the
+        same as for authenticate(): raw token for bearer/api_key,
+        'identifier:signature:message' for HMAC.
+
+        Raises AuthenticationError if the credential is not found, the
+        verifier is missing, or verification fails.
+        """
+        cred: CredentialRecord | None = await self._backend.get_credential_by_id(
+            credential_id,
+        )
+        if cred is None:
+            await self._emit_audit(
+                credential_id=str(credential_id),
+                credential_type="unknown",
+                consumer_id=None,
+                outcome="failure",
+                reason="Credential not found by ID",
+            )
+            msg = "Credential not found"
+            raise AuthenticationError(msg)
+
+        return await self._verify_with_record(cred, presented_credential)
+
     async def authenticate(
         self,
         raw_credential: str,
@@ -109,6 +142,18 @@ class Authenticator:
             msg = "Invalid credential"
             raise AuthenticationError(msg)
 
+        return await self._verify_with_record(cred, raw_credential)
+
+    async def _verify_with_record(
+        self,
+        cred: CredentialRecord,
+        presented_credential: str,
+    ) -> Principal:
+        """Verify a presented credential against a known credential record.
+
+        Shared by authenticate() (hash lookup) and verify_by_credential_id()
+        (ID lookup). Delegates to the per-type verifier, emits audit events.
+        """
         verifier = self._verifiers.get(cred.credential_type)
         if verifier is None:
             await self._emit_audit(
@@ -122,7 +167,7 @@ class Authenticator:
             raise AuthenticationError(msg)
 
         try:
-            principal = await verifier.verify(cred, raw_credential)
+            principal = await verifier.verify(cred, presented_credential)
         except AuthenticationError as exc:
             await self._emit_audit(
                 credential_id=str(cred.id),
