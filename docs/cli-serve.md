@@ -17,3 +17,4 @@ Start the HTTP API server.
 | --- | --- | --- | --- | --- | --- |
 | `--port` |  | int |  |  | Port to listen on. |
 | `--host` |  | str | 0.0.0.0 |  | Host to bind to. |
+| `--secrets-env` |  | str |  |  | JSON object mapping secret names to env var names for auth. |
