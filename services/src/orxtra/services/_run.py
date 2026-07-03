@@ -10,7 +10,7 @@ from orxtra.agent import load_agents, load_categories
 from orxtra.overseer import load_knowledge_files
 from orxtra.protocols import BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, load_workflow
-from orxtra.scheduler._tool_registry import ToolEntry
+from orxtra.scheduler import ToolEntry
 from orxtra.secrets import create_secret_registry
 from orxtra.services._injection import (
     build_constraints_refresher,
@@ -141,16 +141,14 @@ def _load_custom_tools(
     Monty and command types use ``build_monty_tool`` and
     ``build_command_tool`` respectively, with capability-derived tags.
     """
-    from orxtra.tool._data_tool_http import build_http_tool  # noqa: PLC0415
-    from orxtra.tool._data_tool_monty import (  # noqa: PLC0415
-        _derive_tags,
-        build_command_tool,
-        build_monty_tool,
-    )
-    from orxtra.tool._data_tool_types import (  # noqa: PLC0415
+    from orxtra.tool import (  # noqa: PLC0415
         CommandExecution,
         HttpExecution,
         MontyExecution,
+        build_command_tool,
+        build_http_tool,
+        build_monty_tool,
+        derive_tags,
     )
 
     definitions = load_tool_definitions(tools_dir, secret_registry)
@@ -185,7 +183,7 @@ def _load_custom_tools(
 
         elif isinstance(defn.execution, MontyExecution):
             # Monty: derive tags from capabilities.
-            cap_tags = _derive_tags(
+            cap_tags = derive_tags(
                 defn.execution.capabilities, defn.tags,
             )
             derived_tags.update(cap_tags)

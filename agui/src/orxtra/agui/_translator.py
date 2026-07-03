@@ -97,7 +97,7 @@ class AGUITranslator:
     def translate_transport(self, event: TransportEvent) -> list[BaseEvent]:
         """Translate a TransportEvent into zero or more AG-UI BaseEvents."""
         # Import here to avoid top-level coupling.
-        from orxtra.transport._events import (
+        from orxtra.transport import (
             Error,
             Result,
             StepFinish,
@@ -257,7 +257,7 @@ class AGUITranslator:
 
     def translate_overseer(self, event: OverseerEvent) -> list[BaseEvent]:
         """Translate an OverseerEvent into zero or more AG-UI BaseEvents."""
-        from orxtra.protocols._types._events import (
+        from orxtra.protocols import (
             BudgetExhausted,
             BudgetThresholdCrossed,
             HealthDegraded,

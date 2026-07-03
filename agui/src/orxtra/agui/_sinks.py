@@ -8,8 +8,8 @@ from typing import Any
 from ag_ui.core import BaseEvent
 
 from orxtra.agui._translator import AGUITranslator
-from orxtra.protocols._types._events import OverseerEvent
-from orxtra.transport._events import TransportEvent
+from orxtra.protocols import OverseerEvent
+from orxtra.transport import TransportEvent
 
 # Async callback type: receives an AG-UI event and delivers it (e.g. to a
 # Broadcaster or SSE stream).

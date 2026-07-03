@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 import pytest
 from orxtra.protocols import ToolError
 from orxtra.tool._data_tool_monty import (
-    _derive_tags,
+    derive_tags,
     build_command_tool,
     build_monty_tool,
 )
@@ -349,30 +349,30 @@ class TestTagDerivation:
 
     def test_readonly_only_tool_carries_readonly_tag(self) -> None:
         """A tool with only read/http-GET capabilities carries readonly."""
-        tags = _derive_tags(["read", "grep", "stat"], None)
+        tags = derive_tags(["read", "grep", "stat"], None)
         assert "readonly" in tags
         assert "mutation" not in tags
 
     def test_write_capability_adds_mutation_tag(self) -> None:
         """Any mutation capability adds the mutation tag."""
-        tags = _derive_tags(["read", "write"], None)
+        tags = derive_tags(["read", "write"], None)
         assert "mutation" in tags
         assert "readonly" not in tags
 
     def test_command_capability_adds_mutation_tag(self) -> None:
         """Command capability adds the mutation tag."""
-        tags = _derive_tags(["command"], None)
+        tags = derive_tags(["command"], None)
         assert "mutation" in tags
 
     def test_user_tags_preserved(self) -> None:
         """User-supplied tags are preserved alongside derived tags."""
-        tags = _derive_tags(["read"], ["custom_tag"])
+        tags = derive_tags(["read"], ["custom_tag"])
         assert "custom_tag" in tags
         assert "readonly" in tags
 
     def test_empty_capabilities_gets_readonly(self) -> None:
         """No capabilities at all means readonly."""
-        tags = _derive_tags([], None)
+        tags = derive_tags([], None)
         assert "readonly" in tags
 
     def test_readonly_tag_on_built_tool(self, tmp_path: Path) -> None:

@@ -1152,7 +1152,7 @@ class AgentExecutionMixin(SchedulerBase):
 
         # Inline tool definitions (per-agent [[tools.define]]).
         if agent_def.inline_tools:
-            from orxtra.tool._data_tool_types import DataToolDefinition  # noqa: PLC0415
+            from orxtra.tool import DataToolDefinition  # noqa: PLC0415
 
             for itd in agent_def.inline_tools:
                 # Build a DataToolDefinition from the inline
@@ -1184,17 +1184,13 @@ class AgentExecutionMixin(SchedulerBase):
                     if not ns_match and "*" not in agent_def.allow:
                         continue
 
-                from orxtra.tool._data_tool_http import (  # noqa: PLC0415
-                    build_http_tool,
-                )
-                from orxtra.tool._data_tool_monty import (  # noqa: PLC0415
-                    build_command_tool,
-                    build_monty_tool,
-                )
-                from orxtra.tool._data_tool_types import (  # noqa: PLC0415
+                from orxtra.tool import (  # noqa: PLC0415
                     CommandExecution,
                     HttpExecution,
                     MontyExecution,
+                    build_command_tool,
+                    build_http_tool,
+                    build_monty_tool,
                 )
 
                 if isinstance(defn.execution, CommandExecution):

@@ -31,7 +31,7 @@ from orxtra.tool import (
     make_stat_tool,
     make_write_tool,
 )
-from orxtra.tool._subprocess import run_subprocess
+from orxtra.tool import run_subprocess
 from orxtra.worker._protocol import (
     ExecuteToolCall,
     Heartbeat,

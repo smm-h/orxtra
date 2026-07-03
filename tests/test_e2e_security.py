@@ -165,14 +165,14 @@ class TestMontyMutationTag:
 
     async def test_monty_write_capability_carries_mutation(self) -> None:
         """Monty tool with write capability should have mutation tag."""
-        from orxtra.tool._data_tool_monty import _derive_tags
-        tags = _derive_tags(["write"], None)
+        from orxtra.tool._data_tool_monty import derive_tags
+        tags = derive_tags(["write"], None)
         assert "mutation" in tags
 
     async def test_monty_read_only_carries_readonly(self) -> None:
         """Monty tool with only read capabilities gets readonly tag."""
-        from orxtra.tool._data_tool_monty import _derive_tags
-        tags = _derive_tags(["read", "grep"], None)
+        from orxtra.tool._data_tool_monty import derive_tags
+        tags = derive_tags(["read", "grep"], None)
         assert "readonly" in tags
         assert "mutation" not in tags
 

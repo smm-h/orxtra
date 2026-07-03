@@ -53,7 +53,7 @@ _READONLY_CAPABILITIES: frozenset[str] = frozenset({
 })
 
 
-def _derive_tags(
+def derive_tags(
     capabilities: list[str],
     user_tags: list[str] | None,
 ) -> frozenset[str]:
@@ -553,7 +553,7 @@ def build_monty_tool(
     )
 
     # Derive effect tags from capabilities.
-    tags = _derive_tags(exec_cfg.capabilities, definition.tags)
+    tags = derive_tags(exec_cfg.capabilities, definition.tags)
 
     # Build resource limits for monty.
     monty_limits = MontyResourceLimits(

@@ -14,7 +14,7 @@ from orxtra.protocols import (
     ToolError,
 )
 from orxtra.scheduler._base import SchedulerBase
-from orxtra.tool._scrub import scrub_text
+from orxtra.tool import scrub_text
 
 _logger = logging.getLogger("orxtra.scheduler")
 

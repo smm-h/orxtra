@@ -26,6 +26,7 @@ from orxtra.scheduler._services import (
     start_service,
     stop_service,
 )
+from orxtra.scheduler._tool_registry import ToolEntry
 from orxtra.scheduler._types import (
     EscalationPolicy,
     ServiceConfig,
@@ -41,6 +42,7 @@ __all__ = [
     "OverseerAdapter",
     "OverseerInterface",
     "Scheduler",
+    "ToolEntry",
     "classify_error",
     "ServiceConfig",
     "ServiceInstance",

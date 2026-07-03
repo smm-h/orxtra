@@ -425,7 +425,7 @@ def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:  # noqa: A002
 
 # -- Serve command (from orxtra.api) --
 
-from orxtra.api._cli import register_serve_command
+from orxtra.api import register_serve_command
 
 register_serve_command(app)
 
@@ -446,7 +446,7 @@ register_dispatch_commands(app)
 
 # -- Worker commands (from orxtra.worker) --
 
-from orxtra.worker._cli import register_worker_commands
+from orxtra.worker import register_worker_commands
 
 register_worker_commands(app)
 

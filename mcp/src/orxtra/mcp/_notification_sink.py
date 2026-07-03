@@ -65,7 +65,7 @@ class McpNotificationSink:
 
     async def on_event(self, event: OverseerEvent) -> None:
         """Translate an OverseerEvent to MCP resource-updated notifications."""
-        from orxtra.protocols._types._events import (
+        from orxtra.protocols import (
             BudgetExhausted,
             BudgetThresholdCrossed,
             HealthDegraded,

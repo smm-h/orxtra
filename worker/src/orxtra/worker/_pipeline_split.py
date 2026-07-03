@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from orxtra.protocols import Tool, ToolOutput
-from orxtra.tool._scrub import scrub_data, scrub_text
+from orxtra.tool import scrub_data, scrub_text
 
 from orxtra.worker._protocol import ExecuteToolCall, ToolCallResult
 

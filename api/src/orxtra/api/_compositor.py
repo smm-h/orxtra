@@ -115,7 +115,7 @@ def _build_mcp_app(dispatch_context: DispatchContext) -> Any:  # noqa: ANN401
     When mounted at /mcp, fastware strips the prefix. The MCP app
     must use streamable_http_path="/" so the inner route matches.
     """
-    from orxtra.mcp._server import MCPServer  # noqa: PLC0415
+    from orxtra.mcp import MCPServer  # noqa: PLC0415
 
     server = MCPServer(
         pool=dispatch_context.pool,

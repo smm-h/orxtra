@@ -12,6 +12,7 @@ from orxtra.worker._brain import (
     ToolCallTimeoutError,
     WorkerDisconnectedError,
 )
+from orxtra.worker._cli import register_worker_commands
 from orxtra.worker._docker import ContainerExitError, DockerNotFoundError, DockerWorker
 from orxtra.worker._native import NativeWorker, build_worker_tools
 from orxtra.worker._pipeline_split import wrap_tool_for_remote, wrap_tools_for_remote
@@ -42,6 +43,7 @@ __all__ = [
     "WorkerRegistry",
     "__version__",
     "build_worker_tools",
+    "register_worker_commands",
     "wrap_tool_for_remote",
     "wrap_tools_for_remote",
 ]
