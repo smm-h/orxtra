@@ -8,10 +8,9 @@ field validator.  Execution type is discriminated via ``type``.
 from __future__ import annotations
 
 import re
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Discriminator, Field, Tag, field_validator
-
 
 # ---------------------------------------------------------------------------
 # Parameter definition
@@ -99,11 +98,9 @@ def _execution_discriminator(v: Any) -> str:  # noqa: ANN401
 
 
 ExecutionConfig = Annotated[
-    Union[
-        Annotated[HttpExecution, Tag("http")],
-        Annotated[MontyExecution, Tag("monty")],
-        Annotated[CommandExecution, Tag("command")],
-    ],
+    Annotated[HttpExecution, Tag("http")]
+    | Annotated[MontyExecution, Tag("monty")]
+    | Annotated[CommandExecution, Tag("command")],
     Discriminator(_execution_discriminator),
 ]
 

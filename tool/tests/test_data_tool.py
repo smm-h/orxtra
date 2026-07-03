@@ -14,11 +14,9 @@ from orxtra.secrets import SecretRegistry
 from orxtra.tool._data_tool_loader import load_tool_definition, load_tool_definitions
 from orxtra.tool._data_tool_types import (
     CommandExecution,
-    DataToolDefinition,
     HttpExecution,
     MontyExecution,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -260,7 +258,7 @@ class TestNamespaceEnforcement:
 
         with pytest.raises(
             ValueError,
-            match="must start with 'custom.'.*got 'ext.weather'",
+            match=r"must start with 'custom\.'.*got 'ext\.weather'",
         ):
             load_tool_definition(toml_file)
 
@@ -272,7 +270,7 @@ class TestNamespaceEnforcement:
         toml_file = tmp_path / "bad_ns.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="must start with 'custom.'"):
+        with pytest.raises(ValueError, match=r"must start with 'custom\.'"):
             load_tool_definition(toml_file)
 
     def test_empty_namespace_rejected(self, tmp_path: Path) -> None:
@@ -283,7 +281,7 @@ class TestNamespaceEnforcement:
         toml_file = tmp_path / "bad_ns.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="must start with 'custom.'"):
+        with pytest.raises(ValueError, match=r"must start with 'custom\.'"):
             load_tool_definition(toml_file)
 
 

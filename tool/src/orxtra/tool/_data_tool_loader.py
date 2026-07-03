@@ -8,11 +8,10 @@ references against the secret registry.
 from __future__ import annotations
 
 import tomllib
-from typing import TYPE_CHECKING
-
-from pydantic import ValidationError
+from typing import TYPE_CHECKING, Any
 
 from orxtra.tool._data_tool_types import DataToolDefinition
+from pydantic import ValidationError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -58,7 +57,7 @@ def load_tool_definition(
         raise ValueError(msg)
 
     # Build the model input dict from sections.
-    model_input: dict = dict(tool_section)
+    model_input: dict[str, Any] = dict(tool_section)
     if "params" in raw:
         model_input["params"] = raw["params"]
     else:

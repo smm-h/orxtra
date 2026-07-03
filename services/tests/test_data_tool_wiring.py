@@ -7,6 +7,7 @@ resolution for custom.* vs fs.* namespaces.
 
 from __future__ import annotations
 
+import contextlib
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -15,7 +16,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from orxtra.scheduler._tool_registry import (
     ToolEntry,
-    ToolRegistry,
     create_builtin_registry,
     validate_allow_lists,
 )
@@ -171,7 +171,7 @@ class TestAllowListResolution:
 
         metadata = registry.get_metadata()
         assert "my_api_tool" in metadata
-        ns, tags = metadata["my_api_tool"]
+        ns, _tags = metadata["my_api_tool"]
         assert ns == "custom.api"
 
     def test_fs_wildcard_never_resolves_custom_tool(
@@ -257,10 +257,12 @@ class TestOrderingGuarantee:
                 new_callable=AsyncMock,
             ),
         ):
-            mock_writer, mock_sched = _make_mocks(sample_run_id)
+            mock_writer, _mock_sched = _make_mocks(sample_run_id)
             mock_writer_cls.return_value = mock_writer
             mock_load_agents.return_value = {"test-agent": agent}
-            mock_load_cats.return_value = {"default": "anthropic/claude-sonnet-4-6"}
+            mock_load_cats.return_value = {
+                "default": "anthropic/claude-sonnet-4-6",
+            }
             mock_load_wf.return_value = MagicMock()
 
             config = _make_run_config(tools_dir=tools_dir)
@@ -272,13 +274,8 @@ class TestOrderingGuarantee:
             #
             # We do NOT mock the Scheduler -- we let the real
             # constructor run to verify the ordering.
-            try:
+            with contextlib.suppress(Exception):
                 await start_run(mock_pool, "test", config)
-            except Exception:
-                # The run will fail because other dependencies aren't
-                # fully wired (mocked writer, etc.). We only care that
-                # validate_allow_lists didn't raise.
-                pass
 
     @pytest.mark.asyncio
     async def test_unknown_custom_tool_fails_validation(

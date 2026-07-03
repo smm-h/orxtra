@@ -14,7 +14,13 @@ from orxtra.scheduler._tool_registry import ToolEntry
 from orxtra.secrets import create_secret_registry
 from orxtra.services._providers import build_transport_registry
 from orxtra.tool import load_tool_definitions
-from orxtra.trace import RunReport, RunSummary, StorageBackend, TraceWriter, read_run_report
+from orxtra.trace import (
+    RunReport,
+    RunSummary,
+    StorageBackend,
+    TraceWriter,
+    read_run_report,
+)
 from orxtra.trace import list_runs as _list_runs
 from pydantic import BaseModel, ConfigDict
 
@@ -152,7 +158,7 @@ def _load_custom_tools(
             derived_tags.add("mutation")
 
         def _placeholder_factory(
-            deps: Any,  # noqa: ANN401, ARG001
+            deps: Any,  # noqa: ANN401
             *,
             _name: str = defn.name,
         ) -> Any:  # noqa: ANN401
