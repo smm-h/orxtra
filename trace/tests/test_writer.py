@@ -346,7 +346,7 @@ class TestWriteEvent:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         """When ON CONFLICT fires (INSERT 0), inserted is False."""
-        mock_pool.conn.queue_execute("INSERT 0")
+        mock_pool.conn.queue_execute("INSERT 0 0")
         with patch(
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
