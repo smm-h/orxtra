@@ -1,8 +1,8 @@
-# A coding agent with git and exec capabilities.
+# A coding agent with git and command execution capabilities.
 # Agents are TOML files with an associated .md prompt file (the `prompt`
 # key in [agent] is a path relative to this file).
-# Each [[exec]] entry defines one purpose-built executable tool; the
-# "exec" entry in the allow list gates them.
+# Each [[tools.define]] entry defines one purpose-built command tool;
+# the "custom.*" wildcard in the allow list gates them.
 
 [agent]
 name = "coder"
@@ -11,22 +11,40 @@ prompt = "coder_agent.md"
 category = "default"
 
 [tools]
-allow = ["read", "write", "edit", "git", "exec", "start_task", "end_task"]
+allow = ["read", "write", "edit", "git", "custom.*", "start_task", "end_task"]
 
-[[exec]]
+[[tools.define]]
 name = "pytest"
-executable = "pytest"
 description = "Run the test suite"
+namespace = "custom.exec"
+deferred = false
+
+[tools.define.execution]
+type = "command"
+executable = "pytest"
+arg_validation = true
 timeout_ceiling = 120
 
-[[exec]]
+[[tools.define]]
 name = "ruff"
-executable = "ruff"
 description = "Run the ruff linter"
+namespace = "custom.exec"
+deferred = false
+
+[tools.define.execution]
+type = "command"
+executable = "ruff"
+arg_validation = true
 timeout_ceiling = 120
 
-[[exec]]
+[[tools.define]]
 name = "mypy"
-executable = "mypy"
 description = "Run the mypy type checker"
+namespace = "custom.exec"
+deferred = false
+
+[tools.define.execution]
+type = "command"
+executable = "mypy"
+arg_validation = true
 timeout_ceiling = 120

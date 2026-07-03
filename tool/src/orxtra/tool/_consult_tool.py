@@ -8,13 +8,35 @@ from orxtra.tool._decorator import tool
 from orxtra.tool._params import ConsultParams
 from orxtra.tool._renderers import TextRenderer
 
-CONSULT_STRIP_TOOLS: frozenset[str] = frozenset({
-    "write", "edit", "multi_edit", "delete", "move", "copy", "mkdir",
-    "set_executable",
-    "exec", "shell", "git",
-    "http",
-    "start_task", "end_task", "create_task", "create_workflow", "create_wait_for",
+# Tags and name sets that trigger stripping from the consult view.
+# A tool is stripped if: it carries the "mutation" tag, OR its name
+# is in the lifecycle set.  Git is always stripped (even readonly
+# subcommands are misleading in a consult context).
+# Notepad is explicitly preserved: it is mutation-tagged (writes to
+# the database) but is useful for cross-agent note sharing.
+_CONSULT_STRIP_TAGS: frozenset[str] = frozenset({"mutation"})
+_CONSULT_STRIP_NAMES: frozenset[str] = frozenset({
+    "git",
+    "start_task", "end_task", "create_task",
+    "create_workflow", "create_wait_for",
 })
+_CONSULT_PRESERVE_NAMES: frozenset[str] = frozenset({
+    "notepad",
+})
+
+
+def should_strip_for_consult(name: str, t: Tool) -> bool:
+    """Return True if the tool should be stripped from the consult view.
+
+    A tool is stripped if it carries the "mutation" tag or if its
+    name is in the lifecycle/git strip set. Explicitly preserved
+    tools (notepad) are never stripped.
+    """
+    if name in _CONSULT_PRESERVE_NAMES:
+        return False
+    if name in _CONSULT_STRIP_NAMES:
+        return True
+    return bool(t.tags & _CONSULT_STRIP_TAGS)
 
 
 @tool(
@@ -44,11 +66,11 @@ async def _consult_impl(
 
     agent_def = agents[agent_name]
 
-    # Filter out mutating tools
+    # Filter out mutating tools (by tag) and lifecycle/git tools (by name).
     filtered_tools: dict[str, Tool] = {
         name: t
         for name, t in tool_registry.items()
-        if name not in CONSULT_STRIP_TOOLS
+        if not should_strip_for_consult(name, t)
     }
 
     # Reconstruct http tool in consult_mode if the agent is allowed http

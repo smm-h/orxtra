@@ -21,7 +21,12 @@ _SESSION_ID = "session-1"
 _TASK_ID = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 
 
-def _dummy_tool(name: str = "test_tool", result: str = "ok") -> Tool:
+def _dummy_tool(
+    name: str = "test_tool",
+    result: str = "ok",
+    *,
+    tags: frozenset[str] = frozenset(),
+) -> Tool:
     """Create a simple async tool for testing."""
 
     async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
@@ -32,6 +37,7 @@ def _dummy_tool(name: str = "test_tool", result: str = "ok") -> Tool:
         description="Test tool",
         parameters={"type": "object"},
         execute=_execute,
+        tags=tags,
     )
 
 
@@ -444,9 +450,9 @@ class TestWrapToolsForSession:
     @pytest.mark.asyncio
     async def test_detects_file_mutation_tools(self) -> None:
         tools = [
-            _dummy_tool(name="write"),
-            _dummy_tool(name="edit"),
-            _dummy_tool(name="read"),
+            _dummy_tool(name="write", tags=frozenset({"mutation"})),
+            _dummy_tool(name="edit", tags=frozenset({"mutation"})),
+            _dummy_tool(name="read", tags=frozenset({"readonly"})),
         ]
         tracker: dict[str, set[str]] = {}
         wrapped = wrap_tools_for_session(

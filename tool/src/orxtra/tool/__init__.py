@@ -7,7 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
-from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
+from orxtra.tool._consult_tool import make_consult_tool
 from orxtra.tool._data_tool_http import build_http_tool
 from orxtra.tool._data_tool_loader import load_tool_definition, load_tool_definitions
 from orxtra.tool._data_tool_monty import build_command_tool, build_monty_tool
@@ -22,14 +22,12 @@ from orxtra.tool._data_tool_types import (
 )
 from orxtra.tool._decorator import ToolTemplate, tool
 from orxtra.tool._discovery import collect_tools
-from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool
 from orxtra.tool._http_tool import make_http_tool
 from orxtra.tool._load_tools import make_load_tools_tool
 from orxtra.tool._notepad_tool import make_notepad_tool
 from orxtra.tool._path import PathError, check_write_scope, resolve_and_check
 from orxtra.tool._pipeline import (
-    FILE_MUTATION_TOOLS,
     compose,
     wrap_tool_with_pipeline,
     wrap_tools_for_session,
@@ -49,7 +47,6 @@ from orxtra.tool._read_tools import (
 )
 from orxtra.tool._renderers import JsonRenderer, TableRenderer, TextRenderer
 from orxtra.tool._scrub import scrub_data, scrub_text, scrub_tool_output
-from orxtra.tool._shell_tool import make_shell_tool
 from orxtra.tool._subprocess import run_subprocess, validate_exec_arg
 from orxtra.tool._task_tools import (
     TaskSchedulerRef,
@@ -73,8 +70,6 @@ from orxtra.tool._write_tools import (
 )
 
 __all__ = [
-    "CONSULT_STRIP_TOOLS",
-    "FILE_MUTATION_TOOLS",
     "CommandExecution",
     "DataToolDefinition",
     "FullRetrievalGuard",
@@ -110,7 +105,6 @@ __all__ = [
     "make_diff_tool",
     "make_edit_tool",
     "make_end_task_tool",
-    "make_exec_tool",
     "make_git_tool",
     "make_glob_tool",
     "make_grep_tool",
@@ -123,7 +117,6 @@ __all__ = [
     "make_notepad_tool",
     "make_read_tool",
     "make_set_executable_tool",
-    "make_shell_tool",
     "make_start_task_tool",
     "make_stat_tool",
     "make_write_tool",

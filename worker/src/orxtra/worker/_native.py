@@ -19,7 +19,6 @@ from orxtra.tool import (
     make_delete_tool,
     make_diff_tool,
     make_edit_tool,
-    make_exec_tool,
     make_git_tool,
     make_glob_tool,
     make_grep_tool,
@@ -32,6 +31,7 @@ from orxtra.tool import (
     make_stat_tool,
     make_write_tool,
 )
+from orxtra.tool._subprocess import run_subprocess
 from orxtra.worker._protocol import (
     ExecuteToolCall,
     Heartbeat,
@@ -50,6 +50,61 @@ _RECONNECT_BACKOFF_FACTOR = 2.0
 _DEFAULT_PREVIEW_THRESHOLD = 50_000
 _DEFAULT_PREVIEW_LINES = 30
 _DEFAULT_TIMEOUT_CEILING = 300
+
+def _make_worker_exec_tool(
+    executable: str,
+    description: str,
+    read_root: Path,
+) -> Tool:
+    """Build a simple exec-style tool for the worker.
+
+    Uses run_subprocess directly. The tool schema matches the
+    historic exec tool: ``args`` (optional list[str]) and
+    ``timeout`` (optional int).
+    """
+    _ = description  # Kept for readability at call sites.
+
+    async def execute(args: dict[str, Any]) -> ToolOutput[Any]:
+        cmd_args: list[str] = args.get("args", [])
+        timeout: int | None = args.get("timeout")
+        effective_timeout = min(
+            timeout if timeout is not None else _DEFAULT_TIMEOUT_CEILING,
+            _DEFAULT_TIMEOUT_CEILING,
+        )
+        return await run_subprocess(
+            executable=executable,
+            args=cmd_args,
+            cwd=read_root,
+            timeout=effective_timeout,
+            arg_validation=True,
+            preview_threshold=_DEFAULT_PREVIEW_THRESHOLD,
+            preview_lines=_DEFAULT_PREVIEW_LINES,
+        )
+
+    return Tool(
+        name=executable,
+        description=f"Run {executable}",
+        parameters={
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Command-line arguments",
+                },
+                "timeout": {
+                    "type": "integer",
+                    "description": "Timeout in seconds",
+                    "minimum": 1,
+                },
+            },
+            "additionalProperties": False,
+        },
+        execute=execute,
+        namespace="exec",
+        tags=frozenset({"mutation"}),
+    )
+
 
 def build_worker_tools(
     root: Path,
@@ -125,22 +180,8 @@ def build_worker_tools(
                 "branches", "changed_files", "commit",
             ],
         ),
-        make_exec_tool(
-            executable="pytest",
-            description="Run pytest",
-            read_root=root,
-            timeout_ceiling=_DEFAULT_TIMEOUT_CEILING,
-            preview_threshold=_DEFAULT_PREVIEW_THRESHOLD,
-            preview_lines=_DEFAULT_PREVIEW_LINES,
-        ),
-        make_exec_tool(
-            executable="uv",
-            description="Run uv",
-            read_root=root,
-            timeout_ceiling=_DEFAULT_TIMEOUT_CEILING,
-            preview_threshold=_DEFAULT_PREVIEW_THRESHOLD,
-            preview_lines=_DEFAULT_PREVIEW_LINES,
-        ),
+        _make_worker_exec_tool("pytest", "Run pytest", root),
+        _make_worker_exec_tool("uv", "Run uv", root),
     ]
     return {t.name: t for t in tools}
 

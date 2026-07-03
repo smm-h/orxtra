@@ -14,10 +14,7 @@ if TYPE_CHECKING:
 
     from orxtra.secrets import SecretRegistry
 
-FILE_MUTATION_TOOLS: frozenset[str] = frozenset({
-    "write", "edit", "multi_edit", "delete", "move", "copy", "mkdir",
-    "set_executable", "shell",
-})
+_MUTATION_TAG = "mutation"
 
 
 def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
@@ -67,7 +64,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
                 paths.add(str(effective_args["source"]))
             if "destination" in effective_args:
                 paths.add(str(effective_args["destination"]))
-            # shell tool has "command" but no path -- track as generic mutation
+            # Mutation tools without path-like args tracked as generic mutation.
             if not paths:
                 paths.add("__generic__")
 
@@ -109,7 +106,7 @@ def wrap_tools_for_session(  # noqa: PLR0913
             trace_callback=trace_callback,
             session_id=session_id,
             is_start_task=(tool.name == "start_task"),
-            is_file_mutation=(tool.name in FILE_MUTATION_TOOLS),
+            is_file_mutation=(_MUTATION_TAG in tool.tags),
             mutation_tracker=mutation_tracker,
         )
         for tool in tools

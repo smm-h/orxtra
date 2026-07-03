@@ -17,13 +17,23 @@ _READ_ROOT = Path("/project")
 _CATEGORIES = {"default": "anthropic/claude-3-sonnet"}
 
 
-def _dummy_tool(name: str) -> Tool:
+def _dummy_tool(
+    name: str,
+    *,
+    tags: frozenset[str] = frozenset(),
+) -> Tool:
     """Create a no-op tool for registry population."""
 
     async def _noop(args: dict[str, Any]) -> str:
         return "ok"
 
-    return Tool(name=name, description=f"Tool {name}", parameters={}, execute=_noop)
+    return Tool(
+        name=name,
+        description=f"Tool {name}",
+        parameters={},
+        execute=_noop,
+        tags=tags,
+    )
 
 
 def _mock_agent_def(
@@ -65,18 +75,33 @@ def _mock_transport(text: str = "answer") -> _MockTransport:
     return _MockTransport(text)
 
 
-# All tool names that appear in the codebase.
-_ALL_TOOL_NAMES: list[str] = [
-    "write", "edit", "delete", "move", "copy", "mkdir", "set_executable",
-    "exec", "git", "http",
-    "start_task", "end_task", "create_task", "create_workflow", "create_wait_for",
-    "read", "notepad",
+# All tool names that appear in the codebase, with their tags.
+_ALL_TOOLS: list[tuple[str, frozenset[str]]] = [
+    ("write", frozenset({"mutation"})),
+    ("edit", frozenset({"mutation"})),
+    ("delete", frozenset({"mutation"})),
+    ("move", frozenset({"mutation"})),
+    ("copy", frozenset({"mutation"})),
+    ("mkdir", frozenset({"mutation"})),
+    ("set_executable", frozenset({"mutation"})),
+    ("git", frozenset({"readonly", "mutation"})),
+    ("http", frozenset({"readonly", "mutation"})),
+    ("start_task", frozenset({"lifecycle"})),
+    ("end_task", frozenset({"lifecycle"})),
+    ("create_task", frozenset({"lifecycle"})),
+    ("create_workflow", frozenset({"lifecycle"})),
+    ("create_wait_for", frozenset({"lifecycle"})),
+    ("read", frozenset({"readonly"})),
+    ("notepad", frozenset({"mutation"})),
 ]
 
 
 def _full_registry() -> dict[str, Tool]:
-    """Build a registry containing every tool name."""
-    return {name: _dummy_tool(name) for name in _ALL_TOOL_NAMES}
+    """Build a registry containing every tool with proper tags."""
+    return {
+        name: _dummy_tool(name, tags=tags)
+        for name, tags in _ALL_TOOLS
+    }
 
 
 def _make_tool(
@@ -193,13 +218,6 @@ class TestConsultToolStripping:
         tool, transport = _make_tool()
         await tool.execute({"agent": "helper", "question": "q"})
         assert "delete" not in _sent_tool_names(transport)
-
-    @pytest.mark.asyncio
-    async def test_exec_tool_stripped(self) -> None:
-        """Exec tool is not passed to the consulted agent."""
-        tool, transport = _make_tool()
-        await tool.execute({"agent": "helper", "question": "q"})
-        assert "exec" not in _sent_tool_names(transport)
 
     @pytest.mark.asyncio
     async def test_git_tool_stripped_when_not_in_allow(self) -> None:

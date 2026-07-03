@@ -31,9 +31,7 @@ from orxtra.tool import (
     make_create_wait_for_tool,
     make_create_workflow_tool,
     make_end_task_tool,
-    make_exec_tool,
     make_git_tool,
-    make_shell_tool,
     make_start_task_tool,
     wrap_tools_for_session,
 )
@@ -887,8 +885,9 @@ class AgentExecutionMixin(SchedulerBase):
 
         Uses the ToolRegistry for data-driven construction of
         standard tools, with special handling for git (subcommand
-        resolution), consult (needs already-built tools), exec/shell
-        (per-agent config), and lifecycle tools (always present).
+        resolution), consult (needs already-built tools), inline
+        tool definitions (per-agent [[tools.define]]), and lifecycle
+        tools (always present).
         """
         preview_threshold = 10000
         preview_lines = 50
@@ -960,34 +959,65 @@ class AgentExecutionMixin(SchedulerBase):
                 agents=self._agents,
             ))
 
-        # Exec tools (per-agent configured executables).
-        if "exec" in resolved and agent_def.exec_tools:
-            raw_tools.extend(
-                make_exec_tool(
-                    executable=ec.executable,
-                    description=ec.description,
-                    read_root=self._read_root,
-                    timeout_ceiling=ec.timeout_ceiling,
-                    preview_threshold=preview_threshold,
-                    preview_lines=preview_lines,
-                )
-                for ec in agent_def.exec_tools
-            )
+        # Inline tool definitions (per-agent [[tools.define]]).
+        if agent_def.inline_tools:
+            from orxtra.tool._data_tool_types import DataToolDefinition  # noqa: PLC0415
 
-        # Shell tool (per-agent configured shell access).
-        if (
-            "shell" in resolved
-            and agent_def.shell_config
-        ):
-            sc = agent_def.shell_config
-            raw_tools.append(make_shell_tool(
-                allowed_binaries=sc.allowed_binaries,
-                description=sc.description,
-                read_root=self._read_root,
-                timeout_ceiling=sc.timeout_ceiling,
-                preview_threshold=preview_threshold,
-                preview_lines=preview_lines,
-            ))
+            for itd in agent_def.inline_tools:
+                # Build a DataToolDefinition from the inline
+                # raw dict to get proper validation.
+                defn_dict = {
+                    "name": itd.name,
+                    "description": itd.description,
+                    "namespace": itd.namespace,
+                    "deferred": itd.deferred,
+                    "tags": itd.tags,
+                    "params": itd.params or {},
+                    "execution": itd.execution,
+                    "output": itd.output,
+                }
+                defn = DataToolDefinition(**defn_dict)
+
+                # Only build if the tool name resolves
+                # through the allow list (explicit name or
+                # namespace wildcard or tag filter).
+                if itd.name not in resolved:
+                    # Check namespace wildcard match.
+                    ns_match = any(
+                        entry.endswith(".*")
+                        and itd.namespace.startswith(
+                            entry[:-2],
+                        )
+                        for entry in agent_def.allow
+                    )
+                    if not ns_match and "*" not in agent_def.allow:
+                        continue
+
+                from orxtra.tool._data_tool_monty import (  # noqa: PLC0415
+                    build_command_tool,
+                    build_monty_tool,
+                )
+                from orxtra.tool._data_tool_http import (  # noqa: PLC0415
+                    build_http_tool,
+                )
+                from orxtra.tool._data_tool_types import (  # noqa: PLC0415
+                    CommandExecution,
+                    HttpExecution,
+                    MontyExecution,
+                )
+
+                if isinstance(defn.execution, CommandExecution):
+                    raw_tools.append(
+                        build_command_tool(defn, deps),
+                    )
+                elif isinstance(defn.execution, MontyExecution):
+                    raw_tools.append(
+                        build_monty_tool(defn, deps),
+                    )
+                elif isinstance(defn.execution, HttpExecution):
+                    raw_tools.append(
+                        build_http_tool(defn, deps),
+                    )
 
         # Always add lifecycle tools.
         raw_tools.extend([

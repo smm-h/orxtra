@@ -1,4 +1,4 @@
-"""Verification tests for namespace and tags on all 26 built-in tools.
+"""Verification tests for namespace and tags on all built-in tools.
 
 Each make_* factory is called with minimal dependencies and the resulting
 Tool is checked for the correct namespace and tags.
@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock
 import pytest
 from orxtra.protocols import Tool
 from orxtra.tool._consult_tool import make_consult_tool
-from orxtra.tool._exec_tool import make_exec_tool
 from orxtra.tool._git_tool import make_git_tool
 from orxtra.tool._http_tool import make_http_tool
 from orxtra.tool._notepad_tool import make_notepad_tool
@@ -25,7 +24,6 @@ from orxtra.tool._read_tools import (
     make_read_tool,
     make_stat_tool,
 )
-from orxtra.tool._shell_tool import make_shell_tool
 from orxtra.tool._task_tools import (
     make_await_task_tool,
     make_create_task_tool,
@@ -116,9 +114,6 @@ EXPECTED_METADATA: list[tuple[str, str, frozenset[str]]] = [
     ("http_consult", "io.http", frozenset({"readonly"})),
     # io.notepad
     ("notepad", "io.notepad", frozenset({"mutation"})),
-    # exec
-    ("shell", "exec", frozenset({"mutation"})),
-    ("exec", "exec", frozenset({"mutation"})),
     # meta.consult
     ("consult", "meta.consult", frozenset({"readonly"})),
 ]
@@ -199,24 +194,6 @@ def _build_all_tools(
         agent_name="agent-1",
     )
 
-    # exec
-    tools["shell"] = make_shell_tool(
-        allowed_binaries=["echo"],
-        description="Test shell",
-        read_root=_ROOT,
-        timeout_ceiling=30,
-        preview_threshold=50000,
-        preview_lines=50,
-    )
-    tools["exec"] = make_exec_tool(
-        executable="echo",
-        description="Test exec",
-        read_root=_ROOT,
-        timeout_ceiling=30,
-        preview_threshold=50000,
-        preview_lines=50,
-    )
-
     # meta.consult
     tools["consult"] = make_consult_tool(
         tool_registry={},
@@ -283,16 +260,6 @@ class TestToolMetadata:
             f"got {t.tags!r}"
         )
 
-    def test_exec_tool_name_is_executable(self) -> None:
-        """make_exec_tool uses the executable name as the tool name."""
-        t = self._tools["exec"]
-        assert t.name == "echo"
-
-    def test_exec_tool_namespace_from_template(self) -> None:
-        """make_exec_tool preserves the template namespace."""
-        t = self._tools["exec"]
-        assert t.namespace == "exec"
-
     def test_all_expected_tools_covered(self) -> None:
         """Every tool in EXPECTED_METADATA has a corresponding built tool."""
         expected_keys = {t[0] for t in EXPECTED_METADATA}
@@ -301,7 +268,7 @@ class TestToolMetadata:
         assert not missing, f"Missing tools in build: {missing}"
 
     def test_total_tool_count(self) -> None:
-        """We build 28 tool instances (26 unique tools + 2 http modes)."""
+        """We build 25 tool instances (24 unique tools + 2 http modes - 1 shared name)."""
         # 6 read + 8 write + 1 git + 6 task + 2 http + 1 notepad
-        # + 1 shell + 1 exec + 1 consult = 27 instances
-        assert len(self._tools) == 27
+        # + 1 consult = 25 instances
+        assert len(self._tools) == 25

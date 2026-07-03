@@ -377,8 +377,8 @@ def create_builtin_registry() -> ToolRegistry:
     """Create a ToolRegistry populated with all built-in tools.
 
     Does NOT include: git (needs resolved_names context), consult
-    (needs already-built tools), exec/shell (per-agent config),
-    or lifecycle tools (always added unconditionally).
+    (needs already-built tools), or lifecycle tools (always added
+    unconditionally).
 
     Git and consult are handled separately in the build phase because
     they depend on the resolved tool set.
@@ -427,13 +427,10 @@ LIFECYCLE_TOOL_NAMES = frozenset({
 # injected into the metadata dict before resolve_allow_list runs.
 #
 # MAINTENANCE CONTRACT:
-#   - Phase 3.4 removes "exec" and "shell" entries.
 #   - Phase 7.1 extends this for deferred declarations.
 SYNTHETIC_ENTRIES: dict[str, tuple[str, frozenset[str]]] = {
     "git": GIT_METADATA,
     "consult": CONSULT_METADATA,
-    "exec": ("exec", frozenset({"mutation"})),
-    "shell": ("exec", frozenset({"mutation"})),
 }
 
 
@@ -470,6 +467,14 @@ def validate_allow_lists(
 
     # All names that are valid explicit allow-list entries.
     known_names = set(metadata.keys()) | LIFECYCLE_TOOL_NAMES
+
+    # Inline tool names from all agents are also valid.
+    for agent_def in agents.values():
+        for itd in agent_def.inline_tools:
+            known_names.add(itd.name)
+            # Inline tools also contribute to the tag vocabulary.
+            if itd.tags:
+                known_tags.update(itd.tags)
 
     for agent_name, agent_def in agents.items():
         for entry in agent_def.allow:

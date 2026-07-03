@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import uuid6
-from orxtra.agent import Agent, ExecToolConfig, ShellConfig
+from orxtra.agent import Agent, InlineToolDefinition
 from orxtra.protocols import TaskSpec
 from orxtra.scheduler._executor import Scheduler
 
@@ -391,11 +391,10 @@ class TestGitSubcommandsDependOnWriteAccess:
         assert "commit" not in captured_subcommands[0]
 
 
-class TestExecToolPresent:
-    """Agent with allow=["exec"] and exec_tools gets
-    exec tools."""
+class TestInlineToolPresent:
+    """Agent with inline tool definitions gets the tools built."""
 
-    async def test_exec_tools_constructed(
+    async def test_inline_command_tool_constructed(
         self, tmp_path: Path,
     ) -> None:
         agent = Agent(
@@ -403,12 +402,19 @@ class TestExecToolPresent:
             description="Test agent",
             prompt="You are a test agent.",
             category="default",
-            allow=["exec"],
-            exec_tools=[
-                ExecToolConfig(
+            allow=["custom.*"],
+            inline_tools=[
+                InlineToolDefinition(
                     name="pytest",
-                    executable="pytest",
                     description="Run tests",
+                    namespace="custom.exec",
+                    deferred=False,
+                    execution={
+                        "type": "command",
+                        "executable": "pytest",
+                        "arg_validation": True,
+                        "timeout_ceiling": 120,
+                    },
                 ),
             ],
         )
@@ -418,55 +424,15 @@ class TestExecToolPresent:
         assert names >= LIFECYCLE_TOOLS
 
 
-class TestShellToolPresent:
-    """Agent with allow=["shell"] and shell_config gets
-    shell tool."""
+class TestInlineToolWithoutConfig:
+    """Agent without inline_tools gets only lifecycle tools."""
 
-    async def test_shell_tool_constructed(
+    async def test_no_inline_tools(
         self, tmp_path: Path,
     ) -> None:
-        agent = Agent(
-            name="test-agent",
-            description="Test agent",
-            prompt="You are a test agent.",
-            category="default",
-            allow=["shell"],
-            shell_config=ShellConfig(
-                allowed_binaries=["ls", "cat"],
-            ),
-        )
+        agent = _agent(["custom.*"])
         sched = _make_scheduler(agent, tmp_path)
         names = await _extract_tool_names(sched)
-        assert "shell" in names
-        assert names >= LIFECYCLE_TOOLS
-
-
-class TestExecWithoutConfig:
-    """Agent with allow=["exec"] but no exec_tools gets
-    no exec tools."""
-
-    async def test_no_exec_tools_without_config(
-        self, tmp_path: Path,
-    ) -> None:
-        agent = _agent(["exec"])
-        sched = _make_scheduler(agent, tmp_path)
-        names = await _extract_tool_names(sched)
-        # Only lifecycle tools (no exec tools without
-        # config)
-        assert names == LIFECYCLE_TOOLS
-
-
-class TestShellWithoutConfig:
-    """Agent with allow=["shell"] but no shell_config gets
-    no shell tool."""
-
-    async def test_no_shell_without_config(
-        self, tmp_path: Path,
-    ) -> None:
-        agent = _agent(["shell"])
-        sched = _make_scheduler(agent, tmp_path)
-        names = await _extract_tool_names(sched)
-        assert "shell" not in names
         assert names == LIFECYCLE_TOOLS
 
 
