@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from orxtra.protocols._types._tool import Tool
 
 T_contra = TypeVar("T_contra", contravariant=True)
-T_event = TypeVar("T_event")
+T_event = TypeVar("T_event", contravariant=True)
 
 
 @runtime_checkable

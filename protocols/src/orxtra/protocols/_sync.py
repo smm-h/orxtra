@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from collections.abc import Coroutine
 from typing import Any, TypeVar
 
 T = TypeVar("T")
 
 
-def run_sync(coro: Any) -> T:  # noqa: ANN401
+def run_sync(coro: Coroutine[Any, Any, T]) -> T:
     """Run an async coroutine from synchronous code.
 
     Three modes:
@@ -20,7 +21,7 @@ def run_sync(coro: Any) -> T:  # noqa: ANN401
     except RuntimeError:
         return asyncio.run(coro)
 
-    if loop._thread_id == threading.get_ident():  # noqa: SLF001
+    if loop._thread_id == threading.get_ident():  # type: ignore[attr-defined]  # noqa: SLF001
         msg = (
             "run_sync() called from the event loop thread. "
             "Use the async function directly with 'await'."

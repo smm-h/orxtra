@@ -12,7 +12,7 @@ class AutonomyLevel(StrEnum):
     HIGH = "high"
     MAX = "max"
 
-    _RULES: MappingProxyType[str, frozenset[str]]  # type: ignore[assignment]
+    _RULES: MappingProxyType[str, frozenset[str]]
 
     def is_autonomous(self, action_type: str) -> bool:
         allowed = self._RULES[self.value]
@@ -26,7 +26,7 @@ class AutonomyLevel(StrEnum):
 
 # Assigned after class body because StrEnum members
 # occupy the namespace during class definition.
-AutonomyLevel._RULES = MappingProxyType({  # type: ignore[attr-defined]
+AutonomyLevel._RULES = MappingProxyType({  # noqa: SLF001
     "low": frozenset({"read_only"}),
     "medium": frozenset({
         "read_only",
