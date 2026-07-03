@@ -30,6 +30,7 @@ from orxtra.tool._data_tool_types import (
     MontyExecution,
 )
 from pydantic_monty import Monty, MontyRuntimeError
+from pydantic_monty import ResourceLimits as MontyResourceLimits
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -555,9 +556,9 @@ def build_monty_tool(
     tags = _derive_tags(exec_cfg.capabilities, definition.tags)
 
     # Build resource limits for monty.
-    monty_limits: dict[str, Any] = {
-        "max_duration_secs": float(exec_cfg.limits.max_duration_secs),
-    }
+    monty_limits = MontyResourceLimits(
+        max_duration_secs=float(exec_cfg.limits.max_duration_secs),
+    )
     if exec_cfg.limits.max_allocations is not None:
         monty_limits["max_allocations"] = exec_cfg.limits.max_allocations
     if exec_cfg.limits.max_memory is not None:
