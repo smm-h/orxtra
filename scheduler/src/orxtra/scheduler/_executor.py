@@ -56,6 +56,7 @@ if TYPE_CHECKING:
         OverseerEvent,
         OverseerInterface,
     )
+    from orxtra.scheduler._tool_registry import ToolEntry
     from orxtra.scheduler._types import WorkflowConfig
     from orxtra.secrets import SecretRegistry
     from orxtra.session import Session
@@ -146,7 +147,7 @@ class Scheduler(
             dict[str, Callable[..., Awaitable[CheckResult]]] | None
         ) = None,
         custom_tools: (
-            dict[str, Callable[..., Tool]] | None
+            list[ToolEntry] | None
         ) = None,
         event_delivery: EventDelivery | None = None,
         overseer_sinks: list[EventSink[OverseerEvent]] | None = None,
@@ -171,26 +172,27 @@ class Scheduler(
         self._autonomy_level = autonomy_level
         self._secret_registry = secret_registry
         self._constraint_checkers = constraint_checkers or {}
-        self._custom_tools = custom_tools or {}
+        self._custom_tools = custom_tools or []
         self._overseer_sinks: list[EventSink[OverseerEvent]] = overseer_sinks or []
 
         # Build tool registry once per Scheduler lifetime.
         from orxtra.scheduler._tool_registry import (  # noqa: PLC0415
-            CONSULT_METADATA,
-            GIT_METADATA,
             create_builtin_registry,
+            validate_allow_lists,
         )
         self._tool_registry = create_builtin_registry()
-        for ct_name, ct_factory in self._custom_tools.items():
-            if ct_name not in self._tool_registry:
+        for entry in self._custom_tools:
+            if entry.name not in self._tool_registry:
                 self._tool_registry.register_custom(
-                    ct_name, ct_factory,
+                    entry.name,
+                    entry.namespace,
+                    entry.tags,
+                    entry.factory,
                 )
-        # Inject metadata for special tools (git, consult) so
-        # wildcard/tag resolution works even though they are
-        # not built via the registry's normal build path.
-        self._git_metadata = GIT_METADATA
-        self._consult_metadata = CONSULT_METADATA
+
+        # Validate all agents' allow lists against the
+        # registry before any execution starts.
+        validate_allow_lists(self._agents, self._tool_registry)
 
         self._active_tasks: dict[str, UUID] = {}
         self._task_states: dict[UUID, TaskState] = {}

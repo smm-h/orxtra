@@ -74,26 +74,23 @@ class ToolRegistry:
     def register_custom(
         self,
         name: str,
-        factory: Callable[..., Tool],
+        namespace: str,
+        tags: frozenset[str],
+        factory: Callable[[ToolDeps], Tool],
     ) -> None:
-        """Register a custom tool (no-arg factory, no deps).
+        """Register a custom tool with full metadata.
 
-        Custom tools use empty namespace and tags since
-        their metadata is not known to the registry.
+        The factory receives ``ToolDeps`` like built-in factories.
+        Namespace and tags are required -- no implicit defaults.
         """
         if name in self._entries:
             msg = f"Duplicate tool name: {name!r}"
             raise ValueError(msg)
-
-        def _wrap(deps: ToolDeps) -> Tool:
-            _ = deps
-            return factory()
-
         self._entries[name] = ToolEntry(
             name=name,
-            namespace="",
-            tags=frozenset(),
-            factory=_wrap,
+            namespace=namespace,
+            tags=tags,
+            factory=factory,
         )
 
     def get_metadata(
@@ -407,3 +404,91 @@ CONSULT_METADATA: tuple[str, frozenset[str]] = (
 
 # Names of tools that imply git commit access
 WRITE_TOOL_NAMES = _WRITE_TOOL_NAMES
+
+
+# ---------------------------------------------------------------------------
+# Allow-list validation constants
+# ---------------------------------------------------------------------------
+
+# Lifecycle tools are always appended unconditionally; they are
+# valid explicit allow-list entries even though they are not in
+# the registry or synthetic entries.
+LIFECYCLE_TOOL_NAMES = frozenset({
+    "start_task",
+    "end_task",
+    "create_task",
+    "create_workflow",
+    "create_wait_for",
+    "await_task",
+})
+
+# Metadata for tools that participate in allow-list resolution
+# but are NOT registered as normal ToolEntry objects.  They are
+# injected into the metadata dict before resolve_allow_list runs.
+#
+# MAINTENANCE CONTRACT:
+#   - Phase 3.4 removes "exec" and "shell" entries.
+#   - Phase 7.1 extends this for deferred declarations.
+SYNTHETIC_ENTRIES: dict[str, tuple[str, frozenset[str]]] = {
+    "git": GIT_METADATA,
+    "consult": CONSULT_METADATA,
+    "exec": ("exec", frozenset({"mutation"})),
+    "shell": ("exec", frozenset({"mutation"})),
+}
+
+
+def validate_allow_lists(
+    agents: dict[str, Any],
+    registry: ToolRegistry,
+) -> None:
+    """Validate every agent's allow list against the registry.
+
+    Called at Scheduler construction after all custom tools are
+    registered, before any execution starts.
+
+    Rules:
+    - ``*`` (universal wildcard): always valid.
+    - ``#tag``: the tag must exist in the known tag vocabulary
+      (union of all tags across registry entries and synthetic
+      entries).  Unknown tag = hard error.
+    - ``ns.*`` (namespace wildcard): zero matches is fine --
+      wildcards are the flexible mechanism for optional tool sets.
+    - Explicit name: must exist in registry entries, synthetic
+      entries, or lifecycle tool names.  Unknown = hard error.
+
+    Raises:
+        ValueError: naming the agent and the offending entry.
+    """
+    # Build the complete metadata map.
+    metadata = dict(registry.get_metadata())
+    metadata.update(SYNTHETIC_ENTRIES)
+
+    # Build known tag vocabulary from all metadata sources.
+    known_tags: set[str] = set()
+    for _, tags in metadata.values():
+        known_tags.update(tags)
+
+    # All names that are valid explicit allow-list entries.
+    known_names = set(metadata.keys()) | LIFECYCLE_TOOL_NAMES
+
+    for agent_name, agent_def in agents.items():
+        for entry in agent_def.allow:
+            if entry == "*":
+                continue
+            if entry.startswith("#"):
+                tag = entry[1:]
+                if tag not in known_tags:
+                    msg = (
+                        f"Agent '{agent_name}' references "
+                        f"unknown tag '{tag}' in allow list"
+                    )
+                    raise ValueError(msg)
+            elif entry.endswith(".*"):
+                # Namespace wildcard -- zero matches is fine.
+                continue
+            elif entry not in known_names:
+                msg = (
+                    f"Agent '{agent_name}' references "
+                    f"unknown tool '{entry}' in allow list"
+                )
+                raise ValueError(msg)

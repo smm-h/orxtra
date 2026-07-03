@@ -142,16 +142,22 @@ class TestBuildTools:
 
 
 class TestRegisterCustom:
-    """Custom tool registration."""
+    """Custom tool registration with full metadata."""
 
     def test_custom_tool(self, tmp_path: Path) -> None:
         registry = ToolRegistry()
-        custom = lambda: _make_dummy_tool("custom")
-        registry.register_custom("custom", custom)
+        registry.register_custom(
+            "custom",
+            namespace="custom.test",
+            tags=frozenset({"readonly"}),
+            factory=lambda deps: _make_dummy_tool("custom"),
+        )
         assert "custom" in registry
 
         meta = registry.get_metadata()
-        assert meta["custom"] == ("", frozenset())
+        assert meta["custom"] == (
+            "custom.test", frozenset({"readonly"}),
+        )
 
         deps = _make_deps(tmp_path)
         tools = registry.build_tools({"custom"}, deps)
@@ -161,11 +167,17 @@ class TestRegisterCustom:
     def test_custom_duplicate_raises(self) -> None:
         registry = ToolRegistry()
         registry.register_custom(
-            "x", lambda: _make_dummy_tool("x"),
+            "x",
+            namespace="custom.x",
+            tags=frozenset(),
+            factory=lambda deps: _make_dummy_tool("x"),
         )
         with pytest.raises(ValueError, match="Duplicate"):
             registry.register_custom(
-                "x", lambda: _make_dummy_tool("x"),
+                "x",
+                namespace="custom.x",
+                tags=frozenset(),
+                factory=lambda deps: _make_dummy_tool("x"),
             )
 
 

@@ -10,6 +10,7 @@ import uuid6
 from orxtra.agent import Agent
 from orxtra.protocols import TaskSpec, Tool
 from orxtra.scheduler._executor import Scheduler
+from orxtra.scheduler._tool_registry import ToolEntry
 
 from .conftest import (
     MockTraceWriter,
@@ -50,11 +51,21 @@ def _make_custom_tool(name: str) -> Tool:
     )
 
 
+def _make_entry(name: str) -> ToolEntry:
+    """Create a ToolEntry with standard custom namespace."""
+    return ToolEntry(
+        name=name,
+        namespace="custom.test",
+        tags=frozenset({"readonly"}),
+        factory=lambda deps, n=name: _make_custom_tool(n),
+    )
+
+
 def _make_scheduler(
     agent: Agent,
     tmp_path: Path,
     *,
-    custom_tools: dict[str, object] | None = None,
+    custom_tools: list[ToolEntry] | None = None,
 ) -> Scheduler:
     trace = MockTraceWriter()
     transport = MockTransport(auto_execute_tools=True)
@@ -65,7 +76,7 @@ def _make_scheduler(
         categories=make_categories(),
         run_id=uuid6.uuid7(),
         read_root=tmp_path,
-        custom_tools=custom_tools,  # type: ignore[arg-type]
+        custom_tools=custom_tools,
         autonomy_level="max",
     )
 
@@ -102,11 +113,7 @@ class TestCustomToolInAllowList:
     async def test_custom_tool_present(
         self, tmp_path: Path,
     ) -> None:
-        custom_tools = {
-            "my_custom": lambda: _make_custom_tool(
-                "my_custom",
-            ),
-        }
+        custom_tools = [_make_entry("my_custom")]
         agent = _agent(["my_custom"])
         sched = _make_scheduler(
             agent, tmp_path, custom_tools=custom_tools,
@@ -121,11 +128,7 @@ class TestCustomToolNotInAllowList:
     async def test_custom_tool_absent(
         self, tmp_path: Path,
     ) -> None:
-        custom_tools = {
-            "my_custom": lambda: _make_custom_tool(
-                "my_custom",
-            ),
-        }
+        custom_tools = [_make_entry("my_custom")]
         agent = _agent(["read"])
         sched = _make_scheduler(
             agent, tmp_path, custom_tools=custom_tools,
@@ -142,11 +145,16 @@ class TestNameCollisionBuiltinWins:
         self, tmp_path: Path,
     ) -> None:
         # "read" is a built-in tool name. The custom tool
-        # factory should NOT be called.
+        # entry should be skipped (already in registry).
         factory = MagicMock(
             return_value=_make_custom_tool("read"),
         )
-        custom_tools = {"read": factory}
+        custom_tools = [ToolEntry(
+            name="read",
+            namespace="custom.override",
+            tags=frozenset({"readonly"}),
+            factory=factory,
+        )]
         agent = _agent(["read"])
         sched = _make_scheduler(
             agent, tmp_path, custom_tools=custom_tools,
@@ -158,14 +166,14 @@ class TestNameCollisionBuiltinWins:
 
 
 class TestEmptyCustomTools:
-    """Empty custom_tools dict works without errors."""
+    """Empty custom_tools list works without errors."""
 
-    async def test_empty_dict(
+    async def test_empty_list(
         self, tmp_path: Path,
     ) -> None:
         agent = _agent(["read"])
         sched = _make_scheduler(
-            agent, tmp_path, custom_tools={},
+            agent, tmp_path, custom_tools=[],
         )
         names = await _extract_tool_names(sched)
         assert "read" in names

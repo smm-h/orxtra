@@ -19,6 +19,7 @@ from orxtra.scheduler._allow_resolver import resolve_allow_list
 from orxtra.scheduler._tool_registry import (
     CONSULT_METADATA,
     GIT_METADATA,
+    SYNTHETIC_ENTRIES,
     WRITE_TOOL_NAMES,
     ToolDeps,
 )
@@ -895,16 +896,7 @@ class AgentExecutionMixin(SchedulerBase):
         # Build metadata including special tools for
         # wildcard/tag resolution.
         metadata = dict(self._tool_registry.get_metadata())
-        metadata["git"] = GIT_METADATA
-        metadata["consult"] = CONSULT_METADATA
-        # exec/shell are allow-list keys that trigger
-        # per-agent config, not registry entries.
-        metadata["exec"] = (
-            "exec", frozenset({"mutation"}),
-        )
-        metadata["shell"] = (
-            "exec", frozenset({"mutation"}),
-        )
+        metadata.update(SYNTHETIC_ENTRIES)
 
         # Resolve allow list to concrete tool names.
         resolved = resolve_allow_list(
