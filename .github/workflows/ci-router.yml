@@ -35,6 +35,7 @@ jobs:
       a2a: ${{ steps.changes.outputs.a2a }}
       agui: ${{ steps.changes.outputs.agui }}
       worker: ${{ steps.changes.outputs.worker }}
+      incoming: ${{ steps.changes.outputs.incoming }}
       api: ${{ steps.changes.outputs.api }}
     steps:
     - uses: actions/checkout@v6
@@ -64,6 +65,7 @@ jobs:
           a2a: 'a2a/**'
           agui: 'agui/**'
           worker: 'worker/**'
+          incoming: 'incoming/**'
           api: 'api/**'
   protocols:
     needs: detect
@@ -153,6 +155,10 @@ jobs:
     needs: detect
     if: needs.detect.outputs.worker == 'true'
     uses: ./.github/workflows/worker-ci.yml
+  incoming:
+    needs: detect
+    if: needs.detect.outputs.incoming == 'true'
+    uses: ./.github/workflows/incoming-ci.yml
   api:
     needs: detect
     if: needs.detect.outputs.api == 'true'
