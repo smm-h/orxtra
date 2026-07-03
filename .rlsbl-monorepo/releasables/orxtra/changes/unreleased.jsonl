@@ -41,3 +41,4 @@
 {"commits":["f1a8881dcd503bd2cbcf3ae0b67cc73c1febbefe"],"user_facing":false,"packages":["scheduler","tool"]}
 {"commits":["a536d91296b6e36dc80fe6f0d1f164e939267600"],"user_facing":false,"packages":["overseer"]}
 {"commits":["fa0db2325d2f0b859b47efe0ccb0682d1038a4f4","654b0353170f27bfb5f4f04240a32e9883d0bd7e"],"user_facing":false,"packages":["overseer","services"]}
+{"commits":["bb93f35ef82b2d582092446e56fa9d780b742aa7","716ac3f6643c4daae878ecf1ea61d389d1b5ad8c"],"user_facing":false,"packages":[".","cli","dispatch","protocols","services","trace"]}
