@@ -365,7 +365,7 @@ class RecoveryOperations(Protocol):
     async def clean_orphaned(self) -> int: ...
 
 
-from orxtra.protocols import EventBus  # re-export for backward compat
+from orxtra.protocols import EventBus as EventBus  # re-export for backward compat
 
 
 @runtime_checkable

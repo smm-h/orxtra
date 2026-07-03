@@ -75,10 +75,11 @@ class TraceWriter:
             old_status: str = row["status"]
             validate_run_transition(old_status, new_status)
             await conn.execute(
-                "UPDATE runs SET status = $1,"
-                " finished_at = CASE WHEN $1 IN ('completed', 'failed', 'aborted')"
+                "UPDATE runs SET status = $1::run_status,"
+                " finished_at = CASE WHEN $2 IN ('completed', 'failed', 'aborted')"
                 " THEN now() ELSE finished_at END"
-                " WHERE id = $2",
+                " WHERE id = $3",
+                new_status,
                 new_status,
                 run_id,
             )

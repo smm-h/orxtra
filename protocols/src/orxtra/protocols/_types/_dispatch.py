@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from orxtra.protocols._types._actions import Action
+
+
+def _utcnow() -> datetime:
+    return datetime.now(tz=UTC)
 
 
 class FilterPredicate(BaseModel):
@@ -24,7 +28,7 @@ class Subscription(BaseModel):
     enabled: bool = True
     storage: str = "persistent"  # "transient" or "persistent"
     owner_run_id: UUID | None = None
-    created_at: datetime
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SubscriptionAction(BaseModel):
@@ -34,7 +38,7 @@ class SubscriptionAction(BaseModel):
     position: int
     action: Action
     accumulator_config: dict[str, Any] | None = None
-    created_at: datetime
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Source(BaseModel):
@@ -44,7 +48,7 @@ class Source(BaseModel):
     name: str
     credential_id: UUID | None = None
     config: dict[str, Any] | None = None
-    created_at: datetime
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class AccumulatorEntry(BaseModel):
@@ -52,4 +56,4 @@ class AccumulatorEntry(BaseModel):
     id: UUID
     subscription_action_id: UUID
     event_id: UUID
-    created_at: datetime
+    created_at: datetime = Field(default_factory=_utcnow)

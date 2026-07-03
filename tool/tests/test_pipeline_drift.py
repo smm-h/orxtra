@@ -57,20 +57,20 @@ class TestPipelineImportDrift:
         assert "scrub_tool_output" in source
 
     def test_remote_pipeline_imports_scrub_functions(self) -> None:
-        """worker/_pipeline_split.py imports scrub_text/scrub_data from tool._scrub."""
+        """worker/_pipeline_split.py imports scrub_text/scrub_data from tool."""
         import orxtra.worker._pipeline_split as mod  # noqa: PLC0415
 
         source = inspect.getsource(mod)
-        assert "from orxtra.tool._scrub import" in source
+        assert "from orxtra.tool import" in source
         assert "scrub_text" in source
         assert "scrub_data" in source
 
     def test_lifecycle_handlers_import_scrub_text(self) -> None:
-        """scheduler/_lifecycle_handlers.py imports scrub_text from tool._scrub."""
+        """scheduler/_lifecycle_handlers.py imports scrub_text from tool."""
         import orxtra.scheduler._lifecycle_handlers as mod  # noqa: PLC0415
 
         source = inspect.getsource(mod)
-        assert "from orxtra.tool._scrub import" in source
+        assert "from orxtra.tool import" in source
         assert "scrub_text" in source
 
 

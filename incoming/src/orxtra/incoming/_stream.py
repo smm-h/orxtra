@@ -204,18 +204,38 @@ async def _sse_generator(
                 yield _format_sse_event(event)
 
         # Step 4: Stream live events with deduplication.
-        while True:
-            try:
-                notification = await asyncio.wait_for(
-                    live_queue.get(), timeout=15.0,
-                )
-            except TimeoutError:
-                yield ": heartbeat\n\n"
-                continue
+        # Use an explicit task for queue.get() so we can cancel it
+        # cleanly on generator teardown, avoiding "coroutine was never
+        # awaited" RuntimeWarning.
+        get_task: asyncio.Task[dict[str, Any]] | None = None
+        try:
+            while True:
+                get_task = asyncio.ensure_future(live_queue.get())
+                try:
+                    notification = await asyncio.wait_for(
+                        asyncio.shield(get_task), timeout=15.0,
+                    )
+                except TimeoutError:
+                    get_task.cancel()
+                    try:
+                        await get_task
+                    except asyncio.CancelledError:
+                        pass
+                    get_task = None
+                    yield ": heartbeat\n\n"
+                    continue
 
-            sse_msg = await _fetch_live_event(notification, pool, seen_ids)
-            if sse_msg is not None:
-                yield sse_msg
+                get_task = None
+                sse_msg = await _fetch_live_event(notification, pool, seen_ids)
+                if sse_msg is not None:
+                    yield sse_msg
+        finally:
+            if get_task is not None and not get_task.done():
+                get_task.cancel()
+                try:
+                    await get_task
+                except asyncio.CancelledError:
+                    pass
 
     except asyncio.CancelledError:
         return

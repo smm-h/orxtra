@@ -52,7 +52,7 @@ async def _create_task(
         run_id=run_id,
         parent_task_id=None,
         name=name,
-        task_type="script",
+        task_type="callable",
     )
 
 
@@ -287,7 +287,7 @@ class TestConstraints:
         c_id = await writer.write_constraint(
             run_id=run_id,
             text="No external API calls",
-            tier="hard",
+            tier="mechanical",
             kind="prohibition",
             args={"scope": "all"},
         )
@@ -297,7 +297,7 @@ class TestConstraints:
         match = [c for c in constraints if c["id"] == c_id]
         assert len(match) == 1
         assert match[0]["text"] == "No external API calls"
-        assert match[0]["tier"] == "hard"
+        assert match[0]["tier"] == "mechanical"
         assert match[0]["kind"] == "prohibition"
 
 

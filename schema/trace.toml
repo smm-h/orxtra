@@ -116,7 +116,7 @@ comment = "Scope at which an assumption was made"
 
 [types.autonomy_level]
 kind = "enum"
-values = ["low", "medium", "high", "max"]
+values = ["low", "medium", "high", "full", "max"]
 comment = "Run autonomy setting"
 
 [types.workflow_health]

@@ -144,10 +144,10 @@ BEGIN
     EXECUTE 'CREATE TYPE public.assumption_scope AS ENUM (''understanding'', ''decomposition'', ''task'');';
   END IF;
 END $$;""", "assumption_scope"),
-            DDLOp("CREATE TYPE public.autonomy_level AS ENUM ('low', 'medium', 'high', 'max');", """DO $$
+            DDLOp("CREATE TYPE public.autonomy_level AS ENUM ('low', 'medium', 'high', 'full', 'max');", """DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE t.typname = 'autonomy_level' AND n.nspname = 'public' AND t.typtype = 'e') THEN
-    EXECUTE 'CREATE TYPE public.autonomy_level AS ENUM (''low'', ''medium'', ''high'', ''max'');';
+    EXECUTE 'CREATE TYPE public.autonomy_level AS ENUM (''low'', ''medium'', ''high'', ''full'', ''max'');';
   END IF;
 END $$;""", "autonomy_level"),
             DDLOp("CREATE TYPE public.workflow_health AS ENUM ('healthy', 'degraded', 'failing');", """DO $$

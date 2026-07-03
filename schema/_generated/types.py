@@ -55,10 +55,10 @@ BEGIN
     EXECUTE 'CREATE TYPE public.assumption_scope AS ENUM (''understanding'', ''decomposition'', ''task'');';
   END IF;
 END $$;""", "enum", "assumption_scope", None, 3, True),
-    DDLStmt("CREATE TYPE public.autonomy_level AS ENUM ('low', 'medium', 'high', 'max');", """DO $$
+    DDLStmt("CREATE TYPE public.autonomy_level AS ENUM ('low', 'medium', 'high', 'full', 'max');", """DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE t.typname = 'autonomy_level' AND n.nspname = 'public' AND t.typtype = 'e') THEN
-    EXECUTE 'CREATE TYPE public.autonomy_level AS ENUM (''low'', ''medium'', ''high'', ''max'');';
+    EXECUTE 'CREATE TYPE public.autonomy_level AS ENUM (''low'', ''medium'', ''high'', ''full'', ''max'');';
   END IF;
 END $$;""", "enum", "autonomy_level", None, 3, True),
     DDLStmt("CREATE TYPE public.workflow_health AS ENUM ('healthy', 'degraded', 'failing');", """DO $$
