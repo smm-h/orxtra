@@ -12,6 +12,11 @@ from orxtra.protocols import BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, load_workflow
 from orxtra.scheduler._tool_registry import ToolEntry
 from orxtra.secrets import create_secret_registry
+from orxtra.services._injection import (
+    build_constraints_refresher,
+    build_lessons_refresher,
+    build_notepad_refresher,
+)
 from orxtra.services._providers import build_transport_registry
 from orxtra.tool import load_tool_definitions
 from orxtra.trace import (
@@ -270,6 +275,32 @@ async def start_run(
             custom_tools = _load_custom_tools(
                 config.tools_dir, secret_registry,
             )
+        # Build refresh callbacks when a StorageBackend is
+        # available. These bridge trace readers (and overseer
+        # staleness logic) into the scheduler at attempt
+        # boundaries, without the scheduler importing overseer.
+        refresh_constraints_cb = None
+        refresh_lessons_cb = None
+        refresh_notepad_cb = None
+        if backend is not None:
+            refresh_constraints_cb = (
+                build_constraints_refresher(backend)
+            )
+            # Collect relevance tags from all agents for
+            # lesson queries.
+            all_tags: list[str] = []
+            for agent_def in agents.values():
+                if agent_def.name:
+                    all_tags.append(agent_def.name)
+                if agent_def.category:
+                    all_tags.append(agent_def.category)
+            refresh_lessons_cb = build_lessons_refresher(
+                backend, config.read_root, all_tags,
+            )
+            refresh_notepad_cb = (
+                build_notepad_refresher(backend)
+            )
+
         scheduler = Scheduler(
             trace_writer=writer,
             transport_registry=registry,
@@ -285,6 +316,9 @@ async def start_run(
             autonomy_level=config.autonomy_level,
             secret_registry=secret_registry,
             custom_tools=custom_tools,
+            refresh_constraints=refresh_constraints_cb,
+            refresh_lessons=refresh_lessons_cb,
+            refresh_notepad=refresh_notepad_cb,
         )
         workflow_config = load_workflow(config.workflow_path)
         await load_knowledge_files(
