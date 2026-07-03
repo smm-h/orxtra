@@ -1,25 +1,6 @@
 {
   "batch_limits": {
-    "exclusions": [
-      {
-        "reason": "**Worker sub-project.** Sandboxed remote tool execution: a brain-worker protocol, a native worker with `build_worker_tools` and a CLI entry point (new `worker connect`/`worker docker` commands), a Docker worker for containerized execution, a worker registry with one-per-root enforcement, and a pipeline split so tools can execute remotely (`TaskSpec` gains a `remote` field).",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 3
-          }
-        ]
-      },
-      {
-        "reason": "**New shared protocol types.** `EventSink[T]` generic protocol, `TrustTier` enum and `Principal` dataclass, A2UI surface types, `Capability` frozen dataclass, and `SurfaceGenerator`/`CardContributor` contracts.",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 11
-          }
-        ]
-      }
-    ]
+    "exclusions": []
   },
   "private": false,
   "targets": [
