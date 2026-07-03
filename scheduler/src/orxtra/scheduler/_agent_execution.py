@@ -7,18 +7,29 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from orxtra.notepad import format_notepad
+from orxtra.compose import CompositionEngine
 from orxtra.protocols import (
     CheckResult,
     EscalationPayload,
     TaskResult,
     TaskSpec,
     TaskState,
+    Tool,
+    ToolOutput,
 )
 from orxtra.scheduler._allow_resolver import resolve_allow_list
+from orxtra.scheduler._prompt_providers import (
+    ConstraintsProvider,
+    FailureContextProvider,
+    LessonsProvider,
+    NotepadProvider,
+    TaskPreambleProvider,
+    TaskPromptProvider,
+)
+from orxtra.scheduler._prompt_templates import (
+    render_template,
+)
 from orxtra.scheduler._tool_registry import (
-    CONSULT_METADATA,
-    GIT_METADATA,
     SYNTHETIC_ENTRIES,
     WRITE_TOOL_NAMES,
     ToolDeps,
@@ -32,18 +43,34 @@ from orxtra.tool import (
     make_create_workflow_tool,
     make_end_task_tool,
     make_git_tool,
+    make_load_tools_tool,
     make_start_task_tool,
+    wrap_tool_with_pipeline,
     wrap_tools_for_session,
 )
-from orxtra.transport import ContextWarning, Result, Usage
+from orxtra.transport import Result, Usage
 
 if TYPE_CHECKING:
     from orxtra.agent import Agent
-    from orxtra.protocols import Tool
 
 from orxtra.scheduler._base import SchedulerBase
 
 _logger = logging.getLogger("orxtra.scheduler")
+
+
+async def _deferred_stub_execute(
+    args: dict[str, Any],  # noqa: ARG001
+) -> ToolOutput[Any]:
+    """Placeholder execute for deferred tool stubs.
+
+    If called, the LLM tried to use the tool before loading it.
+    """
+    from orxtra.protocols import ToolError  # noqa: PLC0415
+    msg = (
+        "This tool is deferred. "
+        "Call load_tools first to load the full schema."
+    )
+    raise ToolError(msg)
 
 
 class AgentExecutionMixin(SchedulerBase):
@@ -118,9 +145,15 @@ class AgentExecutionMixin(SchedulerBase):
                     "child task completed",
                 )
 
-                resume_msg = (
-                    f"Child task {child_task_id_str} completed."
-                    f" Result: {child_result.output or 'no output'}"
+                resume_msg = render_template(
+                    "orchestrator_resume",
+                    {
+                        "child_task_id": child_task_id_str,
+                        "child_result": (
+                            child_result.output
+                            or "no output"
+                        ),
+                    },
                 )
 
                 current_cont = continuation
@@ -583,12 +616,20 @@ class AgentExecutionMixin(SchedulerBase):
             and parent_task_id is not None
             and self._task_states.get(parent_task_id) == TaskState.ACTIVE
         ):
-            escalation_msg = (
-                f"[ESCALATION] Task '{task.name}' exhausted"
-                f" {max_attempts} attempt(s). "
-                "Failed checks:"
-                f" {[cr.message for cr in check_results if not cr.passed]}. "
-                f"Agent summary: Retries exhausted."
+            failed_msgs = str(
+                [
+                    cr.message
+                    for cr in check_results
+                    if not cr.passed
+                ],
+            )
+            escalation_msg = render_template(
+                "escalation_to_parent",
+                {
+                    "task_name": task.name,
+                    "max_attempts": str(max_attempts),
+                    "failed_checks": failed_msgs,
+                },
             )
             async for _ in parent_session.send(escalation_msg):
                 pass
@@ -720,13 +761,13 @@ class AgentExecutionMixin(SchedulerBase):
         session in _task_sessions.
         """
         # Ask the agent to summarize
+        from orxtra.scheduler._prompt_templates import (  # noqa: PLC0415
+            load_template,
+        )
+
         summary_parts: list[str] = []
         async for event in session.send(
-            "Your context window is nearly full. "
-            "Summarize the conversation so far, including: "
-            "what task you are working on, what you have done, "
-            "what remains, and any important decisions or context. "
-            "Be concise but complete.",
+            load_template("handoff_request"),
         ):
             if isinstance(event, Result):
                 summary_parts.append(event.text)
@@ -746,11 +787,9 @@ class AgentExecutionMixin(SchedulerBase):
         )
 
         # Inject summary as initial context
-        summary_prompt = (
-            "You are continuing a task from a previous session. "
-            "Here is a summary of your work so far:\n\n"
-            f"{summary}\n\n"
-            "Continue from where you left off."
+        summary_prompt = render_template(
+            "handoff_resume",
+            {"summary": summary},
         )
         # Send the summary to prime the new session
         async for event in new_session.send(summary_prompt):
@@ -766,7 +805,7 @@ class AgentExecutionMixin(SchedulerBase):
             new_session_id,
         )
 
-    async def _create_agent_session(
+    async def _create_agent_session(  # noqa: C901, PLR0915
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -842,6 +881,91 @@ class AgentExecutionMixin(SchedulerBase):
                 task_id=task_id,
             )
 
+        # If the agent declares deferred tools, auto-grant
+        # load_tools with factory-based lazy building.
+        deferred_names = frozenset(agent_def.deferred)
+        if deferred_names:
+            # Resolve the full allow list so load_tools
+            # enforces it.
+            metadata = dict(
+                self._tool_registry.get_metadata(),
+            )
+            metadata.update(SYNTHETIC_ENTRIES)
+            full_resolved = resolve_allow_list(
+                agent_def.allow, metadata,
+            )
+
+            # Mutable cell for the session reference.
+            # Assigned after session creation below.
+            session_cell: list[Session | None] = [None]
+
+            def _build_and_wrap(name: str) -> Tool:
+                """Build a tool from the registry and wrap
+                it through the pipeline."""
+                entry = self._tool_registry.get_entry(name)
+                if entry is None:
+                    from orxtra.protocols import ToolError  # noqa: PLC0415
+                    msg = f"Unknown tool: {name}"
+                    raise ToolError(msg)
+                # Build deps matching what was used for
+                # the initial tool set.
+                _deps = ToolDeps(
+                    read_root=self._read_root,
+                    write_scope=None,
+                    write_queue=self._write_queue,
+                    stale_tracker=self._stale_tracker,
+                    session_id=session_id,
+                    trace_writer=self._trace_writer,
+                    run_id=self._run_id,
+                    task_id=task_id,
+                    task_name=task.name,
+                    task_agent=task.agent or "",
+                    scheduler_ref=self,
+                    transport_registry=(
+                        self._transport_registry
+                    ),
+                    categories=self._categories,
+                    agents=self._agents,
+                    preview_threshold=10000,
+                    preview_lines=50,
+                )
+                raw = entry.factory(_deps)
+                return wrap_tool_with_pipeline(
+                    tool=raw,
+                    scheduler_check=(
+                        self.check_active_task
+                    ),
+                    secret_registry=self._secret_registry,
+                    trace_callback=_trace_callback,
+                    session_id=session_id,
+                    is_start_task=False,
+                    is_file_mutation=(
+                        "mutation" in raw.tags
+                    ),
+                    mutation_tracker=(
+                        self._session_mutations
+                    ),
+                )
+
+            def _get_tools() -> list[Tool]:
+                s = session_cell[0]
+                if s is None:
+                    return []
+                return s.tools
+
+            def _set_tools(tools: list[Tool]) -> None:
+                s = session_cell[0]
+                if s is not None:
+                    s.update_tools(tools)
+
+            lt = make_load_tools_tool(
+                allowed_names=full_resolved,
+                build_tool=_build_and_wrap,
+                get_session_tools=_get_tools,
+                set_session_tools=_set_tools,
+            )
+            raw_tools.append(lt)
+
         tools = wrap_tools_for_session(
             tools=raw_tools,
             scheduler_check=self.check_active_task,
@@ -871,9 +995,15 @@ class AgentExecutionMixin(SchedulerBase):
             pool=self._pool,
             backend=self._backend,
         )
+
+        # Wire the session reference into load_tools'
+        # closures so it can read/update the tool set.
+        if deferred_names:
+            session_cell[0] = session
+
         return session, session_id
 
-    def _build_agent_tools(
+    def _build_agent_tools(  # noqa: C901
         self,
         agent_def: Agent,
         task_id: UUID,
@@ -886,8 +1016,9 @@ class AgentExecutionMixin(SchedulerBase):
         Uses the ToolRegistry for data-driven construction of
         standard tools, with special handling for git (subcommand
         resolution), consult (needs already-built tools), inline
-        tool definitions (per-agent [[tools.define]]), and lifecycle
-        tools (always present).
+        tool definitions (per-agent [[tools.define]]),
+        deferred tools (stubs + load_tools auto-grant), and
+        lifecycle tools (always present).
         """
         preview_threshold = 10000
         preview_lines = 50
@@ -902,7 +1033,13 @@ class AgentExecutionMixin(SchedulerBase):
             agent_def.allow, metadata,
         )
 
-        # Build standard tools from registry.
+        # Determine which tools are deferred for this agent.
+        deferred_names = frozenset(agent_def.deferred)
+
+        # Build standard tools from registry, EXCLUDING
+        # deferred tools (those get stubs instead).
+        non_deferred_resolved = resolved - deferred_names
+
         deps = ToolDeps(
             read_root=self._read_root,
             write_scope=None,
@@ -922,8 +1059,31 @@ class AgentExecutionMixin(SchedulerBase):
             preview_lines=preview_lines,
         )
         raw_tools = self._tool_registry.build_tools(
-            resolved, deps,
+            non_deferred_resolved, deps,
         )
+
+        # Add deferred tool stubs: lightweight Tool objects
+        # with deferred=True. The LLM sees them in the tool
+        # list but with minimal schema. The real tool is
+        # built on demand via load_tools.
+        for d_name in sorted(deferred_names):
+            entry = self._tool_registry.get_entry(d_name)
+            if entry is None:
+                continue
+            raw_tools.append(Tool(
+                name=d_name,
+                description=entry.description or (
+                    f"Deferred tool: {d_name}"
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {},
+                },
+                execute=_deferred_stub_execute,
+                namespace=entry.namespace,
+                tags=entry.tags,
+                deferred=True,
+            ))
 
         # Git tool (subcommands depend on write access).
         if "git" in resolved:
@@ -993,12 +1153,12 @@ class AgentExecutionMixin(SchedulerBase):
                     if not ns_match and "*" not in agent_def.allow:
                         continue
 
+                from orxtra.tool._data_tool_http import (  # noqa: PLC0415
+                    build_http_tool,
+                )
                 from orxtra.tool._data_tool_monty import (  # noqa: PLC0415
                     build_command_tool,
                     build_monty_tool,
-                )
-                from orxtra.tool._data_tool_http import (  # noqa: PLC0415
-                    build_http_tool,
                 )
                 from orxtra.tool._data_tool_types import (  # noqa: PLC0415
                     CommandExecution,
@@ -1035,7 +1195,7 @@ class AgentExecutionMixin(SchedulerBase):
 
         return raw_tools
 
-    async def _assemble_agent_prompt(  # noqa: C901, PLR0913
+    async def _assemble_agent_prompt(  # noqa: PLR0913
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -1044,75 +1204,44 @@ class AgentExecutionMixin(SchedulerBase):
         attempt_id: UUID,
         prior_attempts: list[dict[str, Any]],
     ) -> str:
-        """Assemble full prompt with runtime context layers."""
+        """Assemble full prompt with runtime context layers.
+
+        Uses the compose engine with fragment providers for each layer.
+        Variable substitution in the task prompt is applied before
+        composition (lenient, matching legacy behavior until all
+        callers are audited for strict compatibility).
+        """
         assert task.task_prompt is not None  # noqa: S101
-        prompt = self._resolve_prompt(
+        resolved_prompt = self._resolve_prompt(
             task.task_prompt, variables,
         )
-        prompt = (
-            f"Your task ID is {task_id}."
-            " Call start_task first.\n\n"
-            f"{prompt}"
+
+        context: dict[str, Any] = {
+            "task_id": str(task_id),
+            "task_prompt": resolved_prompt,
+            "constraints": list(self._active_constraints),
+            "notepad_entries": list(self._notepad_entries),
+            "lessons": list(self._lessons),
+            "attempt": attempt,
+            "retry_inject_failure": bool(
+                task.retry_inject_failure,
+            ),
+            "prior_attempts": list(prior_attempts),
+        }
+
+        engine = CompositionEngine(
+            providers=[
+                TaskPreambleProvider(),
+                TaskPromptProvider(),
+                ConstraintsProvider(),
+                NotepadProvider(),
+                LessonsProvider(),
+                FailureContextProvider(),
+            ],
+            separator="\n\n",
         )
 
-        # Layer 2: Runtime system context
-        # Constraints
-        if self._active_constraints:
-            prompt += "\n\n## Active Constraints"
-            for text, tier in (
-                self._active_constraints
-            ):
-                prompt += f"\n- {text} ({tier})"
-
-        # Notepad content
-        if self._notepad_entries:
-            prompt += (
-                f"\n\n{format_notepad(self._notepad_entries)}"
-            )
-
-        # Lessons from previous runs
-        if self._lessons:
-            fresh = [
-                lesson for lesson in self._lessons
-                if not lesson.get("stale", False)
-            ]
-            stale = [
-                lesson for lesson in self._lessons
-                if lesson.get("stale", False)
-            ]
-            if fresh:
-                prompt += (
-                    "\n\n## Lessons (verified)"
-                )
-                for lesson in fresh:
-                    prompt += (
-                        f"\n- {lesson['text']}"
-                    )
-            if stale:
-                prompt += (
-                    "\n\n## Lessons (may be stale)"
-                )
-                for lesson in stale:
-                    prompt += (
-                        f"\n- {lesson['text']}"
-                        f" [stale: source modified"
-                        f" after lesson was created]"
-                    )
-
-        # Prior failure context
-        if (
-            attempt > 1
-            and task.retry_inject_failure
-            and prior_attempts
-        ):
-            prompt += (
-                "\n\n## Prior Failure Context"
-            )
-            for pa in prior_attempts:
-                prompt += (
-                    f"\nPrior attempt {pa['attempt']}"
-                    f" failed: {pa['error']}"
-                )
+        prompt = engine.compose(context)
 
         # Layer 3: Overseer context refinement
         if (
@@ -1159,6 +1288,13 @@ class AgentExecutionMixin(SchedulerBase):
         template: str,
         variables: dict[str, Any] | None,
     ) -> str:
+        """Lenient variable substitution (legacy).
+
+        Kept for backward compatibility during migration. Unknown
+        placeholders pass through; unused variables are ignored.
+        Will be replaced by strict substitution once all callers
+        are audited.
+        """
         prompt = template
         if variables:
             for k, v in variables.items():

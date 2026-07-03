@@ -35,6 +35,7 @@ class Agent(BaseModel):
     provider: str | None = None
     model: str | None = None
     allow: list[str]
+    deferred: list[str] = []
     budget: Decimal | None = None
     write_paths: list[str] | None = None
     timeout: int | None = None

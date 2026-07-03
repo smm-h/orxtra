@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -47,6 +47,8 @@ class ToolEntry:
     namespace: str
     tags: frozenset[str]
     factory: Callable[[ToolDeps], Tool]
+    description: str = ""
+    deferred: bool = False
 
 
 class ToolRegistry:
@@ -71,12 +73,14 @@ class ToolRegistry:
             raise ValueError(msg)
         self._entries[entry.name] = entry
 
-    def register_custom(
+    def register_custom(  # noqa: PLR0913
         self,
         name: str,
         namespace: str,
         tags: frozenset[str],
         factory: Callable[[ToolDeps], Tool],
+        description: str = "",
+        deferred: bool = False,
     ) -> None:
         """Register a custom tool with full metadata.
 
@@ -91,6 +95,8 @@ class ToolRegistry:
             namespace=namespace,
             tags=tags,
             factory=factory,
+            description=description,
+            deferred=deferred,
         )
 
     def get_metadata(
@@ -104,6 +110,10 @@ class ToolRegistry:
             name: (entry.namespace, entry.tags)
             for name, entry in self._entries.items()
         }
+
+    def get_entry(self, name: str) -> ToolEntry | None:
+        """Return the ToolEntry for a given name, or None."""
+        return self._entries.get(name)
 
     def build_tools(
         self,
@@ -141,7 +151,7 @@ _WRITE_TOOL_NAMES = frozenset({
 })
 
 
-def _make_builtin_entries() -> list[ToolEntry]:
+def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     """Create ToolEntry objects for all 18 built-in tools.
 
     Import the make_* constructors lazily to avoid circular imports
@@ -165,6 +175,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.read",
         tags=frozenset({"readonly"}),
         factory=_read_factory,
+        description="Read a file's contents.",
     ))
 
     def _list_dir_factory(deps: ToolDeps) -> Tool:
@@ -176,6 +187,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.read",
         tags=frozenset({"readonly"}),
         factory=_list_dir_factory,
+        description="List directory contents.",
     ))
 
     def _glob_factory(deps: ToolDeps) -> Tool:
@@ -187,6 +199,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.read",
         tags=frozenset({"readonly"}),
         factory=_glob_factory,
+        description="Find files matching a glob pattern.",
     ))
 
     def _grep_factory(deps: ToolDeps) -> Tool:
@@ -202,6 +215,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.read",
         tags=frozenset({"readonly"}),
         factory=_grep_factory,
+        description="Search file contents with regex.",
     ))
 
     def _stat_factory(deps: ToolDeps) -> Tool:
@@ -213,6 +227,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.read",
         tags=frozenset({"readonly"}),
         factory=_stat_factory,
+        description="Get file or directory metadata.",
     ))
 
     def _diff_factory(deps: ToolDeps) -> Tool:
@@ -224,6 +239,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.read",
         tags=frozenset({"readonly"}),
         factory=_diff_factory,
+        description="Show differences between two files.",
     ))
 
     # -- Write tools (fs.write, mutation) --
@@ -241,6 +257,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_write_factory,
+        description="Write content to a file.",
     ))
 
     def _edit_factory(deps: ToolDeps) -> Tool:
@@ -256,6 +273,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_edit_factory,
+        description="Apply targeted edits to a file.",
     ))
 
     def _multi_edit_factory(deps: ToolDeps) -> Tool:
@@ -271,6 +289,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_multi_edit_factory,
+        description="Apply multiple targeted edits to a file.",
     ))
 
     def _mkdir_factory(deps: ToolDeps) -> Tool:
@@ -282,6 +301,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_mkdir_factory,
+        description="Create a directory.",
     ))
 
     def _move_factory(deps: ToolDeps) -> Tool:
@@ -297,6 +317,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_move_factory,
+        description="Move or rename a file.",
     ))
 
     def _copy_factory(deps: ToolDeps) -> Tool:
@@ -312,6 +333,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_copy_factory,
+        description="Copy a file.",
     ))
 
     def _delete_factory(deps: ToolDeps) -> Tool:
@@ -323,6 +345,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_delete_factory,
+        description="Delete a file or directory.",
     ))
 
     def _set_executable_factory(deps: ToolDeps) -> Tool:
@@ -336,6 +359,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="fs.write",
         tags=frozenset({"mutation"}),
         factory=_set_executable_factory,
+        description="Set a file's executable permission.",
     ))
 
     # -- Notepad (io.notepad, mutation) --
@@ -354,6 +378,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="io.notepad",
         tags=frozenset({"mutation"}),
         factory=_notepad_factory,
+        description="Append entries to the cross-agent notepad.",
     ))
 
     # -- HTTP (io.http, readonly+mutation) --
@@ -368,6 +393,7 @@ def _make_builtin_entries() -> list[ToolEntry]:
         namespace="io.http",
         tags=frozenset({"readonly", "mutation"}),
         factory=_http_factory,
+        description="Make HTTP requests.",
     ))
 
     return entries
@@ -427,23 +453,24 @@ LIFECYCLE_TOOL_NAMES = frozenset({
 # injected into the metadata dict before resolve_allow_list runs.
 #
 # MAINTENANCE CONTRACT:
-#   - Phase 7.1 extends this for deferred declarations.
+#   - Phase 7.1: deferred declarations validated via
+#     registry.get_entry (not synthetic entries).
 SYNTHETIC_ENTRIES: dict[str, tuple[str, frozenset[str]]] = {
     "git": GIT_METADATA,
     "consult": CONSULT_METADATA,
 }
 
 
-def validate_allow_lists(
+def validate_allow_lists(  # noqa: C901, PLR0912
     agents: dict[str, Any],
     registry: ToolRegistry,
 ) -> None:
-    """Validate every agent's allow list against the registry.
+    """Validate every agent's allow list and deferred declarations.
 
     Called at Scheduler construction after all custom tools are
     registered, before any execution starts.
 
-    Rules:
+    Allow-list rules:
     - ``*`` (universal wildcard): always valid.
     - ``#tag``: the tag must exist in the known tag vocabulary
       (union of all tags across registry entries and synthetic
@@ -452,6 +479,14 @@ def validate_allow_lists(
       wildcards are the flexible mechanism for optional tool sets.
     - Explicit name: must exist in registry entries, synthetic
       entries, or lifecycle tool names.  Unknown = hard error.
+
+    Deferred-list rules:
+    - Every name in an agent's deferred list must exist in the
+      registry (not synthetic entries or lifecycle tools --
+      deferred tools must have a factory to build later).
+      Unknown = hard error.
+    - Deferred names must also be in the agent's allow list
+      (deferred is a subset of allowed).
 
     Raises:
         ValueError: naming the agent and the offending entry.
@@ -495,5 +530,17 @@ def validate_allow_lists(
                 msg = (
                     f"Agent '{agent_name}' references "
                     f"unknown tool '{entry}' in allow list"
+                )
+                raise ValueError(msg)
+
+        # Validate deferred declarations.
+        for deferred_name in agent_def.deferred:
+            # Deferred tools must exist in the registry
+            # (must have a factory to build on demand).
+            if registry.get_entry(deferred_name) is None:
+                msg = (
+                    f"Agent '{agent_name}' declares "
+                    f"unknown deferred tool "
+                    f"'{deferred_name}'"
                 )
                 raise ValueError(msg)

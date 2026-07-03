@@ -3,8 +3,8 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING, Any
 
-from orxtra.compose import resolve_includes
 from orxtra.agent._types import Agent, InlineToolDefinition
+from orxtra.compose import resolve_includes
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -38,6 +38,7 @@ def load_agent(path: Path) -> Agent:
 
     # Extract known keys from [tools].
     allow = tools_section.pop("allow")
+    deferred: list[str] = tools_section.pop("deferred", [])
     define_blocks: list[dict[str, Any]] = tools_section.pop("define", [])
 
     unknown_keys = set(tools_section.keys())
@@ -47,6 +48,8 @@ def load_agent(path: Path) -> Agent:
         raise ValueError(msg)
 
     agent_section["allow"] = allow
+    if deferred:
+        agent_section["deferred"] = deferred
 
     # Parse [[tools.define]] blocks into InlineToolDefinition objects.
     inline_tools: list[InlineToolDefinition] = []

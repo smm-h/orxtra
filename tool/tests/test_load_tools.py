@@ -1,4 +1,7 @@
-"""Tests for the load_tools meta-tool."""
+"""Tests for the load_tools meta-tool.
+
+Tests the factory-based lazy loading with allow-list enforcement.
+"""
 
 from __future__ import annotations
 
@@ -39,6 +42,36 @@ class _ToolHolder:
         self.tools = tools
 
 
+def _make_build_tool(
+    registry: dict[str, Tool],
+) -> Any:
+    """Create a build_tool callable from a dict of pre-built tools."""
+
+    def build_tool(name: str) -> Tool:
+        if name not in registry:
+            msg = f"Unknown tool: {name}"
+            raise ToolError(msg)
+        return registry[name]
+
+    return build_tool
+
+
+def _make_lt(
+    registry: dict[str, Tool],
+    holder: _ToolHolder,
+    allowed: frozenset[str] | None = None,
+) -> Tool:
+    """Shorthand for constructing load_tools with sensible defaults."""
+    if allowed is None:
+        allowed = frozenset(registry.keys())
+    return make_load_tools_tool(
+        allowed_names=allowed,
+        build_tool=_make_build_tool(registry),
+        get_session_tools=holder.get,
+        set_session_tools=holder.set,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -49,7 +82,7 @@ class TestLoadToolsBasic:
         alpha = _dummy_tool("alpha")
         registry = {"alpha": alpha, "beta": _dummy_tool("beta")}
         holder = _ToolHolder()
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         result = await lt.execute({"names": ["alpha"]})
         assert "alpha" in result.text
@@ -63,7 +96,7 @@ class TestLoadToolsBasic:
             "gamma": _dummy_tool("gamma"),
         }
         holder = _ToolHolder()
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         result = await lt.execute({"names": ["alpha", "gamma"]})
         assert "2 tool(s)" in result.text
@@ -75,7 +108,7 @@ class TestLoadToolsBasic:
         alpha = _dummy_tool("alpha")
         registry = {"alpha": alpha}
         holder = _ToolHolder([alpha])
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         result = await lt.execute({"names": ["alpha"]})
         assert "Already loaded" in result.text
@@ -87,7 +120,7 @@ class TestLoadToolsBasic:
         beta = _dummy_tool("beta")
         registry = {"alpha": alpha, "beta": beta}
         holder = _ToolHolder([alpha])
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         result = await lt.execute({"names": ["alpha", "beta"]})
         assert "Loaded 1 tool(s): beta" in result.text
@@ -96,39 +129,76 @@ class TestLoadToolsBasic:
 
 
 class TestLoadToolsErrors:
-    async def test_unknown_tool_raises(self) -> None:
-        registry = {"alpha": _dummy_tool("alpha")}
+    async def test_outside_allow_list_raises(self) -> None:
+        """Loading a tool not in the allow list is a hard error."""
+        alpha = _dummy_tool("alpha")
+        beta = _dummy_tool("beta")
+        registry = {"alpha": alpha, "beta": beta}
         holder = _ToolHolder()
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        # Only alpha is allowed.
+        lt = _make_lt(
+            registry, holder,
+            allowed=frozenset({"alpha"}),
+        )
 
-        with pytest.raises(ToolError, match="Unknown tools: nonexistent"):
-            await lt.execute({"names": ["nonexistent"]})
+        with pytest.raises(ToolError, match="not in allow list.*beta"):
+            await lt.execute({"names": ["beta"]})
 
     async def test_empty_names_raises(self) -> None:
         registry = {"alpha": _dummy_tool("alpha")}
         holder = _ToolHolder()
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         with pytest.raises(ToolError, match="names must not be empty"):
             await lt.execute({"names": []})
 
-    async def test_partial_unknown_raises(self) -> None:
-        """If any name is unknown, error before loading any."""
-        registry = {"alpha": _dummy_tool("alpha")}
+    async def test_partial_disallowed_raises(self) -> None:
+        """If any name is outside allow list, error before loading."""
+        alpha = _dummy_tool("alpha")
+        beta = _dummy_tool("beta")
+        registry = {"alpha": alpha, "beta": beta}
         holder = _ToolHolder()
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(
+            registry, holder,
+            allowed=frozenset({"alpha"}),
+        )
 
-        with pytest.raises(ToolError, match="Unknown tools: missing"):
-            await lt.execute({"names": ["alpha", "missing"]})
+        with pytest.raises(ToolError, match="not in allow list.*beta"):
+            await lt.execute({"names": ["alpha", "beta"]})
         # Nothing should have been loaded
         assert len(holder.tools) == 0
+
+
+class TestLoadToolsStubReplacement:
+    async def test_replaces_deferred_stub(self) -> None:
+        """When a deferred stub exists in the session, loading the
+        full tool replaces the stub (not duplicated)."""
+        alpha_full = _dummy_tool("alpha", desc="Full alpha")
+        # Simulate a deferred stub in the session.
+        alpha_stub = Tool(
+            name="alpha",
+            description="Deferred stub",
+            parameters={"type": "object", "properties": {}},
+            execute=alpha_full.execute,
+            deferred=True,
+        )
+        registry = {"alpha": alpha_full}
+        holder = _ToolHolder([alpha_stub])
+        lt = _make_lt(registry, holder)
+
+        result = await lt.execute({"names": ["alpha"]})
+        assert "Loaded 1 tool(s): alpha" in result.text
+        assert len(holder.tools) == 1
+        # The stub was replaced with the full tool.
+        assert holder.tools[0].description == "Full alpha"
+        assert holder.tools[0].deferred is False
 
 
 class TestLoadToolsMetadata:
     def test_tool_name_and_schema(self) -> None:
         registry = {"alpha": _dummy_tool("alpha")}
         holder = _ToolHolder()
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         assert lt.name == "load_tools"
         assert "names" in lt.parameters.get("properties", {})
@@ -137,7 +207,7 @@ class TestLoadToolsMetadata:
     async def test_result_is_confirmation(self) -> None:
         registry = {"alpha": _dummy_tool("alpha")}
         holder = _ToolHolder()
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         result = await lt.execute({"names": ["alpha"]})
         assert isinstance(result.data, Confirmation)
@@ -148,7 +218,7 @@ class TestLoadToolsMetadata:
         new = _dummy_tool("new")
         registry = {"new": new}
         holder = _ToolHolder([existing])
-        lt = make_load_tools_tool(registry, holder.get, holder.set)
+        lt = _make_lt(registry, holder)
 
         await lt.execute({"names": ["new"]})
         names = [t.name for t in holder.tools]

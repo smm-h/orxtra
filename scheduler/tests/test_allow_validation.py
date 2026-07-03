@@ -351,6 +351,107 @@ class TestValidateEmptyAllow:
 
 
 # ---------------------------------------------------------------
+# validate_allow_lists: deferred declarations
+# ---------------------------------------------------------------
+
+
+class TestValidateDeferred:
+    """Deferred declarations validate against registry."""
+
+    def test_known_deferred_passes(self) -> None:
+        """A deferred tool that exists in the registry passes."""
+        registry = create_builtin_registry()
+        agent = Agent(
+            name="coder",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["read", "grep"],
+            deferred=["grep"],
+        )
+        agents = {"coder": agent}
+        # Should not raise.
+        validate_allow_lists(agents, registry)
+
+    def test_unknown_deferred_raises(self) -> None:
+        """A deferred tool not in the registry is a hard error."""
+        registry = create_builtin_registry()
+        agent = Agent(
+            name="coder",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["read"],
+            deferred=["nonexistent_tool"],
+        )
+        agents = {"coder": agent}
+        with pytest.raises(
+            ValueError,
+            match=(
+                r"Agent 'coder' declares unknown "
+                r"deferred tool 'nonexistent_tool'"
+            ),
+        ):
+            validate_allow_lists(agents, registry)
+
+    def test_deferred_synthetic_raises(self) -> None:
+        """Synthetic entries (git, consult) cannot be deferred
+        because they have no factory in the registry."""
+        registry = create_builtin_registry()
+        agent = Agent(
+            name="coder",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["git"],
+            deferred=["git"],
+        )
+        agents = {"coder": agent}
+        with pytest.raises(
+            ValueError,
+            match=r"Agent 'coder' declares unknown deferred tool 'git'",
+        ):
+            validate_allow_lists(agents, registry)
+
+    def test_deferred_custom_passes(self) -> None:
+        """Custom tools registered with full metadata can
+        be deferred."""
+        registry = create_builtin_registry()
+        registry.register_custom(
+            "my_custom",
+            namespace="custom.test",
+            tags=frozenset({"readonly"}),
+            factory=lambda deps: _make_dummy_tool("my_custom"),
+            description="My custom tool.",
+        )
+        agent = Agent(
+            name="coder",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["my_custom"],
+            deferred=["my_custom"],
+        )
+        agents = {"coder": agent}
+        # Should not raise.
+        validate_allow_lists(agents, registry)
+
+    def test_empty_deferred_passes(self) -> None:
+        """An agent with no deferred declarations passes."""
+        registry = create_builtin_registry()
+        agent = Agent(
+            name="coder",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["read"],
+            deferred=[],
+        )
+        agents = {"coder": agent}
+        validate_allow_lists(agents, registry)
+
+
+# ---------------------------------------------------------------
 # Scheduler construction integration
 # ---------------------------------------------------------------
 
@@ -456,3 +557,44 @@ class TestSchedulerConstructionValidation:
             custom_tools=custom,
             autonomy_level="max",
         )
+
+    def test_unknown_deferred_fails_at_construction(
+        self, tmp_path: Path,
+    ) -> None:
+        """An unknown deferred declaration causes Scheduler
+        construction to fail with ValueError."""
+        from orxtra.scheduler._executor import Scheduler
+
+        from .conftest import (
+            MockTraceWriter,
+            MockTransport,
+            make_categories,
+        )
+
+        agent = Agent(
+            name="coder",
+            description="Test agent",
+            prompt="You are a test agent.",
+            category="default",
+            allow=["read"],
+            deferred=["nonexistent_tool"],
+        )
+        trace = MockTraceWriter()
+        transport = MockTransport(auto_execute_tools=True)
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                r"Agent 'coder' declares unknown "
+                r"deferred tool 'nonexistent_tool'"
+            ),
+        ):
+            Scheduler(
+                trace_writer=trace,  # type: ignore[arg-type]
+                transport_registry={"anthropic": transport},  # type: ignore[dict-item]
+                agents={"coder": agent},
+                categories=make_categories(),
+                run_id=uuid6.uuid7(),
+                read_root=tmp_path,
+                autonomy_level="max",
+            )
