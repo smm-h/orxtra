@@ -90,6 +90,12 @@ class InMemoryAuthBackend:
         )
         return credential_id
 
+    async def get_credential_by_id(
+        self,
+        credential_id: UUID,
+    ) -> CredentialRecord | None:
+        return self._credentials.get(credential_id)
+
     async def get_credential_by_hash(
         self,
         credential_hash: str,

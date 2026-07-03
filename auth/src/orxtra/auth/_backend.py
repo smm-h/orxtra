@@ -115,6 +115,22 @@ class AuthBackend:
         assert row is not None  # noqa: S101
         return row["id"]  # type: ignore[no-any-return]
 
+    async def get_credential_by_id(
+        self,
+        credential_id: UUID,
+    ) -> CredentialRecord | None:
+        async with self._pool.acquire() as conn, conn.transaction():
+            row = await conn.fetchrow(
+                "SELECT id, consumer_id, credential_type,"
+                " credential_hash, algorithm, metadata,"
+                " secret_ref, created_at"
+                " FROM credentials WHERE id = $1",
+                credential_id,
+            )
+        if row is None:
+            return None
+        return _row_to_credential(row)
+
     async def get_credential_by_hash(
         self,
         credential_hash: str,
