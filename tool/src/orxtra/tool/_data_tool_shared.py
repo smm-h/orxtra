@@ -6,10 +6,12 @@ Functions here are used by both ``_data_tool_http`` and
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from orxtra.protocols import ToolError
-from orxtra.tool._data_tool_types import ParamDef
+
+if TYPE_CHECKING:
+    from orxtra.tool._data_tool_types import ParamDef
 
 
 def build_json_schema_params(

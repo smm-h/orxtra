@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 import pytest
 from orxtra.protocols import ToolError
@@ -36,7 +38,6 @@ from orxtra.tool._data_tool_types import (
     ResourceLimits,
 )
 from orxtra.write_safety import StaleWriteTracker, WriteQueue
-
 
 # ---------------------------------------------------------------------------
 # Minimal ToolDeps stub
@@ -75,7 +76,7 @@ class _StubToolDeps:
 # ---------------------------------------------------------------------------
 
 
-def _make_monty_definition(
+def _make_monty_definition(  # noqa: PLR0913
     *,
     name: str = "test_monty",
     description: str = "A test monty tool",
@@ -110,7 +111,7 @@ def _make_monty_definition(
     )
 
 
-def _make_command_definition(
+def _make_command_definition(  # noqa: PLR0913
     *,
     name: str = "test_command",
     description: str = "A test command tool",

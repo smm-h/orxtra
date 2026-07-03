@@ -18,8 +18,6 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from pydantic_monty import Monty, MontyRuntimeError
-
 from orxtra.protocols import Tool, ToolError, ToolOutput
 from orxtra.tool._data_tool_shared import (
     build_json_schema_params,
@@ -31,6 +29,7 @@ from orxtra.tool._data_tool_types import (
     DataToolDefinition,
     MontyExecution,
 )
+from pydantic_monty import Monty, MontyRuntimeError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -207,7 +206,7 @@ def _build_command_capability(
     async def run_command(
         executable: str,
         args: list[str] | None = None,
-        timeout: int | None = None,
+        timeout: int | None = None,  # noqa: ASYNC109
     ) -> str:
         cmd_args = args if args is not None else []
 
@@ -531,7 +530,7 @@ def build_monty_tool(
     try:
         monty = Monty(
             exec_cfg.code,
-            inputs=input_names if input_names else None,
+            inputs=input_names or None,
         )
     except Exception as exc:
         msg = (
@@ -569,7 +568,7 @@ def build_monty_tool(
 
         try:
             result = await monty.run_async(
-                inputs=args if args else None,
+                inputs=args or None,
                 external_functions=capability_functions,
                 limits=monty_limits,
             )

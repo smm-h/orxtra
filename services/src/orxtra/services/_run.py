@@ -212,7 +212,7 @@ def _load_custom_tools(
                 f"Unknown execution type for tool {defn.name!r}: "
                 f"{type(defn.execution).__name__}"
             )
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         entries.append(ToolEntry(
             name=defn.name,

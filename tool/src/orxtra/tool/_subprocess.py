@@ -11,8 +11,10 @@ from __future__ import annotations
 import asyncio
 import re
 import time
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from orxtra.protocols import ExecResult, ToolError, ToolOutput
 from orxtra.tool._path import PathError, resolve_and_check
@@ -54,7 +56,7 @@ async def run_subprocess(  # noqa: PLR0913
     executable: str,
     args: list[str],
     cwd: Path,
-    timeout: int,
+    timeout: int,  # noqa: ASYNC109
     arg_validation: bool,
     preview_threshold: int,
     preview_lines: int,
