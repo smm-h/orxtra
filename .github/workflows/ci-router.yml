@@ -6,6 +6,9 @@ on:
     - main
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.sha }}
+  cancel-in-progress: true
 jobs:
   detect:
     runs-on: ubuntu-latest
