@@ -132,7 +132,6 @@ orxtra-a2a = { workspace = true }
 orxtra-agui = { workspace = true }
 orxtra-api = { workspace = true }
 orxtra-worker = { workspace = true }
-fastware = { path = "/home/m/Projects/fastware", editable = true }
 
 [dependency-groups]
 dev = [

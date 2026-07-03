@@ -35,4 +35,3 @@ orxtra-tool = { workspace = true }
 orxtra-write-safety = { workspace = true }
 orxtra-auth = { workspace = true }
 orxtra-secrets = { workspace = true }
-fastware = { path = "/home/m/Projects/fastware", editable = true }
