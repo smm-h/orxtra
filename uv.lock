@@ -1079,6 +1079,7 @@ dependencies = [
     { name = "orxtra-a2a" },
     { name = "orxtra-agui" },
     { name = "orxtra-auth" },
+    { name = "orxtra-dispatch" },
     { name = "orxtra-incoming" },
     { name = "orxtra-mcp" },
     { name = "orxtra-services" },
@@ -1096,6 +1097,7 @@ requires-dist = [
     { name = "orxtra-a2a", editable = "a2a" },
     { name = "orxtra-agui", editable = "agui" },
     { name = "orxtra-auth", editable = "auth" },
+    { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-incoming", editable = "incoming" },
     { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-services", editable = "services" },
@@ -1197,7 +1199,9 @@ source = { editable = "incoming" }
 dependencies = [
     { name = "fastware" },
     { name = "orxtra-auth" },
+    { name = "orxtra-dispatch" },
     { name = "orxtra-protocols" },
+    { name = "orxtra-secrets" },
     { name = "orxtra-services" },
     { name = "orxtra-trace" },
 ]
@@ -1212,7 +1216,9 @@ dev = [
 requires-dist = [
     { name = "fastware" },
     { name = "orxtra-auth", editable = "auth" },
+    { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-secrets", editable = "secrets" },
     { name = "orxtra-services", editable = "services" },
     { name = "orxtra-trace", editable = "trace" },
 ]
