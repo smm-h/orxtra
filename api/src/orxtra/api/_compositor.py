@@ -30,6 +30,7 @@ class CompositorConfig:
     agent_card: AgentCard
     skill_registry: SkillRegistry
     authenticator: Authenticator | None = None
+    incoming_router: Router | None = None
     cors_origins: list[str] | None = None
 
 
@@ -75,6 +76,10 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
         _mount_authenticated_agui(router, agui_router, config.authenticator)
     else:
         router.include_router(agui_router, prefix="/ag-ui")
+
+    # -- Incoming webhook receiver (under /incoming) --
+    if config.incoming_router is not None:
+        router.include_router(config.incoming_router, prefix="/incoming")
 
     # -- Agent card at /.well-known/agent.json --
     _agent_card_json = _serialize_agent_card(config.agent_card)

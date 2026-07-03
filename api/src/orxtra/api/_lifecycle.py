@@ -17,6 +17,8 @@ from orxtra.api._compositor import CompositorConfig, create_compositor
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from orxtra.auth import Authenticator
+
 log = logging.getLogger(__name__)
 
 
@@ -30,6 +32,7 @@ class ServerConfig:
     cors_origins: list[str] | None = None
     agent_name: str = "orxtra"
     agent_url: str | None = None
+    authenticator: Authenticator | None = None
 
 
 @asynccontextmanager
@@ -57,11 +60,13 @@ async def lifespan(
     pool: asyncpg.Pool = await asyncpg.create_pool(server_config.db_url)
 
     try:
+        from orxtra.dispatch import PgDispatchBackend  # noqa: PLC0415
         from orxtra.services import verify_schema  # noqa: PLC0415
 
         log.info("Verifying database schema")
         await verify_schema(pool)
-        ctx = DispatchContext(pool=pool)
+        dispatch_backend = PgDispatchBackend(pool)
+        ctx = DispatchContext(pool=pool, dispatch_backend=dispatch_backend)
 
         # Build skill registry and agent card.
         capabilities = get_capabilities()
@@ -77,10 +82,24 @@ async def lifespan(
             name=server_config.agent_name,
         )
 
+        # Build incoming webhook router if authenticator is configured.
+        incoming_router = None
+        if server_config.authenticator is not None:
+            from orxtra.incoming import create_incoming_router  # noqa: PLC0415
+
+            incoming_router = create_incoming_router(
+                pool=pool,
+                dispatch_backend=dispatch_backend,
+                authenticator=server_config.authenticator,
+            )
+            log.info("Incoming webhook receiver mounted at /incoming")
+
         compositor_config = CompositorConfig(
             dispatch_context=ctx,
             agent_card=agent_card,
             skill_registry=skill_registry,
+            authenticator=server_config.authenticator,
+            incoming_router=incoming_router,
             cors_origins=server_config.cors_origins,
         )
 

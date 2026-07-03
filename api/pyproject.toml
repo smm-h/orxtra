@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastware",
     "orxtra-auth",
+    "orxtra-dispatch",
     "orxtra-mcp",
     "orxtra-a2a",
     "orxtra-agui",
@@ -32,6 +33,7 @@ packages = ["src/orxtra"]
 
 [tool.uv.sources]
 orxtra-auth = { workspace = true }
+orxtra-dispatch = { workspace = true }
 orxtra-mcp = { workspace = true }
 orxtra-a2a = { workspace = true }
 orxtra-agui = { workspace = true }
