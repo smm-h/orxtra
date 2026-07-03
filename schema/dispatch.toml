@@ -32,11 +32,19 @@ comment = "Human-readable source name"
 type = "uuid_val_nullable"
 comment = "FK to auth.credentials for source authentication"
 
+[tables.sources.columns.config]
+type = "jsonb_nullable"
+comment = "Per-source mapping config (event_type extraction, field mapping)"
+
 [tables.sources.columns.created_at]
 type = "timestamp"
 
 [tables.sources.checks.chk_sources_slug_not_empty]
 expr = "slug <> '' AND name <> ''"
+
+[tables.sources.indexes.idx_sources_config_gin]
+columns = ["config"]
+method = "gin"
 
 [tables.sources.unique.uq_sources_slug]
 columns = ["slug"]
@@ -197,3 +205,90 @@ columns = ["subscription_action_id"]
 
 [tables.accumulator_buffer.indexes.idx_accumulator_buffer_event]
 columns = ["event_id"]
+
+# ---------------------------------------------------------------------------
+# Tables: Dispatch cursor (durable processing position)
+# ---------------------------------------------------------------------------
+
+[tables.dispatch_cursor]
+comment = "Durable cursor tracking the last processed event for the dispatcher worker."
+pk = ["id"]
+
+[tables.dispatch_cursor.columns.id]
+type = "id"
+
+[tables.dispatch_cursor.columns.cursor_name]
+type = "str"
+default = "main"
+comment = "Named cursor (supports multiple independent consumers)"
+
+[tables.dispatch_cursor.columns.last_processed_event_id]
+type = "ref"
+comment = "FK to events: the last event that was fully processed"
+
+[tables.dispatch_cursor.columns.last_processed_at]
+type = "timestamp"
+
+[tables.dispatch_cursor.checks.chk_dispatch_cursor_name_not_empty]
+expr = "cursor_name <> ''"
+
+[tables.dispatch_cursor.fks.fk_dispatch_cursor_event]
+columns = ["last_processed_event_id"]
+ref_table = "events"
+ref_columns = ["id"]
+on_delete = "RESTRICT"
+
+[tables.dispatch_cursor.unique.uq_dispatch_cursor_name]
+columns = ["cursor_name"]
+
+[tables.dispatch_cursor.indexes.idx_dispatch_cursor_event]
+columns = ["last_processed_event_id"]
+
+# ---------------------------------------------------------------------------
+# Tables: Dispatch completions (per-event-action completion records)
+# ---------------------------------------------------------------------------
+
+[tables.dispatch_completions]
+comment = "Per-event-action completion records for at-least-once delivery tracking."
+
+[tables.dispatch_completions.columns.id]
+type = "id"
+
+[tables.dispatch_completions.columns.event_id]
+type = "ref"
+comment = "The event that was processed"
+
+[tables.dispatch_completions.columns.subscription_action_id]
+type = "ref"
+comment = "The action that processed the event"
+
+[tables.dispatch_completions.columns.result_status]
+type = "str"
+comment = "Outcome: success, error, skipped"
+
+[tables.dispatch_completions.columns.completed_at]
+type = "timestamp"
+
+[tables.dispatch_completions.checks.chk_dispatch_completions_status_valid]
+expr = "result_status IN ('success', 'error', 'skipped')"
+
+[tables.dispatch_completions.fks.fk_dispatch_completions_event]
+columns = ["event_id"]
+ref_table = "events"
+ref_columns = ["id"]
+on_delete = "RESTRICT"
+
+[tables.dispatch_completions.fks.fk_dispatch_completions_action]
+columns = ["subscription_action_id"]
+ref_table = "subscription_actions"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.dispatch_completions.unique.uq_dispatch_completions_event_action]
+columns = ["event_id", "subscription_action_id"]
+
+[tables.dispatch_completions.indexes.idx_dispatch_completions_event]
+columns = ["event_id"]
+
+[tables.dispatch_completions.indexes.idx_dispatch_completions_action]
+columns = ["subscription_action_id"]

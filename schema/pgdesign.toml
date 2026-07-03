@@ -26,3 +26,6 @@ disable = [
 "runs.W014" = "Cascade blast radius is intentional: operational-state tables cascade on run deletion while audit tables use RESTRICT"
 "runs.W015" = "Mixed ON DELETE by table class: CASCADE for operational state, RESTRICT for audit (events/transcripts/notepad), SET NULL for subscriptions"
 "tasks.W015" = "Mixed ON DELETE by table class: CASCADE for operational state (attempts/iterations/children), RESTRICT for audit (events)"
+"events.W015" = "Mixed ON DELETE by table class: CASCADE for accumulator_buffer (transient operational data), RESTRICT for dispatch_cursor and dispatch_completions (durable delivery records)"
+"dispatch_cursor.W005" = "Uses last_processed_at instead of created_at; cursor rows are upserted, not appended"
+"dispatch_completions.W005" = "Uses completed_at instead of created_at; completion is recorded when the action finishes"

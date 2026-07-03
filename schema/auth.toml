@@ -18,7 +18,7 @@ comment = "Consumer trust level"
 
 [types.credential_type]
 kind = "enum"
-values = ["api_key", "bearer"]
+values = ["api_key", "bearer", "hmac"]
 comment = "Credential authentication mechanism"
 
 # ---------------------------------------------------------------------------
@@ -86,6 +86,10 @@ comment = "Hash algorithm used"
 type = "json"
 default = "{}"
 comment = "Additional credential metadata"
+
+[tables.credentials.columns.secret_ref]
+type = "str_nullable"
+comment = "Reference to a secret in the SecretRegistry for HMAC verification (not smuggled through metadata)"
 
 [tables.credentials.columns.created_at]
 type = "timestamp"

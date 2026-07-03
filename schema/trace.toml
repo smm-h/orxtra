@@ -424,6 +424,10 @@ type = "json"
 default = "{}"
 comment = "Event-specific payload"
 
+[tables.events.columns.idempotency_key]
+type = "str_nullable"
+comment = "Caller-supplied dedup key; partial unique index prevents duplicate storage and dispatch"
+
 [tables.events.columns.created_at]
 type = "timestamp"
 
@@ -455,6 +459,11 @@ method = "brin"
 [tables.events.indexes.idx_events_data_gin]
 columns = ["data"]
 method = "gin"
+
+[tables.events.indexes.idx_events_idempotency_key]
+columns = ["idempotency_key"]
+unique = true
+where = "idempotency_key IS NOT NULL"
 
 # ---------------------------------------------------------------------------
 # Tables: Session transcripts
