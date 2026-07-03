@@ -37,6 +37,12 @@ _ROOT = Path(__file__).resolve().parent
 if str(_ROOT) not in sys.path:
     sys.path.append(str(_ROOT))
 
+# schema/ contains pgdesign-generated DDL modules (_generated/ package).
+# Add it to sys.path so test fixtures can import _generated.schema_executor.
+_SCHEMA_DIR = str(_ROOT / "schema")
+if _SCHEMA_DIR not in sys.path:
+    sys.path.append(_SCHEMA_DIR)
+
 # Import real SDKs whose top-level names collide with workspace
 # directories, before pytest's import machinery can shadow them.
 import a2a  # noqa: E402, F401

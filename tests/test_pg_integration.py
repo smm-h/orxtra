@@ -64,13 +64,15 @@ class TestSchemaCreation:
 
     async def test_all_tables_created(self, pg_pool: asyncpg.Pool) -> None:
         """All expected tables exist after schema creation."""
-        from orxtra.trace import TABLE_NAMES  # noqa: PLC0415
+        from _generated.tables_auth import TABLE_NAMES as AUTH_TABLES  # noqa: PLC0415
+        from _generated.tables_dispatch import TABLE_NAMES as DISPATCH_TABLES  # noqa: PLC0415
+        from _generated.tables_trace import TABLE_NAMES as TRACE_TABLES  # noqa: PLC0415
 
         rows = await pg_pool.fetch(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
         )
         actual = {row["tablename"] for row in rows}
-        expected = set(TABLE_NAMES.values())
+        expected = set(TRACE_TABLES) | set(DISPATCH_TABLES) | set(AUTH_TABLES)
         missing = expected - actual
         assert not missing, f"Missing tables: {missing}"
 
@@ -290,3 +292,69 @@ class TestConstraints:
         assert match[0]["text"] == "No external API calls"
         assert match[0]["tier"] == "hard"
         assert match[0]["kind"] == "prohibition"
+
+
+# -- Auth table round-trip -----------------------------------------------------
+
+
+class TestAuthTables:
+    """Verify auth tables (consumers, credentials) round-trip correctly."""
+
+    async def test_consumer_credential_round_trip(
+        self, pg_pool: asyncpg.Pool
+    ) -> None:
+        """Insert a consumer + credential and read them back."""
+        async with pg_pool.acquire() as conn:
+            # Insert a consumer
+            consumer_id = await conn.fetchval(
+                """
+                INSERT INTO consumers (name, trust_tier, scope_grants)
+                VALUES ($1, $2, $3::jsonb)
+                RETURNING id
+                """,
+                "test-consumer",
+                "verified",
+                '["events:read", "events:write"]',
+            )
+            assert consumer_id is not None
+
+            # Insert a credential linked to the consumer
+            cred_id = await conn.fetchval(
+                """
+                INSERT INTO credentials (consumer_id, credential_type, credential_hash, algorithm)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id
+                """,
+                consumer_id,
+                "api_key",
+                "sha256_hash_placeholder",
+                "sha256",
+            )
+            assert cred_id is not None
+
+            # Read back consumer
+            consumer = await conn.fetchrow(
+                "SELECT name, trust_tier FROM consumers WHERE id = $1",
+                consumer_id,
+            )
+            assert consumer is not None
+            assert consumer["name"] == "test-consumer"
+            assert consumer["trust_tier"] == "verified"
+
+            # Read back credential
+            cred = await conn.fetchrow(
+                "SELECT credential_type, credential_hash FROM credentials WHERE id = $1",
+                cred_id,
+            )
+            assert cred is not None
+            assert cred["credential_type"] == "api_key"
+            assert cred["credential_hash"] == "sha256_hash_placeholder"
+
+            # Verify FK cascade: deleting consumer cascades to credential
+            await conn.execute(
+                "DELETE FROM consumers WHERE id = $1", consumer_id
+            )
+            remaining = await conn.fetchval(
+                "SELECT count(*) FROM credentials WHERE id = $1", cred_id
+            )
+            assert remaining == 0
