@@ -22,6 +22,46 @@ class SecretRegistry:
             reverse=True,
         ))
 
+    def resolve(self, name: str) -> str:
+        """Return the value for a registered secret name.
+
+        Raises ``KeyError`` with a descriptive message when the name is
+        not in the registry.  Used by HMAC verification and load-time
+        secret validation.
+        """
+        try:
+            return self._secrets[name]
+        except KeyError:
+            msg = (
+                f"Unknown secret {name!r}; "
+                f"registered names: {sorted(self._secrets)}"
+            )
+            raise KeyError(msg) from None
+
+    def validate_references(self, text: str) -> set[str]:
+        """Scan *text* for ``{{secret:NAME}}`` patterns and verify all
+        referenced names exist in the registry.
+
+        Returns the set of referenced secret names on success.
+        Raises ``KeyError`` listing every unknown name if any reference
+        is unresolvable.
+        """
+        found: set[str] = set()
+        unknown: set[str] = set()
+        for match in self._PATTERN.finditer(text):
+            name = match.group(1)
+            if name in self._secrets:
+                found.add(name)
+            else:
+                unknown.add(name)
+        if unknown:
+            msg = (
+                f"Unknown secret references: {sorted(unknown)}; "
+                f"registered names: {sorted(self._secrets)}"
+            )
+            raise KeyError(msg)
+        return found
+
     def substitute(self, text: str) -> str:
         """Replace {{secret:NAME}} placeholders with real values."""
         def _replace(match: re.Match[str]) -> str:

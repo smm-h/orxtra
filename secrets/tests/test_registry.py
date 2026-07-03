@@ -112,6 +112,90 @@ class TestDeepImmutability:
         assert isinstance(registry._scrub_order, tuple)  # noqa: SLF001
 
 
+class TestResolve:
+
+    def test_resolve_known_name(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        assert reg.resolve("TOKEN") == "abc123"
+
+    def test_resolve_unknown_name_raises_key_error(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        with pytest.raises(KeyError, match="Unknown secret 'MISSING'"):
+            reg.resolve("MISSING")
+
+    def test_resolve_error_lists_registered_names(self) -> None:
+        reg = SecretRegistry({"A": "val_a", "B": "val_b"})
+        with pytest.raises(KeyError, match=r"registered names: \['A', 'B'\]"):
+            reg.resolve("C")
+
+    def test_resolve_empty_registry(self) -> None:
+        reg = SecretRegistry({})
+        with pytest.raises(KeyError, match="Unknown secret 'X'"):
+            reg.resolve("X")
+
+    def test_resolve_all_secrets(self) -> None:
+        secrets = {"A": "val_a", "B": "val_b", "C": "val_c"}
+        reg = SecretRegistry(secrets)
+        for name, value in secrets.items():
+            assert reg.resolve(name) == value
+
+
+class TestValidateReferences:
+
+    def test_all_references_known(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123", "KEY": "xyz789"})
+        result = reg.validate_references(
+            "Use {{secret:TOKEN}} and {{secret:KEY}}"
+        )
+        assert result == {"TOKEN", "KEY"}
+
+    def test_single_reference(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        result = reg.validate_references("auth: {{secret:TOKEN}}")
+        assert result == {"TOKEN"}
+
+    def test_no_references_returns_empty_set(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        result = reg.validate_references("no secrets here")
+        assert result == set()
+
+    def test_unknown_reference_raises_key_error(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        with pytest.raises(KeyError, match="Unknown secret references"):
+            reg.validate_references("{{secret:MISSING}}")
+
+    def test_unknown_reference_lists_all_unknowns(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        with pytest.raises(KeyError, match=r"\['BAD1', 'BAD2'\]"):
+            reg.validate_references(
+                "{{secret:BAD1}} and {{secret:BAD2}}"
+            )
+
+    def test_mixed_known_and_unknown_raises(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        with pytest.raises(KeyError, match="MISSING"):
+            reg.validate_references(
+                "{{secret:TOKEN}} and {{secret:MISSING}}"
+            )
+
+    def test_duplicate_references_deduplicated(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        result = reg.validate_references(
+            "{{secret:TOKEN}} then {{secret:TOKEN}}"
+        )
+        assert result == {"TOKEN"}
+
+    def test_empty_registry_with_references_raises(self) -> None:
+        reg = SecretRegistry({})
+        with pytest.raises(KeyError, match="Unknown secret references"):
+            reg.validate_references("{{secret:X}}")
+
+    def test_empty_text_returns_empty_set(self) -> None:
+        reg = SecretRegistry({"TOKEN": "abc123"})
+        result = reg.validate_references("")
+        assert result == set()
+
+
 class TestRoundTrip:
 
     def test_scrub_of_substituted_returns_original(self) -> None:
