@@ -77,7 +77,7 @@ def test_no_command_shows_help() -> None:
 
 
 def test_all_groups_exist() -> None:
-    expected = {"run", "inbox", "trace", "event", "validate", "config", "worker"}
+    expected = {"run", "inbox", "trace", "event", "validate", "config", "db", "worker"}
     assert set(app._groups.keys()) == expected  # noqa: SLF001
 
 
@@ -351,6 +351,59 @@ def test_config_missing_subcommand_shows_help() -> None:
     assert "config" in stdout.lower()
 
 
+# -- Structure: db commands ---------------------------------------------------------
+
+
+def test_db_commands() -> None:
+    cmds = set(app._groups["db"].commands.keys())  # noqa: SLF001
+    assert cmds == {"init", "verify"}
+
+
+def test_db_init_has_use_extension_stub_flag() -> None:
+    cmd = app._groups["db"].commands["init"]  # noqa: SLF001
+    flag = next(f for f in cmd.flags if f.name == "use-extension-stub")
+    assert flag.type is bool
+    assert flag.default is False
+
+
+def test_db_verify_no_extra_flags() -> None:
+    cmd = app._groups["db"].commands["verify"]  # noqa: SLF001
+    assert len(cmd.flags) == 0
+
+
+def test_db_migrate_subgroup_exists() -> None:
+    db = app._groups["db"]  # noqa: SLF001
+    assert "migrate" in db._groups  # noqa: SLF001
+
+
+def test_db_migrate_commands() -> None:
+    db = app._groups["db"]  # noqa: SLF001
+    migrate = db._groups["migrate"]  # noqa: SLF001
+    cmds = set(migrate.commands.keys())
+    assert cmds == {"plan", "apply", "status"}
+
+
+def test_db_migrate_apply_has_dry_run_flag() -> None:
+    db = app._groups["db"]  # noqa: SLF001
+    migrate = db._groups["migrate"]  # noqa: SLF001
+    cmd = migrate.commands["apply"]
+    flag = next(f for f in cmd.flags if f.name == "dry-run")
+    assert flag.type is bool
+    assert flag.default is False
+
+
+def test_db_missing_subcommand_shows_help() -> None:
+    stdout, _, code = _test("db")
+    assert code == 0
+    assert "db" in stdout.lower()
+
+
+def test_db_migrate_missing_subcommand_shows_help() -> None:
+    stdout, _, code = _test("db", "migrate")
+    assert code == 0
+    assert "migrate" in stdout.lower()
+
+
 # -- Structure: worker commands -----------------------------------------------------
 
 
@@ -362,6 +415,6 @@ def test_worker_commands() -> None:
 # -- Total command count -----------------------------------------------------------
 
 
-def test_total_command_count_is_24() -> None:
+def test_total_command_count_is_26() -> None:
     total = sum(len(g.commands) for g in app._groups.values())  # noqa: SLF001
-    assert total == 24
+    assert total == 26

@@ -425,6 +425,13 @@ from orxtra.api._cli import register_serve_command
 register_serve_command(app)
 
 
+# -- DB commands (from orxtra.cli._db) --
+
+from orxtra.cli._db import register_db_commands
+
+register_db_commands(app)
+
+
 # -- Worker commands (from orxtra.worker) --
 
 from orxtra.worker._cli import register_worker_commands
