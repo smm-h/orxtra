@@ -102,6 +102,16 @@ def _schema_dir() -> str:
     return str(Path(__file__).resolve().parents[5] / "schema")
 
 
+def _find_pgdesign() -> str:
+    """Locate the pgdesign binary on PATH."""
+    import shutil  # noqa: PLC0415
+
+    path = shutil.which("pgdesign")
+    if path is None:
+        _die("pgdesign binary not found on PATH")
+    return path
+
+
 def _run_pgdesign(
     subcommand: str,
     db_url: str,
@@ -110,7 +120,7 @@ def _run_pgdesign(
     """Run a pgdesign migrate subcommand and exit with its code."""
     schema_path = _schema_dir()
     cmd = [
-        sys.executable, "-m", "pgdesign",
+        _find_pgdesign(),
         "migrate", subcommand,
     ]
     # plan takes positional path arg; apply/status do not.

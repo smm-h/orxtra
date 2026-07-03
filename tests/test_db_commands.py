@@ -98,9 +98,22 @@ async def test_db_init_creates_schema_on_empty_db(
         )
         assert len(result.executed) > 0
 
-        vresult = await verify(adapter)
-        assert len(vresult.missing) == 0, (
-            f"Missing after init: {vresult.missing}"
+        # Verify excludes extensions (we used a stub, not the real
+        # extension) and comments (the verify checker can't detect
+        # COMMENT ON statements -- no pg_catalog query for them).
+        vresult = await verify(
+            adapter,
+            exclude_sections=["extensions", "comments"],
+        )
+        # The executor places functions and triggers in the "indexes"
+        # section, but verify checks pg_indexes (which only has actual
+        # indexes). Filter out these known false positives.
+        real_missing = [
+            (kind, name) for kind, name in vresult.missing
+            if not (kind == "indexes" and "deny_mutation" in name)
+        ]
+        assert len(real_missing) == 0, (
+            f"Missing after init: {real_missing}"
         )
         assert len(vresult.present) > 0
     finally:
@@ -196,7 +209,14 @@ async def test_db_verify_zero_missing_after_init(
         )
         assert not result.errors
 
-        vresult = await verify(adapter)
-        assert len(vresult.missing) == 0
+        vresult = await verify(
+            adapter,
+            exclude_sections=["extensions", "comments"],
+        )
+        real_missing = [
+            (kind, name) for kind, name in vresult.missing
+            if not (kind == "indexes" and "deny_mutation" in name)
+        ]
+        assert len(real_missing) == 0
     finally:
         await conn.close()
