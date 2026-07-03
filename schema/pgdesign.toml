@@ -3,8 +3,26 @@ name = "orxtra"
 version = "0.1.0"
 schemas = ["trace.toml", "dispatch.toml", "auth.toml"]
 
+[validate]
+disable = [
+    # I002 (dead column): Nearly every data column in this pre-production schema
+    # triggers this because we haven't yet added application-level indexes or
+    # constraints on them. Disabling globally avoids 100+ suppress entries that
+    # would all say the same thing. Re-enable when the schema matures and we add
+    # targeted indexes for actual query patterns.
+    "I002",
+]
+
 [suppress]
 "overseer_workflow_status.W005" = "Uses updated_at instead of created_at; this table is intentionally overwritten, not appended"
 "run_heartbeats.W005" = "Uses last_heartbeat instead of created_at; heartbeats are overwritten, not appended"
 "task_iterations.W005" = "Uses started_at instead of created_at; iteration is created and started in the same transaction"
-"overseer_workflow_status.W002" = "Orphan table by design: tracks Overseer health assessment, workflow_id references tasks conceptually but not via FK"
+# --- Intentional mixed ON DELETE policy ---
+# Operational-state tables (decisions, constraints, lessons, inbox_items, etc.)
+# CASCADE on run/task deletion because their data is meaningless without the
+# parent. Audit tables (events, transcripts, notepad_entries) use RESTRICT to
+# prevent accidental data loss -- runs with audit records must be explicitly
+# cleaned. Subscriptions use SET NULL because they can outlive their owning run.
+"runs.W014" = "Cascade blast radius is intentional: operational-state tables cascade on run deletion while audit tables use RESTRICT"
+"runs.W015" = "Mixed ON DELETE by table class: CASCADE for operational state, RESTRICT for audit (events/transcripts/notepad), SET NULL for subscriptions"
+"tasks.W015" = "Mixed ON DELETE by table class: CASCADE for operational state (attempts/iterations/children), RESTRICT for audit (events)"

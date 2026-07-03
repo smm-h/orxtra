@@ -35,6 +35,9 @@ comment = "FK to auth.credentials for source authentication"
 [tables.sources.columns.created_at]
 type = "timestamp"
 
+[tables.sources.checks.chk_sources_slug_not_empty]
+expr = "slug <> '' AND name <> ''"
+
 [tables.sources.unique.uq_sources_slug]
 columns = ["slug"]
 
@@ -75,6 +78,9 @@ comment = "Run that owns this subscription (null = global)"
 [tables.subscriptions.columns.created_at]
 type = "timestamp"
 
+[tables.subscriptions.checks.chk_subscriptions_storage_valid]
+expr = "storage IN ('persistent', 'transient')"
+
 [tables.subscriptions.fks.fk_subscriptions_source]
 columns = ["source_id"]
 ref_table = "sources"
@@ -87,11 +93,13 @@ ref_table = "runs"
 ref_columns = ["id"]
 on_delete = "SET NULL"
 
-[tables.subscriptions.indexes.idx_subscriptions_source]
-columns = ["source_id"]
+[tables.subscriptions.indexes.idx_subscriptions_active]
+columns = ["source_id", "created_at"]
+where = "enabled = true"
 
-[tables.subscriptions.indexes.idx_subscriptions_enabled]
-columns = ["enabled"]
+[tables.subscriptions.indexes.idx_subscriptions_filter_expr_gin]
+columns = ["filter_expr"]
+method = "gin"
 
 # ---------------------------------------------------------------------------
 # Tables: Subscription actions
@@ -126,6 +134,9 @@ comment = "Accumulator settings (batch size, flush interval, etc.)"
 [tables.subscription_actions.columns.created_at]
 type = "timestamp"
 
+[tables.subscription_actions.checks.chk_subscription_actions_position_positive]
+expr = "position >= 0 AND action_type <> ''"
+
 [tables.subscription_actions.fks.fk_subscription_actions_sub]
 columns = ["subscription_id"]
 ref_table = "subscriptions"
@@ -134,6 +145,14 @@ on_delete = "CASCADE"
 
 [tables.subscription_actions.indexes.idx_subscription_actions_sub]
 columns = ["subscription_id"]
+
+[tables.subscription_actions.indexes.idx_subscription_actions_config_gin]
+columns = ["action_config"]
+method = "gin"
+
+[tables.subscription_actions.indexes.idx_subscription_actions_accumulator_gin]
+columns = ["accumulator_config"]
+method = "gin"
 
 [tables.subscription_actions.unique.uq_subscription_actions_position]
 columns = ["subscription_id", "position"]
@@ -157,6 +176,9 @@ comment = "Reference to the trace events table"
 
 [tables.accumulator_buffer.columns.created_at]
 type = "timestamp"
+
+[tables.accumulator_buffer.checks.chk_accumulator_buffer_refs_not_null]
+expr = "subscription_action_id IS NOT NULL AND event_id IS NOT NULL"
 
 [tables.accumulator_buffer.fks.fk_accumulator_buffer_action]
 columns = ["subscription_action_id"]

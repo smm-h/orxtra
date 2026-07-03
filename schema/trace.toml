@@ -177,6 +177,13 @@ comment = "Best-effort USD from orxtra internal pricing table"
 type = "str_nullable"
 comment = "Overseer end-of-run assessment of intent fulfillment"
 
+[tables.runs.checks.chk_runs_counters_non_negative]
+expr = "total_input_tokens >= 0 AND total_output_tokens >= 0 AND total_reasoning_tokens >= 0 AND total_cache_read_tokens >= 0 AND total_cache_write_tokens >= 0 AND total_cost_usd >= 0"
+
+[tables.runs.indexes.idx_runs_config_snapshot_gin]
+columns = ["config_snapshot"]
+method = "gin"
+
 # ---------------------------------------------------------------------------
 
 [tables.tasks]
@@ -210,6 +217,9 @@ comment = "Task configuration"
 [tables.tasks.columns.created_at]
 type = "timestamp"
 
+[tables.tasks.checks.chk_tasks_name_not_empty]
+expr = "name <> ''"
+
 [tables.tasks.fks.fk_tasks_run]
 columns = ["run_id"]
 ref_table = "runs"
@@ -227,6 +237,10 @@ columns = ["run_id"]
 
 [tables.tasks.indexes.idx_tasks_parent_id]
 columns = ["parent_task_id"]
+
+[tables.tasks.indexes.idx_tasks_config_gin]
+columns = ["config"]
+method = "gin"
 
 # ---------------------------------------------------------------------------
 
@@ -290,6 +304,9 @@ type = "duration"
 [tables.task_attempts.columns.created_at]
 type = "timestamp"
 
+[tables.task_attempts.checks.chk_task_attempts_counters_non_negative]
+expr = "attempt >= 1 AND input_tokens >= 0 AND output_tokens >= 0 AND reasoning_tokens >= 0 AND cache_read_tokens >= 0 AND cache_write_tokens >= 0 AND cost_usd >= 0"
+
 [tables.task_attempts.fks.fk_task_attempts_task]
 columns = ["task_id"]
 ref_table = "tasks"
@@ -298,6 +315,14 @@ on_delete = "CASCADE"
 
 [tables.task_attempts.indexes.idx_task_attempts_task_id]
 columns = ["task_id"]
+
+[tables.task_attempts.indexes.idx_task_attempts_structured_output_gin]
+columns = ["structured_output"]
+method = "gin"
+
+[tables.task_attempts.indexes.idx_task_attempts_check_result_gin]
+columns = ["check_result"]
+method = "gin"
 
 [tables.task_attempts.unique.uq_task_attempts_task_attempt]
 columns = ["task_id", "attempt"]
@@ -339,6 +364,9 @@ type = "timestamp"
 [tables.task_iterations.columns.finished_at]
 type = "timestamp_optional"
 
+[tables.task_iterations.checks.chk_task_iterations_index_non_negative]
+expr = "iteration_index >= 0"
+
 [tables.task_iterations.fks.fk_task_iterations_task]
 columns = ["task_id"]
 ref_table = "tasks"
@@ -347,6 +375,18 @@ on_delete = "CASCADE"
 
 [tables.task_iterations.indexes.idx_task_iterations_task_id]
 columns = ["task_id"]
+
+[tables.task_iterations.indexes.idx_task_iterations_item_value_gin]
+columns = ["item_value"]
+method = "gin"
+
+[tables.task_iterations.indexes.idx_task_iterations_structured_output_gin]
+columns = ["structured_output"]
+method = "gin"
+
+[tables.task_iterations.indexes.idx_task_iterations_check_results_gin]
+columns = ["check_results"]
+method = "gin"
 
 [tables.task_iterations.unique.uq_task_iterations_task_index]
 columns = ["task_id", "iteration_index"]
@@ -408,6 +448,14 @@ columns = ["event_type", "created_at DESC"]
 [tables.events.indexes.idx_events_source_created]
 columns = ["source", "created_at DESC"]
 
+[tables.events.indexes.idx_events_created_at_brin]
+columns = ["created_at"]
+method = "brin"
+
+[tables.events.indexes.idx_events_data_gin]
+columns = ["data"]
+method = "gin"
+
 # ---------------------------------------------------------------------------
 # Tables: Session transcripts
 # ---------------------------------------------------------------------------
@@ -460,6 +508,18 @@ columns = ["session_id", "turn"]
 [tables.transcripts.indexes.idx_transcripts_run]
 columns = ["run_id"]
 
+[tables.transcripts.indexes.idx_transcripts_created_at_brin]
+columns = ["created_at"]
+method = "brin"
+
+[tables.transcripts.indexes.idx_transcripts_tool_calls_gin]
+columns = ["tool_calls"]
+method = "gin"
+
+[tables.transcripts.indexes.idx_transcripts_tokens_gin]
+columns = ["tokens"]
+method = "gin"
+
 # ---------------------------------------------------------------------------
 # Tables: Cross-agent context
 # ---------------------------------------------------------------------------
@@ -497,6 +557,10 @@ on_delete = "RESTRICT"
 
 [tables.notepad_entries.indexes.idx_notepad_run]
 columns = ["run_id"]
+
+[tables.notepad_entries.indexes.idx_notepad_created_at_brin]
+columns = ["created_at"]
+method = "brin"
 
 # ---------------------------------------------------------------------------
 # Tables: Human inbox
@@ -564,6 +628,9 @@ type = "timestamp_optional"
 [tables.inbox_items.columns.created_at]
 type = "timestamp"
 
+[tables.inbox_items.checks.chk_inbox_items_question_not_empty]
+expr = "question <> ''"
+
 [tables.inbox_items.fks.fk_inbox_run]
 columns = ["run_id"]
 ref_table = "runs"
@@ -572,6 +639,14 @@ on_delete = "CASCADE"
 
 [tables.inbox_items.indexes.idx_inbox_run_pending]
 columns = ["run_id", "status", "created_at"]
+
+[tables.inbox_items.indexes.idx_inbox_options_gin]
+columns = ["options"]
+method = "gin"
+
+[tables.inbox_items.indexes.idx_inbox_tags_gin]
+columns = ["tags"]
+method = "gin"
 
 # ---------------------------------------------------------------------------
 # Tables: Context assembly diffs
@@ -596,6 +671,9 @@ comment = "Unified diff of Overseer's context changes"
 
 [tables.context_diffs.columns.created_at]
 type = "timestamp"
+
+[tables.context_diffs.checks.chk_context_diffs_not_empty]
+expr = "pre_refinement <> ''"
 
 [tables.context_diffs.fks.fk_context_diffs_attempt]
 columns = ["attempt_id"]
@@ -632,6 +710,9 @@ type = "str_nullable"
 
 [tables.decisions.columns.created_at]
 type = "timestamp"
+
+[tables.decisions.checks.chk_decisions_choice_not_empty]
+expr = "choice <> ''"
 
 [tables.decisions.fks.fk_decisions_run]
 columns = ["run_id"]
@@ -671,6 +752,9 @@ comment = "Structured arguments for mechanical constraints (e.g., {glob: 'src/**
 [tables.constraints.columns.created_at]
 type = "timestamp"
 
+[tables.constraints.checks.chk_constraints_text_not_empty]
+expr = "text <> ''"
+
 [tables.constraints.fks.fk_constraints_run]
 columns = ["run_id"]
 ref_table = "runs"
@@ -679,6 +763,10 @@ on_delete = "CASCADE"
 
 [tables.constraints.indexes.idx_constraints_run]
 columns = ["run_id"]
+
+[tables.constraints.indexes.idx_constraints_args_gin]
+columns = ["args"]
+method = "gin"
 
 # ---------------------------------------------------------------------------
 
@@ -704,6 +792,9 @@ comment = "Inbox item created for this assumption (if escalated)"
 
 [tables.assumptions.columns.created_at]
 type = "timestamp"
+
+[tables.assumptions.checks.chk_assumptions_text_not_empty]
+expr = "text <> ''"
 
 [tables.assumptions.fks.fk_assumptions_run]
 columns = ["run_id"]
@@ -754,6 +845,9 @@ comment = "File paths for git-based staleness detection (any file changing flags
 [tables.lessons.columns.created_at]
 type = "timestamp"
 
+[tables.lessons.checks.chk_lessons_text_not_empty]
+expr = "text <> ''"
+
 [tables.lessons.fks.fk_lessons_run]
 columns = ["run_id"]
 ref_table = "runs"
@@ -763,6 +857,14 @@ on_delete = "CASCADE"
 [tables.lessons.indexes.idx_lessons_run]
 columns = ["run_id"]
 
+[tables.lessons.indexes.idx_lessons_relevance_tags_gin]
+columns = ["relevance_tags"]
+method = "gin"
+
+[tables.lessons.indexes.idx_lessons_source_files_gin]
+columns = ["source_files"]
+method = "gin"
+
 # ---------------------------------------------------------------------------
 
 [tables.overseer_workflow_status]
@@ -770,8 +872,8 @@ comment = "Overseer view of workflow health. Overwritten as the Overseer updates
 pk = ["workflow_id"]
 
 [tables.overseer_workflow_status.columns.workflow_id]
-type = "uuid_val"
-comment = "Workflow identifier (no FK)"
+type = "ref"
+comment = "Workflow task identifier"
 
 [tables.overseer_workflow_status.columns.current_step]
 type = "str"
@@ -781,6 +883,15 @@ type = "workflow_health"
 
 [tables.overseer_workflow_status.columns.updated_at]
 type = "timestamp"
+
+[tables.overseer_workflow_status.fks.fk_overseer_workflow_status_task]
+columns = ["workflow_id"]
+ref_table = "tasks"
+ref_columns = ["id"]
+on_delete = "CASCADE"
+
+[tables.overseer_workflow_status.checks.chk_overseer_workflow_status_step_not_empty]
+expr = "current_step <> ''"
 
 # ---------------------------------------------------------------------------
 
@@ -823,6 +934,9 @@ comment = "SHA-256 content hash"
 
 [tables.knowledge_hashes.columns.created_at]
 type = "timestamp"
+
+[tables.knowledge_hashes.checks.chk_knowledge_hashes_not_empty]
+expr = "path <> '' AND file_hash <> ''"
 
 [tables.knowledge_hashes.fks.fk_knowledge_hashes_run]
 columns = ["run_id"]

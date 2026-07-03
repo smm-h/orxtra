@@ -50,6 +50,13 @@ comment = "Non-null means the consumer is disabled"
 [tables.consumers.columns.created_at]
 type = "timestamp"
 
+[tables.consumers.checks.chk_consumers_name_not_empty]
+expr = "name <> ''"
+
+[tables.consumers.indexes.idx_consumers_scope_grants_gin]
+columns = ["scope_grants"]
+method = "gin"
+
 # ---------------------------------------------------------------------------
 # Tables: Credentials
 # ---------------------------------------------------------------------------
@@ -83,6 +90,9 @@ comment = "Additional credential metadata"
 [tables.credentials.columns.created_at]
 type = "timestamp"
 
+[tables.credentials.checks.chk_credentials_hash_not_empty]
+expr = "credential_hash <> '' AND algorithm <> ''"
+
 [tables.credentials.fks.fk_credentials_consumer]
 columns = ["consumer_id"]
 ref_table = "consumers"
@@ -94,3 +104,7 @@ columns = ["consumer_id"]
 
 [tables.credentials.indexes.idx_credentials_hash]
 columns = ["credential_hash"]
+
+[tables.credentials.indexes.idx_credentials_metadata_gin]
+columns = ["metadata"]
+method = "gin"
