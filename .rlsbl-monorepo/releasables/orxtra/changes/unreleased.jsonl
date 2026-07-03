@@ -22,3 +22,4 @@
 {"commits":["1f497424b998b640df2fdb2fe054d66e5c6855b8"],"user_facing":false,"packages":["tool"]}
 {"commits":["c986a88cba6134740ea6849061806c5e00e2f624"],"user_facing":false,"packages":["."]}
 {"commits":["e4911866ae960d40c9f1536e7d139aa1e2ec8dae"],"user_facing":false,"packages":[".","cli"]}
+{"commits":["93ff656026f7479d719e0681fc79ebf5d184fb1a"],"user_facing":true,"description":"**Breaking.** Replace ExecToolConfig/ShellConfig with InlineToolDefinition and `[[tools.define]]` TOML parsing.","type":"breaking","packages":["agent"]}
