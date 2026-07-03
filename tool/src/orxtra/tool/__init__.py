@@ -8,6 +8,16 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.tool._consult_tool import CONSULT_STRIP_TOOLS, make_consult_tool
+from orxtra.tool._data_tool_loader import load_tool_definition, load_tool_definitions
+from orxtra.tool._data_tool_types import (
+    CommandExecution,
+    DataToolDefinition,
+    HttpExecution,
+    MontyExecution,
+    OutputConfig,
+    ParamDef,
+    ResourceLimits,
+)
 from orxtra.tool._decorator import ToolTemplate, tool
 from orxtra.tool._discovery import collect_tools
 from orxtra.tool._exec_tool import make_exec_tool
@@ -62,17 +72,26 @@ from orxtra.tool._write_tools import (
 __all__ = [
     "__version__",
     "CONSULT_STRIP_TOOLS",
+    "CommandExecution",
+    "DataToolDefinition",
     "FILE_MUTATION_TOOLS",
     "FullRetrievalGuard",
+    "HttpExecution",
     "JsonRenderer",
     "TableRenderer",
     "TextRenderer",
+    "MontyExecution",
+    "OutputConfig",
+    "ParamDef",
+    "ResourceLimits",
     "ToolTemplate",
     "PathError",
     "PreviewResult",
     "TaskSchedulerRef",
     "check_and_preview",
     "check_write_scope",
+    "load_tool_definition",
+    "load_tool_definitions",
     "collect_tools",
     "compose",
     "make_await_task_tool",
