@@ -298,7 +298,7 @@ class TraceWriter:
                     json.dumps(data),
                     idempotency_key,
                 )
-                inserted = status != "INSERT 0"
+                inserted = status != "INSERT 0 0"
             else:
                 await conn.execute(
                     "INSERT INTO events"
