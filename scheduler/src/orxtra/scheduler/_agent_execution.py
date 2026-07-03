@@ -2,12 +2,44 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from orxtra.compose import CompositionEngine
+from orxtra.compose import CompositionEngine, resolve_variables
+
+# Matches {variable_name} placeholders (same pattern as compose._variables)
+_VAR_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+
+
+def _resolve_task_variables(
+    template: str,
+    variables: dict[str, Any] | None,
+) -> str:
+    """Resolve variables in a task prompt template.
+
+    Wraps compose's strict resolve_variables with two adaptations
+    for the scheduler's workflow context:
+
+    1. Values are coerced to str (callers pass dict[str, Any]).
+    2. Unused variables are filtered out rather than rejected,
+       because the workflow executor accumulates all dependency
+       outputs as variables and tasks use only a subset.
+
+    Unresolved placeholders still raise ValueError (catches typos
+    in task prompts).
+    """
+    if not variables:
+        # No variables: still check for unresolved placeholders
+        return resolve_variables(template, {})
+    placeholders = set(_VAR_RE.findall(template))
+    filtered = {
+        k: str(v) for k, v in variables.items()
+        if k in placeholders
+    }
+    return resolve_variables(template, filtered)
 from orxtra.protocols import (
     CheckResult,
     EscalationPayload,
@@ -99,9 +131,9 @@ class AgentExecutionMixin(SchedulerBase):
         self._active_tasks[session_id_str] = task_id
 
         try:
-            prompt = self._resolve_prompt(
+            prompt = _resolve_task_variables(
                 task.task_prompt or "",
-                variables or {},
+                variables,
             )
 
             output_text = ""
@@ -1234,12 +1266,12 @@ class AgentExecutionMixin(SchedulerBase):
         """Assemble full prompt with runtime context layers.
 
         Uses the compose engine with fragment providers for each layer.
-        Variable substitution in the task prompt is applied before
-        composition (lenient, matching legacy behavior until all
-        callers are audited for strict compatibility).
+        Variable substitution in the task prompt uses strict resolution:
+        unresolved placeholders raise ValueError. Unused variables are
+        filtered (workflow executor accumulates dependency outputs).
         """
         assert task.task_prompt is not None  # noqa: S101
-        resolved_prompt = self._resolve_prompt(
+        resolved_prompt = _resolve_task_variables(
             task.task_prompt, variables,
         )
 
@@ -1308,26 +1340,6 @@ class AgentExecutionMixin(SchedulerBase):
                 )
                 prompt = refined
 
-        return prompt
-
-    @staticmethod
-    def _resolve_prompt(
-        template: str,
-        variables: dict[str, Any] | None,
-    ) -> str:
-        """Lenient variable substitution (legacy).
-
-        Kept for backward compatibility during migration. Unknown
-        placeholders pass through; unused variables are ignored.
-        Will be replaced by strict substitution once all callers
-        are audited.
-        """
-        prompt = template
-        if variables:
-            for k, v in variables.items():
-                prompt = prompt.replace(
-                    f"{{{k}}}", str(v),
-                )
         return prompt
 
     async def _refresh_injection_data(self) -> None:

@@ -337,10 +337,11 @@ class TestNotepadFormatGolden:
 
 class TestSchedulerStrictSubstitution:
     """Integration tests proving the scheduler's prompt assembly
-    uses strict two-way variable substitution.
+    uses strict variable substitution via resolve_variables.
 
-    Unknown placeholders in task prompts raise ValueError.
-    Unused variables raise ValueError.
+    Unresolved placeholders in task prompts raise ValueError.
+    Unused variables are silently filtered (workflow executor
+    accumulates all dependency outputs, tasks use a subset).
     Normal substitution works correctly.
     """
 
@@ -363,13 +364,37 @@ class TestSchedulerStrictSubstitution:
                 task, task_id, {}, 1, attempt_id, [],
             )
 
-    async def test_unused_variable_raises(
+    async def test_unknown_placeholder_with_some_vars_raises(
         self, tmp_path: Any,  # noqa: ANN401
     ) -> None:
-        """Strict: variable with no matching placeholder is a hard error."""
+        """Strict: unresolved placeholder raises even when some match."""
         sched = _make_scheduler(tmp_path)
         task = TaskSpec(
-            name="strict-unused",
+            name="strict-partial",
+            agent="test-agent",
+            task_prompt="Use {matched} and {orphan}",
+            context_refinement=False,
+        )
+        task_id = uuid6.uuid7()
+        attempt_id = uuid6.uuid7()
+
+        with pytest.raises(ValueError, match="Unresolved placeholder"):
+            await sched._assemble_agent_prompt(  # noqa: SLF001
+                task, task_id, {"matched": "found"}, 1, attempt_id, [],
+            )
+
+    async def test_unused_variables_filtered(
+        self, tmp_path: Any,  # noqa: ANN401
+    ) -> None:
+        """Unused variables are silently filtered (workflow pattern).
+
+        The workflow executor passes all accumulated dependency outputs
+        as variables. Tasks use only a subset. Unused variables must
+        not raise -- they are filtered before strict resolution.
+        """
+        sched = _make_scheduler(tmp_path)
+        task = TaskSpec(
+            name="strict-filtered",
             agent="test-agent",
             task_prompt="Hello world",
             context_refinement=False,
@@ -377,10 +402,14 @@ class TestSchedulerStrictSubstitution:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        with pytest.raises(ValueError, match="Unused variable"):
-            await sched._assemble_agent_prompt(  # noqa: SLF001
-                task, task_id, {"extra": "value"}, 1, attempt_id, [],
-            )
+        # Should NOT raise despite extra unused variables
+        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+            task, task_id,
+            {"extra": "value", "another": "unused"},
+            1, attempt_id, [],
+        )
+
+        assert "Hello world" in result
 
     async def test_normal_substitution_works(
         self, tmp_path: Any,  # noqa: ANN401
@@ -425,6 +454,37 @@ class TestSchedulerStrictSubstitution:
         )
 
         assert "Count is 42" in result
+
+    async def test_subset_used_from_accumulated_variables(
+        self, tmp_path: Any,  # noqa: ANN401
+    ) -> None:
+        """Only referenced variables are used; extras are filtered.
+
+        Simulates the workflow pattern: task b uses {a_output}
+        but also receives a_text and a_result from the executor.
+        """
+        sched = _make_scheduler(tmp_path)
+        task = TaskSpec(
+            name="strict-subset",
+            agent="test-agent",
+            task_prompt="Use {a_output} for processing",
+            context_refinement=False,
+        )
+        task_id = uuid6.uuid7()
+        attempt_id = uuid6.uuid7()
+
+        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+            task, task_id,
+            {
+                "a_output": "result-a",
+                "a_text": "text-a",
+                "a_result": {"passed": True},
+            },
+            1, attempt_id, [],
+        )
+
+        assert "Use result-a for processing" in result
+        assert "{a_output}" not in result
 
 
 class TestStrictSubstitutionRejects:
