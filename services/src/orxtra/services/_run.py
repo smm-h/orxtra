@@ -10,6 +10,7 @@ from orxtra.agent import load_agents, load_categories
 from orxtra.overseer import load_knowledge_files
 from orxtra.protocols import BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, load_workflow
+from orxtra.secrets import create_secret_registry
 from orxtra.services._providers import build_transport_registry
 from orxtra.trace import RunReport, RunSummary, StorageBackend, TraceWriter, read_run_report
 from orxtra.trace import list_runs as _list_runs
@@ -34,6 +35,7 @@ class RunConfig(BaseModel):
     budget: Decimal
     autonomy_level: str
     budget_exhaustion_policy: BudgetExhaustionPolicy = BudgetExhaustionPolicy.UNLIMITED
+    secrets_env: dict[str, str] | None = None
 
 
 _REDACTED = "[REDACTED]"
@@ -144,6 +146,11 @@ async def start_run(
             registry = build_transport_registry(config.provider_configs)
         else:
             registry = {}
+        secret_registry = (
+            create_secret_registry(config.secrets_env)
+            if config.secrets_env is not None
+            else None
+        )
         scheduler = Scheduler(
             trace_writer=writer,
             transport_registry=registry,
@@ -157,6 +164,7 @@ async def start_run(
             budget_exhaustion_policy=config.budget_exhaustion_policy,
             budget_limit=config.budget,
             autonomy_level=config.autonomy_level,
+            secret_registry=secret_registry,
         )
         workflow_config = load_workflow(config.workflow_path)
         await load_knowledge_files(

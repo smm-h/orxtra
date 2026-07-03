@@ -615,6 +615,96 @@ def test_redact_db_url_netloc_preserved_verbatim_except_password() -> None:
     assert result == "postgres://user%40corp%3Ax:[REDACTED]@DB.Example.com:5432/db"
 
 
+def test_run_config_accepts_secrets_env() -> None:
+    config = RunConfig(
+        workflow_path=Path("/workflow.toml"),
+        agents_dir=Path("/agents"),
+        knowledge_dir=Path("/knowledge"),
+        categories_path=Path("/cats.toml"),
+        read_root=Path("/project"),
+        db_url="postgres://localhost/test",
+        provider_configs={},
+        budget=Decimal("5.00"),
+        autonomy_level="autonomous",
+        secrets_env={"API_KEY": "MY_API_KEY_ENV"},
+    )
+    assert config.secrets_env == {"API_KEY": "MY_API_KEY_ENV"}
+
+
+def test_run_config_secrets_env_defaults_to_none() -> None:
+    config = _default_config()
+    assert config.secrets_env is None
+
+
+@pytest.mark.asyncio
+async def test_start_run_with_secrets_env_passes_registry(
+    mock_pool: AsyncMock, sample_run_id: UUID, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When secrets_env is set, start_run constructs a SecretRegistry
+    via the factory and passes it to the Scheduler."""
+    monkeypatch.setenv("TEST_TOKEN_VAR", "real-token-value")
+    with (
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
+    ):
+        mock_writer, mock_sched = _make_mocks(sample_run_id)
+        mock_writer_cls.return_value = mock_writer
+        mock_load_agents.return_value = {"test-agent": MagicMock()}
+        mock_load_cats.return_value = {"default": "anthropic/claude-sonnet-4-6"}
+        mock_load_wf.return_value = MagicMock()
+        mock_scheduler_cls.return_value = mock_sched
+
+        config = RunConfig(
+            workflow_path=Path("/workflow.toml"),
+            agents_dir=Path("/agents"),
+            knowledge_dir=Path("/knowledge"),
+            categories_path=Path("/cats.toml"),
+            read_root=Path("/project"),
+            db_url="postgres://localhost/test",
+            provider_configs={"anthropic": {"type": "anthropic", "api_key": "test"}},
+            budget=Decimal("10.00"),
+            autonomy_level="supervised",
+            secrets_env={"TOKEN": "TEST_TOKEN_VAR"},
+        )
+        await start_run(mock_pool, "test intent", config)
+
+        mock_scheduler_cls.assert_called_once()
+        call_kwargs = mock_scheduler_cls.call_args[1]
+        secret_reg = call_kwargs["secret_registry"]
+        # The factory read the env var and the Scheduler got a real registry
+        assert secret_reg is not None
+        assert secret_reg.resolve("TOKEN") == "real-token-value"
+
+
+@pytest.mark.asyncio
+async def test_start_run_without_secrets_env_passes_none(
+    mock_pool: AsyncMock, sample_run_id: UUID,
+) -> None:
+    """When secrets_env is not set, start_run passes None for secret_registry
+    (backward-compatible behavior)."""
+    with (
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
+    ):
+        mock_writer, mock_sched = _make_mocks(sample_run_id)
+        mock_writer_cls.return_value = mock_writer
+        mock_load_agents.return_value = {"test-agent": MagicMock()}
+        mock_load_cats.return_value = {"default": "anthropic/claude-sonnet-4-6"}
+        mock_load_wf.return_value = MagicMock()
+        mock_scheduler_cls.return_value = mock_sched
+
+        await start_run(mock_pool, "test", _default_config())
+
+        call_kwargs = mock_scheduler_cls.call_args[1]
+        assert call_kwargs["secret_registry"] is None
+
+
 def test_run_config_with_workflow_path() -> None:
     config = RunConfig(
         workflow_path=Path("/my/workflow.toml"),
