@@ -54,7 +54,7 @@ jobs:
       - run: uv sync
       - run: uv run python scripts/check_layer_docs.py
 
-  schema-sync:
+  schema-codegen:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -62,4 +62,4 @@ jobs:
       - run: uv python install 3.13
       - run: uv sync
       - run: uv tool install pgdesign
-      - run: uv run python scripts/check_schema_sync.py
+      - run: bash scripts/check_schema_codegen.sh
