@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from orxtra.protocols import Principal
+from typing import TYPE_CHECKING
 
 from orxtra.auth._exceptions import AuthorizationError
+
+if TYPE_CHECKING:
+    from orxtra.protocols import Principal
 
 
 class Authorizer:

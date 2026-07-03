@@ -14,20 +14,17 @@ import hashlib
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from orxtra.auth._exceptions import AuthenticationError
 from orxtra.protocols import (
     MacOutcome,
     Principal,
     TrustTier,
 )
 
-from orxtra.auth._exceptions import AuthenticationError
-
 if TYPE_CHECKING:
-    from orxtra.protocols import KeyedMacProvider, MacVerdict
-
-    from orxtra.auth._backend import ConsumerRecord, CredentialRecord
+    from orxtra.auth._backend import AuthBackend, ConsumerRecord, CredentialRecord
     from orxtra.auth._inmemory import InMemoryAuthBackend
-    from orxtra.auth._backend import AuthBackend
+    from orxtra.protocols import KeyedMacProvider, MacVerdict
 
 
 class HashCredentialVerifier:

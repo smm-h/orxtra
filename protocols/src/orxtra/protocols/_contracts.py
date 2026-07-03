@@ -4,7 +4,6 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
-    from datetime import datetime
     from uuid import UUID
 
     from orxtra.protocols._types._auth import MacVerdict, Principal

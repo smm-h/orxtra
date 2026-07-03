@@ -3,13 +3,15 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import UTC, datetime
-from uuid import UUID
-
-from uuid6 import uuid7
-
-from orxtra.protocols import TrustTier
+from typing import TYPE_CHECKING
 
 from orxtra.auth._backend import ConsumerRecord, CredentialRecord
+from uuid6 import uuid7
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from orxtra.protocols import TrustTier
 
 
 class InMemoryAuthBackend:

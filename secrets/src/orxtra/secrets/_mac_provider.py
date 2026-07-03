@@ -17,9 +17,7 @@ import hmac
 from datetime import UTC, datetime
 
 from orxtra.protocols import MacOutcome, MacVerdict
-
 from orxtra.secrets._registry import SecretRegistry
-
 
 # Supported HMAC algorithms and their hashlib constructors.
 _ALGORITHMS: dict[str, str] = {
@@ -104,6 +102,7 @@ class EnvMacProvider:
 def _build_candidates(key_ref: str) -> list[tuple[str, int | None]]:
     """Build the list of (secret_name, version) candidates to try."""
     candidates: list[tuple[str, int | None]] = [(key_ref, None)]
-    for i in range(1, _MAX_VERSIONS + 1):
-        candidates.append((f"{key_ref}:{i}", i))
+    candidates.extend(
+        (f"{key_ref}:{i}", i) for i in range(1, _MAX_VERSIONS + 1)
+    )
     return candidates

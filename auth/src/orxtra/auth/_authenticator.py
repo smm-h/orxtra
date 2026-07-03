@@ -16,16 +16,13 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from orxtra.protocols import Principal
-
 from orxtra.auth._exceptions import AuthenticationError
 
 if TYPE_CHECKING:
-    from orxtra.protocols import EventSink
-
     from orxtra.auth._backend import AuthBackend, CredentialRecord
     from orxtra.auth._inmemory import InMemoryAuthBackend
     from orxtra.auth._verifiers import HashCredentialVerifier, HmacCredentialVerifier
+    from orxtra.protocols import EventSink, Principal
 
 _logger = logging.getLogger("orxtra.auth")
 
@@ -94,13 +91,12 @@ class Authenticator:
             credential_hash,
         )
 
-        if cred is None:
+        if cred is None and identifier != raw_credential:
             # Try hashing the full credential (for bearer/api_key).
-            if identifier != raw_credential:
-                full_hash = hashlib.sha256(
-                    raw_credential.encode(),
-                ).hexdigest()
-                cred = await self._backend.get_credential_by_hash(full_hash)
+            full_hash = hashlib.sha256(
+                raw_credential.encode(),
+            ).hexdigest()
+            cred = await self._backend.get_credential_by_hash(full_hash)
 
         if cred is None:
             await self._emit_audit(
