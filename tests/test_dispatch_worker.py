@@ -10,7 +10,6 @@ via testcontainers:
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any
 from uuid import UUID
 
@@ -19,11 +18,8 @@ from uuid6 import uuid7
 
 from orxtra.dispatch import (
     DispatchWorker,
-    PgDispatchBackend,
-)
-from orxtra.dispatch._types import (
     FilterPredicate,
-    Source,
+    PgDispatchBackend,
     Subscription,
     SubscriptionAction,
 )
