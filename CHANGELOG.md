@@ -2,23 +2,27 @@
 
 # orxtra
 
-## 0.8.0
+## 0.9.0
 
-Five new sub-projects (worker, api, auth, a2a, a2ui), AG-UI protocol support, MCP SDK adoption, a capability registry unifying the MCP/CLI surfaces, and an EventSink backbone across session, scheduler, and trace.
+Data-defined tools, compose engine, event-bus dispatcher, and database provisioning CLI.
 
 <details>
 <summary>Context</summary>
 
-This release ships the interface and remote-execution layers built since 0.7.0. The
-protocol surfaces (MCP, A2A, AG-UI) are composed by the new api sub-project into a
-single ASGI app served via `orxtra serve`, backed by the new auth sub-project. The
-worker sub-project adds sandboxed remote tool execution (native and Docker). Internally,
-ad-hoc event callbacks were replaced by a typed EventSink backbone, which required
-renaming transport's Event union to TransportEvent and removing event_callback. It is
-also the first release resolving fastware from PyPI (0.2.0) instead of a machine-local
-path, unblocking installs and CI outside the author's machine.
+Six new sub-projects (auth, compose, dispatch, incoming, a2ui, agui) and major rework of existing ones. Exec/shell tool configs replaced by declarative [[tools.define]] with three execution engines (http, monty, command). Prompt composition unified under the compose engine with template-based fragment providers. Event-bus connected end-to-end with a dispatcher worker, webhook receiver, and capability-keyed HMAC auth. The db command group provides init, verify, and migrate subcommands. Schema generation adopted from pgdesign with faceted codegen output.
 
 </details>
+
+### Breaking
+
+- **Breaking.** Replace ExecToolConfig/ShellConfig with InlineToolDefinition and `[[tools.define]]` TOML parsing.
+- **Breaking.** Delete `make_exec_tool`/`make_shell_tool` constructors and `CONSULT_STRIP_TOOLS`/`FILE_MUTATION_TOOLS` name-sets. Consult stripping and mutation tracking now use tag-based logic. Agent `[[exec]]`/`[shell]` sections replaced by `[[tools.define]]` inline definitions.
+
+### Features
+
+- **New command group.** `orxtra db` with `init`, `verify`, and `migrate` (plan/apply/status) subcommands for database provisioning and migration.
+
+## 0.8.0
 
 ### Breaking
 

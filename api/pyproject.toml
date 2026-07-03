@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-api"
-version = "0.8.0"
+version = "0.9.0"
 license = "BUSL-1.1"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
 requires-python = ">=3.12"

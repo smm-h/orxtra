@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-agui"
-version = "0.8.0"
+version = "0.9.0"
 license = "BUSL-1.1"
 description = "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots."
 requires-python = ">=3.12"
