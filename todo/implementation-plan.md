@@ -7,6 +7,21 @@ Supersedes the original exploratory todos (moved to `todo/.obsolete/`).
 Status at time of writing: 0.8.0 released (`orxtra@v0.8.0`); all work below accumulates
 toward 0.9.0+.
 
+## Completion status
+
+Phases 0–7: COMPLETE (implemented and audited, July 2026).
+Post-implementation cleanup: COMPLETE (Phases 0–4 of cleanup plan).
+
+Known gaps (documented, not blocking):
+- Pre-existing test failure: autonomy_level enum mismatch in test_pg_integration (enum value "full" not in DB enum)
+- run_mypy.sh halts at trace module (pre-existing EventBus re-export issue)
+- _resolve_prompt unused-variable behavior: variables are filtered (not errored) to accommodate workflow dependency accumulation pattern
+- Lenient substitution for user-supplied task prompts may surface edge cases in future workflows
+
+Remaining phases:
+- Phase 8: strictcli bridge re-analysis (future session)
+- Phase 9: system-level hardening (future session)
+
 ## Conventions applying to every item
 
 - "Green" = affected module suites + root `tests/` pass, ruff (select=ALL) passes,

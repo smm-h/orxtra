@@ -180,6 +180,33 @@ strictcli-tool-bridge, tool-graph-advanced.
   open outcome — including whether a shared definition package is warranted at all.
   Options return to the owner for decision; naming is the owner's.
 
+## Post-implementation cleanup (July 2026)
+
+Systematic cleanup pass after Phases 0–7 implementation and audit. Five phases (0–4)
+addressing test infrastructure, type safety, API consistency, and integration gaps.
+
+Fixes landed:
+- PG fixture: pg_fixtures.py updated to apply auth schema (three-schema ordering:
+  trace, dispatch, auth) with credential_type enum and auth table round-trip test.
+- Protocols mypy: fixed mypy --strict violations in protocols module (EventBus
+  re-export, type annotations).
+- Private imports: replaced cross-module private imports with public API surfaces
+  throughout the codebase.
+- AuthStorage protocol: introduced AuthStorage protocol in protocols replacing the
+  concrete backend union in auth; auth depends on protocols only.
+- format_notepad deleted: removed dead format_notepad function from notepad; notepad
+  exposes data-only API.
+- Strict substitution: unified substitution semantics; _resolve_prompt filters unused
+  variables (accommodation for workflow dependency accumulation pattern) rather than
+  erroring on them.
+- EventBus multi-callback: added unsubscribe() to EventBus protocol; implemented on
+  both InMemoryBackend and PgBackend.
+- Serve-lifecycle auth wiring: wired --secrets-env flag through serve lifecycle to
+  auto-construct the full auth stack (KeyedMacProvider, CredentialVerifier registry,
+  Authenticator, Authorizer) from environment secrets.
+- PG auth tests: added PG round-trip tests for AuthBackend covering credential CRUD
+  and lookup operations.
+
 ## Out of scope / rejected
 
 - Gateway provider for the external consumer: rejected for this repo; the structural
