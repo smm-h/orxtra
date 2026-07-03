@@ -19,7 +19,7 @@ from pathlib import Path
 
 import asyncpg
 import strictcli
-from orxtra.services._schema import PG_UUIDV7_STUB, AsyncpgAdapter
+from orxtra.services import PG_UUIDV7_STUB, AsyncpgAdapter
 
 
 def _die(message: str) -> None:

@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from orxtra.api._lifecycle import ServerConfig, lifespan
-from orxtra.services._schema import SchemaError
+from orxtra.services import SchemaError
 
 
 async def test_lifespan_calls_verify_schema() -> None:

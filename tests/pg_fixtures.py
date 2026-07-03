@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from orxtra.services._schema import PG_UUIDV7_STUB, AsyncpgAdapter
+from orxtra.services import PG_UUIDV7_STUB, AsyncpgAdapter
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator

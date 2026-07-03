@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from orxtra.services._schema import (
+from orxtra.services import (
     PG_UUIDV7_STUB,
     AsyncpgAdapter,
     SchemaError,

@@ -8,8 +8,7 @@ from typing import Any, NoReturn
 import asyncpg
 import strictcli
 from orxtra.cli._formatters import format_output
-from orxtra.services import DispatchContext, dispatch
-from orxtra.services._schema import verify_schema
+from orxtra.services import DispatchContext, dispatch, verify_schema
 
 # -- Helpers --
 

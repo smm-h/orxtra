@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxtra.services._schema import PG_UUIDV7_STUB, AsyncpgAdapter
+from orxtra.services import PG_UUIDV7_STUB, AsyncpgAdapter
 
 from tests.pg_fixtures import skip_no_docker
 
