@@ -1322,6 +1322,9 @@ requires-dist = [
 name = "orxtra-secrets"
 version = "0.8.0"
 source = { editable = "secrets" }
+dependencies = [
+    { name = "orxtra-protocols" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -1329,6 +1332,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "orxtra-protocols", editable = "protocols" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.0" }]

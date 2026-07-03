@@ -7,14 +7,16 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
-from orxtra.auth._authenticator import Authenticator
+from orxtra.auth._authenticator import AuthAuditEvent, Authenticator
 from orxtra.auth._authorizer import Authorizer
 from orxtra.auth._backend import AuthBackend, ConsumerRecord, CredentialRecord
 from orxtra.auth._exceptions import AuthenticationError, AuthorizationError
 from orxtra.auth._inmemory import InMemoryAuthBackend
 from orxtra.auth._middleware import auth_middleware
+from orxtra.auth._verifiers import HashCredentialVerifier, HmacCredentialVerifier
 
 __all__ = [
+    "AuthAuditEvent",
     "AuthBackend",
     "AuthenticationError",
     "AuthorizationError",
@@ -22,6 +24,8 @@ __all__ = [
     "Authorizer",
     "ConsumerRecord",
     "CredentialRecord",
+    "HashCredentialVerifier",
+    "HmacCredentialVerifier",
     "InMemoryAuthBackend",
     "__version__",
     "auth_middleware",

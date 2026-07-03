@@ -1,5 +1,12 @@
 from orxtra.protocols._autonomy import AutonomyLevel
 from orxtra.protocols._types._auth import (
+    ALL_SCOPES,
+    SCOPE_EVENTS_READ,
+    SCOPE_EVENTS_WRITE,
+    SCOPE_SOURCES_MANAGE,
+    SCOPE_SUBSCRIPTIONS_MANAGE,
+    MacOutcome,
+    MacVerdict,
     Principal,
     TrustTier,
 )
@@ -113,8 +120,13 @@ from orxtra.protocols._types._tool import (
 )
 
 __all__ = [
+    "ALL_SCOPES",
     "ALWAYS_ACTIVE_CONSTRAINTS",
     "EXPENSIVE_CONSTRAINTS",
+    "SCOPE_EVENTS_READ",
+    "SCOPE_EVENTS_WRITE",
+    "SCOPE_SOURCES_MANAGE",
+    "SCOPE_SUBSCRIPTIONS_MANAGE",
     "SEVERITY_ORDER",
     "AccumulatorEntry",
     "Action",
@@ -165,6 +177,8 @@ __all__ = [
     "HealthDegraded",
     "HttpResponse",
     "InboxAnswered",
+    "MacOutcome",
+    "MacVerdict",
     "InboxRejected",
     "LogAction",
     "OnSuccessCallback",

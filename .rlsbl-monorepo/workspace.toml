@@ -41,6 +41,7 @@ releasable = "orxtra"
 [[projects]]
 path = "secrets"
 description = "Secret registry, substitution, and scrubbing"
+depends_on = ["protocols"]
 library = true
 releasable = "orxtra"
 

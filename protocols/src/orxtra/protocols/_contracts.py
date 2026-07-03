@@ -4,8 +4,10 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from uuid import UUID
 
+    from orxtra.protocols._types._auth import MacVerdict, Principal
     from orxtra.protocols._types._checks import CheckResult
     from orxtra.protocols._types._dispatch import (
         AccumulatorEntry,
@@ -219,3 +221,88 @@ class CardContributor(Protocol):
     """Contributes a fragment to an A2A Agent Card."""
 
     def card_fragment(self) -> dict[str, Any]: ...
+
+
+# ---------------------------------------------------------------------------
+# Auth protocols
+# ---------------------------------------------------------------------------
+
+
+@runtime_checkable
+class KeyedMacProvider(Protocol):
+    """Non-exportable keyed MAC verification.
+
+    Modeled on KMS: the only operation is verify(). There is no
+    get-value or resolve method -- key export is impossible by
+    construction. Multiple concurrently-valid key versions enable
+    rotation; verdicts report the matched version.
+    """
+
+    async def verify(
+        self,
+        key_ref: str,
+        message: bytes,
+        signature: str,
+        algorithm: str,
+    ) -> MacVerdict: ...
+
+
+@runtime_checkable
+class CredentialVerifier(Protocol):
+    """Per-credential-type verification strategy.
+
+    Hash verifiers (bearer/api_key) need zero secret capability.
+    HMAC verifiers are constructed with a KeyedMacProvider.
+    """
+
+    @property
+    def credential_type(self) -> str: ...
+
+    async def verify(
+        self,
+        credential_record: object,
+        presented_credential: str,
+    ) -> Principal: ...
+
+
+@runtime_checkable
+class AuthStorage(Protocol):
+    """Storage protocol for auth data, replacing the concrete backend union."""
+
+    async def create_consumer(
+        self,
+        name: str,
+        trust_tier: str,
+        scope_grants: list[str],
+    ) -> UUID: ...
+
+    async def get_consumer(
+        self,
+        consumer_id: UUID,
+    ) -> object | None: ...
+
+    async def disable_consumer(
+        self,
+        consumer_id: UUID,
+    ) -> None: ...
+
+    async def create_credential(
+        self,
+        consumer_id: UUID,
+        credential_type: str,
+        raw_value: str,
+        *,
+        secret_ref: str | None = None,
+    ) -> UUID: ...
+
+    async def get_credential_by_hash(
+        self,
+        credential_hash: str,
+    ) -> object | None: ...
+
+    async def get_credentials_by_consumer(
+        self,
+        consumer_id: UUID,
+        *,
+        credential_type: str | None = None,
+    ) -> list[object]: ...

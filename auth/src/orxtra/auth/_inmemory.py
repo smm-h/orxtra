@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import UTC, datetime
-from typing import Any
 from uuid import UUID
 
 from uuid6 import uuid7
@@ -14,7 +13,11 @@ from orxtra.auth._backend import ConsumerRecord, CredentialRecord
 
 
 class InMemoryAuthBackend:
-    """Dict-backed auth storage for tests."""
+    """Dict-backed auth storage for tests.
+
+    Pool-free: all methods operate on internal dicts directly,
+    matching the pool-free API of the PG AuthBackend.
+    """
 
     def __init__(self) -> None:
         self._consumers: dict[UUID, ConsumerRecord] = {}
@@ -22,7 +25,6 @@ class InMemoryAuthBackend:
 
     async def create_consumer(
         self,
-        pool: Any,  # noqa: ANN401
         name: str,
         trust_tier: TrustTier,
         scope_grants: list[str],
@@ -41,14 +43,12 @@ class InMemoryAuthBackend:
 
     async def get_consumer(
         self,
-        pool: Any,  # noqa: ANN401
         consumer_id: UUID,
     ) -> ConsumerRecord | None:
         return self._consumers.get(consumer_id)
 
     async def disable_consumer(
         self,
-        pool: Any,  # noqa: ANN401
         consumer_id: UUID,
     ) -> None:
         existing = self._consumers.get(consumer_id)
@@ -67,10 +67,11 @@ class InMemoryAuthBackend:
 
     async def create_credential(
         self,
-        pool: Any,  # noqa: ANN401
         consumer_id: UUID,
         credential_type: str,
         raw_value: str,
+        *,
+        secret_ref: str | None = None,
     ) -> UUID:
         credential_id = uuid7()
         credential_hash = hashlib.sha256(raw_value.encode()).hexdigest()
@@ -82,19 +83,34 @@ class InMemoryAuthBackend:
             credential_hash=credential_hash,
             algorithm="sha256",
             metadata={},
+            secret_ref=secret_ref,
             created_at=now,
         )
         return credential_id
 
     async def get_credential_by_hash(
         self,
-        pool: Any,  # noqa: ANN401
         credential_hash: str,
     ) -> CredentialRecord | None:
         for cred in self._credentials.values():
             if cred.credential_hash == credential_hash:
                 return cred
         return None
+
+    async def get_credentials_by_consumer(
+        self,
+        consumer_id: UUID,
+        *,
+        credential_type: str | None = None,
+    ) -> list[CredentialRecord]:
+        results = []
+        for cred in self._credentials.values():
+            if cred.consumer_id != consumer_id:
+                continue
+            if credential_type is not None and cred.credential_type != credential_type:
+                continue
+            results.append(cred)
+        return results
 
     # -- Expose internals for direct test manipulation --
 

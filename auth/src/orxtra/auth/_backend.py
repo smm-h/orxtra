@@ -31,23 +31,28 @@ class CredentialRecord:
     credential_hash: str
     algorithm: str
     metadata: dict[str, object]
+    secret_ref: str | None
     created_at: datetime
 
 
 class AuthBackend:
-    """asyncpg-backed auth storage."""
+    """asyncpg-backed auth storage.
+
+    The pool is stored at construction time and used internally --
+    callers never pass it per-call. This fixes the previous design
+    where middleware/Authenticator had no pool to pass.
+    """
 
     def __init__(self, pool: asyncpg.Pool) -> None:
         self._pool = pool
 
     async def create_consumer(
         self,
-        pool: asyncpg.Pool,
         name: str,
         trust_tier: TrustTier,
         scope_grants: list[str],
     ) -> UUID:
-        async with pool.acquire() as conn, conn.transaction():
+        async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "INSERT INTO consumers (name, trust_tier, scope_grants)"
                 " VALUES ($1, $2, $3)"
@@ -61,10 +66,9 @@ class AuthBackend:
 
     async def get_consumer(
         self,
-        pool: asyncpg.Pool,
         consumer_id: UUID,
     ) -> ConsumerRecord | None:
-        async with pool.acquire() as conn, conn.transaction():
+        async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "SELECT id, name, trust_tier, scope_grants,"
                 " disabled_at, created_at"
@@ -77,10 +81,9 @@ class AuthBackend:
 
     async def disable_consumer(
         self,
-        pool: asyncpg.Pool,
         consumer_id: UUID,
     ) -> None:
-        async with pool.acquire() as conn, conn.transaction():
+        async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "UPDATE consumers SET disabled_at = now()"
                 " WHERE id = $1",
@@ -89,40 +92,70 @@ class AuthBackend:
 
     async def create_credential(
         self,
-        pool: asyncpg.Pool,
         consumer_id: UUID,
         credential_type: str,
         raw_value: str,
+        *,
+        secret_ref: str | None = None,
     ) -> UUID:
         credential_hash = hashlib.sha256(raw_value.encode()).hexdigest()
-        async with pool.acquire() as conn, conn.transaction():
+        async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "INSERT INTO credentials"
-                " (consumer_id, credential_type, credential_hash)"
-                " VALUES ($1, $2, $3)"
+                " (consumer_id, credential_type, credential_hash,"
+                "  secret_ref)"
+                " VALUES ($1, $2, $3, $4)"
                 " RETURNING id",
                 consumer_id,
                 credential_type,
                 credential_hash,
+                secret_ref,
             )
         assert row is not None  # noqa: S101
         return row["id"]  # type: ignore[no-any-return]
 
     async def get_credential_by_hash(
         self,
-        pool: asyncpg.Pool,
         credential_hash: str,
     ) -> CredentialRecord | None:
-        async with pool.acquire() as conn, conn.transaction():
+        async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "SELECT id, consumer_id, credential_type,"
-                " credential_hash, algorithm, metadata, created_at"
+                " credential_hash, algorithm, metadata,"
+                " secret_ref, created_at"
                 " FROM credentials WHERE credential_hash = $1",
                 credential_hash,
             )
         if row is None:
             return None
         return _row_to_credential(row)
+
+    async def get_credentials_by_consumer(
+        self,
+        consumer_id: UUID,
+        *,
+        credential_type: str | None = None,
+    ) -> list[CredentialRecord]:
+        if credential_type is not None:
+            query = (
+                "SELECT id, consumer_id, credential_type,"
+                " credential_hash, algorithm, metadata,"
+                " secret_ref, created_at"
+                " FROM credentials"
+                " WHERE consumer_id = $1 AND credential_type = $2"
+            )
+            args: tuple[object, ...] = (consumer_id, credential_type)
+        else:
+            query = (
+                "SELECT id, consumer_id, credential_type,"
+                " credential_hash, algorithm, metadata,"
+                " secret_ref, created_at"
+                " FROM credentials WHERE consumer_id = $1"
+            )
+            args = (consumer_id,)
+        async with self._pool.acquire() as conn, conn.transaction():
+            rows = await conn.fetch(query, *args)
+        return [_row_to_credential(row) for row in rows]
 
 
 def _row_to_consumer(row: asyncpg.Record) -> ConsumerRecord:
@@ -150,5 +183,6 @@ def _row_to_credential(row: asyncpg.Record) -> CredentialRecord:
         credential_hash=row["credential_hash"],
         algorithm=row["algorithm"],
         metadata=metadata,
+        secret_ref=row["secret_ref"],
         created_at=row["created_at"],
     )

@@ -6,6 +6,12 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.secrets._factory import create_secret_registry
+from orxtra.secrets._mac_provider import EnvMacProvider
 from orxtra.secrets._registry import SecretRegistry
 
-__all__ = ["__version__", "SecretRegistry", "create_secret_registry"]
+__all__ = [
+    "EnvMacProvider",
+    "SecretRegistry",
+    "__version__",
+    "create_secret_registry",
+]

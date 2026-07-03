@@ -1,55 +1,174 @@
+"""Authenticator: thin dispatcher over a CredentialVerifier registry.
+
+Each credential type (api_key, bearer, hmac) has a registered verifier.
+The Authenticator hashes the presented credential to find the record,
+then delegates to the appropriate verifier. Unregistered credential
+types are a construction-time hard error.
+
+Every verification emits an audit event via an optional EventSink.
+"""
+
 from __future__ import annotations
 
 import hashlib
+import logging
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from orxtra.protocols import Principal, TrustTier
+from orxtra.protocols import Principal
 
 from orxtra.auth._exceptions import AuthenticationError
 
 if TYPE_CHECKING:
-    from typing import Any
+    from orxtra.protocols import EventSink
 
-    from orxtra.auth._backend import AuthBackend
+    from orxtra.auth._backend import AuthBackend, CredentialRecord
     from orxtra.auth._inmemory import InMemoryAuthBackend
+    from orxtra.auth._verifiers import HashCredentialVerifier, HmacCredentialVerifier
+
+_logger = logging.getLogger("orxtra.auth")
+
+# Union of concrete verifier types (no abstract base needed).
+type AnyVerifier = HashCredentialVerifier | HmacCredentialVerifier
+
+
+@dataclass(frozen=True)
+class AuthAuditEvent:
+    """Audit event emitted per verification attempt."""
+
+    credential_id: str
+    credential_type: str
+    consumer_id: str | None
+    outcome: str  # "success" | "failure"
+    reason: str | None
+    verified_at: datetime
 
 
 class Authenticator:
-    """Authenticates raw credentials against a backend."""
+    """Authenticates raw credentials against a backend via per-type verifiers.
 
-    def __init__(self, backend: AuthBackend | InMemoryAuthBackend) -> None:
+    Construction-time hard error if a credential type has no verifier.
+    """
+
+    def __init__(
+        self,
+        backend: AuthBackend | InMemoryAuthBackend,
+        verifiers: dict[str, AnyVerifier],
+        *,
+        audit_sink: EventSink[AuthAuditEvent] | None = None,
+    ) -> None:
         self._backend = backend
+        self._verifiers = dict(verifiers)
+        self._audit_sink = audit_sink
+
+        # Validate that all registered verifiers have matching types.
+        for cred_type, verifier in self._verifiers.items():
+            if verifier.credential_type != cred_type:
+                msg = (
+                    f"Verifier registered for {cred_type!r} reports "
+                    f"credential_type={verifier.credential_type!r}"
+                )
+                raise ValueError(msg)
 
     async def authenticate(
         self,
         raw_credential: str,
-        *,
-        pool: Any = None,  # noqa: ANN401
     ) -> Principal:
-        credential_hash = hashlib.sha256(raw_credential.encode()).hexdigest()
+        """Authenticate a raw credential string.
 
-        cred = await self._backend.get_credential_by_hash(pool, credential_hash)
+        For hash-based types (api_key, bearer), this is the raw token.
+        For HMAC, this is 'identifier:signature:message'.
+        """
+        # For HMAC credentials, we extract the identifier part to hash.
+        # For hash-based credentials, we hash the entire credential.
+        identifier = raw_credential
+        if ":" in raw_credential:
+            # Could be HMAC format -- try extracting the identifier.
+            parts = raw_credential.split(":", maxsplit=2)
+            if len(parts) == 3:  # noqa: PLR2004
+                identifier = parts[0]
+
+        credential_hash = hashlib.sha256(identifier.encode()).hexdigest()
+        cred: CredentialRecord | None = await self._backend.get_credential_by_hash(
+            credential_hash,
+        )
+
         if cred is None:
+            # Try hashing the full credential (for bearer/api_key).
+            if identifier != raw_credential:
+                full_hash = hashlib.sha256(
+                    raw_credential.encode(),
+                ).hexdigest()
+                cred = await self._backend.get_credential_by_hash(full_hash)
+
+        if cred is None:
+            await self._emit_audit(
+                credential_id="unknown",
+                credential_type="unknown",
+                consumer_id=None,
+                outcome="failure",
+                reason="No matching credential found",
+            )
             msg = "Invalid credential"
             raise AuthenticationError(msg)
 
-        consumer = await self._backend.get_consumer(pool, cred.consumer_id)
-        if consumer is None:
-            msg = "Consumer not found for credential"
+        verifier = self._verifiers.get(cred.credential_type)
+        if verifier is None:
+            await self._emit_audit(
+                credential_id=str(cred.id),
+                credential_type=cred.credential_type,
+                consumer_id=str(cred.consumer_id),
+                outcome="failure",
+                reason=f"No verifier for type {cred.credential_type!r}",
+            )
+            msg = f"No verifier registered for credential type {cred.credential_type!r}"
             raise AuthenticationError(msg)
 
-        if consumer.disabled_at is not None:
-            msg = "Consumer is disabled"
-            raise AuthenticationError(msg)
+        try:
+            principal = await verifier.verify(cred, raw_credential)
+        except AuthenticationError as exc:
+            await self._emit_audit(
+                credential_id=str(cred.id),
+                credential_type=cred.credential_type,
+                consumer_id=str(cred.consumer_id),
+                outcome="failure",
+                reason=str(exc),
+            )
+            raise
 
-        now = datetime.now(tz=UTC)
-        return Principal(
-            id=cred.id,
-            consumer_id=consumer.id,
-            scopes=frozenset(consumer.scope_grants),
-            trust_tier=TrustTier(consumer.trust_tier),
-            authenticated_via=cred.credential_type,
-            issued_at=now,
-            expires_at=None,
+        await self._emit_audit(
+            credential_id=str(cred.id),
+            credential_type=cred.credential_type,
+            consumer_id=str(cred.consumer_id),
+            outcome="success",
+            reason=None,
         )
+        return principal
+
+    async def _emit_audit(
+        self,
+        *,
+        credential_id: str,
+        credential_type: str,
+        consumer_id: str | None,
+        outcome: str,
+        reason: str | None,
+    ) -> None:
+        if self._audit_sink is None:
+            return
+        event = AuthAuditEvent(
+            credential_id=credential_id,
+            credential_type=credential_type,
+            consumer_id=consumer_id,
+            outcome=outcome,
+            reason=reason,
+            verified_at=datetime.now(tz=UTC),
+        )
+        try:
+            await self._audit_sink.on_event(event)
+        except Exception:  # noqa: BLE001
+            _logger.warning(
+                "Failed to emit auth audit event for credential %s",
+                credential_id,
+            )

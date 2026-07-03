@@ -13,7 +13,7 @@ from a2a.types.a2a_pb2 import (
 from fastware.testing import AsyncTestClient
 from orxtra.a2a._skills import SkillRegistry
 from orxtra.api._compositor import CompositorConfig, create_compositor
-from orxtra.auth import Authenticator, InMemoryAuthBackend
+from orxtra.auth import Authenticator, HashCredentialVerifier, InMemoryAuthBackend
 from orxtra.services import DispatchContext
 
 # -- Fixtures --
@@ -163,7 +163,11 @@ class TestAguiRoutes:
     ) -> None:
         """With an authenticator, unauthenticated requests get 401."""
         backend = InMemoryAuthBackend()
-        authenticator = Authenticator(backend)
+        verifiers = {
+            "api_key": HashCredentialVerifier("api_key", backend),
+            "bearer": HashCredentialVerifier("bearer", backend),
+        }
+        authenticator = Authenticator(backend, verifiers)
         config = CompositorConfig(
             dispatch_context=dispatch_context,
             agent_card=agent_card,

@@ -31,13 +31,13 @@ def auth_middleware(app: ASGIApp, authenticator: Authenticator) -> ASGIApp:
         raw_token = _extract_bearer_token(scope.get("headers", []))
 
         if raw_token is None:
-            await _send_401(send, "Missing Authorization header")
+            await _send_error(send, 401, "Missing Authorization header")
             return
 
         try:
             principal = await authenticator.authenticate(raw_token)
         except Exception:  # noqa: BLE001
-            await _send_401(send, "Invalid or expired credential")
+            await _send_error(send, 401, "Invalid or expired credential")
             return
 
         # Attach principal to scope state.
@@ -62,12 +62,12 @@ def _extract_bearer_token(headers: list[tuple[bytes, bytes]]) -> str | None:
     return None
 
 
-async def _send_401(send: Send, detail: str) -> None:
-    """Send a 401 Unauthorized JSON response."""
+async def _send_error(send: Send, status: int, detail: str) -> None:
+    """Send a JSON error response."""
     body = json.dumps({"error": detail}).encode()
     await send({
         "type": "http.response.start",
-        "status": 401,
+        "status": status,
         "headers": [
             [b"content-type", b"application/json"],
             [b"content-length", str(len(body)).encode()],
