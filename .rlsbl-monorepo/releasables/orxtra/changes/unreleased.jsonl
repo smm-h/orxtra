@@ -46,3 +46,4 @@
 {"commits":["409eeede1a03fc314c01831f2eed9b7f0ba5d109"],"user_facing":false,"packages":["cli"]}
 {"commits":["85a90bd3fa5adef12d0824fb5cb5e50a9609c5ab"],"user_facing":false,"packages":["cli"]}
 {"commits":["68408173036f625b9e55b1a82f9e3f35adafe235"],"user_facing":false,"packages":["."]}
+{"commits":["52e496b0bcb075d360c81091c4052b405d309145"],"user_facing":false,"packages":["api","auth","protocols","secrets"]}
