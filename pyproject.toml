@@ -1,6 +1,6 @@
 # orxtra -- single publishable package
 # Sub-projects remain as workspace members for development but are never published separately.
-# hatch force-include maps all 16 sub-project source dirs into the wheel.
+# A custom build hook (hatch_build.py) derives force-include at build time from workspace members.
 
 [project]
 name = "orxtra"
@@ -33,8 +33,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
+# hatch_build.py is auto-included by hatchling (DEFAULT_BUILD_SCRIPT);
+# sub-project sources are included via the hook's force_include for
+# standard builds. Only pyproject.toml needs explicit inclusion here.
 include = [
     "pyproject.toml",
+    "hatch_build.py",
     "protocols/src/",
     "secrets/src/",
     "write-safety/src/",
@@ -59,29 +63,10 @@ include = [
     "worker/src/",
 ]
 
-[tool.hatch.build.targets.wheel.force-include]
-"protocols/src/orxtra/protocols" = "orxtra/protocols"
-"secrets/src/orxtra/secrets" = "orxtra/secrets"
-"write-safety/src/orxtra/write_safety" = "orxtra/write_safety"
-"transport/src/orxtra/transport" = "orxtra/transport"
-"agent/src/orxtra/agent" = "orxtra/agent"
-"tool/src/orxtra/tool" = "orxtra/tool"
-"verify/src/orxtra/verify" = "orxtra/verify"
-"trace/src/orxtra/trace" = "orxtra/trace"
-"notepad/src/orxtra/notepad" = "orxtra/notepad"
-"session/src/orxtra/session" = "orxtra/session"
-"scheduler/src/orxtra/scheduler" = "orxtra/scheduler"
-"overseer/src/orxtra/overseer" = "orxtra/overseer"
-"services/src/orxtra/services" = "orxtra/services"
-"cli/src/orxtra/cli" = "orxtra/cli"
-"mcp/src/orxtra/mcp" = "orxtra/mcp"
-"dispatch/src/orxtra/dispatch" = "orxtra/dispatch"
-"auth/src/orxtra/auth" = "orxtra/auth"
-"a2ui/src/orxtra/a2ui" = "orxtra/a2ui"
-"a2a/src/orxtra/a2a" = "orxtra/a2a"
-"agui/src/orxtra/agui" = "orxtra/agui"
-"api/src/orxtra/api" = "orxtra/api"
-"worker/src/orxtra/worker" = "orxtra/worker"
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.hatch.build.targets.wheel.hooks.custom]
 
 [tool.uv.workspace]
 members = [
@@ -142,6 +127,31 @@ dev = [
     "mypy",
     "ruff",
     "testcontainers[postgres]",
+    # Workspace members: plain `uv sync` installs all sub-projects editable
+    # via [tool.uv.sources] workspace entries. PEP 735 dev-groups are never
+    # published in METADATA -- they only affect local/CI installs.
+    "orxtra-protocols",
+    "orxtra-secrets",
+    "orxtra-write-safety",
+    "orxtra-transport",
+    "orxtra-agent",
+    "orxtra-tool",
+    "orxtra-verify",
+    "orxtra-trace",
+    "orxtra-notepad",
+    "orxtra-session",
+    "orxtra-scheduler",
+    "orxtra-overseer",
+    "orxtra-services",
+    "orxtra-cli",
+    "orxtra-mcp",
+    "orxtra-dispatch",
+    "orxtra-auth",
+    "orxtra-a2ui",
+    "orxtra-a2a",
+    "orxtra-agui",
+    "orxtra-api",
+    "orxtra-worker",
 ]
 
 [tool.ruff]
@@ -176,6 +186,9 @@ ignore = [
 "**/_events.py" = ["TC003"]  # dataclass field annotations need runtime imports
 "**/_tool.py" = ["UP046"]  # ToolOutput uses Generic[T] (matches original code)
 "**/_writer.py" = ["PLR0913"]  # DB write methods have many columns
+"hatch_build.py" = [
+    "INP001",  # build hook is a standalone script, not a package
+]
 "scripts/**" = [
     "S603",    # subprocess calls are expected in scripts
     "INP001",  # scripts are implicit namespace packages
