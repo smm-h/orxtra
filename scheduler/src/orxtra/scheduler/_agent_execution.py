@@ -959,7 +959,7 @@ class AgentExecutionMixin(SchedulerBase):
                     s.update_tools(tools)
 
             lt = make_load_tools_tool(
-                allowed_names=full_resolved,
+                allowed_names=frozenset(full_resolved),
                 build_tool=_build_and_wrap,
                 get_session_tools=_get_tools,
                 set_session_tools=_set_tools,
