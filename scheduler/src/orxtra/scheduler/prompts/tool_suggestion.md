@@ -1,0 +1,1 @@
+Related tools available: {tool_names}. Use load_tools to load any that are not yet active.

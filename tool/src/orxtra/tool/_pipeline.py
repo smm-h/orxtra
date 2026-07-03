@@ -26,6 +26,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
     is_start_task: bool = False,
     is_file_mutation: bool = False,
     mutation_tracker: dict[str, set[str]] | None = None,
+    result_appendix: Callable[[str], str | None] | None = None,
 ) -> Tool:
     """Return a new Tool with the same schema but a wrapped execute that runs
     the full pipeline: active-task check, secret substitution, execution,
@@ -72,7 +73,16 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
         if trace_callback is not None:
             await trace_callback(tool.name, args, result.text, duration_ms)
 
-        # 7. Return result.
+        # 7. Result appendix (advisory suggestions from tool graph).
+        if result_appendix is not None:
+            appendix = result_appendix(tool.name)
+            if appendix:
+                result = ToolOutput(
+                    data=result.data,
+                    text=result.text + "\n\n" + appendix,
+                )
+
+        # 8. Return result.
         return result
 
     wrapped_execute._raw_execute = getattr(tool.execute, "_raw_execute", tool.execute)  # type: ignore[attr-defined]  # noqa: SLF001  # accessing orxtra internal API
@@ -96,6 +106,7 @@ def wrap_tools_for_session(  # noqa: PLR0913
     trace_callback: Callable[..., Any] | None,
     session_id: str,
     mutation_tracker: dict[str, set[str]] | None = None,
+    result_appendix: Callable[[str], str | None] | None = None,
 ) -> list[Tool]:
     """Wrap all tools in the list with the execution pipeline."""
     return [
@@ -108,6 +119,7 @@ def wrap_tools_for_session(  # noqa: PLR0913
             is_start_task=(tool.name == "start_task"),
             is_file_mutation=(_MUTATION_TAG in tool.tags),
             mutation_tracker=mutation_tracker,
+            result_appendix=result_appendix,
         )
         for tool in tools
     ]

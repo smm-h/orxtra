@@ -11,6 +11,7 @@ import pytest
 import uuid6
 from orxtra.protocols import Tool
 from orxtra.scheduler._tool_registry import (
+    Edge,
     ToolDeps,
     ToolEntry,
     ToolRegistry,
@@ -238,3 +239,176 @@ class TestBuiltinRegistry:
         registry = create_builtin_registry()
         # 6 read + 8 write + notepad + http = 16
         assert len(registry) == 16
+
+
+# ---------------------------------------------------------------
+# Edge model
+# ---------------------------------------------------------------
+
+
+class TestEdgeModel:
+    """Advisory edge storage and retrieval."""
+
+    def test_add_edge(self) -> None:
+        registry = ToolRegistry()
+        registry.register(ToolEntry(
+            name="a",
+            namespace="test",
+            tags=frozenset(),
+            factory=lambda deps: _make_dummy_tool("a"),
+        ))
+        registry.register(ToolEntry(
+            name="b",
+            namespace="test",
+            tags=frozenset(),
+            factory=lambda deps: _make_dummy_tool("b"),
+        ))
+        registry.add_edge("a", "b", "follows")
+        edges = registry.edges_from("a")
+        assert len(edges) == 1
+        assert edges[0].source_tool == "a"
+        assert edges[0].target_tool == "b"
+        assert edges[0].edge_type == "follows"
+        assert edges[0].advisory is True
+
+    def test_edges_from(self) -> None:
+        registry = ToolRegistry()
+        for name in ("a", "b", "c"):
+            registry.register(ToolEntry(
+                name=name,
+                namespace="test",
+                tags=frozenset(),
+                factory=lambda deps, n=name: _make_dummy_tool(n),
+            ))
+        registry.add_edge("a", "b", "follows")
+        registry.add_edge("a", "c", "related_to")
+        edges = registry.edges_from("a")
+        assert len(edges) == 2
+        targets = {e.target_tool for e in edges}
+        assert targets == {"b", "c"}
+
+    def test_edges_from_empty(self) -> None:
+        registry = ToolRegistry()
+        registry.register(ToolEntry(
+            name="a",
+            namespace="test",
+            tags=frozenset(),
+            factory=lambda deps: _make_dummy_tool("a"),
+        ))
+        assert registry.edges_from("a") == []
+        assert registry.edges_from("nonexistent") == []
+
+    def test_edges_to(self) -> None:
+        registry = ToolRegistry()
+        for name in ("a", "b", "c"):
+            registry.register(ToolEntry(
+                name=name,
+                namespace="test",
+                tags=frozenset(),
+                factory=lambda deps, n=name: _make_dummy_tool(n),
+            ))
+        registry.add_edge("a", "c", "follows")
+        registry.add_edge("b", "c", "related_to")
+        edges = registry.edges_to("c")
+        assert len(edges) == 2
+        sources = {e.source_tool for e in edges}
+        assert sources == {"a", "b"}
+
+    def test_edges_to_empty(self) -> None:
+        registry = ToolRegistry()
+        assert registry.edges_to("nonexistent") == []
+
+    def test_edges_by_type(self) -> None:
+        registry = ToolRegistry()
+        for name in ("a", "b", "c"):
+            registry.register(ToolEntry(
+                name=name,
+                namespace="test",
+                tags=frozenset(),
+                factory=lambda deps, n=name: _make_dummy_tool(n),
+            ))
+        registry.add_edge("a", "b", "follows")
+        registry.add_edge("a", "c", "follows")
+        registry.add_edge("b", "c", "related_to")
+        follows = registry.edges_by_type("follows")
+        assert len(follows) == 2
+        related = registry.edges_by_type("related_to")
+        assert len(related) == 1
+
+    def test_edges_by_type_empty(self) -> None:
+        registry = ToolRegistry()
+        assert registry.edges_by_type("nonexistent") == []
+
+    def test_duplicate_edge_ignored(self) -> None:
+        registry = ToolRegistry()
+        for name in ("a", "b"):
+            registry.register(ToolEntry(
+                name=name,
+                namespace="test",
+                tags=frozenset(),
+                factory=lambda deps, n=name: _make_dummy_tool(n),
+            ))
+        registry.add_edge("a", "b", "follows")
+        registry.add_edge("a", "b", "follows")
+        assert len(registry.edges_from("a")) == 1
+
+    def test_same_pair_different_types(self) -> None:
+        """Same source-target pair with different edge types
+        are stored independently."""
+        registry = ToolRegistry()
+        for name in ("a", "b"):
+            registry.register(ToolEntry(
+                name=name,
+                namespace="test",
+                tags=frozenset(),
+                factory=lambda deps, n=name: _make_dummy_tool(n),
+            ))
+        registry.add_edge("a", "b", "follows")
+        registry.add_edge("a", "b", "related_to")
+        edges = registry.edges_from("a")
+        assert len(edges) == 2
+        types = {e.edge_type for e in edges}
+        assert types == {"follows", "related_to"}
+
+    def test_edge_frozen(self) -> None:
+        edge = Edge(
+            source_tool="a",
+            target_tool="b",
+            edge_type="follows",
+        )
+        with pytest.raises(AttributeError):
+            edge.source_tool = "c"  # type: ignore[misc]
+
+
+class TestBuiltinEdges:
+    """Builtin registry is seeded with advisory edges."""
+
+    def test_read_follows_edit(self) -> None:
+        registry = create_builtin_registry()
+        edges = registry.edges_from("read")
+        targets = {e.target_tool for e in edges}
+        assert "edit" in targets
+
+    def test_grep_follows_read(self) -> None:
+        registry = create_builtin_registry()
+        edges = registry.edges_from("grep")
+        targets = {e.target_tool for e in edges}
+        assert "read" in targets
+
+    def test_write_related_to_read(self) -> None:
+        registry = create_builtin_registry()
+        edges = registry.edges_from("write")
+        targets = {e.target_tool for e in edges}
+        assert "read" in targets
+        # Verify edge type.
+        related = [
+            e for e in registry.edges_from("write")
+            if e.target_tool == "read"
+        ]
+        assert related[0].edge_type == "related_to"
+
+    def test_all_edges_advisory(self) -> None:
+        registry = create_builtin_registry()
+        for tool_name in registry.get_metadata():
+            for edge in registry.edges_from(tool_name):
+                assert edge.advisory is True

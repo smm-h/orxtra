@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -51,6 +52,20 @@ class ToolEntry:
     deferred: bool = False
 
 
+@dataclass(frozen=True)
+class Edge:
+    """Advisory edge between two tools in the tool graph.
+
+    Edges are purely advisory -- they inform suggestions but
+    never enforce ordering or auto-loading.
+    """
+
+    source_tool: str
+    target_tool: str
+    edge_type: str  # e.g. "follows", "related_to"
+    advisory: bool = True  # always True; field exists for explicitness
+
+
 class ToolRegistry:
     """Registry of tool entries for data-driven tool construction.
 
@@ -62,6 +77,10 @@ class ToolRegistry:
 
     def __init__(self) -> None:
         self._entries: dict[str, ToolEntry] = {}
+        self._edges: list[Edge] = []
+        self._edges_from: dict[str, list[Edge]] = defaultdict(list)
+        self._edges_to: dict[str, list[Edge]] = defaultdict(list)
+        self._edges_by_type: dict[str, list[Edge]] = defaultdict(list)
 
     def register(self, entry: ToolEntry) -> None:
         """Register a tool entry.
@@ -114,6 +133,43 @@ class ToolRegistry:
     def get_entry(self, name: str) -> ToolEntry | None:
         """Return the ToolEntry for a given name, or None."""
         return self._entries.get(name)
+
+    def add_edge(
+        self,
+        source: str,
+        target: str,
+        edge_type: str,
+    ) -> None:
+        """Register an advisory edge between two tools.
+
+        Both source and target must be registered tool names
+        (or synthetic entries). Duplicate edges are silently
+        ignored.
+        """
+        edge = Edge(
+            source_tool=source,
+            target_tool=target,
+            edge_type=edge_type,
+        )
+        # Deduplicate: same (source, target, type) only once.
+        if edge in self._edges:
+            return
+        self._edges.append(edge)
+        self._edges_from[source].append(edge)
+        self._edges_to[target].append(edge)
+        self._edges_by_type[edge_type].append(edge)
+
+    def edges_from(self, tool_name: str) -> list[Edge]:
+        """Return all edges originating from a tool."""
+        return list(self._edges_from.get(tool_name, []))
+
+    def edges_to(self, tool_name: str) -> list[Edge]:
+        """Return all edges pointing to a tool."""
+        return list(self._edges_to.get(tool_name, []))
+
+    def edges_by_type(self, edge_type: str) -> list[Edge]:
+        """Return all edges of a given type."""
+        return list(self._edges_by_type.get(edge_type, []))
 
     def build_tools(
         self,
@@ -399,6 +455,36 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     return entries
 
 
+def _seed_builtin_edges(registry: ToolRegistry) -> None:
+    """Seed the registry with advisory edges for obvious relationships.
+
+    These are a small starter set. Edges are purely advisory --
+    they drive result-appendix suggestions, never enforcement.
+    """
+    # "follows" edges: tool A's output is a natural input to tool B.
+    _follows = [
+        ("read", "edit"),
+        ("read", "grep"),
+        ("grep", "read"),
+        ("glob", "read"),
+        ("list_dir", "read"),
+        ("diff", "edit"),
+        ("stat", "read"),
+    ]
+    for source, target in _follows:
+        registry.add_edge(source, target, "follows")
+
+    # "related_to" edges: tools that are conceptually related.
+    _related = [
+        ("write", "read"),
+        ("edit", "read"),
+        ("move", "read"),
+        ("copy", "read"),
+    ]
+    for source, target in _related:
+        registry.add_edge(source, target, "related_to")
+
+
 def create_builtin_registry() -> ToolRegistry:
     """Create a ToolRegistry populated with all built-in tools.
 
@@ -412,6 +498,7 @@ def create_builtin_registry() -> ToolRegistry:
     registry = ToolRegistry()
     for entry in _make_builtin_entries():
         registry.register(entry)
+    _seed_builtin_edges(registry)
     return registry
 
 
