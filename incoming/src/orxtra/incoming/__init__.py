@@ -6,8 +6,12 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 from orxtra.incoming._receiver import create_incoming_router
+from orxtra.incoming._replay import replay_handler
+from orxtra.incoming._stream import stream_handler
 
 __all__ = [
     "__version__",
     "create_incoming_router",
+    "replay_handler",
+    "stream_handler",
 ]

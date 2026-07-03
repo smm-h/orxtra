@@ -448,6 +448,24 @@ async def read_workflow_status(
     return _record_to_dict(row)
 
 
+async def read_event(
+    pool: asyncpg.Pool,
+    event_id: UUID,
+) -> dict[str, Any] | None:
+    """Read a single event by its ID.
+
+    Returns the event as a dict, or None if not found.
+    """
+    row: asyncpg.Record | None = await pool.fetchrow(
+        "SELECT id, run_id, task_id, event_type, source, data, created_at"
+        " FROM events WHERE id = $1",
+        event_id,
+    )
+    if row is None:
+        return None
+    return _record_to_dict(row)
+
+
 async def replay(
     pool: asyncpg.Pool,
     *,

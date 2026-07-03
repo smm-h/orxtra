@@ -1,8 +1,8 @@
-"""Webhook receiver: POST /events/{slug} on a fastware Router.
+"""Webhook receiver, replay endpoint, and SSE stream on a fastware Router.
 
-Slug lookup, hard 403 on NULL credential, raw-body verification via
-the auth system, per-source mapping config, idempotency-key extraction,
-body-size cap, 202 Accepted on success.
+POST /events/{slug} -- webhook receiver (slug lookup, auth, mapping, 202).
+GET /events/{slug}/replay -- cursor-based event replay.
+GET /events/{slug}/stream -- SSE stream with hand-built catch-up.
 """
 
 from __future__ import annotations
@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING, Any
 from fastware import JSONResponse, Router, TextResponse
 
 from orxtra.auth import AuthenticationError
+from orxtra.incoming._replay import replay_handler
+from orxtra.incoming._stream import stream_handler
 from orxtra.services import fire_event
 
 if TYPE_CHECKING:
@@ -22,7 +24,7 @@ if TYPE_CHECKING:
     import asyncpg
 
     from orxtra.auth import Authenticator
-    from orxtra.protocols import DispatchBackend, Source
+    from orxtra.protocols import DispatchBackend, EventBus, Source
 
 log = logging.getLogger(__name__)
 
@@ -36,17 +38,20 @@ def create_incoming_router(
     dispatch_backend: DispatchBackend,
     authenticator: Authenticator,
     max_body_bytes: int = DEFAULT_MAX_BODY_BYTES,
+    event_bus: EventBus | None = None,
 ) -> Router:
-    """Create a Router with the webhook receiver route.
+    """Create a Router with webhook, replay, and SSE stream routes.
 
     Args:
-        pool: asyncpg pool for fire_event.
+        pool: asyncpg pool for fire_event and trace queries.
         dispatch_backend: For source lookup by slug.
         authenticator: For credential verification (verify_by_credential_id).
         max_body_bytes: Maximum allowed request body size in bytes.
+        event_bus: EventBus for SSE streaming (LISTEN/NOTIFY). When None,
+            the SSE stream endpoint is not registered.
 
     Returns:
-        A fastware Router with ``POST /events/{slug}`` registered.
+        A fastware Router with the incoming routes registered.
     """
     router = Router()
 
@@ -131,6 +136,34 @@ def create_incoming_router(
         )
 
     router.add_route("POST", "/events/{slug}", webhook_handler)
+
+    # -- Replay endpoint --
+
+    async def _replay_handler(request: Any) -> JSONResponse | TextResponse:  # noqa: ANN401
+        return await replay_handler(
+            request,
+            pool=pool,
+            dispatch_backend=dispatch_backend,
+            authenticator=authenticator,
+        )
+
+    router.add_route("GET", "/events/{slug}/replay", _replay_handler)
+
+    # -- SSE stream endpoint (requires event_bus) --
+
+    if event_bus is not None:
+        async def _stream_handler(  # noqa: E303
+            request: Any,  # noqa: ANN401
+        ) -> Any:  # noqa: ANN401
+            return await stream_handler(
+                request,
+                pool=pool,
+                dispatch_backend=dispatch_backend,
+                authenticator=authenticator,
+                event_bus=event_bus,
+            )
+
+        router.add_route("GET", "/events/{slug}/stream", _stream_handler)
 
     return router
 
