@@ -75,6 +75,9 @@ async def event_stream(
 
     await bus.subscribe(channel, _on_event)
 
-    while True:
-        event = await queue.get()
-        yield event
+    try:
+        while True:
+            event = await queue.get()
+            yield event
+    finally:
+        await bus.unsubscribe(channel, _on_event)

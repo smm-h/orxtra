@@ -1026,8 +1026,22 @@ class InMemoryEventBus:
     ) -> None:
         self._subscribers.setdefault(channel, []).append(callback)
 
+    async def unsubscribe(
+        self, channel: str, callback: Callable[[str], Awaitable[None]],
+    ) -> None:
+        """Remove a specific callback from a channel by identity."""
+        cbs = self._subscribers.get(channel)
+        if cbs is None:
+            return
+        try:
+            cbs.remove(callback)
+        except ValueError:
+            pass
+        if not cbs:
+            del self._subscribers[channel]
+
     async def publish(self, channel: str, payload: str) -> None:
-        for callback in self._subscribers.get(channel, []):
+        for callback in list(self._subscribers.get(channel, [])):
             await callback(payload)
 
 

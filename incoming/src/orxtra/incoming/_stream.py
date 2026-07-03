@@ -219,3 +219,5 @@ async def _sse_generator(
 
     except asyncio.CancelledError:
         return
+    finally:
+        await event_bus.unsubscribe(EVENTS_CHANNEL, _on_notify)

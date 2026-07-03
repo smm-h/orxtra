@@ -466,3 +466,64 @@ class TestEventStream:
 
         assert len(received) == 1
         assert received[0]["data"] == {"match": True}
+
+
+class TestEventStreamCleanup:
+    """event_stream unsubscribes from the bus when the consumer stops."""
+
+    @pytest.mark.asyncio
+    async def test_cleanup_on_break(self) -> None:
+        """Breaking out of event_stream and closing triggers unsubscribe."""
+        bus = InMemoryEventBus()
+
+        async def _collect() -> None:
+            gen = event_stream(bus)
+            async for _ev in gen:
+                break
+            # Explicitly close to trigger finally.
+            await gen.aclose()
+
+        task = asyncio.create_task(_collect())
+        await asyncio.sleep(0)
+
+        # Publish one event so the break happens.
+        await bus.publish(EVENTS_CHANNEL, json.dumps({"event_type": "x"}))
+        await asyncio.sleep(0)
+
+        await asyncio.wait_for(task, timeout=1.0)
+
+        # After the generator finishes, the bus should have no subscribers.
+        subs = bus._subscribers.get(EVENTS_CHANNEL, [])
+        assert len(subs) == 0
+
+    @pytest.mark.asyncio
+    async def test_cleanup_on_cancellation(self) -> None:
+        """Cancelling the consumer task triggers unsubscribe via finally."""
+        bus = InMemoryEventBus()
+
+        async def _collect() -> None:
+            gen = event_stream(bus)
+            try:
+                async for _ev in gen:
+                    pass
+            except asyncio.CancelledError:
+                # Explicitly close to trigger finally.
+                await gen.aclose()
+                raise
+
+        task = asyncio.create_task(_collect())
+        await asyncio.sleep(0)
+
+        # Verify subscription exists.
+        assert EVENTS_CHANNEL in bus._subscribers
+        assert len(bus._subscribers[EVENTS_CHANNEL]) == 1
+
+        # Cancel.
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+        subs = bus._subscribers.get(EVENTS_CHANNEL, [])
+        assert len(subs) == 0

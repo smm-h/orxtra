@@ -850,6 +850,105 @@ class TestInMemoryEventBus:
         bus = InMemoryEventBus()
         assert isinstance(bus, EventBus)
 
+    @pytest.mark.asyncio
+    async def test_unsubscribe_removes_only_target(
+        self, event_bus: InMemoryEventBus,
+    ) -> None:
+        """Unsubscribing one callback leaves the other receiving events."""
+        received1: list[str] = []
+        received2: list[str] = []
+
+        async def handler1(payload: str) -> None:
+            received1.append(payload)
+
+        async def handler2(payload: str) -> None:
+            received2.append(payload)
+
+        await event_bus.subscribe("ch", handler1)
+        await event_bus.subscribe("ch", handler2)
+
+        # Both receive the first event.
+        await event_bus.publish("ch", "first")
+        assert received1 == ["first"]
+        assert received2 == ["first"]
+
+        # Remove handler1.
+        await event_bus.unsubscribe("ch", handler1)
+        await event_bus.publish("ch", "second")
+
+        # Only handler2 should get the second event.
+        assert received1 == ["first"]
+        assert received2 == ["first", "second"]
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_nonexistent_channel_is_noop(
+        self, event_bus: InMemoryEventBus,
+    ) -> None:
+        """Unsubscribing from a channel that was never subscribed is safe."""
+
+        async def handler(payload: str) -> None:
+            pass
+
+        # Should not raise.
+        await event_bus.unsubscribe("nonexistent", handler)
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_nonexistent_callback_is_noop(
+        self, event_bus: InMemoryEventBus,
+    ) -> None:
+        """Unsubscribing a callback that was never registered is safe."""
+        received: list[str] = []
+
+        async def registered(payload: str) -> None:
+            received.append(payload)
+
+        async def unregistered(payload: str) -> None:
+            pass
+
+        await event_bus.subscribe("ch", registered)
+        await event_bus.unsubscribe("ch", unregistered)
+
+        await event_bus.publish("ch", "msg")
+        assert received == ["msg"]
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_all_cleans_up_channel(
+        self, event_bus: InMemoryEventBus,
+    ) -> None:
+        """After all callbacks are removed, the channel entry is cleaned up."""
+
+        async def handler(payload: str) -> None:
+            pass
+
+        await event_bus.subscribe("ch", handler)
+        assert "ch" in event_bus._subscribers
+
+        await event_bus.unsubscribe("ch", handler)
+        assert "ch" not in event_bus._subscribers
+
+    @pytest.mark.asyncio
+    async def test_concurrent_subscribers_both_receive(
+        self, event_bus: InMemoryEventBus,
+    ) -> None:
+        """Two concurrent subscribers on the same channel both receive events."""
+        received_a: list[str] = []
+        received_b: list[str] = []
+
+        async def handler_a(payload: str) -> None:
+            received_a.append(payload)
+
+        async def handler_b(payload: str) -> None:
+            received_b.append(payload)
+
+        await event_bus.subscribe("events", handler_a)
+        await event_bus.subscribe("events", handler_b)
+
+        await event_bus.publish("events", "evt1")
+        await event_bus.publish("events", "evt2")
+
+        assert received_a == ["evt1", "evt2"]
+        assert received_b == ["evt1", "evt2"]
+
 
 # ── Event callback ──
 

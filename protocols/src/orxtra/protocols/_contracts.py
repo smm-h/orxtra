@@ -210,6 +210,10 @@ class EventBus(Protocol):
         self, channel: str, callback: Callable[[str], Awaitable[None]],
     ) -> None: ...
 
+    async def unsubscribe(
+        self, channel: str, callback: Callable[[str], Awaitable[None]],
+    ) -> None: ...
+
     async def publish(self, channel: str, payload: str) -> None: ...
 
 

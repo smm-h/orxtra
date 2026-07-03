@@ -965,3 +965,98 @@ class TestSSEGeneratorHeartbeat:
         assert len(heartbeats) >= 1
         for hb in heartbeats:
             assert hb == ": heartbeat\n\n"
+
+
+class TestSSEGeneratorCleanup:
+    """SSE generator unsubscribes from the event bus on disconnect."""
+
+    async def test_cleanup_on_cancellation(
+        self,
+        event_bus: InMemoryEventBus,
+    ) -> None:
+        """When the generator is cancelled (client disconnect), the
+        callback is unsubscribed from the event bus."""
+        mock_pool = AsyncMock()
+
+        with (
+            patch(_REPLAY, new_callable=AsyncMock, return_value=[]),
+            patch(_READ_EVENT, new_callable=AsyncMock),
+        ):
+            gen = _sse_generator(
+                pool=mock_pool,
+                event_bus=event_bus,
+                slug=SLUG,
+                last_event_id=None,
+            )
+
+            # Start consuming so the generator subscribes.
+            async def consume() -> None:
+                async for _ in gen:
+                    pass  # Will be cancelled
+
+            task = asyncio.create_task(consume())
+            await asyncio.sleep(0.01)
+
+            # Verify the callback is subscribed.
+            assert EVENTS_CHANNEL in event_bus._subscribers
+            assert len(event_bus._subscribers[EVENTS_CHANNEL]) == 1
+
+            # Cancel the task (simulating client disconnect).
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+            # After cleanup, no subscribers should remain.
+            subs = event_bus._subscribers.get(EVENTS_CHANNEL, [])
+            assert len(subs) == 0
+
+    async def test_cleanup_on_break(
+        self,
+        event_bus: InMemoryEventBus,
+    ) -> None:
+        """When the generator consumer breaks, the callback is cleaned up."""
+        event_id = uuid6.uuid7()
+        full_event = _make_event(event_id)
+        mock_pool = AsyncMock()
+
+        async def mock_read_event(
+            pool: Any, eid: UUID,  # noqa: ANN401
+        ) -> dict[str, Any] | None:
+            if eid == event_id:
+                return full_event
+            return None
+
+        with (
+            patch(_REPLAY, new_callable=AsyncMock, return_value=[]),
+            patch(_READ_EVENT, side_effect=mock_read_event),
+        ):
+            gen = _sse_generator(
+                pool=mock_pool,
+                event_bus=event_bus,
+                slug=SLUG,
+                last_event_id=None,
+            )
+
+            # Consume one event then break.
+            async def consume_one() -> None:
+                async for _ in gen:
+                    break
+                # Explicitly close the generator to trigger finally.
+                await gen.aclose()
+
+            task = asyncio.create_task(consume_one())
+            await asyncio.sleep(0.01)
+
+            payload = json.dumps({
+                "event_id": str(event_id),
+                "source": SLUG,
+                "event_type": "test.event",
+            })
+            await event_bus.publish(EVENTS_CHANNEL, payload)
+
+            await task
+
+        subs = event_bus._subscribers.get(EVENTS_CHANNEL, [])
+        assert len(subs) == 0

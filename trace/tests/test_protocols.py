@@ -255,7 +255,7 @@ class TestProtocolMethodCounts:
 
     def test_event_bus_count(self) -> None:
         methods = _get_protocol_method_names(EventBus)
-        assert len(methods) == 2, f"EventBus methods: {sorted(methods)}"
+        assert len(methods) == 3, f"EventBus methods: {sorted(methods)}"
 
     def test_total_storage_backend_count(self) -> None:
         """StorageBackend combines all sub-protocols."""
