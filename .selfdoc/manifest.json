@@ -2,8 +2,8 @@
   "schema_version": 1,
   "name": "orxtra",
   "slug": "orxtra",
-  "version": "0.1.0",
-  "description": null,
+  "version": "0.7.0",
+  "description": "",
   "language": "python",
   "base_url": "https://orxtra.smmh.dev",
   "pages": [
@@ -33,6 +33,11 @@
       "type": "doc"
     },
     {
+      "path": "cli-serve.md",
+      "title": "orxtra serve",
+      "type": "doc"
+    },
+    {
       "path": "cli-trace.md",
       "title": "orxtra trace",
       "type": "doc"
@@ -40,6 +45,11 @@
     {
       "path": "cli-validate.md",
       "title": "orxtra validate",
+      "type": "doc"
+    },
+    {
+      "path": "cli-worker.md",
+      "title": "orxtra worker",
       "type": "doc"
     },
     {
@@ -54,5 +64,5 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-06-29T15:58:06.420535+00:00"
+  "last_gen": "2026-07-03T12:38:28.079798+00:00"
 }

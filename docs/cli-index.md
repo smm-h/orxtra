@@ -12,7 +12,11 @@ order: 91
 
 Autonomous multi-agent AI workflows.
 
-Version: 0.1.0
+Version: 0.7.0
+
+## Commands
+
+- [serve](cli-serve.html) -- Start the HTTP API server.
 
 ## Command Groups
 
@@ -22,3 +26,4 @@ Version: 0.1.0
 - [event](cli-event.html) -- Event firing commands.
 - [validate](cli-validate.html) -- Validate configuration files.
 - [config](cli-config.html) -- Configuration commands.
+- [worker](cli-worker.html) -- Worker process commands.

@@ -57,7 +57,7 @@ Subscriptions with typed filter predicates, per-subscription action chains, accu
 <details>
 <summary><b>Each module works standalone.</b></summary>
 
-Use just the LLM client. Or just the task scheduler. Or just the event system. Or the full stack. 16 modules across five layers, strict dependency direction, no circular imports.
+Use just the LLM client. Or just the task scheduler. Or just the event system. Or the full stack. 22 modules across five layers, strict dependency direction, no circular imports.
 </details>
 
 ## Modules

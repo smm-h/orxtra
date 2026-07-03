@@ -6,12 +6,12 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation. Monorepo with 16 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
+Active implementation. Monorepo with 22 sub-projects across five layers, implemented across 110+ source modules and 150+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
 Current version: 0.7.0.
 
 ## Philosophy
 
-Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 16.
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 22.
 
 ### Structured Programming for AI Workflows
 
@@ -36,7 +36,6 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── .gitignore
 ├── .rlsbl-monorepo/
 ├── .ruff_cache/
-├── .safegit/
 ├── .selfdoc/
 ├── .strictcli/
 ├── .venv/
@@ -44,8 +43,15 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── CLAUDE.md
 ├── LICENSE
 ├── README.md
+├── a2a/
+├── a2ui/
 ├── agent/
+├── agui/
+├── api/
+├── auth/
 ├── cli/
+├── conftest.py
+├── dev-sources.toml.local-only
 ├── dispatch/
 ├── docs/
 ├── examples/
@@ -70,6 +76,7 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── transport/
 ├── uv.lock
 ├── verify/
+├── worker/
 └── write-safety/
 ```
 
