@@ -162,10 +162,10 @@ BEGIN
     EXECUTE 'CREATE TYPE public.trust_tier AS ENUM (''anonymous'', ''identified'', ''verified'', ''system'');';
   END IF;
 END $$;""", "trust_tier"),
-            DDLOp("CREATE TYPE public.credential_type AS ENUM ('api_key', 'bearer');", """DO $$
+            DDLOp("CREATE TYPE public.credential_type AS ENUM ('api_key', 'bearer', 'hmac');", """DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE t.typname = 'credential_type' AND n.nspname = 'public' AND t.typtype = 'e') THEN
-    EXECUTE 'CREATE TYPE public.credential_type AS ENUM (''api_key'', ''bearer'');';
+    EXECUTE 'CREATE TYPE public.credential_type AS ENUM (''api_key'', ''bearer'', ''hmac'');';
   END IF;
 END $$;""", "credential_type"),
         ],
@@ -212,6 +212,7 @@ END $$;""", "credential_type"),
     slug text NOT NULL,
     name text NOT NULL,
     credential_id uuid,
+    config jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_sources PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.sources (
@@ -219,6 +220,7 @@ END $$;""", "credential_type"),
     slug text NOT NULL,
     name text NOT NULL,
     credential_id uuid,
+    config jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_sources PRIMARY KEY (id)
 );""", "sources"),
@@ -444,6 +446,7 @@ END $$;""", "credential_type"),
     credential_hash text NOT NULL,
     algorithm text NOT NULL DEFAULT 'sha256',
     metadata jsonb NOT NULL DEFAULT '{}',
+    secret_ref text,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_credentials PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.credentials (
@@ -453,6 +456,7 @@ END $$;""", "credential_type"),
     credential_hash text NOT NULL,
     algorithm text NOT NULL DEFAULT 'sha256',
     metadata jsonb NOT NULL DEFAULT '{}',
+    secret_ref text,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_credentials PRIMARY KEY (id)
 );""", "credentials"),
@@ -527,6 +531,7 @@ END $$;""", "credential_type"),
     source text NOT NULL DEFAULT 'internal',
     event_type text NOT NULL,
     data jsonb NOT NULL DEFAULT '{}',
+    idempotency_key text,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_events PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.events (
@@ -536,6 +541,7 @@ END $$;""", "credential_type"),
     source text NOT NULL DEFAULT 'internal',
     event_type text NOT NULL,
     data jsonb NOT NULL DEFAULT '{}',
+    idempotency_key text,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_events PRIMARY KEY (id)
 );""", "events"),
@@ -603,6 +609,19 @@ END $$;""", "credential_type"),
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_context_diffs PRIMARY KEY (id)
 );""", "context_diffs"),
+            DDLOp("""CREATE TABLE public.dispatch_cursor (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    cursor_name text NOT NULL DEFAULT 'main',
+    last_processed_event_id uuid NOT NULL,
+    last_processed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_cursor PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.dispatch_cursor (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    cursor_name text NOT NULL DEFAULT 'main',
+    last_processed_event_id uuid NOT NULL,
+    last_processed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_cursor PRIMARY KEY (id)
+);""", "dispatch_cursor"),
             DDLOp("""CREATE TABLE public.accumulator_buffer (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     subscription_action_id uuid NOT NULL,
@@ -616,6 +635,21 @@ END $$;""", "credential_type"),
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_accumulator_buffer PRIMARY KEY (id)
 );""", "accumulator_buffer"),
+            DDLOp("""CREATE TABLE public.dispatch_completions (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    event_id uuid NOT NULL,
+    subscription_action_id uuid NOT NULL,
+    result_status text NOT NULL,
+    completed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_completions PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.dispatch_completions (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    event_id uuid NOT NULL,
+    subscription_action_id uuid NOT NULL,
+    result_status text NOT NULL,
+    completed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_completions PRIMARY KEY (id)
+);""", "dispatch_completions"),
         ],
     ),
     Section(
@@ -842,6 +876,16 @@ BEGIN
     ALTER TABLE public.context_diffs ADD CONSTRAINT fk_context_diffs_attempt FOREIGN KEY (attempt_id) REFERENCES public.task_attempts (id) ON DELETE CASCADE;
   END IF;
 END $$;""", "fk_context_diffs_attempt"),
+            DDLOp("ALTER TABLE public.dispatch_cursor ADD CONSTRAINT fk_dispatch_cursor_event FOREIGN KEY (last_processed_event_id) REFERENCES public.events (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_dispatch_cursor_event'
+    AND conrelid = 'public.dispatch_cursor'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_cursor ADD CONSTRAINT fk_dispatch_cursor_event FOREIGN KEY (last_processed_event_id) REFERENCES public.events (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk_dispatch_cursor_event"),
             DDLOp("ALTER TABLE public.accumulator_buffer ADD CONSTRAINT fk_accumulator_buffer_action FOREIGN KEY (subscription_action_id) REFERENCES public.subscription_actions (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -862,6 +906,26 @@ BEGIN
     ALTER TABLE public.accumulator_buffer ADD CONSTRAINT fk_accumulator_buffer_event FOREIGN KEY (event_id) REFERENCES public.events (id) ON DELETE CASCADE;
   END IF;
 END $$;""", "fk_accumulator_buffer_event"),
+            DDLOp("ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_action FOREIGN KEY (subscription_action_id) REFERENCES public.subscription_actions (id) ON DELETE CASCADE;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_dispatch_completions_action'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_action FOREIGN KEY (subscription_action_id) REFERENCES public.subscription_actions (id) ON DELETE CASCADE;
+  END IF;
+END $$;""", "fk_dispatch_completions_action"),
+            DDLOp("ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_event FOREIGN KEY (event_id) REFERENCES public.events (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_dispatch_completions_event'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_event FOREIGN KEY (event_id) REFERENCES public.events (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk_dispatch_completions_event"),
         ],
     ),
     Section(
@@ -918,6 +982,26 @@ BEGIN
     ALTER TABLE public.subscription_actions ADD CONSTRAINT uq_subscription_actions_position UNIQUE (subscription_id, position);
   END IF;
 END $$;""", "uq_subscription_actions_position"),
+            DDLOp("ALTER TABLE public.dispatch_cursor ADD CONSTRAINT uq_dispatch_cursor_name UNIQUE (cursor_name);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_dispatch_cursor_name'
+    AND conrelid = 'public.dispatch_cursor'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_cursor ADD CONSTRAINT uq_dispatch_cursor_name UNIQUE (cursor_name);
+  END IF;
+END $$;""", "uq_dispatch_cursor_name"),
+            DDLOp("ALTER TABLE public.dispatch_completions ADD CONSTRAINT uq_dispatch_completions_event_action UNIQUE (event_id, subscription_action_id);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_dispatch_completions_event_action'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT uq_dispatch_completions_event_action UNIQUE (event_id, subscription_action_id);
+  END IF;
+END $$;""", "uq_dispatch_completions_event_action"),
         ],
     ),
     Section(
@@ -1094,6 +1178,16 @@ BEGIN
     ALTER TABLE public.context_diffs ADD CONSTRAINT chk_context_diffs_not_empty CHECK (pre_refinement <> '');
   END IF;
 END $$;""", "chk_context_diffs_not_empty"),
+            DDLOp("ALTER TABLE public.dispatch_cursor ADD CONSTRAINT chk_dispatch_cursor_name_not_empty CHECK (cursor_name <> '');", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_dispatch_cursor_name_not_empty'
+    AND conrelid = 'public.dispatch_cursor'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_cursor ADD CONSTRAINT chk_dispatch_cursor_name_not_empty CHECK (cursor_name <> '');
+  END IF;
+END $$;""", "chk_dispatch_cursor_name_not_empty"),
             DDLOp("ALTER TABLE public.accumulator_buffer ADD CONSTRAINT chk_accumulator_buffer_refs_not_null CHECK (subscription_action_id IS NOT NULL AND event_id IS NOT NULL);", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1104,6 +1198,16 @@ BEGIN
     ALTER TABLE public.accumulator_buffer ADD CONSTRAINT chk_accumulator_buffer_refs_not_null CHECK (subscription_action_id IS NOT NULL AND event_id IS NOT NULL);
   END IF;
 END $$;""", "chk_accumulator_buffer_refs_not_null"),
+            DDLOp("ALTER TABLE public.dispatch_completions ADD CONSTRAINT chk_dispatch_completions_status_valid CHECK (result_status IN ('success', 'error', 'skipped'));", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_dispatch_completions_status_valid'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT chk_dispatch_completions_status_valid CHECK (result_status IN ('success', 'error', 'skipped'));
+  END IF;
+END $$;""", "chk_dispatch_completions_status_valid"),
         ],
     ),
     Section(
@@ -1111,6 +1215,7 @@ END $$;""", "chk_accumulator_buffer_refs_not_null"),
         transactional=True,
         ops=[
             DDLOp("CREATE INDEX idx_runs_config_snapshot_gin ON public.runs USING gin (config_snapshot);", "CREATE INDEX IF NOT EXISTS idx_runs_config_snapshot_gin ON public.runs USING gin (config_snapshot);", "idx_runs_config_snapshot_gin"),
+            DDLOp("CREATE INDEX idx_sources_config_gin ON public.sources USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_sources_config_gin ON public.sources USING gin (config);", "idx_sources_config_gin"),
             DDLOp("CREATE INDEX idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "CREATE INDEX IF NOT EXISTS idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "idx_consumers_scope_grants_gin"),
             DDLOp("CREATE INDEX idx_tasks_config_gin ON public.tasks USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_tasks_config_gin ON public.tasks USING gin (config);", "idx_tasks_config_gin"),
             DDLOp("CREATE INDEX idx_tasks_parent_id ON public.tasks (parent_task_id);", "CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks (parent_task_id);", "idx_tasks_parent_id"),
@@ -1148,6 +1253,7 @@ END $$;""", "chk_accumulator_buffer_refs_not_null"),
             DDLOp("CREATE INDEX idx_task_iterations_task_id ON public.task_iterations (task_id);", "CREATE INDEX IF NOT EXISTS idx_task_iterations_task_id ON public.task_iterations (task_id);", "idx_task_iterations_task_id"),
             DDLOp("CREATE INDEX idx_events_created_at_brin ON public.events USING brin (created_at);", "CREATE INDEX IF NOT EXISTS idx_events_created_at_brin ON public.events USING brin (created_at);", "idx_events_created_at_brin"),
             DDLOp("CREATE INDEX idx_events_data_gin ON public.events USING gin (data);", "CREATE INDEX IF NOT EXISTS idx_events_data_gin ON public.events USING gin (data);", "idx_events_data_gin"),
+            DDLOp("CREATE UNIQUE INDEX idx_events_idempotency_key ON public.events (idempotency_key) WHERE idempotency_key IS NOT NULL;", "CREATE UNIQUE INDEX IF NOT EXISTS idx_events_idempotency_key ON public.events (idempotency_key) WHERE idempotency_key IS NOT NULL;", "idx_events_idempotency_key"),
             DDLOp("CREATE INDEX idx_events_run_created ON public.events (run_id, created_at DESC);", "CREATE INDEX IF NOT EXISTS idx_events_run_created ON public.events (run_id, created_at DESC);", "idx_events_run_created"),
             DDLOp("CREATE INDEX idx_events_source_created ON public.events (source, created_at DESC);", "CREATE INDEX IF NOT EXISTS idx_events_source_created ON public.events (source, created_at DESC);", "idx_events_source_created"),
             DDLOp("CREATE INDEX idx_events_task_id ON public.events (task_id);", "CREATE INDEX IF NOT EXISTS idx_events_task_id ON public.events (task_id);", "idx_events_task_id"),
@@ -1159,8 +1265,11 @@ END $$;""", "chk_accumulator_buffer_refs_not_null"),
             DDLOp("CREATE INDEX idx_subscription_actions_config_gin ON public.subscription_actions USING gin (action_config);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_config_gin ON public.subscription_actions USING gin (action_config);", "idx_subscription_actions_config_gin"),
             DDLOp("CREATE INDEX idx_subscription_actions_sub ON public.subscription_actions (subscription_id);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_sub ON public.subscription_actions (subscription_id);", "idx_subscription_actions_sub"),
             DDLOp("CREATE INDEX idx_context_diffs_attempt ON public.context_diffs (attempt_id);", "CREATE INDEX IF NOT EXISTS idx_context_diffs_attempt ON public.context_diffs (attempt_id);", "idx_context_diffs_attempt"),
+            DDLOp("CREATE INDEX idx_dispatch_cursor_event ON public.dispatch_cursor (last_processed_event_id);", "CREATE INDEX IF NOT EXISTS idx_dispatch_cursor_event ON public.dispatch_cursor (last_processed_event_id);", "idx_dispatch_cursor_event"),
             DDLOp("CREATE INDEX idx_accumulator_buffer_action ON public.accumulator_buffer (subscription_action_id);", "CREATE INDEX IF NOT EXISTS idx_accumulator_buffer_action ON public.accumulator_buffer (subscription_action_id);", "idx_accumulator_buffer_action"),
             DDLOp("CREATE INDEX idx_accumulator_buffer_event ON public.accumulator_buffer (event_id);", "CREATE INDEX IF NOT EXISTS idx_accumulator_buffer_event ON public.accumulator_buffer (event_id);", "idx_accumulator_buffer_event"),
+            DDLOp("CREATE INDEX idx_dispatch_completions_action ON public.dispatch_completions (subscription_action_id);", "CREATE INDEX IF NOT EXISTS idx_dispatch_completions_action ON public.dispatch_completions (subscription_action_id);", "idx_dispatch_completions_action"),
+            DDLOp("CREATE INDEX idx_dispatch_completions_event ON public.dispatch_completions (event_id);", "CREATE INDEX IF NOT EXISTS idx_dispatch_completions_event ON public.dispatch_completions (event_id);", "idx_dispatch_completions_event"),
             DDLOp("""CREATE OR REPLACE FUNCTION public.pgdesign_deny_mutation() RETURNS trigger AS $$
 BEGIN
   RAISE EXCEPTION 'table % is append-only: UPDATE and DELETE are not allowed', TG_TABLE_NAME;
@@ -1190,6 +1299,7 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.sources.slug IS 'URL-safe unique identifier';", None, "column.sources.slug"),
             DDLOp("COMMENT ON COLUMN public.sources.name IS 'Human-readable source name';", None, "column.sources.name"),
             DDLOp("COMMENT ON COLUMN public.sources.credential_id IS 'FK to auth.credentials for source authentication';", None, "column.sources.credential_id"),
+            DDLOp("COMMENT ON COLUMN public.sources.config IS 'Per-source mapping config (event_type extraction, field mapping)';", None, "column.sources.config"),
             DDLOp("COMMENT ON TABLE public.consumers IS 'API consumers with trust tiers and scope grants.';", None, "table.consumers"),
             DDLOp("COMMENT ON COLUMN public.consumers.name IS 'Human-readable consumer name';", None, "column.consumers.name"),
             DDLOp("COMMENT ON COLUMN public.consumers.scope_grants IS 'JSON array of granted scope strings';", None, "column.consumers.scope_grants"),
@@ -1238,6 +1348,7 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.credentials.credential_hash IS 'SHA-256 hash of the raw credential value';", None, "column.credentials.credential_hash"),
             DDLOp("COMMENT ON COLUMN public.credentials.algorithm IS 'Hash algorithm used';", None, "column.credentials.algorithm"),
             DDLOp("COMMENT ON COLUMN public.credentials.metadata IS 'Additional credential metadata';", None, "column.credentials.metadata"),
+            DDLOp("COMMENT ON COLUMN public.credentials.secret_ref IS 'Reference to a secret in the SecretRegistry for HMAC verification (not smuggled through metadata)';", None, "column.credentials.secret_ref"),
             DDLOp("COMMENT ON TABLE public.task_attempts IS 'Per-attempt results for tasks. Retries create new rows, never overwrite.';", None, "table.task_attempts"),
             DDLOp("COMMENT ON COLUMN public.task_attempts.attempt IS 'Attempt number';", None, "column.task_attempts.attempt"),
             DDLOp("COMMENT ON COLUMN public.task_attempts.agent_output IS 'Full text output from the agent (never truncated)';", None, "column.task_attempts.agent_output"),
@@ -1252,6 +1363,7 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.events.source IS 'Event source: internal (scheduler/trace) or external (MCP/CLI)';", None, "column.events.source"),
             DDLOp("COMMENT ON COLUMN public.events.event_type IS 'e.g. run.started, task.status_changed, inbox.item_answered';", None, "column.events.event_type"),
             DDLOp("COMMENT ON COLUMN public.events.data IS 'Event-specific payload';", None, "column.events.data"),
+            DDLOp("COMMENT ON COLUMN public.events.idempotency_key IS 'Caller-supplied dedup key; partial unique index prevents duplicate storage and dispatch';", None, "column.events.idempotency_key"),
             DDLOp("COMMENT ON TABLE public.overseer_workflow_status IS 'Overseer view of workflow health. Overwritten as the Overseer updates its assessment.';", None, "table.overseer_workflow_status"),
             DDLOp("COMMENT ON COLUMN public.overseer_workflow_status.workflow_id IS 'Workflow task identifier';", None, "column.overseer_workflow_status.workflow_id"),
             DDLOp("COMMENT ON TABLE public.assumptions IS 'Assumptions made by the Overseer when information is unavailable.';", None, "table.assumptions"),
@@ -1264,8 +1376,15 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON TABLE public.context_diffs IS 'Pre- and post-Overseer-refinement context per task attempt.';", None, "table.context_diffs"),
             DDLOp("COMMENT ON COLUMN public.context_diffs.pre_refinement IS 'Mechanically assembled context (layers 1+2)';", None, "column.context_diffs.pre_refinement"),
             DDLOp("COMMENT ON COLUMN public.context_diffs.refinement_diff IS 'Unified diff of Overseer''s context changes';", None, "column.context_diffs.refinement_diff"),
+            DDLOp("COMMENT ON TABLE public.dispatch_cursor IS 'Durable cursor tracking the last processed event for the dispatcher worker.';", None, "table.dispatch_cursor"),
+            DDLOp("COMMENT ON COLUMN public.dispatch_cursor.cursor_name IS 'Named cursor (supports multiple independent consumers)';", None, "column.dispatch_cursor.cursor_name"),
+            DDLOp("COMMENT ON COLUMN public.dispatch_cursor.last_processed_event_id IS 'FK to events: the last event that was fully processed';", None, "column.dispatch_cursor.last_processed_event_id"),
             DDLOp("COMMENT ON TABLE public.accumulator_buffer IS 'Buffered events awaiting batch delivery for accumulator-enabled actions.';", None, "table.accumulator_buffer"),
             DDLOp("COMMENT ON COLUMN public.accumulator_buffer.event_id IS 'Reference to the trace events table';", None, "column.accumulator_buffer.event_id"),
+            DDLOp("COMMENT ON TABLE public.dispatch_completions IS 'Per-event-action completion records for at-least-once delivery tracking.';", None, "table.dispatch_completions"),
+            DDLOp("COMMENT ON COLUMN public.dispatch_completions.event_id IS 'The event that was processed';", None, "column.dispatch_completions.event_id"),
+            DDLOp("COMMENT ON COLUMN public.dispatch_completions.subscription_action_id IS 'The action that processed the event';", None, "column.dispatch_completions.subscription_action_id"),
+            DDLOp("COMMENT ON COLUMN public.dispatch_completions.result_status IS 'Outcome: success, error, skipped';", None, "column.dispatch_completions.result_status"),
         ],
     ),
     Section(

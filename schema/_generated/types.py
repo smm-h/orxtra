@@ -73,10 +73,10 @@ BEGIN
     EXECUTE 'CREATE TYPE public.trust_tier AS ENUM (''anonymous'', ''identified'', ''verified'', ''system'');';
   END IF;
 END $$;""", "enum", "trust_tier", None, 3, True),
-    DDLStmt("CREATE TYPE public.credential_type AS ENUM ('api_key', 'bearer');", """DO $$
+    DDLStmt("CREATE TYPE public.credential_type AS ENUM ('api_key', 'bearer', 'hmac');", """DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE t.typname = 'credential_type' AND n.nspname = 'public' AND t.typtype = 'e') THEN
-    EXECUTE 'CREATE TYPE public.credential_type AS ENUM (''api_key'', ''bearer'');';
+    EXECUTE 'CREATE TYPE public.credential_type AS ENUM (''api_key'', ''bearer'', ''hmac'');';
   END IF;
 END $$;""", "enum", "credential_type", None, 3, True),
 ]

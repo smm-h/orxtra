@@ -31,6 +31,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     credential_hash text NOT NULL,
     algorithm text NOT NULL DEFAULT 'sha256',
     metadata jsonb NOT NULL DEFAULT '{}',
+    secret_ref text,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_credentials PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.credentials (
@@ -40,6 +41,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     credential_hash text NOT NULL,
     algorithm text NOT NULL DEFAULT 'sha256',
     metadata jsonb NOT NULL DEFAULT '{}',
+    secret_ref text,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_credentials PRIMARY KEY (id)
 );""", "table", "credentials", "credentials", 4, True),
@@ -85,6 +87,7 @@ END $$;""", "check", "chk_credentials_hash_not_empty", "credentials", 8, True),
     DDLStmt("COMMENT ON COLUMN public.credentials.credential_hash IS 'SHA-256 hash of the raw credential value';", None, "comment", "column.credentials.credential_hash", "credentials", 10, True),
     DDLStmt("COMMENT ON COLUMN public.credentials.algorithm IS 'Hash algorithm used';", None, "comment", "column.credentials.algorithm", "credentials", 10, True),
     DDLStmt("COMMENT ON COLUMN public.credentials.metadata IS 'Additional credential metadata';", None, "comment", "column.credentials.metadata", "credentials", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.credentials.secret_ref IS 'Reference to a secret in the SecretRegistry for HMAC verification (not smuggled through metadata)';", None, "comment", "column.credentials.secret_ref", "credentials", 10, True),
 ]
 
 TABLE_NAMES: Final[tuple[str, ...]] = ("consumers", "credentials")

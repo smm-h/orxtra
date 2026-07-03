@@ -12,6 +12,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     slug text NOT NULL,
     name text NOT NULL,
     credential_id uuid,
+    config jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_sources PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.sources (
@@ -19,6 +20,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     slug text NOT NULL,
     name text NOT NULL,
     credential_id uuid,
+    config jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_sources PRIMARY KEY (id)
 );""", "table", "sources", "sources", 4, True),
@@ -60,6 +62,19 @@ STATEMENTS: Final[list[DDLStmt]] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_subscription_actions PRIMARY KEY (id)
 );""", "table", "subscription_actions", "subscription_actions", 4, True),
+    DDLStmt("""CREATE TABLE public.dispatch_cursor (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    cursor_name text NOT NULL DEFAULT 'main',
+    last_processed_event_id uuid NOT NULL,
+    last_processed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_cursor PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.dispatch_cursor (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    cursor_name text NOT NULL DEFAULT 'main',
+    last_processed_event_id uuid NOT NULL,
+    last_processed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_cursor PRIMARY KEY (id)
+);""", "table", "dispatch_cursor", "dispatch_cursor", 4, True),
     DDLStmt("""CREATE TABLE public.accumulator_buffer (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     subscription_action_id uuid NOT NULL,
@@ -73,6 +88,21 @@ STATEMENTS: Final[list[DDLStmt]] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_accumulator_buffer PRIMARY KEY (id)
 );""", "table", "accumulator_buffer", "accumulator_buffer", 4, True),
+    DDLStmt("""CREATE TABLE public.dispatch_completions (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    event_id uuid NOT NULL,
+    subscription_action_id uuid NOT NULL,
+    result_status text NOT NULL,
+    completed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_completions PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.dispatch_completions (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    event_id uuid NOT NULL,
+    subscription_action_id uuid NOT NULL,
+    result_status text NOT NULL,
+    completed_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_dispatch_completions PRIMARY KEY (id)
+);""", "table", "dispatch_completions", "dispatch_completions", 4, True),
     DDLStmt("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_run FOREIGN KEY (owner_run_id) REFERENCES public.runs (id) ON DELETE SET NULL;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -103,6 +133,16 @@ BEGIN
     ALTER TABLE public.subscription_actions ADD CONSTRAINT fk_subscription_actions_sub FOREIGN KEY (subscription_id) REFERENCES public.subscriptions (id) ON DELETE CASCADE;
   END IF;
 END $$;""", "fk", "fk_subscription_actions_sub", "subscription_actions", 6, True),
+    DDLStmt("ALTER TABLE public.dispatch_cursor ADD CONSTRAINT fk_dispatch_cursor_event FOREIGN KEY (last_processed_event_id) REFERENCES public.events (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_dispatch_cursor_event'
+    AND conrelid = 'public.dispatch_cursor'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_cursor ADD CONSTRAINT fk_dispatch_cursor_event FOREIGN KEY (last_processed_event_id) REFERENCES public.events (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk", "fk_dispatch_cursor_event", "dispatch_cursor", 6, True),
     DDLStmt("ALTER TABLE public.accumulator_buffer ADD CONSTRAINT fk_accumulator_buffer_action FOREIGN KEY (subscription_action_id) REFERENCES public.subscription_actions (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -123,6 +163,26 @@ BEGIN
     ALTER TABLE public.accumulator_buffer ADD CONSTRAINT fk_accumulator_buffer_event FOREIGN KEY (event_id) REFERENCES public.events (id) ON DELETE CASCADE;
   END IF;
 END $$;""", "fk", "fk_accumulator_buffer_event", "accumulator_buffer", 6, True),
+    DDLStmt("ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_action FOREIGN KEY (subscription_action_id) REFERENCES public.subscription_actions (id) ON DELETE CASCADE;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_dispatch_completions_action'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_action FOREIGN KEY (subscription_action_id) REFERENCES public.subscription_actions (id) ON DELETE CASCADE;
+  END IF;
+END $$;""", "fk", "fk_dispatch_completions_action", "dispatch_completions", 6, True),
+    DDLStmt("ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_event FOREIGN KEY (event_id) REFERENCES public.events (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_dispatch_completions_event'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT fk_dispatch_completions_event FOREIGN KEY (event_id) REFERENCES public.events (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk", "fk_dispatch_completions_event", "dispatch_completions", 6, True),
     DDLStmt("ALTER TABLE public.sources ADD CONSTRAINT uq_sources_slug UNIQUE (slug);", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -143,6 +203,26 @@ BEGIN
     ALTER TABLE public.subscription_actions ADD CONSTRAINT uq_subscription_actions_position UNIQUE (subscription_id, position);
   END IF;
 END $$;""", "unique", "uq_subscription_actions_position", "subscription_actions", 7, True),
+    DDLStmt("ALTER TABLE public.dispatch_cursor ADD CONSTRAINT uq_dispatch_cursor_name UNIQUE (cursor_name);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_dispatch_cursor_name'
+    AND conrelid = 'public.dispatch_cursor'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_cursor ADD CONSTRAINT uq_dispatch_cursor_name UNIQUE (cursor_name);
+  END IF;
+END $$;""", "unique", "uq_dispatch_cursor_name", "dispatch_cursor", 7, True),
+    DDLStmt("ALTER TABLE public.dispatch_completions ADD CONSTRAINT uq_dispatch_completions_event_action UNIQUE (event_id, subscription_action_id);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_dispatch_completions_event_action'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT uq_dispatch_completions_event_action UNIQUE (event_id, subscription_action_id);
+  END IF;
+END $$;""", "unique", "uq_dispatch_completions_event_action", "dispatch_completions", 7, True),
     DDLStmt("ALTER TABLE public.sources ADD CONSTRAINT chk_sources_slug_not_empty CHECK (slug <> '' AND name <> '');", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -173,6 +253,16 @@ BEGIN
     ALTER TABLE public.subscription_actions ADD CONSTRAINT chk_subscription_actions_position_positive CHECK (position >= 0 AND action_type <> '');
   END IF;
 END $$;""", "check", "chk_subscription_actions_position_positive", "subscription_actions", 8, True),
+    DDLStmt("ALTER TABLE public.dispatch_cursor ADD CONSTRAINT chk_dispatch_cursor_name_not_empty CHECK (cursor_name <> '');", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_dispatch_cursor_name_not_empty'
+    AND conrelid = 'public.dispatch_cursor'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_cursor ADD CONSTRAINT chk_dispatch_cursor_name_not_empty CHECK (cursor_name <> '');
+  END IF;
+END $$;""", "check", "chk_dispatch_cursor_name_not_empty", "dispatch_cursor", 8, True),
     DDLStmt("ALTER TABLE public.accumulator_buffer ADD CONSTRAINT chk_accumulator_buffer_refs_not_null CHECK (subscription_action_id IS NOT NULL AND event_id IS NOT NULL);", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -183,18 +273,33 @@ BEGIN
     ALTER TABLE public.accumulator_buffer ADD CONSTRAINT chk_accumulator_buffer_refs_not_null CHECK (subscription_action_id IS NOT NULL AND event_id IS NOT NULL);
   END IF;
 END $$;""", "check", "chk_accumulator_buffer_refs_not_null", "accumulator_buffer", 8, True),
+    DDLStmt("ALTER TABLE public.dispatch_completions ADD CONSTRAINT chk_dispatch_completions_status_valid CHECK (result_status IN ('success', 'error', 'skipped'));", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_dispatch_completions_status_valid'
+    AND conrelid = 'public.dispatch_completions'::regclass
+  ) THEN
+    ALTER TABLE public.dispatch_completions ADD CONSTRAINT chk_dispatch_completions_status_valid CHECK (result_status IN ('success', 'error', 'skipped'));
+  END IF;
+END $$;""", "check", "chk_dispatch_completions_status_valid", "dispatch_completions", 8, True),
+    DDLStmt("CREATE INDEX idx_sources_config_gin ON public.sources USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_sources_config_gin ON public.sources USING gin (config);", "index", "idx_sources_config_gin", "sources", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "CREATE INDEX IF NOT EXISTS idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "index", "idx_subscriptions_active", "subscriptions", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "index", "idx_subscriptions_filter_expr_gin", "subscriptions", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "index", "idx_subscriptions_owner_run_id", "subscriptions", 9, True),
     DDLStmt("CREATE INDEX idx_subscription_actions_accumulator_gin ON public.subscription_actions USING gin (accumulator_config);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_accumulator_gin ON public.subscription_actions USING gin (accumulator_config);", "index", "idx_subscription_actions_accumulator_gin", "subscription_actions", 9, True),
     DDLStmt("CREATE INDEX idx_subscription_actions_config_gin ON public.subscription_actions USING gin (action_config);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_config_gin ON public.subscription_actions USING gin (action_config);", "index", "idx_subscription_actions_config_gin", "subscription_actions", 9, True),
     DDLStmt("CREATE INDEX idx_subscription_actions_sub ON public.subscription_actions (subscription_id);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_sub ON public.subscription_actions (subscription_id);", "index", "idx_subscription_actions_sub", "subscription_actions", 9, True),
+    DDLStmt("CREATE INDEX idx_dispatch_cursor_event ON public.dispatch_cursor (last_processed_event_id);", "CREATE INDEX IF NOT EXISTS idx_dispatch_cursor_event ON public.dispatch_cursor (last_processed_event_id);", "index", "idx_dispatch_cursor_event", "dispatch_cursor", 9, True),
     DDLStmt("CREATE INDEX idx_accumulator_buffer_action ON public.accumulator_buffer (subscription_action_id);", "CREATE INDEX IF NOT EXISTS idx_accumulator_buffer_action ON public.accumulator_buffer (subscription_action_id);", "index", "idx_accumulator_buffer_action", "accumulator_buffer", 9, True),
     DDLStmt("CREATE INDEX idx_accumulator_buffer_event ON public.accumulator_buffer (event_id);", "CREATE INDEX IF NOT EXISTS idx_accumulator_buffer_event ON public.accumulator_buffer (event_id);", "index", "idx_accumulator_buffer_event", "accumulator_buffer", 9, True),
+    DDLStmt("CREATE INDEX idx_dispatch_completions_action ON public.dispatch_completions (subscription_action_id);", "CREATE INDEX IF NOT EXISTS idx_dispatch_completions_action ON public.dispatch_completions (subscription_action_id);", "index", "idx_dispatch_completions_action", "dispatch_completions", 9, True),
+    DDLStmt("CREATE INDEX idx_dispatch_completions_event ON public.dispatch_completions (event_id);", "CREATE INDEX IF NOT EXISTS idx_dispatch_completions_event ON public.dispatch_completions (event_id);", "index", "idx_dispatch_completions_event", "dispatch_completions", 9, True),
     DDLStmt("COMMENT ON TABLE public.sources IS 'Registry of event sources (webhook endpoints, polled APIs, internal emitters).';", None, "comment", "table.sources", "sources", 10, True),
     DDLStmt("COMMENT ON COLUMN public.sources.slug IS 'URL-safe unique identifier';", None, "comment", "column.sources.slug", "sources", 10, True),
     DDLStmt("COMMENT ON COLUMN public.sources.name IS 'Human-readable source name';", None, "comment", "column.sources.name", "sources", 10, True),
     DDLStmt("COMMENT ON COLUMN public.sources.credential_id IS 'FK to auth.credentials for source authentication';", None, "comment", "column.sources.credential_id", "sources", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.sources.config IS 'Per-source mapping config (event_type extraction, field mapping)';", None, "comment", "column.sources.config", "sources", 10, True),
     DDLStmt("COMMENT ON TABLE public.subscriptions IS 'Event subscriptions. A subscription matches events via filter_expr and routes them to actions.';", None, "comment", "table.subscriptions", "subscriptions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscriptions.source_id IS 'Optional source filter (null = match all sources)';", None, "comment", "column.subscriptions.source_id", "subscriptions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscriptions.filter_expr IS 'FilterPredicate serialized as JSON';", None, "comment", "column.subscriptions.filter_expr", "subscriptions", 10, True),
@@ -205,8 +310,15 @@ END $$;""", "check", "chk_accumulator_buffer_refs_not_null", "accumulator_buffer
     DDLStmt("COMMENT ON COLUMN public.subscription_actions.action_type IS 'Action type identifier (e.g. script, log, webhook)';", None, "comment", "column.subscription_actions.action_type", "subscription_actions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscription_actions.action_config IS 'Action-specific configuration';", None, "comment", "column.subscription_actions.action_config", "subscription_actions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscription_actions.accumulator_config IS 'Accumulator settings (batch size, flush interval, etc.)';", None, "comment", "column.subscription_actions.accumulator_config", "subscription_actions", 10, True),
+    DDLStmt("COMMENT ON TABLE public.dispatch_cursor IS 'Durable cursor tracking the last processed event for the dispatcher worker.';", None, "comment", "table.dispatch_cursor", "dispatch_cursor", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.dispatch_cursor.cursor_name IS 'Named cursor (supports multiple independent consumers)';", None, "comment", "column.dispatch_cursor.cursor_name", "dispatch_cursor", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.dispatch_cursor.last_processed_event_id IS 'FK to events: the last event that was fully processed';", None, "comment", "column.dispatch_cursor.last_processed_event_id", "dispatch_cursor", 10, True),
     DDLStmt("COMMENT ON TABLE public.accumulator_buffer IS 'Buffered events awaiting batch delivery for accumulator-enabled actions.';", None, "comment", "table.accumulator_buffer", "accumulator_buffer", 10, True),
     DDLStmt("COMMENT ON COLUMN public.accumulator_buffer.event_id IS 'Reference to the trace events table';", None, "comment", "column.accumulator_buffer.event_id", "accumulator_buffer", 10, True),
+    DDLStmt("COMMENT ON TABLE public.dispatch_completions IS 'Per-event-action completion records for at-least-once delivery tracking.';", None, "comment", "table.dispatch_completions", "dispatch_completions", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.dispatch_completions.event_id IS 'The event that was processed';", None, "comment", "column.dispatch_completions.event_id", "dispatch_completions", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.dispatch_completions.subscription_action_id IS 'The action that processed the event';", None, "comment", "column.dispatch_completions.subscription_action_id", "dispatch_completions", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.dispatch_completions.result_status IS 'Outcome: success, error, skipped';", None, "comment", "column.dispatch_completions.result_status", "dispatch_completions", 10, True),
 ]
 
-TABLE_NAMES: Final[tuple[str, ...]] = ("sources", "subscriptions", "subscription_actions", "accumulator_buffer")
+TABLE_NAMES: Final[tuple[str, ...]] = ("sources", "subscriptions", "subscription_actions", "dispatch_cursor", "accumulator_buffer", "dispatch_completions")
