@@ -23,11 +23,18 @@ jobs:
       trace: ${{ steps.changes.outputs.trace }}
       notepad: ${{ steps.changes.outputs.notepad }}
       session: ${{ steps.changes.outputs.session }}
+      auth: ${{ steps.changes.outputs.auth }}
+      a2ui: ${{ steps.changes.outputs.a2ui }}
       scheduler: ${{ steps.changes.outputs.scheduler }}
+      dispatch: ${{ steps.changes.outputs.dispatch }}
       overseer: ${{ steps.changes.outputs.overseer }}
       services: ${{ steps.changes.outputs.services }}
       cli: ${{ steps.changes.outputs.cli }}
       mcp: ${{ steps.changes.outputs.mcp }}
+      a2a: ${{ steps.changes.outputs.a2a }}
+      agui: ${{ steps.changes.outputs.agui }}
+      worker: ${{ steps.changes.outputs.worker }}
+      api: ${{ steps.changes.outputs.api }}
       schema: ${{ steps.changes.outputs.schema }}
     steps:
     - uses: actions/checkout@v6
@@ -45,11 +52,18 @@ jobs:
           trace: 'trace/**'
           notepad: 'notepad/**'
           session: 'session/**'
+          auth: 'auth/**'
+          a2ui: 'a2ui/**'
           scheduler: 'scheduler/**'
+          dispatch: 'dispatch/**'
           overseer: 'overseer/**'
           services: 'services/**'
           cli: 'cli/**'
           mcp: 'mcp/**'
+          a2a: 'a2a/**'
+          agui: 'agui/**'
+          worker: 'worker/**'
+          api: 'api/**'
           schema: 'schema/**'
   protocols:
     needs: detect
@@ -91,10 +105,22 @@ jobs:
     needs: detect
     if: needs.detect.outputs.session == 'true'
     uses: ./.github/workflows/session-ci.yml
+  auth:
+    needs: detect
+    if: needs.detect.outputs.auth == 'true'
+    uses: ./.github/workflows/auth-ci.yml
+  a2ui:
+    needs: detect
+    if: needs.detect.outputs.a2ui == 'true'
+    uses: ./.github/workflows/a2ui-ci.yml
   scheduler:
     needs: detect
     if: needs.detect.outputs.scheduler == 'true'
     uses: ./.github/workflows/scheduler-ci.yml
+  dispatch:
+    needs: detect
+    if: needs.detect.outputs.dispatch == 'true'
+    uses: ./.github/workflows/dispatch-ci.yml
   overseer:
     needs: detect
     if: needs.detect.outputs.overseer == 'true'
@@ -111,6 +137,22 @@ jobs:
     needs: detect
     if: needs.detect.outputs.mcp == 'true'
     uses: ./.github/workflows/mcp-ci.yml
+  a2a:
+    needs: detect
+    if: needs.detect.outputs.a2a == 'true'
+    uses: ./.github/workflows/a2a-ci.yml
+  agui:
+    needs: detect
+    if: needs.detect.outputs.agui == 'true'
+    uses: ./.github/workflows/agui-ci.yml
+  worker:
+    needs: detect
+    if: needs.detect.outputs.worker == 'true'
+    uses: ./.github/workflows/worker-ci.yml
+  api:
+    needs: detect
+    if: needs.detect.outputs.api == 'true'
+    uses: ./.github/workflows/api-ci.yml
   schema:
     needs: detect
     if: needs.detect.outputs.schema == 'true'
