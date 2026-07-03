@@ -12,7 +12,7 @@ order: 91
 
 Autonomous multi-agent AI workflows.
 
-Version: 0.7.0
+Version: 0.8.0
 
 ## Commands
 
@@ -26,4 +26,5 @@ Version: 0.7.0
 - [event](cli-event.html) -- Event firing commands.
 - [validate](cli-validate.html) -- Validate configuration files.
 - [config](cli-config.html) -- Configuration commands.
+- [db](cli-db.html) -- Database provisioning and migration commands.
 - [worker](cli-worker.html) -- Worker process commands.

@@ -13,6 +13,11 @@
       "type": "doc"
     },
     {
+      "path": "cli-db.md",
+      "title": "orxtra db",
+      "type": "doc"
+    },
+    {
       "path": "cli-event.md",
       "title": "orxtra event",
       "type": "doc"
@@ -64,5 +69,5 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-07-03T14:05:26.709959+00:00"
+  "last_gen": "2026-07-03T14:54:10.755541+00:00"
 }
