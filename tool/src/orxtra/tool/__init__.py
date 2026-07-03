@@ -22,6 +22,7 @@ from orxtra.tool._pipeline import (
     wrap_tool_with_pipeline,
     wrap_tools_for_session,
 )
+from orxtra.tool._scrub import scrub_data, scrub_text, scrub_tool_output
 from orxtra.tool._preview import (
     FullRetrievalGuard,
     PreviewResult,
@@ -105,6 +106,9 @@ __all__ = [
     "tool",
     "safe_read_for_write",
     "safe_write",
+    "scrub_data",
+    "scrub_text",
+    "scrub_tool_output",
     "wrap_tool_with_pipeline",
     "wrap_tools_for_session",
 ]

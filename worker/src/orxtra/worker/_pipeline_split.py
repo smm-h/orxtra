@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from orxtra.protocols import Tool, ToolOutput
+from orxtra.tool._scrub import scrub_data, scrub_text
 
 from orxtra.worker._protocol import ExecuteToolCall, ToolCallResult
 
@@ -73,9 +74,10 @@ def wrap_tool_for_remote(  # noqa: PLR0913
         output_text = result.output
         output_data = result.data
 
-        # Step 4 (brain): secret scrubbing.
+        # Step 4 (brain): secret scrubbing (text AND structured data).
         if secret_registry is not None:
-            output_text = secret_registry.scrub(output_text)
+            output_text = scrub_text(secret_registry, output_text)
+            output_data = scrub_data(secret_registry, output_data)
 
         # Step 5 (brain): mutation recording from worker's list.
         if mutation_tracker is not None and result.mutations:

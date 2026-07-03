@@ -14,6 +14,7 @@ from orxtra.protocols import (
     ToolError,
 )
 from orxtra.scheduler._base import SchedulerBase
+from orxtra.tool._scrub import scrub_text
 
 _logger = logging.getLogger("orxtra.scheduler")
 
@@ -93,6 +94,13 @@ class LifecycleHandlersMixin(SchedulerBase):
                 f" {n} subtask(s) not complete"
             )
             raise ToolError(msg)
+
+        # Scrub secrets from end_task message before it enters
+        # task outputs or trace. The pipeline already substituted
+        # placeholders with real values in tool-call args; we must
+        # scrub them back before storage.
+        if self._secret_registry is not None:
+            message = scrub_text(self._secret_registry, message)
 
         self._task_states[task_id] = TaskState.POSTCHECKING
         await self._trace_writer.transition_task(

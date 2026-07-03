@@ -5,6 +5,7 @@ import time
 from typing import TYPE_CHECKING, Any, cast
 
 from orxtra.protocols import Tool, ToolOutput
+from orxtra.tool._scrub import scrub_tool_output
 from orxtra.write_safety import with_transient_retry
 
 if TYPE_CHECKING:
@@ -52,9 +53,9 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
         end = time.monotonic()
         duration_ms = int((end - start) * 1000)
 
-        # 4. Secret scrubbing.
+        # 4. Secret scrubbing (text AND structured data).
         if secret_registry is not None:
-            result = ToolOutput(data=result.data, text=secret_registry.scrub(result.text))
+            result = scrub_tool_output(secret_registry, result)
 
         # 5. Mutation tracking.
         if is_file_mutation and mutation_tracker is not None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Any
 from unittest.mock import AsyncMock
 from uuid import UUID
@@ -10,6 +11,7 @@ import pytest
 from orxtra.protocols import Tool, ToolError, ToolOutput
 from orxtra.secrets import SecretRegistry
 from orxtra.tool._pipeline import compose, wrap_tool_with_pipeline, wrap_tools_for_session
+from orxtra.tool._scrub import scrub_data, scrub_text, scrub_tool_output
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -743,3 +745,197 @@ class TestNamespaceTagsPreservation:
         assert wrapped[0].tags == frozenset({"readonly"})
         assert wrapped[1].namespace == "fs.write"
         assert wrapped[1].tags == frozenset({"mutation"})
+
+
+# ---------------------------------------------------------------------------
+# TestStructuredDataScrubbing
+# ---------------------------------------------------------------------------
+
+
+@dataclasses.dataclass(frozen=True)
+class _HttpResponse:
+    """Simulated structured HTTP response data."""
+
+    status: int
+    headers: dict[str, str]
+    body: str
+
+
+class TestStructuredDataScrubbing:
+    """Tests for scrubbing secrets from ToolOutput.data (structured data)."""
+
+    @pytest.mark.asyncio
+    async def test_secret_in_data_dict_scrubbed_by_pipeline(self) -> None:
+        """A tool returning a dict with a secret value has it scrubbed."""
+        registry = SecretRegistry({"API_KEY": "real-key-123"})
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[dict[str, str]]:
+            return ToolOutput(
+                data={"Authorization": "Bearer real-key-123"},
+                text="ok",
+            )
+
+        tool = Tool(
+            name="http",
+            description="HTTP tool",
+            parameters={"type": "object"},
+            execute=_execute,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=registry,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await wrapped.execute({})
+        # The secret must not appear in data.
+        assert "real-key-123" not in str(result.data)
+        assert "{{secret:API_KEY}}" in str(result.data)
+
+    @pytest.mark.asyncio
+    async def test_secret_in_dataclass_data_scrubbed_by_pipeline(self) -> None:
+        """A tool returning a dataclass with a secret header has it scrubbed.
+
+        After scrubbing, data is a dict (deserialized JSON) rather than the
+        original dataclass -- acceptable per the spec.
+        """
+        registry = SecretRegistry({"TOKEN": "super-secret-42"})
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[_HttpResponse]:
+            return ToolOutput(
+                data=_HttpResponse(
+                    status=200,
+                    headers={"X-Api-Key": "super-secret-42"},
+                    body="response body with super-secret-42",
+                ),
+                text="HTTP 200 OK",
+            )
+
+        tool = Tool(
+            name="http",
+            description="HTTP tool",
+            parameters={"type": "object"},
+            execute=_execute,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=registry,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await wrapped.execute({})
+        # Secret must be scrubbed from both text and data.
+        assert "super-secret-42" not in result.text
+        assert "super-secret-42" not in str(result.data)
+        # Placeholders should appear.
+        assert "{{secret:TOKEN}}" in str(result.data)
+
+    @pytest.mark.asyncio
+    async def test_none_data_not_crashed(self) -> None:
+        """A tool returning None data does not crash the scrub path."""
+        registry = SecretRegistry({"KEY": "val-123"})
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[None]:
+            return ToolOutput(data=None, text="text with val-123")
+
+        tool = Tool(
+            name="test",
+            description="t",
+            parameters={"type": "object"},
+            execute=_execute,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=registry,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await wrapped.execute({})
+        assert result.data is None
+        assert "val-123" not in result.text
+        assert "{{secret:KEY}}" in result.text
+
+    @pytest.mark.asyncio
+    async def test_string_data_scrubbed(self) -> None:
+        """A tool returning a plain string as data has secrets scrubbed."""
+        registry = SecretRegistry({"SECRET": "abc123"})
+
+        async def _execute(args: dict[str, Any]) -> ToolOutput[str]:
+            return ToolOutput(data="contains abc123", text="text with abc123")
+
+        tool = Tool(
+            name="test",
+            description="t",
+            parameters={"type": "object"},
+            execute=_execute,
+        )
+        wrapped = wrap_tool_with_pipeline(
+            tool=tool,
+            scheduler_check=_passing_scheduler_check,
+            secret_registry=registry,
+            trace_callback=None,
+            session_id=_SESSION_ID,
+        )
+        result = await wrapped.execute({})
+        assert "abc123" not in result.text
+        assert "abc123" not in str(result.data)
+
+
+# ---------------------------------------------------------------------------
+# TestScrubModule
+# ---------------------------------------------------------------------------
+
+
+class TestScrubModule:
+    """Unit tests for the shared _scrub module."""
+
+    def test_scrub_text(self) -> None:
+        registry = SecretRegistry({"KEY": "secret-value"})
+        result = scrub_text(registry, "data: secret-value")
+        assert "secret-value" not in result
+        assert "{{secret:KEY}}" in result
+
+    def test_scrub_data_dict(self) -> None:
+        registry = SecretRegistry({"KEY": "secret-value"})
+        result = scrub_data(registry, {"header": "Bearer secret-value"})
+        assert isinstance(result, dict)
+        assert "secret-value" not in str(result)
+        assert "{{secret:KEY}}" in str(result)
+
+    def test_scrub_data_none(self) -> None:
+        registry = SecretRegistry({"KEY": "secret-value"})
+        result = scrub_data(registry, None)
+        assert result is None
+
+    def test_scrub_data_dataclass(self) -> None:
+        registry = SecretRegistry({"TOKEN": "tok-999"})
+        data = _HttpResponse(
+            status=200,
+            headers={"Auth": "tok-999"},
+            body="ok",
+        )
+        result = scrub_data(registry, data)
+        assert isinstance(result, dict)
+        assert "tok-999" not in str(result)
+        assert "{{secret:TOKEN}}" in str(result)
+
+    def test_scrub_data_list(self) -> None:
+        registry = SecretRegistry({"KEY": "secret-value"})
+        result = scrub_data(registry, ["secret-value", "safe"])
+        assert isinstance(result, list)
+        assert "secret-value" not in str(result)
+
+    def test_scrub_tool_output(self) -> None:
+        registry = SecretRegistry({"KEY": "secret-value"})
+        output = ToolOutput(
+            data={"x": "secret-value"},
+            text="text secret-value",
+        )
+        result = scrub_tool_output(registry, output)
+        assert "secret-value" not in result.text
+        assert "secret-value" not in str(result.data)
+        assert "{{secret:KEY}}" in result.text
+        assert "{{secret:KEY}}" in str(result.data)
