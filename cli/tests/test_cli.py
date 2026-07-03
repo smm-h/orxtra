@@ -464,3 +464,13 @@ def test_worker_commands() -> None:
 def test_total_command_count_is_27() -> None:
     total = sum(len(g.commands) for g in app._groups.values())  # noqa: SLF001
     assert total == 27
+
+
+# -- Structure: serve command (top-level) ------------------------------------------
+
+
+def test_serve_help_shows_secrets_env_flag() -> None:
+    """The serve command exposes --secrets-env in its help output."""
+    stdout, _, code = _test("--no-quiet", "serve", "--help")
+    assert code == 0
+    assert "--secrets-env" in stdout

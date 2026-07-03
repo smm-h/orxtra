@@ -6,6 +6,7 @@ starts the compositor server using fastware's granian backend.
 
 from __future__ import annotations
 
+import json
 import sys
 
 import strictcli
@@ -23,7 +24,20 @@ def register_serve_command(app: strictcli.App) -> None:
         help="Host to bind to.",
         default="0.0.0.0",  # noqa: S104
     )
-    def cmd_serve(*, db: str, port: int, host: str, **_kwargs: object) -> None:
+    @strictcli.flag(
+        name="secrets-env",
+        type=str,
+        help="JSON object mapping secret names to env var names for auth.",
+        default="",
+    )
+    def cmd_serve(
+        *,
+        db: str,
+        port: int,
+        host: str,
+        secrets_env: str,
+        **_kwargs: object,
+    ) -> None:
         if not db:
             print("--db is required for serve", file=sys.stderr)
             sys.exit(1)
@@ -31,10 +45,32 @@ def register_serve_command(app: strictcli.App) -> None:
             print("--port is required for serve", file=sys.stderr)
             sys.exit(1)
 
+        parsed_secrets_env: dict[str, str] | None = None
+        if secrets_env:
+            try:
+                parsed = json.loads(secrets_env)
+            except json.JSONDecodeError as exc:
+                print(
+                    f"--secrets-env must be valid JSON: {exc}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if not isinstance(parsed, dict) or not all(
+                isinstance(k, str) and isinstance(v, str)
+                for k, v in parsed.items()
+            ):
+                print(
+                    "--secrets-env must be a JSON object with string keys and values",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            parsed_secrets_env = parsed
+
         server_config = ServerConfig(
             db_url=db,
             port=port,
             host=host,
+            secrets_env=parsed_secrets_env,
         )
 
         asgi_app = build_app(server_config)

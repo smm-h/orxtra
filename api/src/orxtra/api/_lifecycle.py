@@ -33,6 +33,7 @@ class ServerConfig:
     agent_name: str = "orxtra"
     agent_url: str | None = None
     authenticator: Authenticator | None = None
+    secrets_env: dict[str, str] | None = None
 
 
 @asynccontextmanager
@@ -82,15 +83,22 @@ async def lifespan(
             name=server_config.agent_name,
         )
 
+        # Resolve authenticator: explicit takes precedence, then
+        # auto-construct from secrets_env if provided.
+        authenticator = server_config.authenticator
+        if authenticator is None and server_config.secrets_env is not None:
+            authenticator = _build_authenticator(pool, server_config.secrets_env)
+            log.info("Auth stack constructed from secrets_env")
+
         # Build incoming webhook router if authenticator is configured.
         incoming_router = None
-        if server_config.authenticator is not None:
+        if authenticator is not None:
             from orxtra.incoming import create_incoming_router  # noqa: PLC0415
 
             incoming_router = create_incoming_router(
                 pool=pool,
                 dispatch_backend=dispatch_backend,
-                authenticator=server_config.authenticator,
+                authenticator=authenticator,
             )
             log.info("Incoming webhook receiver mounted at /incoming")
 
@@ -98,7 +106,7 @@ async def lifespan(
             dispatch_context=ctx,
             agent_card=agent_card,
             skill_registry=skill_registry,
-            authenticator=server_config.authenticator,
+            authenticator=authenticator,
             incoming_router=incoming_router,
             cors_origins=server_config.cors_origins,
         )
@@ -110,6 +118,34 @@ async def lifespan(
         log.info("Shutting down: closing database pool")
         await pool.close()
         log.info("Shutdown complete")
+
+
+def _build_authenticator(
+    pool: Any,  # noqa: ANN401
+    secrets_env: dict[str, str],
+) -> Authenticator:
+    """Construct the full auth stack from a secrets env mapping.
+
+    Creates SecretRegistry, EnvMacProvider, AuthBackend, verifiers,
+    and assembles them into an Authenticator.
+    """
+    from orxtra.auth import (  # noqa: PLC0415
+        AuthBackend,
+        Authenticator,
+        HashCredentialVerifier,
+        HmacCredentialVerifier,
+    )
+    from orxtra.secrets import EnvMacProvider, create_secret_registry  # noqa: PLC0415
+
+    registry = create_secret_registry(secrets_env)
+    mac_provider = EnvMacProvider(registry)
+    auth_backend = AuthBackend(pool)
+    verifiers: dict[str, HashCredentialVerifier | HmacCredentialVerifier] = {
+        "bearer": HashCredentialVerifier("bearer", auth_backend),
+        "api_key": HashCredentialVerifier("api_key", auth_backend),
+        "hmac": HmacCredentialVerifier(mac_provider, auth_backend),
+    }
+    return Authenticator(auth_backend, verifiers)
 
 
 def build_app(server_config: ServerConfig) -> Any:  # noqa: ANN401
