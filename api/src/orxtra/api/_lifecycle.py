@@ -57,6 +57,10 @@ async def lifespan(
     pool: asyncpg.Pool = await asyncpg.create_pool(server_config.db_url)
 
     try:
+        from orxtra.services import verify_schema  # noqa: PLC0415
+
+        log.info("Verifying database schema")
+        await verify_schema(pool)
         ctx = DispatchContext(pool=pool)
 
         # Build skill registry and agent card.

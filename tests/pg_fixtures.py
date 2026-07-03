@@ -6,12 +6,12 @@ the pgdesign-generated executor.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
 
 import pytest
+from orxtra.services._schema import PG_UUIDV7_STUB, AsyncpgAdapter
 
 if TYPE_CHECKING:
-    import types
     from collections.abc import AsyncIterator, Iterator
 
     import asyncpg
@@ -31,59 +31,6 @@ skip_no_docker = pytest.mark.skipif(
 
 
 # ---------------------------------------------------------------------------
-# asyncpg adapter for the generated schema executor's AsyncConnection protocol
-# ---------------------------------------------------------------------------
-# asyncpg.Connection doesn't match the executor's protocol exactly:
-# - Transaction doesn't have execute(); queries go through the connection
-# - fetch() returns list[Record], not list[dict]
-# This adapter bridges the gap for test fixtures.
-
-
-class _AsyncpgTx:
-    """Adapter wrapping asyncpg transaction to satisfy AsyncTransaction."""
-
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
-        self._conn = conn
-        self._tx: Any = None
-
-    async def __aenter__(self) -> Self:
-        self._tx = self._conn.transaction()
-        await self._tx.start()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> None:
-        if exc_type is not None:
-            await self._tx.rollback()
-        else:
-            await self._tx.commit()
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
-
-
-class _AsyncpgAdapter:
-    """Adapter wrapping asyncpg.Connection to satisfy AsyncConnection."""
-
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
-        self._conn = conn
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
-
-    async def fetch(self, query: str) -> list[dict[str, Any]]:
-        rows = await self._conn.fetch(query)
-        return [dict(r) for r in rows]
-
-    def transaction(self) -> _AsyncpgTx:
-        return _AsyncpgTx(self._conn)
-
-
-# ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
@@ -95,18 +42,6 @@ def pg_container() -> Iterator[Any]:
         pytest.skip("testcontainers not available")
     with PostgresContainer("postgres:16") as pg:
         yield pg
-
-
-# pg_uuidv7 extension stub: PG16 testcontainers image lacks pg_uuidv7.
-# The generated DDL expects CREATE EXTENSION pg_uuidv7; this stub replaces
-# it with a function mapping uuid_generate_v7() to gen_random_uuid().
-# TraceWriter always supplies explicit UUIDs from Python; the DEFAULT
-# never fires in practice, but CREATE TABLE validates function existence.
-_PG_UUIDV7_STUB = """\
-CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid AS $$
-    SELECT gen_random_uuid();
-$$ LANGUAGE sql;
-"""
 
 
 @pytest.fixture
@@ -134,11 +69,11 @@ async def pg_pool(
         # Apply the full schema (trace -> dispatch -> auth) via the
         # generated executor, substituting the pg_uuidv7 extension
         # with a gen_random_uuid() stub for testcontainers PG.
-        adapter = _AsyncpgAdapter(conn)
+        adapter = AsyncpgAdapter(conn)
         result = await schema_execute(
             adapter,
             idempotent=False,
-            extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
+            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         if result.errors:
             err_msg = "; ".join(

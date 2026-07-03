@@ -5,10 +5,9 @@ commands on the orxtra CLI. Uses the pgdesign-generated schema executor for
 init/verify, and wraps ``pgdesign migrate`` subcommands for migrations.
 
 Layering note: the generated executor lives in ``schema/_generated/`` which
-is a dev_node (not a proper installed package). We add ``schema/`` to
-sys.path at import time, mirroring the approach in ``conftest.py``. The
-asyncpg adapter bridges asyncpg.Connection to the executor's AsyncConnection
-protocol.
+is a dev_node (not a proper installed package). The shared asyncpg adapter
+and pg_uuidv7 stub live in ``orxtra.services._schema``; importing that
+module adds schema/ to sys.path.
 """
 
 from __future__ import annotations
@@ -17,73 +16,10 @@ import asyncio
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
 
 import asyncpg
 import strictcli
-
-if TYPE_CHECKING:
-    import types
-
-# Add schema/ to sys.path so _generated.schema_executor is importable.
-_SCHEMA_DIR = str(Path(__file__).resolve().parents[5] / "schema")
-if _SCHEMA_DIR not in sys.path:
-    sys.path.append(_SCHEMA_DIR)
-
-
-# ---- asyncpg adapter (mirrors tests/pg_fixtures.py) ----
-
-
-class _AsyncpgTx:
-    """Adapter wrapping asyncpg transaction."""
-
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
-        self._conn = conn
-        self._tx: Any = None
-
-    async def __aenter__(self) -> Self:
-        self._tx = self._conn.transaction()
-        await self._tx.start()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> None:
-        if exc_type is not None:
-            await self._tx.rollback()
-        else:
-            await self._tx.commit()
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
-
-
-class _AsyncpgAdapter:
-    """Adapter wrapping asyncpg.Connection."""
-
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
-        self._conn = conn
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
-
-    async def fetch(self, query: str) -> list[dict[str, Any]]:
-        rows = await self._conn.fetch(query)
-        return [dict(r) for r in rows]
-
-    def transaction(self) -> _AsyncpgTx:
-        return _AsyncpgTx(self._conn)
-
-
-# pg_uuidv7 extension stub: standard PG images lack pg_uuidv7.
-_PG_UUIDV7_STUB = """\
-CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid AS $$
-    SELECT gen_random_uuid();
-$$ LANGUAGE sql;
-"""
+from orxtra.services._schema import PG_UUIDV7_STUB, AsyncpgAdapter
 
 
 def _die(message: str) -> None:
@@ -217,13 +153,13 @@ def register_db_commands(app: strictcli.App) -> None:  # noqa: C901
 
             conn = await asyncpg.connect(db_url)
             try:
-                adapter = _AsyncpgAdapter(conn)
+                adapter = AsyncpgAdapter(conn)
                 if use_stub:
                     result = await execute(
                         adapter,
                         idempotent=True,
                         extension_stubs={
-                            "pg_uuidv7": _PG_UUIDV7_STUB,
+                            "pg_uuidv7": PG_UUIDV7_STUB,
                         },
                     )
                 else:
@@ -263,7 +199,7 @@ def register_db_commands(app: strictcli.App) -> None:  # noqa: C901
 
             conn = await asyncpg.connect(db_url)
             try:
-                adapter = _AsyncpgAdapter(conn)
+                adapter = AsyncpgAdapter(conn)
                 result = await verify(adapter)
                 n_miss = len(result.missing)
                 n_present = len(result.present)

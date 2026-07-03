@@ -5,67 +5,13 @@ verification) against a real PostgreSQL database via testcontainers.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Self
+from typing import Any
+
+from orxtra.services._schema import PG_UUIDV7_STUB, AsyncpgAdapter
 
 from tests.pg_fixtures import skip_no_docker
 
-if TYPE_CHECKING:
-    import types
-
-    import asyncpg
-
 pytestmark = skip_no_docker
-
-
-class _AsyncpgTx:
-    """Adapter wrapping asyncpg transaction for the schema executor."""
-
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
-        self._conn = conn
-        self._tx: Any = None
-
-    async def __aenter__(self) -> Self:
-        self._tx = self._conn.transaction()
-        await self._tx.start()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> None:
-        if exc_type is not None:
-            await self._tx.rollback()
-        else:
-            await self._tx.commit()
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
-
-
-class _AsyncpgAdapter:
-    """Adapter wrapping asyncpg.Connection for the schema executor."""
-
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
-        self._conn = conn
-
-    async def execute(self, query: str) -> None:
-        await self._conn.execute(query)
-
-    async def fetch(self, query: str) -> list[dict[str, Any]]:
-        rows = await self._conn.fetch(query)
-        return [dict(r) for r in rows]
-
-    def transaction(self) -> _AsyncpgTx:
-        return _AsyncpgTx(self._conn)
-
-
-_PG_UUIDV7_STUB = """\
-CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid AS $$
-    SELECT gen_random_uuid();
-$$ LANGUAGE sql;
-"""
 
 
 async def test_db_init_creates_schema_on_empty_db(
@@ -86,12 +32,12 @@ async def test_db_init_creates_schema_on_empty_db(
         await conn.execute("DROP SCHEMA public CASCADE")
         await conn.execute("CREATE SCHEMA public")
 
-        adapter = _AsyncpgAdapter(conn)
+        adapter = AsyncpgAdapter(conn)
 
         result = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
+            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not result.errors, (
             f"Schema init errors: {result.errors}"
@@ -137,19 +83,19 @@ async def test_db_init_is_idempotent(
         await conn.execute("DROP SCHEMA public CASCADE")
         await conn.execute("CREATE SCHEMA public")
 
-        adapter = _AsyncpgAdapter(conn)
+        adapter = AsyncpgAdapter(conn)
 
         r1 = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
+            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not r1.errors
 
         r2 = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
+            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not r2.errors
     finally:
@@ -173,7 +119,7 @@ async def test_db_verify_detects_missing_on_empty_db(
         await conn.execute("DROP SCHEMA public CASCADE")
         await conn.execute("CREATE SCHEMA public")
 
-        adapter = _AsyncpgAdapter(conn)
+        adapter = AsyncpgAdapter(conn)
 
         vresult = await verify(adapter)
         assert len(vresult.missing) > 0
@@ -200,12 +146,12 @@ async def test_db_verify_zero_missing_after_init(
         await conn.execute("DROP SCHEMA public CASCADE")
         await conn.execute("CREATE SCHEMA public")
 
-        adapter = _AsyncpgAdapter(conn)
+        adapter = AsyncpgAdapter(conn)
 
         result = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
+            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not result.errors
 

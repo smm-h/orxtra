@@ -9,7 +9,7 @@ import asyncpg
 import strictcli
 from orxtra.cli._formatters import format_output
 from orxtra.services import DispatchContext, dispatch
-
+from orxtra.services._schema import verify_schema
 
 # -- Helpers --
 
@@ -38,6 +38,7 @@ def _dispatch_and_print(
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
+            await verify_schema(pool)
             ctx = DispatchContext(pool=pool)
             result = await dispatch(ctx, capability, args)
             _print(result, fmt)
@@ -58,6 +59,7 @@ def _dispatch_quiet(
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
+            await verify_schema(pool)
             ctx = DispatchContext(pool=pool)
             await dispatch(ctx, capability, args)
             if not quiet:
@@ -124,6 +126,7 @@ def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> No
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
+            await verify_schema(pool)
             ctx = DispatchContext(pool=pool)
             run_id = await dispatch(ctx, "start_run", {
                 "config_path": config,
@@ -149,6 +152,7 @@ def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> Non
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
+            await verify_schema(pool)
             ctx = DispatchContext(pool=pool)
             result = await dispatch(ctx, "get_run", {"run_id": run_id})
             if result is None:
@@ -322,6 +326,7 @@ def cmd_event_fire(
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
+            await verify_schema(pool)
             ctx = DispatchContext(pool=pool)
             event_id = await dispatch(ctx, "fire_event", {
                 "run_id": run_id,
@@ -402,6 +407,7 @@ def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> 
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
+            await verify_schema(pool)
             ctx = DispatchContext(pool=pool)
             result = await dispatch(ctx, "show_config", {"run_id": run_id})
             if result is None:

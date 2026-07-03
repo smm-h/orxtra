@@ -19,7 +19,7 @@ from orxtra.services._dispatch import (
     subscribe,
     unsubscribe,
 )
-from orxtra.services._providers import build_transport_registry
+from orxtra.services._dispatcher import DispatchContext, dispatch
 from orxtra.services._events import event_stream, fire_blocking, fire_event
 from orxtra.services._flush import AsyncioFlushScheduler
 from orxtra.services._inbox import (
@@ -28,6 +28,12 @@ from orxtra.services._inbox import (
     reject_inbox_item,
     respond_to_inbox,
     skip_inbox_item,
+)
+from orxtra.services._providers import build_transport_registry
+from orxtra.services._registry import (
+    get_capabilities,
+    get_capability,
+    get_capability_fn,
 )
 from orxtra.services._run import (
     RunConfig,
@@ -39,6 +45,13 @@ from orxtra.services._run import (
     start_run,
     start_run_from_file,
 )
+from orxtra.services._schema import (
+    PG_UUIDV7_STUB,
+    AsyncpgAdapter,
+    AsyncpgTx,
+    SchemaError,
+    verify_schema,
+)
 from orxtra.services._trace import (
     get_notepad,
     get_task_attempts,
@@ -47,8 +60,6 @@ from orxtra.services._trace import (
     query_events,
     search_transcript,
 )
-from orxtra.services._dispatcher import DispatchContext, dispatch
-from orxtra.services._registry import get_capabilities, get_capability, get_capability_fn
 from orxtra.services._validate import (
     validate_agent,
     validate_categories,
@@ -56,22 +67,29 @@ from orxtra.services._validate import (
 )
 
 __all__ = [
-    "__version__",
+    "PG_UUIDV7_STUB",
     "AsyncioFlushScheduler",
+    "AsyncpgAdapter",
+    "AsyncpgTx",
+    "DispatchContext",
+    "RunConfig",
+    "SchemaError",
     "ServicesActionExecutor",
+    "__version__",
+    "abort_run",
     "ask",
     "ask_structured",
-    "sync_ask",
-    "RunConfig",
-    "abort_run",
     "build_transport_registry",
     "create_source",
     "delete_source",
-    "show_config",
+    "dispatch",
     "event_stream",
     "execute_service_action",
     "fire_blocking",
     "fire_event",
+    "get_capabilities",
+    "get_capability",
+    "get_capability_fn",
     "get_inbox_item",
     "get_notepad",
     "get_run",
@@ -89,18 +107,16 @@ __all__ = [
     "respond_to_inbox",
     "resume_run",
     "search_transcript",
+    "show_config",
     "show_pricing",
     "skip_inbox_item",
     "start_run",
     "start_run_from_file",
     "subscribe",
+    "sync_ask",
     "unsubscribe",
     "validate_agent",
     "validate_categories",
     "validate_workflow",
-    "DispatchContext",
-    "dispatch",
-    "get_capabilities",
-    "get_capability",
-    "get_capability_fn",
+    "verify_schema",
 ]
