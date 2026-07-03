@@ -197,6 +197,27 @@ ignore = [
     "S603",    # subprocess calls are expected in scripts
     "INP001",  # scripts are implicit namespace packages
 ]
+# pgdesign-generated DDL modules: machine-generated code with long DDL strings,
+# unsorted imports, and patterns that don't match hand-written style rules.
+# Suppressed globally for the generated path; pgdesign codegen --check is the
+# freshness gate, not ruff.
+"schema/_generated/**" = [
+    "E501",     # long lines: DDL strings and inline SQL are inherently wide
+    "I001",     # import order: generated code has its own ordering
+    "N811",     # constant aliasing: STATEMENTS imported as _*_stmts
+    "PYI024",   # namedtuple vs NamedTuple: generated code uses collections.namedtuple
+    "TRY003",   # long exception messages inline: generated code patterns
+    "EM101",    # string literal in exception: generated code patterns
+    "EM102",    # f-string in exception: generated code patterns
+    "ANN001",   # missing type annotation: protocol __aexit__ params
+    "UP035",    # deprecated typing imports: generated code targets broad compatibility
+    "PYI034",   # __aenter__ return type: generated protocol
+    "PLR0913",  # too many arguments: execute() has many options
+    "PLR0912",  # too many branches: execute() handles many section kinds
+    "C901",     # complexity: Section.exists() dispatches across many kinds
+    "BLE001",   # blind except: generated error handling
+    "INP001",   # implicit namespace package: _generated is a standalone package
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -246,6 +267,14 @@ disallow_untyped_decorators = false
 [[tool.mypy.overrides]]
 module = "orxtra.worker._cli"
 disallow_untyped_decorators = false
+
+# pgdesign-generated DDL modules have minor type annotation gaps
+# (untyped __aexit__ params, bare dict instead of dict[str, Any],
+# async context manager protocol mismatch). Filed as pgdesign todo.
+[[tool.mypy.overrides]]
+module = "_generated.*"
+strict = false
+disallow_untyped_defs = false
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
