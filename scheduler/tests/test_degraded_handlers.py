@@ -29,7 +29,7 @@ from orxtra.scheduler._overseer import (
     _write_to_trace,
 )
 
-from tests.conftest import MockTraceWriter
+from .conftest import MockTraceWriter
 
 
 def _make_task_failed() -> TaskFailed:

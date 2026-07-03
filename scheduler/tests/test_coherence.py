@@ -13,7 +13,7 @@ import uuid6
 from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,

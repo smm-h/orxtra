@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
     from orxtra.agent import Agent
 
-    from tests.conftest import (
+    from .conftest import (
         MockTraceWriter,
         MockTransport,
     )

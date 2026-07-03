@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from orxtra.scheduler._executor import Scheduler
 
-    from tests.conftest import MockTraceWriter
+    from .conftest import MockTraceWriter
 
 type _SchedulerFactory = Callable[..., Scheduler]
 type _ListenerCallback = Callable[[object, int, str, str], None]

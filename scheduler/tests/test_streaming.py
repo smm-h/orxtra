@@ -11,7 +11,7 @@ from orxtra.protocols import TaskSpec, TaskState, Tool, ToolError
 from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result, StepFinish, StreamDelta, ToolUse
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     make_categories,
 )

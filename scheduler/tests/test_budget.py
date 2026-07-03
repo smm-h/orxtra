@@ -10,7 +10,7 @@ from orxtra.protocols import BudgetExhaustionPolicy, TaskSpec, TaskState, ToolEr
 from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Usage
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,

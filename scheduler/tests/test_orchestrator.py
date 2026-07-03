@@ -21,7 +21,7 @@ from orxtra.transport import (
     ToolUse,
 )
 
-from tests.conftest import MockTransport
+from .conftest import MockTransport
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from orxtra.protocols import Tool
     from orxtra.scheduler._executor import Scheduler
 
-    from tests.conftest import MockTraceWriter
+    from .conftest import MockTraceWriter
 
 
 @pytest.fixture

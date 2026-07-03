@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from orxtra.scheduler._executor import Scheduler
 
-    from tests.conftest import MockTraceWriter
+    from .conftest import MockTraceWriter
 
 
 async def _noop_callable(

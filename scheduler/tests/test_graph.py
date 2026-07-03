@@ -17,7 +17,7 @@ from orxtra.scheduler._types import WorkflowConfig
 if TYPE_CHECKING:
     from orxtra.scheduler._executor import Scheduler
 
-    from tests.conftest import MockTraceWriter
+    from .conftest import MockTraceWriter
 
 
 def _make_task(name: str) -> TaskSpec:

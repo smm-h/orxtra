@@ -17,7 +17,7 @@ from orxtra.protocols import (
 from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result, StepFinish
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,

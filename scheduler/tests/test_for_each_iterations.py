@@ -9,7 +9,7 @@ from orxtra.protocols import TaskSpec
 if TYPE_CHECKING:
     from orxtra.scheduler._executor import Scheduler
 
-    from tests.conftest import MockTraceWriter
+    from .conftest import MockTraceWriter
 
 
 class TestForEachIterations:

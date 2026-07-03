@@ -15,7 +15,7 @@ from orxtra.scheduler._types import (
     WorkflowConfig,
 )
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,

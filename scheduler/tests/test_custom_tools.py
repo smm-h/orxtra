@@ -11,7 +11,7 @@ from orxtra.agent import Agent
 from orxtra.protocols import TaskSpec, Tool
 from orxtra.scheduler._executor import Scheduler
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_categories,

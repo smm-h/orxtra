@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
     from orxtra.transport import TransportEvent
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,

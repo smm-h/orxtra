@@ -34,7 +34,7 @@ from orxtra.scheduler._executor import Scheduler, classify_error
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.transport import Result, StepFinish, ToolUse
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,

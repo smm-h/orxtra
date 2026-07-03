@@ -7,7 +7,7 @@ import uuid6
 from orxtra.protocols import TaskSpec
 from orxtra.scheduler._executor import Scheduler
 
-from tests.conftest import (
+from .conftest import (
     MockTraceWriter,
     MockTransport,
     make_agent,
