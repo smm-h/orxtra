@@ -38,7 +38,7 @@ Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 | Orchestration | [scheduler](scheduler/), [dispatch](dispatch/) | scheduler depends on foundation + dispatch; dispatch depends on protocols |
 | Intelligence | [overseer](overseer/) | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Composition | [services](services/) | Depends on orchestration + intelligence; provides concrete implementations (ActionExecutor, FlushScheduler) and service functions |
-| Interfaces | [cli](cli/), [mcp](mcp/), [a2a](a2a/), [agui](agui/), [api](api/) | Depends on composition |
+| Interfaces | [cli](cli/), [mcp](mcp/), [a2a](a2a/), [agui](agui/), [api](api/), [incoming](incoming/) | Depends on composition |
 
 Higher layers can depend on lower layers. Lower layers cannot depend on higher layers. The Overseer and scheduler share types via the protocols module but never import each other.
 
@@ -67,6 +67,7 @@ Higher layers can depend on lower layers. Lower layers cannot depend on higher l
 - **[A2A](a2a/)** is an A2A (Agent-to-Agent) protocol server. Agent card generation, skill registry, task state bridging.
 - **[AG-UI](agui/)** is the AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots.
 - **[API](api/)** is the HTTP compositor that mounts MCP, A2A, AG-UI, and native routes on a single ASGI app.
+- **[Incoming](incoming/)** is the external event ingestion interface. Webhook receiver (POST /events/{slug} with HMAC verification), cursor-based event replay, and SSE stream with hand-built catch-up. Mounted by the api compositor.
 
 ## Examples
 

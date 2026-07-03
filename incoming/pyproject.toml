@@ -1,23 +1,20 @@
 [project]
-name = "orxtra-api"
+name = "orxtra-incoming"
 version = "0.8.0"
 license = "BUSL-1.1"
-description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
+description = "Webhook receiver, event replay, and SSE stream. External event ingestion for the event bus."
 requires-python = ">=3.12"
 dependencies = [
     "fastware",
-    "orxtra-auth",
-    "orxtra-mcp",
-    "orxtra-a2a",
-    "orxtra-agui",
+    "orxtra-protocols",
     "orxtra-services",
-    "orxtra-incoming",
-    "asyncpg",
+    "orxtra-auth",
+    "orxtra-trace",
 ]
 keywords = ["rlsbl"]
 
 [dependency-groups]
-dev = ["pytest-asyncio>=1.4.0"]
+dev = ["pytest>=9.1.0", "pytest-asyncio>=1.4.0"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -31,9 +28,7 @@ build-backend = "hatchling.build"
 packages = ["src/orxtra"]
 
 [tool.uv.sources]
-orxtra-auth = { workspace = true }
-orxtra-mcp = { workspace = true }
-orxtra-a2a = { workspace = true }
-orxtra-agui = { workspace = true }
+orxtra-protocols = { workspace = true }
 orxtra-services = { workspace = true }
-orxtra-incoming = { workspace = true }
+orxtra-auth = { workspace = true }
+orxtra-trace = { workspace = true }

@@ -62,6 +62,7 @@ include = [
     "api/src/",
     "worker/src/",
     "compose/src/",
+    "incoming/src/",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -94,6 +95,7 @@ members = [
     "api",
     "worker",
     "compose",
+    "incoming",
 ]
 
 [tool.uv.sources]
@@ -120,6 +122,7 @@ orxtra-agui = { workspace = true }
 orxtra-api = { workspace = true }
 orxtra-worker = { workspace = true }
 orxtra-compose = { workspace = true }
+orxtra-incoming = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -156,6 +159,7 @@ dev = [
     "orxtra-api",
     "orxtra-worker",
     "orxtra-compose",
+    "orxtra-incoming",
 ]
 
 [tool.ruff]

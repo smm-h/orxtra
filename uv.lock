@@ -20,6 +20,7 @@ members = [
     "orxtra-cli",
     "orxtra-compose",
     "orxtra-dispatch",
+    "orxtra-incoming",
     "orxtra-mcp",
     "orxtra-notepad",
     "orxtra-overseer",
@@ -896,6 +897,7 @@ dev = [
     { name = "orxtra-cli" },
     { name = "orxtra-compose" },
     { name = "orxtra-dispatch" },
+    { name = "orxtra-incoming" },
     { name = "orxtra-mcp" },
     { name = "orxtra-notepad" },
     { name = "orxtra-overseer" },
@@ -947,6 +949,7 @@ dev = [
     { name = "orxtra-cli", editable = "cli" },
     { name = "orxtra-compose", editable = "compose" },
     { name = "orxtra-dispatch", editable = "dispatch" },
+    { name = "orxtra-incoming", editable = "incoming" },
     { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-notepad", editable = "notepad" },
     { name = "orxtra-overseer", editable = "overseer" },
@@ -1076,6 +1079,7 @@ dependencies = [
     { name = "orxtra-a2a" },
     { name = "orxtra-agui" },
     { name = "orxtra-auth" },
+    { name = "orxtra-incoming" },
     { name = "orxtra-mcp" },
     { name = "orxtra-services" },
 ]
@@ -1092,6 +1096,7 @@ requires-dist = [
     { name = "orxtra-a2a", editable = "a2a" },
     { name = "orxtra-agui", editable = "agui" },
     { name = "orxtra-auth", editable = "auth" },
+    { name = "orxtra-incoming", editable = "incoming" },
     { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-services", editable = "services" },
 ]
@@ -1184,6 +1189,39 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxtra-incoming"
+version = "0.8.0"
+source = { editable = "incoming" }
+dependencies = [
+    { name = "fastware" },
+    { name = "orxtra-auth" },
+    { name = "orxtra-protocols" },
+    { name = "orxtra-services" },
+    { name = "orxtra-trace" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastware" },
+    { name = "orxtra-auth", editable = "auth" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "orxtra-services", editable = "services" },
+    { name = "orxtra-trace", editable = "trace" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1.0" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
+]
 
 [[package]]
 name = "orxtra-mcp"

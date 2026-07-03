@@ -184,9 +184,15 @@ library = true
 releasable = "orxtra"
 
 [[projects]]
+path = "incoming"
+description = "Webhook receiver, event replay, and SSE stream. External event ingestion for the event bus."
+depends_on = ["protocols", "services", "auth", "trace"]
+releasable = "orxtra"
+
+[[projects]]
 path = "api"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
-depends_on = ["mcp", "a2a", "agui", "services", "auth"]
+depends_on = ["mcp", "a2a", "agui", "services", "auth", "incoming"]
 releasable = "orxtra"
 
 # --- Infrastructure ---
@@ -213,4 +219,4 @@ foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "too
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]
-interfaces = ["cli", "mcp", "a2a", "agui", "api"]
+interfaces = ["cli", "mcp", "a2a", "agui", "api", "incoming"]
