@@ -8,6 +8,7 @@ from orxtra.services._dispatch import (
     create_source,
     delete_source,
     get_source,
+    get_source_by_slug,
     list_sources,
     list_subscriptions,
     subscribe,
@@ -300,3 +301,59 @@ async def test_delete_source_nonexistent_noop(
 
     # Should not raise.
     await delete_source(backend, uuid4())
+
+
+# -- create_source with config --
+
+
+@pytest.mark.asyncio
+async def test_create_source_with_config(backend: InMemoryDispatchBackend) -> None:
+    """Source config is stored and retrievable."""
+    cfg = {"event_type_path": "$.headers.X-Event-Type", "mapping": {"push": "git.push"}}
+    source_id = await create_source(backend, "gh", "GitHub", config=cfg)
+    source = await backend.get_source(source_id)
+    assert source is not None
+    assert source.config == cfg
+
+
+@pytest.mark.asyncio
+async def test_create_source_config_none_by_default(
+    backend: InMemoryDispatchBackend,
+) -> None:
+    """Config defaults to None when not provided."""
+    source_id = await create_source(backend, "plain", "Plain")
+    source = await backend.get_source(source_id)
+    assert source is not None
+    assert source.config is None
+
+
+# -- get_source_by_slug --
+
+
+@pytest.mark.asyncio
+async def test_get_source_by_slug(backend: InMemoryDispatchBackend) -> None:
+    await create_source(backend, "gitlab", "GitLab")
+    source = await get_source_by_slug(backend, "gitlab")
+    assert source is not None
+    assert source.slug == "gitlab"
+    assert source.name == "GitLab"
+
+
+@pytest.mark.asyncio
+async def test_get_source_by_slug_not_found(
+    backend: InMemoryDispatchBackend,
+) -> None:
+    result = await get_source_by_slug(backend, "nonexistent")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_source_by_slug_with_config(
+    backend: InMemoryDispatchBackend,
+) -> None:
+    """get_source_by_slug preserves config."""
+    cfg = {"event_type_field": "action"}
+    await create_source(backend, "webhook", "Webhook", config=cfg)
+    source = await get_source_by_slug(backend, "webhook")
+    assert source is not None
+    assert source.config == cfg

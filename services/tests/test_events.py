@@ -10,7 +10,7 @@ from uuid import uuid4
 import asyncpg  # type: ignore[import-untyped]
 import pytest
 from orxtra.services._events import event_stream, fire_event
-from orxtra.trace import InMemoryEventBus
+from orxtra.trace import EVENTS_CHANNEL, InMemoryEventBus
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -24,7 +24,7 @@ def mock_pool() -> AsyncMock:
 @pytest.fixture
 def mock_writer() -> AsyncMock:
     writer = AsyncMock()
-    writer.write_event = AsyncMock(return_value=uuid4())
+    writer.write_event = AsyncMock(return_value=(uuid4(), True))
     return writer
 
 
@@ -36,16 +36,19 @@ def mock_writer() -> AsyncMock:
 async def test_fire_event_basic(
     mock_writer_cls: AsyncMock, mock_pool: AsyncMock, sample_run_id: UUID
 ) -> None:
+    expected_id = uuid4()
     mock_writer = mock_writer_cls.return_value
-    mock_writer.write_event = AsyncMock(return_value=uuid4())
+    mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
-    result = await fire_event(mock_pool, sample_run_id, "task_started")
+    event_id, inserted = await fire_event(mock_pool, sample_run_id, "task_started")
 
     mock_writer_cls.assert_called_once_with(mock_pool)
     mock_writer.write_event.assert_awaited_once_with(
-        sample_run_id, "task_started", {}, source="internal"
+        sample_run_id, "task_started", {},
+        source="internal", idempotency_key=None,
     )
-    assert result == mock_writer.write_event.return_value
+    assert event_id == expected_id
+    assert inserted is True
 
 
 @pytest.mark.asyncio
@@ -53,19 +56,22 @@ async def test_fire_event_basic(
 async def test_fire_event_with_payload(
     mock_writer_cls: AsyncMock, mock_pool: AsyncMock, sample_run_id: UUID
 ) -> None:
+    expected_id = uuid4()
     mock_writer = mock_writer_cls.return_value
-    mock_writer.write_event = AsyncMock(return_value=uuid4())
+    mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
     payload = {"task_id": "abc", "status": "done"}
 
-    result = await fire_event(
+    event_id, inserted = await fire_event(
         mock_pool, sample_run_id, "task_completed", payload=payload
     )
 
     mock_writer_cls.assert_called_once_with(mock_pool)
     mock_writer.write_event.assert_awaited_once_with(
-        sample_run_id, "task_completed", payload, source="internal"
+        sample_run_id, "task_completed", payload,
+        source="internal", idempotency_key=None,
     )
-    assert result == mock_writer.write_event.return_value
+    assert event_id == expected_id
+    assert inserted is True
 
 
 @pytest.mark.asyncio
@@ -74,13 +80,14 @@ async def test_fire_event_none_payload(
     mock_writer_cls: AsyncMock, mock_pool: AsyncMock, sample_run_id: UUID
 ) -> None:
     mock_writer = mock_writer_cls.return_value
-    mock_writer.write_event = AsyncMock(return_value=uuid4())
+    mock_writer.write_event = AsyncMock(return_value=(uuid4(), True))
 
     await fire_event(mock_pool, sample_run_id, "ping", payload=None)
 
     mock_writer_cls.assert_called_once_with(mock_pool)
     mock_writer.write_event.assert_awaited_once_with(
-        sample_run_id, "ping", {}, source="internal"
+        sample_run_id, "ping", {},
+        source="internal", idempotency_key=None,
     )
 
 
@@ -106,17 +113,62 @@ async def test_fire_event_propagates_write_error(
 async def test_fire_event_with_source(
     mock_writer_cls: AsyncMock, mock_pool: AsyncMock, sample_run_id: UUID
 ) -> None:
+    expected_id = uuid4()
     mock_writer = mock_writer_cls.return_value
-    mock_writer.write_event = AsyncMock(return_value=uuid4())
+    mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
-    result = await fire_event(
+    event_id, inserted = await fire_event(
         mock_pool, sample_run_id, "task_started", source="agent"
     )
 
     mock_writer.write_event.assert_awaited_once_with(
-        sample_run_id, "task_started", {}, source="agent"
+        sample_run_id, "task_started", {},
+        source="agent", idempotency_key=None,
     )
-    assert result == mock_writer.write_event.return_value
+    assert event_id == expected_id
+    assert inserted is True
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._events.TraceWriter")
+async def test_fire_event_with_idempotency_key(
+    mock_writer_cls: AsyncMock, mock_pool: AsyncMock, sample_run_id: UUID
+) -> None:
+    """fire_event passes idempotency_key through to TraceWriter."""
+    expected_id = uuid4()
+    mock_writer = mock_writer_cls.return_value
+    mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
+
+    event_id, inserted = await fire_event(
+        mock_pool, sample_run_id, "webhook_event",
+        idempotency_key="github-delivery-abc123",
+    )
+
+    mock_writer.write_event.assert_awaited_once_with(
+        sample_run_id, "webhook_event", {},
+        source="internal", idempotency_key="github-delivery-abc123",
+    )
+    assert event_id == expected_id
+    assert inserted is True
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._events.TraceWriter")
+async def test_fire_event_idempotency_dedup(
+    mock_writer_cls: AsyncMock, mock_pool: AsyncMock, sample_run_id: UUID
+) -> None:
+    """When idempotency_key triggers dedup, inserted is False."""
+    expected_id = uuid4()
+    mock_writer = mock_writer_cls.return_value
+    mock_writer.write_event = AsyncMock(return_value=(expected_id, False))
+
+    event_id, inserted = await fire_event(
+        mock_pool, sample_run_id, "webhook_event",
+        idempotency_key="github-delivery-dup",
+    )
+
+    assert event_id == expected_id
+    assert inserted is False
 
 
 # ── fire_blocking tests ──
@@ -128,13 +180,14 @@ def test_fire_blocking_calls_fire_event(sample_run_id: UUID) -> None:
 
     with patch("orxtra.services._events.TraceWriter") as mock_writer_cls:
         mock_writer = mock_writer_cls.return_value
-        mock_writer.write_event = AsyncMock(return_value=expected_id)
+        mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
         from orxtra.services._events import fire_blocking
 
-        result = fire_blocking(AsyncMock(), sample_run_id, "test_event")
+        event_id, inserted = fire_blocking(AsyncMock(), sample_run_id, "test_event")
 
-    assert result == expected_id
+    assert event_id == expected_id
+    assert inserted is True
 
 
 def test_fire_blocking_with_source(sample_run_id: UUID) -> None:
@@ -143,15 +196,16 @@ def test_fire_blocking_with_source(sample_run_id: UUID) -> None:
 
     with patch("orxtra.services._events.TraceWriter") as mock_writer_cls:
         mock_writer = mock_writer_cls.return_value
-        mock_writer.write_event = AsyncMock(return_value=expected_id)
+        mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
         from orxtra.services._events import fire_blocking
 
-        result = fire_blocking(
+        event_id, inserted = fire_blocking(
             AsyncMock(), sample_run_id, "test_event", source="agent"
         )
 
-    assert result == expected_id
+    assert event_id == expected_id
+    assert inserted is True
 
 
 def test_fire_blocking_from_different_thread(sample_run_id: UUID) -> None:
@@ -164,13 +218,14 @@ def test_fire_blocking_from_different_thread(sample_run_id: UUID) -> None:
     try:
         with patch("orxtra.services._events.TraceWriter") as mock_writer_cls:
             mock_writer = mock_writer_cls.return_value
-            mock_writer.write_event = AsyncMock(return_value=expected_id)
+            mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
             from orxtra.services._events import fire_blocking
 
-            result = fire_blocking(AsyncMock(), sample_run_id, "test_event")
+            event_id, inserted = fire_blocking(AsyncMock(), sample_run_id, "test_event")
 
-        assert result == expected_id
+        assert event_id == expected_id
+        assert inserted is True
     finally:
         loop.call_soon_threadsafe(loop.stop)
         thread.join(timeout=5)
@@ -183,7 +238,7 @@ def test_fire_blocking_from_loop_thread_raises(sample_run_id: UUID) -> None:
     async def _inner() -> None:
         with patch("orxtra.services._events.TraceWriter") as mock_writer_cls:
             mock_writer = mock_writer_cls.return_value
-            mock_writer.write_event = AsyncMock(return_value=uuid4())
+            mock_writer.write_event = AsyncMock(return_value=(uuid4(), True))
 
             from orxtra.services._events import fire_blocking
 
@@ -225,7 +280,7 @@ class TestEventStream:
         # Let the task run to the first __anext__, which subscribes
         await asyncio.sleep(0)
 
-        await bus.publish("events", payload)
+        await bus.publish(EVENTS_CHANNEL, payload)
         await asyncio.sleep(0)
 
         await asyncio.wait_for(task, timeout=1.0)
@@ -252,14 +307,14 @@ class TestEventStream:
         await asyncio.sleep(0)
 
         # Wrong run_id -- filtered out
-        await bus.publish("events", json.dumps({
+        await bus.publish(EVENTS_CHANNEL, json.dumps({
             "run_id": str(other_run_id),
             "event_type": "task_started",
         }))
         await asyncio.sleep(0)
 
         # Correct run_id -- passes through
-        await bus.publish("events", json.dumps({
+        await bus.publish(EVENTS_CHANNEL, json.dumps({
             "run_id": str(target_run_id),
             "event_type": "task_completed",
         }))
@@ -287,13 +342,13 @@ class TestEventStream:
         await asyncio.sleep(0)
 
         # Non-matching type
-        await bus.publish("events", json.dumps({
+        await bus.publish(EVENTS_CHANNEL, json.dumps({
             "event_type": "task_started",
         }))
         await asyncio.sleep(0)
 
         # Matching type
-        await bus.publish("events", json.dumps({
+        await bus.publish(EVENTS_CHANNEL, json.dumps({
             "event_type": "task_completed",
             "data": {"result": "ok"},
         }))
@@ -321,7 +376,7 @@ class TestEventStream:
         await asyncio.sleep(0)
 
         # Default channel -- not received
-        await bus.publish("events", json.dumps({"event_type": "nope"}))
+        await bus.publish(EVENTS_CHANNEL, json.dumps({"event_type": "nope"}))
         await asyncio.sleep(0)
 
         # Custom channel -- received
@@ -352,7 +407,7 @@ class TestEventStream:
         await asyncio.sleep(0)
 
         for i in range(3):
-            await bus.publish("events", json.dumps({
+            await bus.publish(EVENTS_CHANNEL, json.dumps({
                 "event_type": "ev",
                 "index": i,
             }))
@@ -386,21 +441,21 @@ class TestEventStream:
         await asyncio.sleep(0)
 
         # Wrong run_id, right type
-        await bus.publish("events", json.dumps({
+        await bus.publish(EVENTS_CHANNEL, json.dumps({
             "run_id": str(other_run),
             "event_type": "task_completed",
         }))
         await asyncio.sleep(0)
 
         # Right run_id, wrong type
-        await bus.publish("events", json.dumps({
+        await bus.publish(EVENTS_CHANNEL, json.dumps({
             "run_id": str(target_run),
             "event_type": "task_started",
         }))
         await asyncio.sleep(0)
 
         # Right run_id, right type
-        await bus.publish("events", json.dumps({
+        await bus.publish(EVENTS_CHANNEL, json.dumps({
             "run_id": str(target_run),
             "event_type": "task_completed",
             "data": {"match": True},

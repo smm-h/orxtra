@@ -283,11 +283,12 @@ class TestWriteEvent:
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
-            result = await writer.write_event(
+            event_id, inserted = await writer.write_event(
                 RUN_ID, "test_event", {"key": "value"},
             )
 
-        assert result == TEST_UUID
+        assert event_id == TEST_UUID
+        assert inserted is True
         sql, args = mock_pool.conn.executed[0]
         assert "insert into events" in sql.lower()
         assert args == (
@@ -303,12 +304,13 @@ class TestWriteEvent:
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
-            result = await writer.write_event(
+            event_id, inserted = await writer.write_event(
                 RUN_ID, "test_event", {"key": "value"},
                 task_id=TASK_ID,
             )
 
-        assert result == TEST_UUID
+        assert event_id == TEST_UUID
+        assert inserted is True
         sql, args = mock_pool.conn.executed[0]
         assert "insert into events" in sql.lower()
         assert args == (
@@ -317,6 +319,45 @@ class TestWriteEvent:
             "test_event", json.dumps({"key": "value"}),
         )
 
+    async def test_write_event_with_idempotency_key(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        with patch(
+            "orxtra.trace._writer.uuid6.uuid7",
+            return_value=TEST_UUID,
+        ):
+            event_id, inserted = await writer.write_event(
+                RUN_ID, "test_event", {"key": "value"},
+                idempotency_key="dedup-key-1",
+            )
+
+        assert event_id == TEST_UUID
+        assert inserted is True
+        sql, args = mock_pool.conn.executed[0]
+        assert "on conflict (idempotency_key)" in sql.lower()
+        assert args == (
+            TEST_UUID, RUN_ID, None,
+            "internal",
+            "test_event", json.dumps({"key": "value"}),
+            "dedup-key-1",
+        )
+
+    async def test_write_event_idempotency_dedup(
+        self, writer: TraceWriter, mock_pool: MockPool,
+    ) -> None:
+        """When ON CONFLICT fires (INSERT 0), inserted is False."""
+        mock_pool.conn.queue_execute("INSERT 0")
+        with patch(
+            "orxtra.trace._writer.uuid6.uuid7",
+            return_value=TEST_UUID,
+        ):
+            event_id, inserted = await writer.write_event(
+                RUN_ID, "test_event", {"key": "value"},
+                idempotency_key="dedup-key-dup",
+            )
+
+        assert event_id == TEST_UUID
+        assert inserted is False
 
 
 class TestTranscript:

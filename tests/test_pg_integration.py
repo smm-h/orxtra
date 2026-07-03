@@ -160,11 +160,12 @@ class TestTraceWriter:
         writer = TraceWriter(pg_pool)
         run_id = await _create_run(writer)
 
-        event_id = await writer.write_event(
+        event_id, inserted = await writer.write_event(
             run_id=run_id,
             event_type="test_event",
             data={"foo": "bar"},
         )
+        assert inserted is True
 
         row = await pg_pool.fetchrow(
             "SELECT event_type, data FROM events WHERE id = $1", event_id

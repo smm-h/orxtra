@@ -324,3 +324,53 @@ class TestBufferClaimConfirmCycle:
         # Manually trigger the flush method on an empty buffer.
         await engine._flush_action(action)
         assert len(flush_calls) == 0
+
+
+class TestAccumulatorUsesRealEventId:
+    """Accumulator buffering must use the trace event_id when provided."""
+
+    async def test_buffer_uses_provided_event_id(self) -> None:
+        """When fire() receives event_id, the accumulator entry uses it."""
+        from uuid import UUID
+
+        backend = InMemoryDispatchBackend()
+        sub = _make_sub(event_types=["evt"])
+        await backend.create_subscription(sub)
+
+        action = _make_action(
+            sub_id=sub.id,
+            action=ScriptAction(callable="_handlers:flush_handler"),
+            accumulator_config={"threshold": 10, "flush_interval_s": 0},
+        )
+        await backend.create_action(action)
+
+        engine = DualPhaseEventDelivery(backend=backend)
+
+        real_event_id = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+        await engine.fire("evt", {"x": 1}, event_id=real_event_id)
+
+        # The buffered entry should carry the real event_id, not a fabricated one.
+        batch = await backend.claim_batch(action.id)
+        assert len(batch) == 1
+        assert batch[0].event_id == real_event_id
+
+    async def test_buffer_fabricates_id_when_none_provided(self) -> None:
+        """When fire() receives no event_id, a uuid7 is fabricated (fallback)."""
+        backend = InMemoryDispatchBackend()
+        sub = _make_sub(event_types=["evt"])
+        await backend.create_subscription(sub)
+
+        action = _make_action(
+            sub_id=sub.id,
+            action=ScriptAction(callable="_handlers:flush_handler"),
+            accumulator_config={"threshold": 10, "flush_interval_s": 0},
+        )
+        await backend.create_action(action)
+
+        engine = DualPhaseEventDelivery(backend=backend)
+        await engine.fire("evt", {"x": 1})
+
+        batch = await backend.claim_batch(action.id)
+        assert len(batch) == 1
+        # Just verify it's a valid UUID (not None or empty).
+        assert batch[0].event_id is not None

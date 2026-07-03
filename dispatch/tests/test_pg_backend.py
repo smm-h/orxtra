@@ -326,6 +326,7 @@ class TestSourceStorage:
             "slug": "gh",
             "name": "GitHub",
             "credential_id": None,
+            "config": None,
             "created_at": NOW,
         })
         result = await pg_backend.get_source(source_id)
@@ -353,6 +354,7 @@ class TestSourceStorage:
             "slug": "stripe",
             "name": "Stripe",
             "credential_id": None,
+            "config": None,
             "created_at": NOW,
         })
         result = await pg_backend.get_source_by_slug("stripe")
@@ -370,11 +372,13 @@ class TestSourceStorage:
             {
                 "id": uuid7(), "slug": "a", "name": "A",
                 "credential_id": None,
+                "config": None,
                 "created_at": NOW,
             },
             {
                 "id": uuid7(), "slug": "b", "name": "B",
                 "credential_id": None,
+                "config": None,
                 "created_at": NOW,
             },
         ])

@@ -99,7 +99,8 @@ class MockTraceWriter:
         data: dict[str, Any],
         task_id: UUID | None = None,
         source: str = "internal",
-    ) -> UUID:
+        idempotency_key: str | None = None,
+    ) -> tuple[UUID, bool]:
         event_id = uuid6.uuid7()
         self.events.append({
             "event_id": event_id,
@@ -108,7 +109,7 @@ class MockTraceWriter:
             "data": data,
             "source": source,
         })
-        return event_id
+        return event_id, True
 
 
 # ── Integration tests ──

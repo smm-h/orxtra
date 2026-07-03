@@ -48,6 +48,7 @@ EXPECTED_NAMES: set[str] = {
     "list_subscriptions",
     "create_source",
     "get_source",
+    "get_source_by_slug",
     "list_sources",
     "delete_source",
 }

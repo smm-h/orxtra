@@ -91,7 +91,7 @@ async def test_execute_service_action_event(
     mock_pool: AsyncMock,
 ) -> None:
     mock_writer = mock_writer_cls.return_value
-    mock_writer.write_event = AsyncMock(return_value=uuid4())
+    mock_writer.write_event = AsyncMock(return_value=(uuid4(), True))
     action = EventAction(event_type="custom_event", data={"key": "val"})
 
     await execute_service_action(
