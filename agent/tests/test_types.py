@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
-from orxtra.agent import Agent, ExecToolConfig, ShellConfig
+from orxtra.agent import Agent, InlineToolDefinition
 from pydantic import ValidationError
 
 
@@ -59,47 +59,30 @@ class TestAgentModel:
             agent.name = "other"  # type: ignore[misc]
 
 
-class TestExecToolConfig:
+class TestInlineToolDefinition:
     def test_valid(self) -> None:
-        cfg = ExecToolConfig(
+        itd = InlineToolDefinition(
             name="pytest",
-            executable="pytest",
             description="Run pytest",
+            namespace="custom.exec",
+            deferred=False,
+            execution={"type": "command", "executable": "pytest",
+                        "arg_validation": True, "timeout_ceiling": 300},
         )
-        assert cfg.name == "pytest"
-        assert cfg.timeout_ceiling == 300
-
-    def test_custom_timeout(self) -> None:
-        cfg = ExecToolConfig(
-            name="pytest",
-            executable="pytest",
-            description="Run pytest",
-            timeout_ceiling=60,
-        )
-        assert cfg.timeout_ceiling == 60
+        assert itd.name == "pytest"
+        assert itd.namespace == "custom.exec"
 
     def test_rejects_extra(self) -> None:
         with pytest.raises(ValidationError):
-            ExecToolConfig(
+            InlineToolDefinition(
                 name="pytest",
-                executable="pytest",
                 description="Run pytest",
-                extra="bad",
+                namespace="custom.exec",
+                deferred=False,
+                execution={"type": "command", "executable": "pytest",
+                            "arg_validation": True, "timeout_ceiling": 300},
+                extra="bad",  # type: ignore[call-arg]
             )
-
-
-class TestShellConfig:
-    def test_valid(self) -> None:
-        cfg = ShellConfig(allowed_binaries=["ls", "cat"])
-        assert cfg.allowed_binaries == ["ls", "cat"]
-        assert cfg.timeout_ceiling == 300
-
-    def test_custom_description(self) -> None:
-        cfg = ShellConfig(
-            allowed_binaries=["ls"],
-            description="Limited shell",
-        )
-        assert cfg.description == "Limited shell"
 
 
 class TestAgentRouting:
@@ -183,40 +166,33 @@ class TestAgentRouting:
             )
 
 
-class TestAgentWithExecShell:
-    def test_agent_with_exec_tools(self) -> None:
+class TestAgentWithInlineTools:
+    def test_agent_with_inline_tools(self) -> None:
         agent = Agent(
             name="builder",
             description="Builds",
             prompt="Build things",
             category="fast",
-            allow=["read", "exec"],
-            exec_tools=[
-                ExecToolConfig(
+            allow=["read", "custom.*"],
+            inline_tools=[
+                InlineToolDefinition(
                     name="pytest",
-                    executable="pytest",
                     description="Run tests",
+                    namespace="custom.exec",
+                    deferred=False,
+                    execution={
+                        "type": "command",
+                        "executable": "pytest",
+                        "arg_validation": True,
+                        "timeout_ceiling": 120,
+                    },
                 ),
             ],
         )
-        assert len(agent.exec_tools) == 1
-        assert agent.exec_tools[0].name == "pytest"
+        assert len(agent.inline_tools) == 1
+        assert agent.inline_tools[0].name == "pytest"
 
-    def test_agent_with_shell(self) -> None:
-        agent = Agent(
-            name="builder",
-            description="Builds",
-            prompt="Build things",
-            category="fast",
-            allow=["read", "shell"],
-            shell_config=ShellConfig(
-                allowed_binaries=["ls", "cat"],
-            ),
-        )
-        assert agent.shell_config is not None
-        assert agent.shell_config.allowed_binaries == ["ls", "cat"]
-
-    def test_agent_defaults_no_exec_no_shell(self) -> None:
+    def test_agent_defaults_no_inline_tools(self) -> None:
         agent = Agent(
             name="basic",
             description="Basic",
@@ -224,8 +200,7 @@ class TestAgentWithExecShell:
             category="fast",
             allow=[],
         )
-        assert agent.exec_tools == []
-        assert agent.shell_config is None
+        assert agent.inline_tools == []
 
 
 class TestAgentDefaults:

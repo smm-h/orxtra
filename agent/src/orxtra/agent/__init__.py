@@ -10,13 +10,12 @@ except PackageNotFoundError:
 from orxtra.agent._categories import load_categories, resolve_category
 from orxtra.agent._loader import load_agent, load_agents
 from orxtra.agent._prompt import resolve_includes, resolve_prompt
-from orxtra.agent._types import Agent, ExecToolConfig, ShellConfig
+from orxtra.agent._types import Agent, InlineToolDefinition
 
 __all__ = [
     "__version__",
     "Agent",
-    "ExecToolConfig",
-    "ShellConfig",
+    "InlineToolDefinition",
     "load_agent",
     "load_agents",
     "load_categories",

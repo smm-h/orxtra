@@ -115,49 +115,80 @@ class TestLoadAgent:
         with pytest.raises(ValueError, match="Unknown keys in \\[tools\\] section"):
             load_agent(toml_path)
 
-    def test_agent_with_exec_tools(self, tmp_path: Path) -> None:
+    def test_agent_with_inline_tools(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("Do the thing")
         toml_content = (
             '[agent]\nname = "builder"\ndescription = "Builds"\n'
             'prompt = "prompt.md"\ncategory = "fast"\n\n'
-            '[tools]\nallow = ["read", "exec"]\n\n'
-            '[[exec]]\nname = "pytest"\nexecutable = "pytest"\n'
-            'description = "Run tests"\n\n'
-            '[[exec]]\nname = "uv"\nexecutable = "uv"\n'
-            'description = "Run uv"\ntimeout_ceiling = 60\n'
+            '[tools]\nallow = ["read", "custom.*"]\n\n'
+            '[[tools.define]]\nname = "pytest"\n'
+            'description = "Run tests"\n'
+            'namespace = "custom.exec"\ndeferred = false\n\n'
+            '[tools.define.execution]\n'
+            'type = "command"\nexecutable = "pytest"\n'
+            'arg_validation = true\ntimeout_ceiling = 120\n'
         )
         path = tmp_path / "builder.toml"
         path.write_text(toml_content)
         agent = load_agent(path)
-        assert len(agent.exec_tools) == 2
-        assert agent.exec_tools[0].name == "pytest"
-        assert agent.exec_tools[1].name == "uv"
-        assert agent.exec_tools[1].timeout_ceiling == 60
+        assert len(agent.inline_tools) == 1
+        assert agent.inline_tools[0].name == "pytest"
 
-    def test_agent_with_shell_config(self, tmp_path: Path) -> None:
+    def test_agent_with_multiple_inline_tools(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("Do the thing")
         toml_content = (
-            '[agent]\nname = "sheller"\ndescription = "Shells"\n'
+            '[agent]\nname = "builder"\ndescription = "Builds"\n'
             'prompt = "prompt.md"\ncategory = "fast"\n\n'
-            '[tools]\nallow = ["read", "shell"]\n\n'
-            '[shell]\nallowed_binaries = ["ls", "cat"]\n'
+            '[tools]\nallow = ["read", "custom.*"]\n\n'
+            '[[tools.define]]\nname = "pytest"\n'
+            'description = "Run tests"\n'
+            'namespace = "custom.exec"\ndeferred = false\n'
+            'execution = {type = "command", executable = "pytest",'
+            ' arg_validation = true, timeout_ceiling = 120}\n\n'
+            '[[tools.define]]\nname = "ruff"\n'
+            'description = "Run ruff"\n'
+            'namespace = "custom.exec"\ndeferred = false\n'
+            'execution = {type = "command", executable = "ruff",'
+            ' arg_validation = true, timeout_ceiling = 120}\n'
         )
-        path = tmp_path / "sheller.toml"
+        path = tmp_path / "builder.toml"
         path.write_text(toml_content)
         agent = load_agent(path)
-        assert agent.shell_config is not None
-        assert agent.shell_config.allowed_binaries == ["ls", "cat"]
+        assert len(agent.inline_tools) == 2
+        assert agent.inline_tools[0].name == "pytest"
+        assert agent.inline_tools[1].name == "ruff"
 
-    def test_agent_without_exec_shell_backward_compat(self, tmp_path: Path) -> None:
-        """Agents without [[exec]] or [shell] still load fine."""
+    def test_inline_tool_duplicate_name_raises(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("Do the thing")
+        toml_content = (
+            '[agent]\nname = "builder"\ndescription = "Builds"\n'
+            'prompt = "prompt.md"\ncategory = "fast"\n\n'
+            '[tools]\nallow = ["read", "custom.*"]\n\n'
+            '[[tools.define]]\nname = "pytest"\n'
+            'description = "Run tests"\n'
+            'namespace = "custom.exec"\ndeferred = false\n'
+            'execution = {type = "command", executable = "pytest",'
+            ' arg_validation = true, timeout_ceiling = 120}\n\n'
+            '[[tools.define]]\nname = "pytest"\n'
+            'description = "Run tests again"\n'
+            'namespace = "custom.exec"\ndeferred = false\n'
+            'execution = {type = "command", executable = "pytest",'
+            ' arg_validation = true, timeout_ceiling = 120}\n'
+        )
+        path = tmp_path / "builder.toml"
+        path.write_text(toml_content)
+        with pytest.raises(ValueError, match="Duplicate inline tool name"):
+            load_agent(path)
+
+    def test_agent_without_inline_tools(self, tmp_path: Path) -> None:
+        """Agents without [[tools.define]] still load fine."""
         (tmp_path / "prompt.md").write_text("Do the thing")
         path = _write_agent(
             tmp_path, "basic.toml", "basic", "Basic",
             "prompt.md", "fast", ["read"],
         )
         agent = load_agent(path)
-        assert agent.exec_tools == []
-        assert agent.shell_config is None
+        assert agent.inline_tools == []
 
     def test_agent_with_provider_model(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("Do the thing")
