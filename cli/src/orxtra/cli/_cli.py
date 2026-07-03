@@ -327,7 +327,7 @@ def cmd_event_fire(
         try:
             await verify_schema(pool)
             ctx = DispatchContext(pool=pool)
-            event_id = await dispatch(ctx, "fire_event", {
+            event_id, _inserted = await dispatch(ctx, "fire_event", {
                 "run_id": run_id,
                 "event_name": event_name,
                 "payload": parsed_payload,

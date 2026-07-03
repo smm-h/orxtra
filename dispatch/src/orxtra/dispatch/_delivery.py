@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from uuid6 import uuid7
 
@@ -17,6 +17,9 @@ from orxtra.protocols import (
 from orxtra.dispatch._action_executor import execute_action
 from orxtra.dispatch._protocols import DispatchBackend
 from orxtra.dispatch._types import AccumulatorEntry, FilterPredicate
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
@@ -123,18 +126,22 @@ class DualPhaseEventDelivery:
         payload: dict[str, object] | None = None,
         *,
         source: str | None = None,
+        event_id: UUID | None = None,
     ) -> None:
         """Fire an event through both phases.
 
         Phase 1: resolve transient futures.
         Phase 2: dispatch persistent subscription actions (if backend present).
+
+        *event_id* is the trace-assigned event ID. When provided,
+        accumulator buffering uses it instead of fabricating a fresh one.
         """
         # Phase 1: transient
         await self._transient.fire(event_name, payload)
 
         # Phase 2: persistent
         if self._backend is not None:
-            await self._fire_persistent(event_name, payload, source)
+            await self._fire_persistent(event_name, payload, source, event_id)
 
     async def wait_for(
         self,
@@ -163,6 +170,7 @@ class DualPhaseEventDelivery:
         event_type: str,
         data: dict[str, object] | None,
         source: str | None,
+        event_id: UUID | None,
     ) -> None:
         """Query subscriptions, match filters, dispatch or buffer actions."""
         assert self._backend is not None  # noqa: S101 -- guarded by caller
@@ -185,7 +193,7 @@ class DualPhaseEventDelivery:
             actions = await self._backend.list_actions(sub.id)
             for sub_action in actions:
                 if sub_action.accumulator_config is not None:
-                    await self._buffer_or_flush(sub_action, event_payload)
+                    await self._buffer_or_flush(sub_action, event_payload, event_id)
                 else:
                     await execute_action(
                         sub_action.action,
@@ -198,15 +206,16 @@ class DualPhaseEventDelivery:
         self,
         sub_action: SubscriptionAction,
         event_payload: dict[str, object],
+        event_id: UUID | None = None,
     ) -> None:
         """Buffer event for accumulator; flush inline if count threshold reached."""
         assert self._backend is not None  # noqa: S101
 
-        event_id = uuid7()
+        real_event_id = event_id if event_id is not None else uuid7()
         entry = AccumulatorEntry(
             id=uuid7(),
             subscription_action_id=sub_action.id,
-            event_id=event_id,
+            event_id=real_event_id,
             created_at=datetime.now(tz=UTC),
         )
         await self._backend.buffer_event(entry)

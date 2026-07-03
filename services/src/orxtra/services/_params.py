@@ -243,6 +243,10 @@ class CreateSourceParams(BaseModel):
         description="Credential ID for source authentication.",
         json_schema_extra={"format": "uuid"},
     )
+    config: dict[str, Any] | None = Field(
+        default=None,
+        description="Per-source mapping config (event_type extraction, etc.).",
+    )
 
 
 class GetSourceParams(BaseModel):
@@ -251,6 +255,12 @@ class GetSourceParams(BaseModel):
     source_id: str = Field(
         description="Source ID.", json_schema_extra={"format": "uuid"}
     )
+
+
+class GetSourceBySlugParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    slug: str = Field(description="URL-friendly source identifier.")
 
 
 class ListSourcesParams(BaseModel):

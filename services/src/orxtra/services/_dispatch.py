@@ -114,6 +114,7 @@ async def create_source(
     name: str,
     *,
     credential_id: UUID | None = None,
+    config: dict[str, Any] | None = None,
 ) -> UUID:
     """Create a new event source."""
     now = datetime.now(tz=UTC)
@@ -122,6 +123,7 @@ async def create_source(
         slug=slug,
         name=name,
         credential_id=credential_id,
+        config=config,
         created_at=now,
     )
     return await backend.create_source(source)
@@ -133,6 +135,14 @@ async def get_source(
 ) -> Source | None:
     """Get a source by ID, or None if not found."""
     return await backend.get_source(source_id)
+
+
+async def get_source_by_slug(
+    backend: DispatchBackend,
+    slug: str,
+) -> Source | None:
+    """Get a source by slug, or None if not found."""
+    return await backend.get_source_by_slug(slug)
 
 
 async def list_sources(

@@ -138,7 +138,10 @@ class PgBackend:
         task_id: UUID | None = None,
         source: str = "internal",
     ) -> UUID:
-        return await self._writer.write_event(run_id, event_type, data, task_id, source)
+        event_id, _inserted = await self._writer.write_event(
+            run_id, event_type, data, task_id, source,
+        )
+        return event_id
 
     async def write_transcript_entry(
         self,

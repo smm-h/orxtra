@@ -270,20 +270,48 @@ class TraceWriter:
         data: dict[str, Any],
         task_id: UUID | None = None,
         source: str = "internal",
-    ) -> UUID:
+        idempotency_key: str | None = None,
+    ) -> tuple[UUID, bool]:
+        """Insert an event. Returns ``(event_id, inserted)``.
+
+        When *idempotency_key* is provided the INSERT uses
+        ``ON CONFLICT (idempotency_key) DO NOTHING`` so duplicate keys
+        are silently deduplicated; *inserted* is ``False`` in that case.
+        """
         event_id = uuid6.uuid7()
         async with self._pool.acquire() as conn, conn.transaction():
-            await conn.execute(
-                "INSERT INTO events (id, run_id, task_id, source, event_type, data)"
-                " VALUES ($1, $2, $3, $4, $5, $6)",
-                event_id,
-                run_id,
-                task_id,
-                source,
-                event_type,
-                json.dumps(data),
-            )
-        return event_id
+            if idempotency_key is not None:
+                status = await conn.execute(
+                    "INSERT INTO events"
+                    " (id, run_id, task_id, source, event_type, data,"
+                    "  idempotency_key)"
+                    " VALUES ($1, $2, $3, $4, $5, $6, $7)"
+                    " ON CONFLICT (idempotency_key)"
+                    " WHERE idempotency_key IS NOT NULL"
+                    " DO NOTHING",
+                    event_id,
+                    run_id,
+                    task_id,
+                    source,
+                    event_type,
+                    json.dumps(data),
+                    idempotency_key,
+                )
+                inserted = status != "INSERT 0"
+            else:
+                await conn.execute(
+                    "INSERT INTO events"
+                    " (id, run_id, task_id, source, event_type, data)"
+                    " VALUES ($1, $2, $3, $4, $5, $6)",
+                    event_id,
+                    run_id,
+                    task_id,
+                    source,
+                    event_type,
+                    json.dumps(data),
+                )
+                inserted = True
+        return event_id, inserted
 
     async def write_transcript_entry(
         self,

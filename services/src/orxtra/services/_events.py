@@ -5,7 +5,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 from orxtra.protocols import run_sync
-from orxtra.trace import TraceWriter
+from orxtra.trace import EVENTS_CHANNEL, TraceWriter
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -22,9 +22,19 @@ async def fire_event(
     event_name: str,
     payload: dict[str, Any] | None = None,
     source: str = "internal",
-) -> UUID:
+    idempotency_key: str | None = None,
+) -> tuple[UUID, bool]:
+    """Fire an event into the trace store.
+
+    Returns ``(event_id, inserted)``.  When *idempotency_key* is provided
+    and the key already exists, *inserted* is ``False`` and the event is
+    silently deduplicated.
+    """
     writer = TraceWriter(pool)
-    return await writer.write_event(run_id, event_name, payload or {}, source=source)
+    return await writer.write_event(
+        run_id, event_name, payload or {},
+        source=source, idempotency_key=idempotency_key,
+    )
 
 
 def fire_blocking(
@@ -33,15 +43,18 @@ def fire_blocking(
     event_name: str,
     payload: dict[str, Any] | None = None,
     source: str = "internal",
-) -> UUID:
+    idempotency_key: str | None = None,
+) -> tuple[UUID, bool]:
     """Synchronous wrapper around fire_event for non-async contexts."""
-    return run_sync(fire_event(pool, run_id, event_name, payload, source))
+    return run_sync(
+        fire_event(pool, run_id, event_name, payload, source, idempotency_key),
+    )
 
 
 async def event_stream(
     bus: EventBus,
     *,
-    channel: str = "events",
+    channel: str = EVENTS_CHANNEL,
     run_id: UUID | None = None,
     event_types: list[str] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:

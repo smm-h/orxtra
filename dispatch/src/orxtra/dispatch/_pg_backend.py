@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from orxtra.dispatch._types import (
@@ -60,15 +60,17 @@ class PgDispatchBackend:
     # -- SourceStorage --
 
     async def create_source(self, source: Source) -> UUID:
+        config_json = json.dumps(source.config) if source.config is not None else None
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO sources"
-                " (id, slug, name, credential_id)"
-                " VALUES ($1, $2, $3, $4)",
+                " (id, slug, name, credential_id, config)"
+                " VALUES ($1, $2, $3, $4, $5)",
                 source.id,
                 source.slug,
                 source.name,
                 source.credential_id,
+                config_json,
             )
         return source.id
 
@@ -76,7 +78,7 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "SELECT id, slug, name, credential_id,"
-                " created_at"
+                " config, created_at"
                 " FROM sources WHERE id = $1",
                 source_id,
             )
@@ -88,7 +90,7 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "SELECT id, slug, name, credential_id,"
-                " created_at"
+                " config, created_at"
                 " FROM sources WHERE slug = $1",
                 slug,
             )
@@ -100,7 +102,7 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             rows = await conn.fetch(
                 "SELECT id, slug, name, credential_id,"
-                " created_at"
+                " config, created_at"
                 " FROM sources ORDER BY created_at",
             )
         return [_row_to_source(r) for r in rows]
@@ -288,11 +290,16 @@ class PgDispatchBackend:
 
 
 def _row_to_source(row: asyncpg.Record) -> Source:
+    config_raw: str | dict[str, Any] | None = row["config"]
+    config: dict[str, Any] | None = None
+    if config_raw is not None:
+        config = json.loads(config_raw) if isinstance(config_raw, str) else config_raw
     return Source(
         id=row["id"],
         slug=row["slug"],
         name=row["name"],
         credential_id=row["credential_id"],
+        config=config,
         created_at=row["created_at"],
     )
 
