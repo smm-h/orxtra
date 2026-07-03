@@ -23,3 +23,4 @@
 {"commits":["4bcb2c1d250b53a4fd94ee000395730d11fad4dc"],"user_facing":false,"packages":["cli"]}
 {"commits":["38c56481bc0e99e5f17a01864bca0fc807c5746e"],"user_facing":false,"packages":["."]}
 {"commits":["67605b5dbffb7623c3a8bd9735cb4b380880e8f3"],"user_facing":false,"packages":["."]}
+{"commits":["50248ec927d5c69f881456e399dad889c6f3909c","ebbcee88245efd138c4201c57f350e17f451ec60","8da952c5a77dbd72c721973c4a33a1cf0767e3bd"],"user_facing":false,"packages":[".","a2ui","agent","agui","auth","dispatch","notepad","overseer","scheduler","secrets","services","session","trace","transport","verify","write-safety"]}
