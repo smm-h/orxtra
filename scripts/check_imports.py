@@ -11,43 +11,64 @@ Walks all .py files under */src/orxtra/*/ and */tests/ and verifies:
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
-LAYERS = {
-    "foundation": {
-        "protocols",
-        "secrets",
-        "write_safety",
-        "transport",
-        "agent",
-        "tool",
-        "verify",
-        "trace",
-        "notepad",
-        "session",
-    },
-    "orchestration": {"scheduler", "dispatch"},
-    "intelligence": {"overseer"},
-    "composition": {"services"},
-    "interfaces": {"cli", "mcp"},
-}
+# Architectural constraint: orchestration and intelligence are at the
+# same rank -- neither can import from the other. This is not encoded
+# in workspace.toml's order list (which is sequential) but is a
+# structural rule of the architecture.
+_SAME_RANK_LAYERS = {"orchestration", "intelligence"}
+
+
+def _load_layers_from_workspace() -> tuple[dict[str, set[str]], dict[str, int]]:
+    """Load layer assignments and ordering from workspace.toml.
+
+    Returns (LAYERS, LAYER_ORDER) where LAYERS maps layer names to
+    sets of module names (hyphen-normalized to underscore) and
+    LAYER_ORDER maps layer names to numeric ranks.
+    """
+    workspace_path = Path("." if Path("pyproject.toml").exists() else "..") / ".rlsbl-monorepo" / "workspace.toml"
+    with workspace_path.open("rb") as f:
+        workspace = tomllib.load(f)
+
+    layers_config = workspace["layers"]
+    order: list[str] = layers_config["order"]
+    assignments: dict[str, list[str]] = layers_config["assignments"]
+
+    layers: dict[str, set[str]] = {}
+    for layer_name, projects in assignments.items():
+        layers[layer_name] = {p.replace("-", "_") for p in projects}
+
+    # Derive LAYER_ORDER from the order list. Layers in
+    # _SAME_RANK_LAYERS share the same numeric rank.
+    layer_order: dict[str, int] = {}
+    rank = 0
+    i = 0
+    while i < len(order):
+        layer = order[i]
+        if layer in _SAME_RANK_LAYERS:
+            # Assign same rank to all consecutive same-rank layers.
+            same_rank_start = rank
+            while i < len(order) and order[i] in _SAME_RANK_LAYERS:
+                layer_order[order[i]] = same_rank_start
+                i += 1
+            rank = same_rank_start + 1
+        else:
+            layer_order[layer] = rank
+            rank += 1
+            i += 1
+
+    return layers, layer_order
+
+
+LAYERS, LAYER_ORDER = _load_layers_from_workspace()
 
 # Build reverse lookup: module_name -> layer_name
 MODULE_TO_LAYER: dict[str, str] = {}
 for layer_name, modules in LAYERS.items():
     for mod in modules:
         MODULE_TO_LAYER[mod] = layer_name
-
-# Layer ordering: lower index = lower layer.
-# Orchestration and intelligence are at the same level but cannot
-# cross-import each other.
-LAYER_ORDER = {
-    "foundation": 0,
-    "orchestration": 1,
-    "intelligence": 1,
-    "composition": 2,
-    "interfaces": 3,
-}
 
 
 def _is_type_checking_block(node: ast.AST) -> bool:
