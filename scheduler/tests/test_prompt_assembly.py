@@ -4,15 +4,22 @@ Captures the exact output of the prompt assembly pipeline for
 representative scenarios. These serve as the baseline for verifying
 equivalence when the implementation switches from inline string
 construction to the compose engine.
+
+Also includes:
+- Red tests proving strict substitution rejects lenient constructs
+- Tests verifying prompt templates are the single source of truth
+- Tests for the compose-based prompt providers
 """
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 import pytest
 import uuid6
+from orxtra.compose import resolve_variables
 from orxtra.notepad import NotepadEntry, format_notepad
 from orxtra.protocols import TaskSpec
 
@@ -369,3 +376,420 @@ class TestResolvePromptLenient:
             {"matched": "found", "unused": "gone"},
         )
         assert result == "Use found and {orphan}"
+
+
+class TestStrictSubstitutionRejects:
+    """Red tests proving strict substitution hard-errors on
+    constructs that lenient substitution tolerated.
+
+    These document the behavioral change: the compose engine's
+    resolve_variables raises ValueError where _resolve_prompt
+    would silently pass through or ignore.
+    """
+
+    def test_unknown_placeholder_raises(self) -> None:
+        """Strict: unknown {placeholder} is a hard error."""
+        with pytest.raises(ValueError, match="Unresolved placeholder"):
+            resolve_variables("Hello {unknown} world", {})
+
+    def test_unused_variable_raises(self) -> None:
+        """Strict: variable with no matching placeholder is a hard error."""
+        with pytest.raises(ValueError, match="Unused variable"):
+            resolve_variables("Hello world", {"extra": "value"})
+
+    def test_partial_match_unresolved_raises(self) -> None:
+        """Strict: unresolved placeholder raises even with other matches."""
+        with pytest.raises(ValueError, match="Unresolved placeholder"):
+            resolve_variables(
+                "Use {matched} and {orphan}",
+                {"matched": "found"},
+            )
+
+    def test_partial_match_unused_raises(self) -> None:
+        """Strict: unused variable raises even with other matches."""
+        with pytest.raises(ValueError, match="Unused variable"):
+            resolve_variables(
+                "Use {matched}",
+                {"matched": "found", "unused": "gone"},
+            )
+
+
+class TestPromptTemplatesExist:
+    """Verify all prompt templates exist as packaged .md files.
+
+    Retired section-header strings should only appear in .md templates,
+    not in Python source code.
+    """
+
+    _PROMPTS_DIR = (
+        Path(__file__).resolve().parents[1]
+        / "src" / "orxtra" / "scheduler" / "prompts"
+    )
+
+    _EXPECTED_TEMPLATES = [
+        "task_preamble",
+        "constraints",
+        "notepad",
+        "lessons_verified",
+        "lessons_stale",
+        "prior_failures",
+        "handoff_request",
+        "handoff_resume",
+        "orchestrator_resume",
+        "escalation_to_parent",
+        "refine_context",
+        "decision_point_observation",
+        "decision_point_suggestion",
+        "notepad_learning",
+        "notepad_decision",
+        "notepad_issue",
+    ]
+
+    def test_all_templates_exist(self) -> None:
+        """Every expected template file exists."""
+        for name in self._EXPECTED_TEMPLATES:
+            path = self._PROMPTS_DIR / f"{name}.md"
+            assert path.is_file(), f"Missing template: {path}"
+
+    def test_templates_are_nonempty(self) -> None:
+        """Templates have content."""
+        for name in self._EXPECTED_TEMPLATES:
+            path = self._PROMPTS_DIR / f"{name}.md"
+            content = path.read_text()
+            assert len(content.strip()) > 0, (
+                f"Empty template: {name}"
+            )
+
+    def test_section_headers_not_in_python_source(self) -> None:
+        """Retired section-header strings appear only in .md templates.
+
+        These strings were previously hard-coded in _agent_execution.py
+        and _task_dispatch.py. After the compose migration, they should
+        only exist in the prompts/ .md files.
+        """
+        src_dir = (
+            Path(__file__).resolve().parents[1]
+            / "src" / "orxtra" / "scheduler"
+        )
+        retired_strings = [
+            '"## Active Constraints"',
+            '"## Lessons (verified)"',
+            '"## Lessons (may be stale)"',
+            '"## Prior Failure Context"',
+            '"## Context from previous steps"',
+        ]
+
+        py_files = list(src_dir.glob("*.py"))
+        for py_file in py_files:
+            content = py_file.read_text()
+            for retired in retired_strings:
+                # Strip quotes for the search
+                bare = retired.strip('"')
+                assert bare not in content, (
+                    f"Retired header {retired!r} found in"
+                    f" {py_file.name}"
+                )
+
+
+class TestPromptProviders:
+    """Unit tests for the fragment providers."""
+
+    def test_task_preamble_provider(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            TaskPreambleProvider,
+        )
+
+        provider = TaskPreambleProvider()
+        frags = provider.fragments({"task_id": "abc-123"})
+        assert len(frags) == 1
+        assert "abc-123" in frags[0].content
+        assert "start_task" in frags[0].content
+        assert frags[0].priority == 10
+
+    def test_task_preamble_no_task_id(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            TaskPreambleProvider,
+        )
+
+        provider = TaskPreambleProvider()
+        frags = provider.fragments({})
+        assert frags == []
+
+    def test_task_prompt_provider(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            TaskPromptProvider,
+        )
+
+        provider = TaskPromptProvider()
+        frags = provider.fragments(
+            {"task_prompt": "Build the feature"},
+        )
+        assert len(frags) == 1
+        assert frags[0].content == "Build the feature"
+        assert frags[0].priority == 20
+
+    def test_constraints_provider(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            ConstraintsProvider,
+        )
+
+        provider = ConstraintsProvider()
+        frags = provider.fragments({
+            "constraints": [
+                ("No deps", "mechanical"),
+                ("Keep small", "advisory"),
+            ],
+        })
+        assert len(frags) == 1
+        assert "## Active Constraints" in frags[0].content
+        assert "- No deps (mechanical)" in frags[0].content
+        assert "- Keep small (advisory)" in frags[0].content
+        assert frags[0].priority == 30
+
+    def test_constraints_provider_empty(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            ConstraintsProvider,
+        )
+
+        provider = ConstraintsProvider()
+        frags = provider.fragments({"constraints": []})
+        assert frags == []
+
+    def test_notepad_provider(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            NotepadProvider,
+        )
+
+        run_id = uuid6.uuid7()
+        now = datetime.now(UTC)
+        entries = [
+            NotepadEntry(
+                run_id=run_id,
+                task_name="t1",
+                agent_name="a1",
+                entry_type="learning",
+                text="Found something",
+                created_at=now,
+            ),
+        ]
+        provider = NotepadProvider()
+        frags = provider.fragments(
+            {"notepad_entries": entries},
+        )
+        assert len(frags) == 1
+        assert "Context from previous steps" in frags[0].content
+        assert "Found something" in frags[0].content
+        assert frags[0].priority == 40
+
+    def test_notepad_provider_empty(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            NotepadProvider,
+        )
+
+        provider = NotepadProvider()
+        frags = provider.fragments({"notepad_entries": []})
+        assert frags == []
+
+    def test_lessons_provider_fresh_only(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            LessonsProvider,
+        )
+
+        provider = LessonsProvider()
+        frags = provider.fragments({
+            "lessons": [
+                {"text": "Always test", "stale": False},
+            ],
+        })
+        assert len(frags) == 1
+        assert "## Lessons (verified)" in frags[0].content
+        assert "- Always test" in frags[0].content
+        assert frags[0].priority == 50
+
+    def test_lessons_provider_stale_only(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            LessonsProvider,
+        )
+
+        provider = LessonsProvider()
+        frags = provider.fragments({
+            "lessons": [
+                {"text": "Old way", "stale": True},
+            ],
+        })
+        assert len(frags) == 1
+        assert "## Lessons (may be stale)" in frags[0].content
+        assert "stale: source modified" in frags[0].content
+        assert frags[0].priority == 55
+
+    def test_lessons_provider_both(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            LessonsProvider,
+        )
+
+        provider = LessonsProvider()
+        frags = provider.fragments({
+            "lessons": [
+                {"text": "Fresh", "stale": False},
+                {"text": "Old", "stale": True},
+            ],
+        })
+        assert len(frags) == 2
+        names = {f.name for f in frags}
+        assert names == {"lessons_verified", "lessons_stale"}
+
+    def test_failure_context_provider(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            FailureContextProvider,
+        )
+
+        provider = FailureContextProvider()
+        frags = provider.fragments({
+            "attempt": 3,
+            "retry_inject_failure": True,
+            "prior_attempts": [
+                {"attempt": 1, "error": "Boom"},
+                {"attempt": 2, "error": "Crash"},
+            ],
+        })
+        assert len(frags) == 1
+        assert "## Prior Failure Context" in frags[0].content
+        assert "Prior attempt 1 failed: Boom" in frags[0].content
+        assert "Prior attempt 2 failed: Crash" in frags[0].content
+        assert frags[0].priority == 60
+
+    def test_failure_context_first_attempt(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            FailureContextProvider,
+        )
+
+        provider = FailureContextProvider()
+        frags = provider.fragments({
+            "attempt": 1,
+            "retry_inject_failure": True,
+            "prior_attempts": [],
+        })
+        assert frags == []
+
+    def test_failure_context_no_inject(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            FailureContextProvider,
+        )
+
+        provider = FailureContextProvider()
+        frags = provider.fragments({
+            "attempt": 2,
+            "retry_inject_failure": False,
+            "prior_attempts": [
+                {"attempt": 1, "error": "Boom"},
+            ],
+        })
+        assert frags == []
+
+
+class TestPromptTemplateRendering:
+    """Tests for the prompt template loader and strict rendering."""
+
+    def test_render_template_strict(self) -> None:
+        from orxtra.scheduler._prompt_templates import (
+            render_template,
+        )
+
+        result = render_template(
+            "orchestrator_resume",
+            {
+                "child_task_id": "abc-123",
+                "child_result": "done",
+            },
+        )
+        assert "abc-123" in result
+        assert "done" in result
+
+    def test_render_template_missing_var_raises(self) -> None:
+        from orxtra.scheduler._prompt_templates import (
+            render_template,
+        )
+
+        with pytest.raises(ValueError, match="Unresolved"):
+            render_template(
+                "orchestrator_resume",
+                {"child_task_id": "abc"},
+                # missing child_result
+            )
+
+    def test_render_template_unused_var_raises(self) -> None:
+        from orxtra.scheduler._prompt_templates import (
+            render_template,
+        )
+
+        with pytest.raises(ValueError, match="Unused"):
+            render_template(
+                "decision_point_suggestion",
+                {"extra": "value"},
+            )
+
+    def test_load_template_caches(self) -> None:
+        from orxtra.scheduler._prompt_templates import (
+            _cache,
+            load_template,
+        )
+
+        # Clear the cache for this test
+        _cache.pop("task_preamble", None)
+        first = load_template("task_preamble")
+        assert "task_preamble" in _cache
+        second = load_template("task_preamble")
+        assert first is second  # Same object from cache
+
+
+class TestNotepadRenderingEquivalence:
+    """Verify that the compose-based notepad rendering in
+    _prompt_providers._render_notepad produces output identical
+    to notepad/_reader.format_notepad.
+    """
+
+    def test_empty_entries_equivalent(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            _render_notepad,
+        )
+
+        old_result = format_notepad([])
+        new_result = _render_notepad([])
+        assert old_result == new_result
+
+    def test_populated_entries_equivalent(self) -> None:
+        from orxtra.scheduler._prompt_providers import (
+            _render_notepad,
+        )
+
+        run_id = uuid6.uuid7()
+        now = datetime.now(UTC)
+        entries = [
+            NotepadEntry(
+                run_id=run_id,
+                task_name="task-a",
+                agent_name="coder",
+                entry_type="learning",
+                text="Use v2 API",
+                created_at=now,
+            ),
+            NotepadEntry(
+                run_id=run_id,
+                task_name="task-b",
+                agent_name="reviewer",
+                entry_type="decision",
+                text="Skip linting",
+                created_at=now,
+            ),
+            NotepadEntry(
+                run_id=run_id,
+                task_name="task-c",
+                agent_name="analyst",
+                entry_type="issue",
+                text="Missing test coverage",
+                created_at=now,
+            ),
+        ]
+        old_result = format_notepad(entries)
+        new_result = _render_notepad(entries)
+        assert old_result == new_result

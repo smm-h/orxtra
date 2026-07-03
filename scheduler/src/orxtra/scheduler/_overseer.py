@@ -682,15 +682,17 @@ class OverseerAdapter:
         The Overseer can read files, consult, etc.
         Returns the refined context text.
         """
+        from orxtra.scheduler._prompt_templates import (  # noqa: PLC0415
+            render_template,
+        )
         from orxtra.transport import Result  # noqa: PLC0415
 
-        message = (
-            f"Refine this agent context for task"
-            f" '{task_name}'. You may add relevant"
-            f" lessons, request additional code context,"
-            f" reorder, or accept as-is.\n\n"
-            f"--- RAW CONTEXT ---\n{raw_context}\n"
-            f"--- END RAW CONTEXT ---"
+        message = render_template(
+            "refine_context",
+            {
+                "task_name": task_name,
+                "raw_context": raw_context,
+            },
         )
         parts: list[str] = [
             ev.text

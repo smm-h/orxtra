@@ -1,0 +1,1 @@
+[ESCALATION] Task '{task_name}' exhausted {max_attempts} attempt(s). Failed checks: {failed_checks}. Agent summary: Retries exhausted.

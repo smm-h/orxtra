@@ -15,6 +15,10 @@ from orxtra.protocols import (
     TaskSpec,
     TaskState,
 )
+from orxtra.scheduler._prompt_templates import (
+    load_template,
+    render_template,
+)
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -69,15 +73,12 @@ class TaskDispatchMixin(SchedulerBase):
         await self._send_overseer_event(
             StructuralAdvisory(
                 task_id=task_id,
-                observation=(
-                    f"Decision point reached:"
-                    f" {task.name}"
+                observation=render_template(
+                    "decision_point_observation",
+                    {"task_name": task.name},
                 ),
-                suggestion=(
-                    "Review context and decide how"
-                    " to proceed. You may create"
-                    " tasks, add constraints, or"
-                    " take other actions."
+                suggestion=load_template(
+                    "decision_point_suggestion",
                 ),
             ),
         )

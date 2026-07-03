@@ -9,7 +9,7 @@ from orxtra.compose._variables import resolve_variables
 if TYPE_CHECKING:
     from orxtra.compose._fragment import Fragment, FragmentProvider
 
-_SECTION_SEPARATOR = "\n\n---\n\n"
+_DEFAULT_SEPARATOR = "\n\n---\n\n"
 
 
 class CompositionEngine:
@@ -20,8 +20,13 @@ class CompositionEngine:
     variable substitution is applied.
     """
 
-    def __init__(self, providers: list[FragmentProvider]) -> None:
+    def __init__(
+        self,
+        providers: list[FragmentProvider],
+        separator: str = _DEFAULT_SEPARATOR,
+    ) -> None:
         self._providers = list(providers)
+        self._separator = separator
 
     def compose(
         self,
@@ -42,7 +47,7 @@ class CompositionEngine:
 
         all_fragments.sort(key=lambda f: (f.priority, f.name))
 
-        composed = _SECTION_SEPARATOR.join(f.content for f in all_fragments)
+        composed = self._separator.join(f.content for f in all_fragments)
 
         if variables is not None:
             composed = resolve_variables(composed, variables)

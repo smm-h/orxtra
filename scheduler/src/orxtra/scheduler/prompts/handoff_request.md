@@ -1,0 +1,1 @@
+Your context window is nearly full. Summarize the conversation so far, including: what task you are working on, what you have done, what remains, and any important decisions or context. Be concise but complete.

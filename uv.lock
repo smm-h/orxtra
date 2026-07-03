@@ -1286,6 +1286,7 @@ source = { editable = "scheduler" }
 dependencies = [
     { name = "jsonschema" },
     { name = "orxtra-agent" },
+    { name = "orxtra-compose" },
     { name = "orxtra-dispatch" },
     { name = "orxtra-notepad" },
     { name = "orxtra-protocols" },
@@ -1303,6 +1304,7 @@ dependencies = [
 requires-dist = [
     { name = "jsonschema" },
     { name = "orxtra-agent", editable = "agent" },
+    { name = "orxtra-compose", editable = "compose" },
     { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-notepad", editable = "notepad" },
     { name = "orxtra-protocols", editable = "protocols" },
