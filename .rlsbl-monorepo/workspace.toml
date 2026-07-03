@@ -60,6 +60,7 @@ releasable = "orxtra"
 [[projects]]
 path = "agent"
 description = "Agent definition loader (TOML + composable .md prompts)"
+depends_on = ["compose"]
 library = true
 releasable = "orxtra"
 

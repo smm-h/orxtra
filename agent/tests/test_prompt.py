@@ -1,9 +1,17 @@
+"""Integration tests verifying agent's composition pipeline through compose.
+
+These tests were originally written for agent/_prompt.py. Now that
+composition lives in the compose sub-project, these serve as integration
+tests confirming the compose module works correctly when used by the
+agent loader pipeline.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-from orxtra.agent import resolve_includes, resolve_prompt
+from orxtra.compose import resolve_includes, resolve_variables
 
 
 class TestResolveIncludes:
@@ -42,39 +50,39 @@ class TestResolveIncludes:
         assert result == "AAA and BBB"
 
 
-class TestResolvePrompt:
+class TestResolveVariables:
     def test_single_variable(self) -> None:
-        result = resolve_prompt("Hello {name}!", {"name": "world"})
+        result = resolve_variables("Hello {name}!", {"name": "world"})
         assert result == "Hello world!"
 
     def test_multiple_variables(self) -> None:
-        result = resolve_prompt("{a} and {b}", {"a": "X", "b": "Y"})
+        result = resolve_variables("{a} and {b}", {"a": "X", "b": "Y"})
         assert result == "X and Y"
 
     def test_unresolved_placeholder_raises(self) -> None:
         with pytest.raises(ValueError, match=r"Unresolved placeholder.*missing"):
-            resolve_prompt("Hello {missing}!", {})
+            resolve_variables("Hello {missing}!", {})
 
     def test_unused_variable_raises(self) -> None:
         with pytest.raises(ValueError, match=r"Unused variable.*extra"):
-            resolve_prompt("Hello!", {"extra": "value"})
+            resolve_variables("Hello!", {"extra": "value"})
 
     def test_no_variables_no_placeholders(self) -> None:
-        result = resolve_prompt("plain text", {})
+        result = resolve_variables("plain text", {})
         assert result == "plain text"
 
     def test_does_not_touch_include_syntax(self) -> None:
-        result = resolve_prompt("{include:file.md}", {})
+        result = resolve_variables("{include:file.md}", {})
         assert result == "{include:file.md}"
 
     def test_variable_value_with_braces(self) -> None:
-        result = resolve_prompt("{x}", {"x": "{not_a_var}"})
+        result = resolve_variables("{x}", {"x": "{not_a_var}"})
         assert result == "{not_a_var}"
 
     def test_empty_template(self) -> None:
-        result = resolve_prompt("", {})
+        result = resolve_variables("", {})
         assert result == ""
 
     def test_same_variable_twice(self) -> None:
-        result = resolve_prompt("{x} and {x}", {"x": "V"})
+        result = resolve_variables("{x} and {x}", {"x": "V"})
         assert result == "V and V"

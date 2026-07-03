@@ -5,9 +5,13 @@ license = "BUSL-1.1"
 description = "Agent definition loader. TOML + composable .md prompts, strict validation, category resolution."
 requires-python = ">=3.12"
 dependencies = [
+    "orxtra-compose",
     "pydantic>=2",
 ]
 keywords = ["rlsbl"]
+
+[tool.uv.sources]
+orxtra-compose = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=9.1.0"]

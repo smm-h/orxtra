@@ -1021,6 +1021,7 @@ name = "orxtra-agent"
 version = "0.8.0"
 source = { editable = "agent" }
 dependencies = [
+    { name = "orxtra-compose" },
     { name = "pydantic" },
 ]
 
@@ -1030,7 +1031,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2" }]
+requires-dist = [
+    { name = "orxtra-compose", editable = "compose" },
+    { name = "pydantic", specifier = ">=2" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.0" }]

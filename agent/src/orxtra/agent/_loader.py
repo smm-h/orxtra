@@ -3,7 +3,7 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING, Any
 
-from orxtra.agent._prompt import resolve_includes
+from orxtra.compose import resolve_includes
 from orxtra.agent._types import Agent, InlineToolDefinition
 
 if TYPE_CHECKING:
