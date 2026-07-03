@@ -21,6 +21,7 @@
       }
     ]
   },
+  "private": false,
   "targets": [
     "pypi"
   ]
