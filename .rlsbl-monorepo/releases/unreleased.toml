@@ -1,0 +1,20 @@
+[releasables.orxtra]
+# Version bump type: patch, minor, major, hotfix, or prerelease
+bump = "minor"
+# Short description of this release (required)
+description = "Five new sub-projects (worker, api, auth, a2a, a2ui), AG-UI protocol support, MCP SDK adoption, a capability registry unifying the MCP/CLI surfaces, and an EventSink backbone across session, scheduler, and trace."
+# Optional context explaining why these changes were made
+context = """
+This release ships the interface and remote-execution layers built since 0.7.0. The
+protocol surfaces (MCP, A2A, AG-UI) are composed by the new api sub-project into a
+single ASGI app served via `orxtra serve`, backed by the new auth sub-project. The
+worker sub-project adds sandboxed remote tool execution (native and Docker). Internally,
+ad-hoc event callbacks were replaced by a typed EventSink backbone, which required
+renaming transport's Event union to TransportEvent and removing event_callback. It is
+also the first release resolving fastware from PyPI (0.2.0) instead of a machine-local
+path, unblocking installs and CI outside the author's machine.
+"""
+# Pre-release identifier: alpha, beta, rc, or stable
+# preid = ""
+include = ["pypi"]
+exclude = []
