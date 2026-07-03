@@ -5,13 +5,13 @@ verification) against a real PostgreSQL database via testcontainers.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-import pytest
+from typing import TYPE_CHECKING, Any, Self
 
 from tests.pg_fixtures import skip_no_docker
 
 if TYPE_CHECKING:
+    import types
+
     import asyncpg
 
 pytestmark = skip_no_docker
@@ -24,12 +24,17 @@ class _AsyncpgTx:
         self._conn = conn
         self._tx: Any = None
 
-    async def __aenter__(self) -> _AsyncpgTx:
+    async def __aenter__(self) -> Self:
         self._tx = self._conn.transaction()
         await self._tx.start()
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         if exc_type is not None:
             await self._tx.rollback()
         else:
@@ -69,7 +74,6 @@ async def test_db_init_creates_schema_on_empty_db(
     """db init on an empty database creates all schema objects."""
     import asyncpg as _asyncpg  # noqa: PLC0415
     from _generated.schema_executor import (  # noqa: PLC0415
-        ensure_schema,
         execute,
         verify,
     )
@@ -79,24 +83,25 @@ async def test_db_init_creates_schema_on_empty_db(
     )
     conn = await _asyncpg.connect(url)
     try:
-        # Start from a clean schema.
         await conn.execute("DROP SCHEMA public CASCADE")
         await conn.execute("CREATE SCHEMA public")
 
         adapter = _AsyncpgAdapter(conn)
 
-        # Ensure schema (idempotent) with the extension stub.
         result = await execute(
             adapter,
             idempotent=True,
             extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
         )
-        assert not result.errors, f"Schema init errors: {result.errors}"
+        assert not result.errors, (
+            f"Schema init errors: {result.errors}"
+        )
         assert len(result.executed) > 0
 
-        # Verify: all objects should be present.
         vresult = await verify(adapter)
-        assert len(vresult.missing) == 0, f"Missing after init: {vresult.missing}"
+        assert len(vresult.missing) == 0, (
+            f"Missing after init: {vresult.missing}"
+        )
         assert len(vresult.present) > 0
     finally:
         await conn.close()
@@ -121,7 +126,6 @@ async def test_db_init_is_idempotent(
 
         adapter = _AsyncpgAdapter(conn)
 
-        # First init.
         r1 = await execute(
             adapter,
             idempotent=True,
@@ -129,7 +133,6 @@ async def test_db_init_is_idempotent(
         )
         assert not r1.errors
 
-        # Second init (should be idempotent).
         r2 = await execute(
             adapter,
             idempotent=True,
@@ -159,10 +162,8 @@ async def test_db_verify_detects_missing_on_empty_db(
 
         adapter = _AsyncpgAdapter(conn)
 
-        # Verify on empty DB: should report many missing items.
         vresult = await verify(adapter)
         assert len(vresult.missing) > 0
-        # The public schema itself should be present (we just created it).
         assert ("schemas", "public") in vresult.present
     finally:
         await conn.close()
@@ -188,7 +189,6 @@ async def test_db_verify_zero_missing_after_init(
 
         adapter = _AsyncpgAdapter(conn)
 
-        # Init.
         result = await execute(
             adapter,
             idempotent=True,
@@ -196,7 +196,6 @@ async def test_db_verify_zero_missing_after_init(
         )
         assert not result.errors
 
-        # Verify.
         vresult = await verify(adapter)
         assert len(vresult.missing) == 0
     finally:

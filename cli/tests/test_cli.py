@@ -15,6 +15,20 @@ _MOCK_MODS = [
     "orxtra.services._config",
     "orxtra.trace",
     "orxtra.trace._writer",
+    # Worker __init__ imports from _native/_docker/_pipeline_split
+    # which import from orxtra.tool (export surface changes across
+    # sessions). Mock the full transitive closure but NOT worker._cli
+    # (we need the real register function to test group structure).
+    "orxtra.tool",
+    "orxtra.tool._scrub",
+    "orxtra.tool._pipeline",
+    "orxtra.tool._consult_tool",
+    "orxtra.worker._brain",
+    "orxtra.worker._native",
+    "orxtra.worker._docker",
+    "orxtra.worker._pipeline_split",
+    "orxtra.worker._protocol",
+    "orxtra.worker._registry",
 ]
 _installed_mocks = []
 for _mod in _MOCK_MODS:
