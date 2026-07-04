@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from orxtra.transport._events import StreamDelta
+from orxtra.transport._events import StreamDelta, StreamUsage
 from orxtra.transport.providers._openai import OpenAIProvider
 
 if TYPE_CHECKING:
@@ -97,6 +97,15 @@ class TestBuildRequest:
         assert normal_fn["name"] == "write_file"
         assert normal_fn["parameters"] == {"type": "object"}
         assert "load_tools" not in normal_fn["description"]
+
+    def test_stream_options_include_usage(self, provider: OpenAIProvider) -> None:
+        result = provider.build_request(
+            messages=[{"role": "user", "content": "hi"}],
+            tools=[],
+            system="sys",
+            model="gpt-4o",
+        )
+        assert result["json_body"]["stream_options"] == {"include_usage": True}
 
     def test_custom_endpoint(self) -> None:
         custom = OpenAIProvider(api_key="k", base_url="https://my-azure.openai.com")
@@ -306,6 +315,67 @@ class TestParseStream:
             )
         ]
         assert len(events) == 0
+
+    async def test_usage_from_final_chunk(self, provider: OpenAIProvider) -> None:
+        """OpenAI emits usage in the final chunk when stream_options.include_usage is set."""
+        import json
+
+        usage_chunk = json.dumps({
+            "choices": [],
+            "usage": {
+                "prompt_tokens": 200,
+                "completion_tokens": 75,
+                "completion_tokens_details": {"reasoning_tokens": 20},
+                "prompt_tokens_details": {"cached_tokens": 50},
+            },
+        })
+        chunks = [
+            b'data: {"choices": [{"delta": {"content": "hello"}}]}\n\n',
+            f"data: {usage_chunk}\n\n".encode(),
+            b"data: [DONE]\n\n",
+        ]
+        events = [
+            event
+            async for event in provider.parse_stream(
+                TestParseStream._bytes_iter(chunks),
+            )
+        ]
+        usage_events = [e for e in events if isinstance(e, StreamUsage)]
+        assert len(usage_events) == 1
+        usage = usage_events[0].usage
+        assert usage.input_tokens == 200
+        assert usage.output_tokens == 75
+        assert usage.reasoning_tokens == 20
+        assert usage.cache_read_tokens == 50
+
+    async def test_usage_without_details(self, provider: OpenAIProvider) -> None:
+        """Usage chunk without token detail fields still yields StreamUsage."""
+        import json
+
+        usage_chunk = json.dumps({
+            "choices": [],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 30,
+            },
+        })
+        chunks = [
+            f"data: {usage_chunk}\n\n".encode(),
+            b"data: [DONE]\n\n",
+        ]
+        events = [
+            event
+            async for event in provider.parse_stream(
+                TestParseStream._bytes_iter(chunks),
+            )
+        ]
+        usage_events = [e for e in events if isinstance(e, StreamUsage)]
+        assert len(usage_events) == 1
+        usage = usage_events[0].usage
+        assert usage.input_tokens == 100
+        assert usage.output_tokens == 30
+        assert usage.reasoning_tokens == 0
+        assert usage.cache_read_tokens == 0
 
 
 class TestWrapToolResults:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from orxtra.transport._events import StreamDelta, Thinking
+from orxtra.transport._events import StreamDelta, StreamUsage, Thinking
 from orxtra.transport.providers._anthropic import AnthropicProvider
 
 
@@ -290,6 +290,87 @@ class TestParseStream:
             )
         ]
         assert len(events) == 1
+
+    async def test_usage_merges_message_start_and_delta(
+        self,
+        provider: AnthropicProvider,
+    ) -> None:
+        """message_start carries input tokens, message_delta carries output tokens.
+
+        The provider must merge both into a single StreamUsage event.
+        """
+        import json
+
+        message_start = _sse_chunk(
+            "message_start",
+            json.dumps({
+                "type": "message_start",
+                "message": {
+                    "usage": {
+                        "input_tokens": 150,
+                        "cache_read_input_tokens": 30,
+                        "cache_creation_input_tokens": 10,
+                    },
+                },
+            }),
+        )
+        message_delta = _sse_chunk(
+            "message_delta",
+            json.dumps({
+                "type": "message_delta",
+                "usage": {"output_tokens": 42},
+            }),
+        )
+        chunks = [
+            message_start,
+            _text_delta("hi"),
+            message_delta,
+            _MESSAGE_STOP,
+        ]
+        events = [
+            event
+            async for event in provider.parse_stream(
+                _bytes_iter(chunks),
+            )
+        ]
+        usage_events = [e for e in events if isinstance(e, StreamUsage)]
+        assert len(usage_events) == 1
+        usage = usage_events[0].usage
+        assert usage.input_tokens == 150
+        assert usage.output_tokens == 42
+        assert usage.cache_read_tokens == 30
+        assert usage.cache_write_tokens == 10
+
+    async def test_usage_without_message_start(
+        self,
+        provider: AnthropicProvider,
+    ) -> None:
+        """If message_start is missing, input tokens default to 0."""
+        import json
+
+        message_delta = _sse_chunk(
+            "message_delta",
+            json.dumps({
+                "type": "message_delta",
+                "usage": {"output_tokens": 99},
+            }),
+        )
+        chunks = [
+            _text_delta("x"),
+            message_delta,
+            _MESSAGE_STOP,
+        ]
+        events = [
+            event
+            async for event in provider.parse_stream(
+                _bytes_iter(chunks),
+            )
+        ]
+        usage_events = [e for e in events if isinstance(e, StreamUsage)]
+        assert len(usage_events) == 1
+        usage = usage_events[0].usage
+        assert usage.input_tokens == 0
+        assert usage.output_tokens == 99
 
 
 class TestWrapToolResults:

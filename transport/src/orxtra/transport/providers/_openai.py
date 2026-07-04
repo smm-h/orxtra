@@ -12,6 +12,7 @@ from orxtra.transport._events import (
     ContentBlock,
     StreamDelta,
     StreamToolUse,
+    StreamUsage,
     UnknownEvent,
     Usage,
 )
@@ -36,6 +37,7 @@ class OpenAIProvider:
             "model": model,
             "messages": [{"role": "system", "content": system}, *messages],
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
         if tools:
             body["tools"] = [
@@ -105,6 +107,34 @@ class OpenAIProvider:
                         )
                     return
                 parsed = json.loads(data)
+                # Final chunk with stream_options has usage at
+                # top level and empty choices.
+                usage_data = parsed.get("usage")
+                if usage_data:
+                    completion_details = (
+                        usage_data.get("completion_tokens_details", {})
+                        or {}
+                    )
+                    prompt_details = (
+                        usage_data.get("prompt_tokens_details", {})
+                        or {}
+                    )
+                    yield StreamUsage(
+                        usage=Usage(
+                            input_tokens=usage_data.get(
+                                "prompt_tokens", 0,
+                            ),
+                            output_tokens=usage_data.get(
+                                "completion_tokens", 0,
+                            ),
+                            reasoning_tokens=completion_details.get(
+                                "reasoning_tokens", 0,
+                            ),
+                            cache_read_tokens=prompt_details.get(
+                                "cached_tokens", 0,
+                            ),
+                        ),
+                    )
                 choices = parsed.get("choices", [])
                 if not choices:
                     continue

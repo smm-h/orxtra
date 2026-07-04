@@ -88,6 +88,10 @@ class AnthropicProvider:
         current_tool_id: str | None = None
         current_tool_name: str | None = None
         current_tool_json_parts: list[str] = []
+        # Usage accumulation: message_start has input tokens,
+        # message_delta has output tokens.  We merge them into a
+        # single StreamUsage yield at message_delta time.
+        input_usage: dict[str, int] = {}
 
         async for chunk in byte_stream:
             buffer += chunk
@@ -134,25 +138,47 @@ class AnthropicProvider:
                             current_tool_id = None
                             current_tool_name = None
                             current_tool_json_parts = []
+                    elif event_type == "message_start":
+                        # Capture input-side usage (input_tokens,
+                        # cache tokens) -- merged into the single
+                        # StreamUsage yield at message_delta time.
+                        msg_usage = (
+                            data.get("message", {}).get("usage", {})
+                        )
+                        if msg_usage:
+                            input_usage = {
+                                "input_tokens": msg_usage.get(
+                                    "input_tokens", 0,
+                                ),
+                                "cache_read_tokens": msg_usage.get(
+                                    "cache_read_input_tokens", 0,
+                                ),
+                                "cache_write_tokens": msg_usage.get(
+                                    "cache_creation_input_tokens", 0,
+                                ),
+                            }
                     elif event_type == "message_delta":
                         usage_data = data.get("usage", {})
                         if usage_data:
                             yield StreamUsage(
                                 usage=Usage(
-                                    input_tokens=usage_data.get(
+                                    input_tokens=input_usage.get(
                                         "input_tokens", 0,
                                     ),
                                     output_tokens=usage_data.get(
                                         "output_tokens", 0,
                                     ),
+                                    cache_read_tokens=input_usage.get(
+                                        "cache_read_tokens", 0,
+                                    ),
+                                    cache_write_tokens=input_usage.get(
+                                        "cache_write_tokens", 0,
+                                    ),
                                 ),
                             )
                     elif event_type == "message_stop":
                         return
-                    elif event_type not in (
-                        "message_start",
-                        "ping",
-                    ):
+                    elif event_type != "ping":
                         yield UnknownEvent(raw=data)
 
     def extract_usage(self, response: dict[str, Any]) -> Usage:
