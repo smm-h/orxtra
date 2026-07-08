@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING
 
 try:
     __version__ = version("orxtra-mcp")
@@ -11,6 +12,9 @@ except PackageNotFoundError:
 # With pytest --import-mode=importlib, the workspace directory mcp/ can
 # shadow the mcp SDK package during conftest loading. Deferring these
 # imports to access time avoids the conflict.
+
+if TYPE_CHECKING:
+    from orxtra.mcp._server import MCPServer as MCPServer
 
 
 def __getattr__(name: str) -> object:

@@ -374,6 +374,7 @@ class MCPServer:
         async def _listen() -> None:
             while True:
                 try:
+                    assert self._event_bus is not None  # noqa: S101
                     async for event in event_stream(
                         self._event_bus, channel="orxtra_events",
                     ):
