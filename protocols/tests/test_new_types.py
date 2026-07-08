@@ -6,6 +6,8 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from pydantic import BaseModel
+
 from orxtra.protocols import (
     Capability,
     CardContributor,
@@ -222,13 +224,17 @@ class TestDeleteSurface:
 # -- Capability --
 
 
+class _StubParams(BaseModel):
+    """Minimal BaseModel subclass for Capability tests."""
+
+
 class TestCapability:
     def test_construction(self) -> None:
         c = Capability(
             name="read_file",
             namespace="fs",
             description="Read a file from disk",
-            params_model=dict,
+            params_model=_StubParams,
             result_model=str,
             tags=frozenset({"io", "read"}),
             category="filesystem",
@@ -236,7 +242,7 @@ class TestCapability:
         assert c.name == "read_file"
         assert c.namespace == "fs"
         assert c.description == "Read a file from disk"
-        assert c.params_model is dict
+        assert c.params_model is _StubParams
         assert c.result_model is str
         assert c.tags == frozenset({"io", "read"})
         assert c.category == "filesystem"
@@ -246,7 +252,7 @@ class TestCapability:
             name="noop",
             namespace="test",
             description="Does nothing",
-            params_model=dict,
+            params_model=_StubParams,
             result_model=None,
             tags=frozenset(),
             category="test",
@@ -258,7 +264,7 @@ class TestCapability:
             name="x",
             namespace="n",
             description="d",
-            params_model=dict,
+            params_model=_StubParams,
             result_model=None,
             tags=frozenset(),
             category="c",

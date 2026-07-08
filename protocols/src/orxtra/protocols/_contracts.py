@@ -11,6 +11,7 @@ if TYPE_CHECKING:
         CredentialRecord,
         MacVerdict,
         Principal,
+        TrustTier,
     )
     from orxtra.protocols._types._checks import CheckResult
     from orxtra.protocols._types._dispatch import (
@@ -280,7 +281,7 @@ class AuthStorage(Protocol):
     async def create_consumer(
         self,
         name: str,
-        trust_tier: str,
+        trust_tier: TrustTier,
         scope_grants: list[str],
     ) -> UUID: ...
 
