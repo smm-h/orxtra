@@ -69,6 +69,7 @@ class _StubToolDeps:
     agents: dict[str, Any] = field(default_factory=dict)
     preview_threshold: int = 50000
     preview_lines: int = 50
+    secret_registry: Any = None
 
 
 # ---------------------------------------------------------------------------

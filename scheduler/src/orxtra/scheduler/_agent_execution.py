@@ -993,6 +993,7 @@ class AgentExecutionMixin(SchedulerBase):
                     agents=self._agents,
                     preview_threshold=10000,
                     preview_lines=50,
+                    secret_registry=self._secret_registry,
                 )
                 raw = entry.factory(_deps)
                 return wrap_tool_with_pipeline(
@@ -1124,6 +1125,7 @@ class AgentExecutionMixin(SchedulerBase):
             agents=self._agents,
             preview_threshold=preview_threshold,
             preview_lines=preview_lines,
+            secret_registry=self._secret_registry,
         )
         raw_tools = self._tool_registry.build_tools(
             non_deferred_resolved, deps,
@@ -1188,22 +1190,35 @@ class AgentExecutionMixin(SchedulerBase):
 
         # Inline tool definitions (per-agent [[tools.define]]).
         if agent_def.inline_tools:
-            from orxtra.tool import DataToolDefinition
+            from orxtra.tool import (
+                CommandExecution,
+                DataToolDefinition,
+                HttpExecution,
+                MontyExecution,
+                build_command_tool,
+                build_http_tool,
+                build_monty_tool,
+            )
+
+            _BUILDERS: dict[type, Any] = {
+                CommandExecution: build_command_tool,
+                MontyExecution: build_monty_tool,
+                HttpExecution: build_http_tool,
+            }
 
             for itd in agent_def.inline_tools:
                 # Build a DataToolDefinition from the inline
                 # raw dict to get proper validation.
-                defn_dict = {
-                    "name": itd.name,
-                    "description": itd.description,
-                    "namespace": itd.namespace,
-                    "deferred": itd.deferred,
-                    "tags": itd.tags,
-                    "params": itd.params or {},
-                    "execution": itd.execution,
-                    "output": itd.output,
-                }
-                defn = DataToolDefinition(**defn_dict)
+                defn = DataToolDefinition(
+                    name=itd.name,
+                    description=itd.description,
+                    namespace=itd.namespace,
+                    deferred=itd.deferred,
+                    tags=itd.tags,
+                    params=itd.params or {},
+                    execution=itd.execution,
+                    output=itd.output,
+                )
 
                 # Only build if the tool name resolves
                 # through the allow list (explicit name or
@@ -1220,27 +1235,15 @@ class AgentExecutionMixin(SchedulerBase):
                     if not ns_match and "*" not in agent_def.allow:
                         continue
 
-                from orxtra.tool import (
-                    CommandExecution,
-                    HttpExecution,
-                    MontyExecution,
-                    build_command_tool,
-                    build_http_tool,
-                    build_monty_tool,
-                )
-
-                if isinstance(defn.execution, CommandExecution):
-                    raw_tools.append(
-                        build_command_tool(defn, deps),
+                builder = _BUILDERS.get(type(defn.execution))
+                if builder is None:
+                    msg = (
+                        f"No builder registered for execution "
+                        f"type {type(defn.execution).__name__!r} "
+                        f"on inline tool {defn.name!r}"
                     )
-                elif isinstance(defn.execution, MontyExecution):
-                    raw_tools.append(
-                        build_monty_tool(defn, deps),
-                    )
-                elif isinstance(defn.execution, HttpExecution):
-                    raw_tools.append(
-                        build_http_tool(defn, deps),
-                    )
+                    raise TypeError(msg)
+                raw_tools.append(builder(defn, deps))
 
         # Always add lifecycle tools.
         raw_tools.extend([

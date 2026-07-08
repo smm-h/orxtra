@@ -32,6 +32,7 @@ from orxtra.tool._data_tool_shared import (
 from orxtra.tool._data_tool_types import DataToolDefinition, HttpExecution, ParamDef
 
 if TYPE_CHECKING:
+    from orxtra.protocols import ToolDeps
     from orxtra.secrets import SecretRegistry
 
 # Matches {param_name} placeholders in URL templates.
@@ -184,25 +185,23 @@ async def _make_http_request(
 
 def build_http_tool(
     definition: DataToolDefinition,
-    secret_registry: SecretRegistry | None = None,
+    deps: ToolDeps,
     timeout_ceiling: int = 30,
-    preview_threshold: int = 50000,
-    preview_lines: int = 50,
 ) -> Tool:
     """Build a Tool from a DataToolDefinition with HttpExecution config.
 
     Args:
         definition: A validated DataToolDefinition with ``type = "http"``.
-        secret_registry: For call-time secret substitution. Hard error
-            if the definition contains ``{{secret:...}}`` placeholders
-            and this is None.
+        deps: Session-scoped dependencies (secret_registry,
+            preview_threshold, preview_lines).
         timeout_ceiling: Maximum HTTP timeout in seconds.
-        preview_threshold: Byte threshold for response preview.
-        preview_lines: Number of head/tail lines in preview.
 
     Returns:
         A Tool instance ready for execution pipeline wrapping.
     """
+    secret_registry = deps.secret_registry
+    preview_threshold = deps.preview_threshold
+    preview_lines = deps.preview_lines
     exec_cfg = definition.execution
     if not isinstance(exec_cfg, HttpExecution):
         msg = (

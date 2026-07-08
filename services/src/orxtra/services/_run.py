@@ -151,6 +151,12 @@ def _load_custom_tools(
         derive_tags,
     )
 
+    _BUILDERS: dict[type, Any] = {
+        HttpExecution: build_http_tool,
+        MontyExecution: build_monty_tool,
+        CommandExecution: build_command_tool,
+    }
+
     definitions = load_tool_definitions(tools_dir, secret_registry)
     entries: list[ToolEntry] = []
     for defn in definitions:
@@ -159,65 +165,39 @@ def _load_custom_tools(
         if defn.tags:
             derived_tags.update(defn.tags)
 
-        factory: Callable[..., Any]
-
         if isinstance(defn.execution, HttpExecution):
             # HTTP: derive from method.
             if defn.execution.method in {"GET", "HEAD"}:
                 derived_tags.add("readonly")
             else:
                 derived_tags.add("mutation")
-
-            def _http_factory(
-                deps: Any,
-                *,
-                _defn: Any = defn,
-                _sr: SecretRegistry | None = secret_registry,
-            ) -> Any:
-                return build_http_tool(
-                    _defn,
-                    secret_registry=_sr,
-                    preview_threshold=deps.preview_threshold,
-                    preview_lines=deps.preview_lines,
-                )
-
-            factory = _http_factory
-
         elif isinstance(defn.execution, MontyExecution):
             # Monty: derive tags from capabilities.
             cap_tags = derive_tags(
                 defn.execution.capabilities, defn.tags,
             )
             derived_tags.update(cap_tags)
-
-            def _monty_factory(
-                deps: Any,
-                *,
-                _defn: Any = defn,
-            ) -> Any:
-                return build_monty_tool(_defn, deps)
-
-            factory = _monty_factory
-
         elif isinstance(defn.execution, CommandExecution):
             # Command: always mutation.
             derived_tags.add("mutation")
 
-            def _command_factory(
-                deps: Any,
-                *,
-                _defn: Any = defn,
-            ) -> Any:
-                return build_command_tool(_defn, deps)
-
-            factory = _command_factory
-
-        else:
+        builder = _BUILDERS.get(type(defn.execution))
+        if builder is None:
             msg = (
                 f"Unknown execution type for tool {defn.name!r}: "
                 f"{type(defn.execution).__name__}"
             )
             raise TypeError(msg)
+
+        def _factory(
+            deps: Any,
+            *,
+            _defn: Any = defn,
+            _builder: Any = builder,
+        ) -> Any:
+            return _builder(_defn, deps)
+
+        factory: Callable[..., Any] = _factory
 
         entries.append(ToolEntry(
             name=defn.name,

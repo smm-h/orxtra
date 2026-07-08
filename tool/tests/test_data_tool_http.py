@@ -11,6 +11,9 @@ Covers:
 from __future__ import annotations
 
 import json
+import uuid
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -25,8 +28,41 @@ from orxtra.tool._data_tool_types import (
     OutputConfig,
     ParamDef,
 )
+from orxtra.write_safety import StaleWriteTracker, WriteQueue
 
 _HTTPX_CLIENT = "orxtra.tool._data_tool_http.httpx.AsyncClient"
+
+
+@dataclass
+class _StubToolDeps:
+    """Minimal ToolDeps stub for HTTP tool tests."""
+
+    read_root: Path = field(default_factory=lambda: Path("/dev/null"))
+    write_scope: list[Path] | None = None
+    write_queue: WriteQueue = field(default_factory=WriteQueue)
+    stale_tracker: StaleWriteTracker = field(
+        default_factory=StaleWriteTracker,
+    )
+    session_id: str = "test-session"
+    trace_writer: Any = field(default_factory=MagicMock)
+    run_id: uuid.UUID = field(default_factory=uuid.uuid4)
+    task_id: uuid.UUID = field(default_factory=uuid.uuid4)
+    task_name: str = "test-task"
+    task_agent: str = "test-agent"
+    scheduler_ref: Any = field(default_factory=MagicMock)
+    transport_registry: dict[str, Any] = field(default_factory=dict)
+    categories: dict[str, str] = field(default_factory=dict)
+    agents: dict[str, Any] = field(default_factory=dict)
+    preview_threshold: int = 50000
+    preview_lines: int = 50
+    secret_registry: SecretRegistry | None = None
+
+
+def _deps(
+    secret_registry: SecretRegistry | None = None,
+) -> _StubToolDeps:
+    """Create a _StubToolDeps with optional secret_registry."""
+    return _StubToolDeps(secret_registry=secret_registry)
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +150,7 @@ class TestSecretSubstitution:
                 "Authorization": "Bearer {{secret:TOKEN}}",
             },
         )
-        tool = build_http_tool(defn, secret_registry=registry)
+        tool = build_http_tool(defn, _deps(secret_registry=registry))
 
         # Tool metadata must NOT contain the real secret value.
         assert "real-secret-abc123" not in tool.description
@@ -145,7 +181,7 @@ class TestSecretSubstitution:
             method="GET",
             url="https://api.example.com/data?key={{secret:API_KEY}}",
         )
-        tool = build_http_tool(defn, secret_registry=registry)
+        tool = build_http_tool(defn, _deps(secret_registry=registry))
 
         # Tool description must not contain the secret.
         assert "key-xyz" not in tool.description
@@ -169,7 +205,7 @@ class TestSecretSubstitution:
             url="https://api.example.com/data",
             body_template='{"auth": "{{secret:TOKEN}}"}',
         )
-        tool = build_http_tool(defn, secret_registry=registry)
+        tool = build_http_tool(defn, _deps(secret_registry=registry))
 
         resp = _mock_response(text='{"ok": true}')
         mock = _mock_client(resp)
@@ -192,7 +228,7 @@ class TestSecretSubstitution:
             },
         )
         # No registry provided.
-        tool = build_http_tool(defn, secret_registry=None)
+        tool = build_http_tool(defn, _deps(secret_registry=None))
 
         with pytest.raises(
             ToolError, match="SecretRegistry was provided",
@@ -223,7 +259,7 @@ class TestOutputSchemaValidation:
                 "required": ["temperature", "humidity"],
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         # Response only has temperature, missing humidity.
         resp = _mock_response(text='{"temperature": 22.5}')
@@ -247,7 +283,7 @@ class TestOutputSchemaValidation:
                 "required": ["temperature", "city"],
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         resp = _mock_response(
             text='{"temperature": 22.5, "city": "Berlin"}',
@@ -271,7 +307,7 @@ class TestOutputSchemaValidation:
                 "required": ["count"],
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         # count is a string, not an integer.
         resp = _mock_response(text='{"count": "not-a-number"}')
@@ -288,7 +324,7 @@ class TestOutputSchemaValidation:
     async def test_no_output_schema_skips_validation(self) -> None:
         """No output schema: any response is accepted."""
         defn = _make_definition(output_schema=None)
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         resp = _mock_response(text="arbitrary non-json text")
         mock = _mock_client(resp)
@@ -319,7 +355,7 @@ class TestParameterInterpolation:
                 ),
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         resp = _mock_response(text='{"id": "ABC 123"}')
         mock = _mock_client(resp)
@@ -347,7 +383,7 @@ class TestParameterInterpolation:
                 ),
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         with pytest.raises(ToolError, match="does not match pattern"):
             await tool.execute({"user_id": "invalid user!"})
@@ -366,7 +402,7 @@ class TestParameterInterpolation:
                 ),
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         resp = _mock_response(text='{"name": "Alice"}')
         mock = _mock_client(resp)
@@ -388,7 +424,7 @@ class TestParameterInterpolation:
                 ),
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         with pytest.raises(
             ToolError, match="Missing required argument",
@@ -402,7 +438,7 @@ class TestParameterInterpolation:
             url="https://api.example.com/data",
             params={},
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         with pytest.raises(ToolError, match="Unexpected arguments"):
             await tool.execute({"unknown_param": "value"})
@@ -419,42 +455,42 @@ class TestEffectTags:
     def test_get_tool_has_readonly_tag(self) -> None:
         """GET-only tool carries the readonly tag."""
         defn = _make_definition(method="GET")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert "readonly" in tool.tags
         assert "mutation" not in tool.tags
 
     def test_head_tool_has_readonly_tag(self) -> None:
         """HEAD tool carries the readonly tag."""
         defn = _make_definition(method="HEAD")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert "readonly" in tool.tags
         assert "mutation" not in tool.tags
 
     def test_post_tool_has_mutation_tag(self) -> None:
         """POST tool carries the mutation tag."""
         defn = _make_definition(method="POST")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert "mutation" in tool.tags
         assert "readonly" not in tool.tags
 
     def test_put_tool_has_mutation_tag(self) -> None:
         """PUT tool carries the mutation tag."""
         defn = _make_definition(method="PUT")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert "mutation" in tool.tags
         assert "readonly" not in tool.tags
 
     def test_delete_tool_has_mutation_tag(self) -> None:
         """DELETE tool carries the mutation tag."""
         defn = _make_definition(method="DELETE")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert "mutation" in tool.tags
         assert "readonly" not in tool.tags
 
     def test_patch_tool_has_mutation_tag(self) -> None:
         """PATCH tool carries the mutation tag."""
         defn = _make_definition(method="PATCH")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert "mutation" in tool.tags
         assert "readonly" not in tool.tags
 
@@ -469,24 +505,24 @@ class TestToolMetadata:
 
     def test_name_matches_definition(self) -> None:
         defn = _make_definition(name="my_api_tool")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert tool.name == "my_api_tool"
 
     def test_description_matches_definition(self) -> None:
         defn = _make_definition(
             description="Fetches data from My API",
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert tool.description == "Fetches data from My API"
 
     def test_namespace_matches_definition(self) -> None:
         defn = _make_definition(namespace="custom.myapi")
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert tool.namespace == "custom.myapi"
 
     def test_deferred_matches_definition(self) -> None:
         defn = _make_definition(deferred=True)
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         assert tool.deferred is True
 
     def test_parameters_schema_has_correct_structure(self) -> None:
@@ -505,7 +541,7 @@ class TestToolMetadata:
                 ),
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
         props = tool.parameters["properties"]
         assert tool.parameters["type"] == "object"
         assert "query" in props
@@ -527,7 +563,7 @@ class TestHttpErrors:
     @pytest.mark.asyncio
     async def test_timeout_raises_tool_error(self) -> None:
         defn = _make_definition()
-        tool = build_http_tool(defn, timeout_ceiling=5)
+        tool = build_http_tool(defn, _deps(), timeout_ceiling=5)
 
         mock = AsyncMock()
         mock.request = AsyncMock(
@@ -545,7 +581,7 @@ class TestHttpErrors:
     @pytest.mark.asyncio
     async def test_connection_error_raises_tool_error(self) -> None:
         defn = _make_definition()
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         mock = AsyncMock()
         mock.request = AsyncMock(
@@ -591,7 +627,7 @@ class TestBodyTemplateInterpolation:
                 ),
             },
         )
-        tool = build_http_tool(defn)
+        tool = build_http_tool(defn, _deps())
 
         resp = _mock_response(text='{"ok": true}')
         mock = _mock_client(resp)
@@ -637,4 +673,4 @@ class TestNonHttpExecution:
         )
 
         with pytest.raises(TypeError, match="Expected HttpExecution"):
-            build_http_tool(defn)
+            build_http_tool(defn, _deps())

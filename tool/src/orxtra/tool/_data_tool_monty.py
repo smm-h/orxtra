@@ -35,7 +35,7 @@ from pydantic_monty import ResourceLimits as MontyResourceLimits
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
-    from orxtra.scheduler._tool_registry import ToolDeps
+    from orxtra.protocols import ToolDeps
 
 # ---------------------------------------------------------------------------
 # Capability mapping

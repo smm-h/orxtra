@@ -120,6 +120,9 @@ from orxtra.protocols._types._tool import (
     ToolError,
     ToolOutput,
 )
+from orxtra.protocols._types._tool_deps import (
+    ToolDeps,
+)
 
 __all__ = [
     "ALL_SCOPES",
@@ -212,6 +215,7 @@ __all__ = [
     "TaskSpec",
     "TaskState",
     "Tool",
+    "ToolDeps",
     "ToolError",
     "ToolOutput",
     "TrustTier",
