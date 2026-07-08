@@ -12,7 +12,7 @@ from orxtra.overseer._tools import (
     make_update_workflow_status_tool,
     make_write_lesson_tool,
 )
-from orxtra.protocols import OverseerEvent
+from orxtra.protocols import OverseerEvent as OverseerEvent
 from orxtra.tool import (
     make_diff_tool,
     make_glob_tool,
