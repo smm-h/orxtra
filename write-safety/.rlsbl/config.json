@@ -1,5 +1,4 @@
 {
-  "targets": [],
-  "private": false,
+  "private": true,
   "pipelines": {}
 }

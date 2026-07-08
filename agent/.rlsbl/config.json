@@ -1,6 +1,5 @@
 {
-  "targets": [],
-  "private": false,
+  "private": true,
   "pipelines": {},
   "batch_limits": {
     "exclusions": [
