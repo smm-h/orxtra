@@ -21,7 +21,6 @@ import pytest
 import uuid6
 from orxtra.agent import Agent
 from orxtra.notepad import NotepadEntry
-from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import (
     CheckResult,
     CreateTaskParams,
@@ -32,6 +31,7 @@ from orxtra.protocols import (
     ToolError,
 )
 from orxtra.scheduler._executor import Scheduler, classify_error
+from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.transport import Result, StepFinish, ToolUse
 
@@ -55,7 +55,7 @@ def _simple_task(
     name: str = "t1",
     agent: str = "test-agent",
     timeout: int = 60,
-    **kwargs: Any,  # noqa: ANN401
+    **kwargs: Any,
 ) -> TaskSpec:
     return TaskSpec(
         name=name,
@@ -67,9 +67,9 @@ def _simple_task(
     )
 
 
-def _make_scheduler(  # noqa: PLR0913
+def _make_scheduler(
     trace_writer: MockTraceWriter,
-    transport: Any,  # noqa: ANN401
+    transport: Any,
     run_id: uuid.UUID,
     read_root: Path,
     agents: dict[str, Agent] | None = None,
@@ -88,7 +88,7 @@ def _make_scheduler(  # noqa: PLR0913
 
 def _register_check_module(
     module_name: str,
-    **functions: Any,  # noqa: ANN401
+    **functions: Any,
 ) -> types.ModuleType:
     """Register a synthetic module with check functions in sys.modules."""
     mod = types.ModuleType(module_name)
@@ -116,7 +116,7 @@ class TestVerifyIntegration:
         trace_writer = MockTraceWriter()
         check_called = False
 
-        async def passing_check(ctx: Any) -> CheckResult:  # noqa: ANN401
+        async def passing_check(ctx: Any) -> CheckResult:
             nonlocal check_called
             check_called = True
             return CheckResult(
@@ -165,7 +165,7 @@ class TestVerifyIntegration:
         trace_writer = MockTraceWriter()
         postcheck_called = False
 
-        async def post_check(ctx: Any) -> CheckResult:  # noqa: ANN401
+        async def post_check(ctx: Any) -> CheckResult:
             nonlocal postcheck_called
             postcheck_called = True
             return CheckResult(
@@ -219,16 +219,16 @@ class TestVerifyIntegration:
             name="t1",
             task_type="agent",
         )
-        scheduler._init_task_state(task_id, task, None)  # noqa: SLF001
+        scheduler._init_task_state(task_id, task, None)
 
-        pre_results = await scheduler._run_prechecks(  # noqa: SLF001
+        pre_results = await scheduler._run_prechecks(
             task, task_id,
         )
         assert len(pre_results) == 1
         assert pre_results[0].passed is True
         assert "No prechecks" in pre_results[0].message
 
-        post_results = await scheduler._run_postchecks(  # noqa: SLF001
+        post_results = await scheduler._run_postchecks(
             task, task_id,
         )
         assert len(post_results) == 1
@@ -250,7 +250,7 @@ class TestContextAssembly:
 
         class CapturingTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
@@ -312,7 +312,7 @@ class TestContextAssembly:
             trace_writer, CapturingTransport(), run_id,
             read_root=tmp_path,
         )
-        sched._active_constraints.append(  # noqa: SLF001
+        sched._active_constraints.append(
             ("No new dependencies", "mechanical"),
         )
         config = WorkflowConfig(
@@ -340,7 +340,7 @@ class TestContextAssembly:
 
         class CapturingTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
@@ -410,7 +410,7 @@ class TestContextAssembly:
             text="The API uses v2 endpoints",
             created_at=datetime.now(UTC),
         )
-        sched._notepad_entries.append(entry)  # noqa: SLF001
+        sched._notepad_entries.append(entry)
 
         config = WorkflowConfig(
             name="notepad-wf",
@@ -457,7 +457,7 @@ class TestContextAssembly:
 
         class CapturingTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
@@ -515,8 +515,8 @@ class TestContextAssembly:
                     tool_calls=2,
                 )
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = fail_then_pass  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = fail_then_pass  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="retry-ctx",
@@ -545,7 +545,7 @@ class TestContextAssembly:
             assert "## Prior Failure Context" in retry_prompt
             assert "Prior attempt" in retry_prompt
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
 
 
 # -- Section 3: TaskContext --
@@ -582,21 +582,21 @@ class TestTaskContext:
         p_task = _simple_task("p")
         c_task = _simple_task("c")
 
-        scheduler._init_task_state(gp_id, gp_task, None)  # noqa: SLF001
-        scheduler._init_task_state(p_id, p_task, gp_id)  # noqa: SLF001
-        scheduler._init_task_state(c_id, c_task, p_id)  # noqa: SLF001
+        scheduler._init_task_state(gp_id, gp_task, None)
+        scheduler._init_task_state(p_id, p_task, gp_id)
+        scheduler._init_task_state(c_id, c_task, p_id)
 
-        ctx = scheduler._make_task_context(  # noqa: SLF001
+        ctx = scheduler._make_task_context(
             c_task, c_id, p_id, 1, [], None,
         )
         assert ctx.nesting_depth == 2
 
-        ctx_p = scheduler._make_task_context(  # noqa: SLF001
+        ctx_p = scheduler._make_task_context(
             p_task, p_id, gp_id, 1, [], None,
         )
         assert ctx_p.nesting_depth == 1
 
-        ctx_gp = scheduler._make_task_context(  # noqa: SLF001
+        ctx_gp = scheduler._make_task_context(
             gp_task, gp_id, None, 1, [], None,
         )
         assert ctx_gp.nesting_depth == 0
@@ -616,7 +616,7 @@ class TestTaskContext:
             text="Use approach B",
             created_at=datetime.now(UTC),
         )
-        scheduler._notepad_entries.append(entry)  # noqa: SLF001
+        scheduler._notepad_entries.append(entry)
 
         task = _simple_task()
         task_id = await trace_writer.create_task(
@@ -625,9 +625,9 @@ class TestTaskContext:
             name="t1",
             task_type="agent",
         )
-        scheduler._init_task_state(task_id, task, None)  # noqa: SLF001
+        scheduler._init_task_state(task_id, task, None)
 
-        ctx = scheduler._make_task_context(  # noqa: SLF001
+        ctx = scheduler._make_task_context(
             task, task_id, None, 1, [], None,
         )
         expected = _render_notepad([entry])
@@ -643,17 +643,17 @@ class TestMutationTracking:
         scheduler: Scheduler,
     ) -> None:
         """_session_mutations dict tracks mutation state."""
-        scheduler._session_mutations["sess-1"] = set()  # noqa: SLF001
-        assert scheduler._session_mutations["sess-1"] == set()  # noqa: SLF001
-        scheduler._session_mutations["sess-1"] = {"file.py"}  # noqa: SLF001
-        assert scheduler._session_mutations["sess-1"] == {"file.py"}  # noqa: SLF001
+        scheduler._session_mutations["sess-1"] = set()
+        assert scheduler._session_mutations["sess-1"] == set()
+        scheduler._session_mutations["sess-1"] = {"file.py"}
+        assert scheduler._session_mutations["sess-1"] == {"file.py"}
 
     async def test_auto_commit_runs_on_mutations(
         self,
         scheduler: Scheduler,
     ) -> None:
         """_auto_commit runs git status and safegit when mutations detected."""
-        scheduler._session_mutations["sess-a"] = {"__generic__"}  # noqa: SLF001
+        scheduler._session_mutations["sess-a"] = {"__generic__"}
 
         # Mock subprocess to simulate dirty working tree
         mock_git_status = AsyncMock()
@@ -670,7 +670,7 @@ class TestMutationTracking:
 
         call_count = 0
 
-        async def mock_subprocess(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        async def mock_subprocess(*args: Any, **kwargs: Any) -> Any:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
@@ -681,7 +681,7 @@ class TestMutationTracking:
             "asyncio.create_subprocess_exec",
             side_effect=mock_subprocess,
         ):
-            await scheduler._auto_commit(  # noqa: SLF001
+            await scheduler._auto_commit(
                 "sess-a", "test commit",
             )
 
@@ -694,7 +694,7 @@ class TestMutationTracking:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Warning when mutation tracker says yes but git is clean."""
-        scheduler._session_mutations["sess-b"] = {"__generic__"}  # noqa: SLF001
+        scheduler._session_mutations["sess-b"] = {"__generic__"}
 
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(
@@ -708,7 +708,7 @@ class TestMutationTracking:
             ),
             caplog.at_level(logging.WARNING, logger="orxtra.scheduler"),
         ):
-            await scheduler._auto_commit(  # noqa: SLF001
+            await scheduler._auto_commit(
                 "sess-b", "msg",
             )
 
@@ -723,7 +723,7 @@ class TestMutationTracking:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Warning when git has changes but tracker reports none."""
-        scheduler._session_mutations["sess-c"] = set()  # noqa: SLF001
+        scheduler._session_mutations["sess-c"] = set()
 
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(
@@ -737,7 +737,7 @@ class TestMutationTracking:
             ),
             caplog.at_level(logging.WARNING, logger="orxtra.scheduler"),
         ):
-            await scheduler._auto_commit(  # noqa: SLF001
+            await scheduler._auto_commit(
                 "sess-c", "msg",
             )
 
@@ -762,7 +762,7 @@ class TestStructuredOutputValidation:
             },
             "required": ["name"],
         })
-        result = scheduler._validate_output_schema(  # noqa: SLF001
+        result = scheduler._validate_output_schema(
             '{"name": "test"}', schema,
         )
         assert result.passed is True
@@ -780,7 +780,7 @@ class TestStructuredOutputValidation:
             },
             "required": ["name"],
         })
-        result = scheduler._validate_output_schema(  # noqa: SLF001
+        result = scheduler._validate_output_schema(
             '{"count": 42}', schema,
         )
         assert result.passed is False
@@ -792,7 +792,7 @@ class TestStructuredOutputValidation:
     ) -> None:
         """None output returns failed."""
         schema = json.dumps({"type": "object"})
-        result = scheduler._validate_output_schema(  # noqa: SLF001
+        result = scheduler._validate_output_schema(
             None, schema,
         )
         assert result.passed is False
@@ -804,7 +804,7 @@ class TestStructuredOutputValidation:
     ) -> None:
         """Non-JSON output returns failed."""
         schema = json.dumps({"type": "object"})
-        result = scheduler._validate_output_schema(  # noqa: SLF001
+        result = scheduler._validate_output_schema(
             "not json at all", schema,
         )
         assert result.passed is False
@@ -868,7 +868,7 @@ class TestDecisionPoint:
         # Verify state is completed
         completed = [
             tid
-            for tid, s in sched._task_states.items()  # noqa: SLF001
+            for tid, s in sched._task_states.items()
             if s == TaskState.COMPLETED
         ]
         assert len(completed) == 1
@@ -892,11 +892,11 @@ class TestFileLocks:
             name="parent",
             task_type="agent",
         )
-        scheduler._init_task_state(  # noqa: SLF001
+        scheduler._init_task_state(
             parent_id, parent_task, None,
         )
-        scheduler._task_states[parent_id] = TaskState.ACTIVE  # noqa: SLF001
-        scheduler._active_tasks["sess-lock"] = parent_id  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.ACTIVE
+        scheduler._active_tasks["sess-lock"] = parent_id
 
         params = CreateTaskParams(
             name="writer-task",
@@ -912,7 +912,7 @@ class TestFileLocks:
         task_id = uuid.UUID(task_id_str)
 
         # Verify paths are claimed
-        conflict = scheduler._file_lock_registry.check_conflict(  # noqa: SLF001
+        conflict = scheduler._file_lock_registry.check_conflict(
             ["src/main.py"],
         )
         assert conflict == task_id
@@ -931,11 +931,11 @@ class TestFileLocks:
             name="parent",
             task_type="agent",
         )
-        scheduler._init_task_state(  # noqa: SLF001
+        scheduler._init_task_state(
             parent_id, parent_task, None,
         )
-        scheduler._task_states[parent_id] = TaskState.ACTIVE  # noqa: SLF001
-        scheduler._active_tasks["sess-lock2"] = parent_id  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.ACTIVE
+        scheduler._active_tasks["sess-lock2"] = parent_id
 
         params1 = CreateTaskParams(
             name="writer-1",
@@ -976,11 +976,11 @@ class TestFileLocks:
             name="parent",
             task_type="agent",
         )
-        scheduler._init_task_state(  # noqa: SLF001
+        scheduler._init_task_state(
             parent_id, parent_task, None,
         )
-        scheduler._task_states[parent_id] = TaskState.ACTIVE  # noqa: SLF001
-        scheduler._active_tasks["sess-lock3"] = parent_id  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.ACTIVE
+        scheduler._active_tasks["sess-lock3"] = parent_id
 
         params = CreateTaskParams(
             name="writer-rel",
@@ -996,12 +996,12 @@ class TestFileLocks:
         task_id = uuid.UUID(task_id_str)
 
         # Complete the task -- locks should release
-        scheduler._complete_task(  # noqa: SLF001
+        scheduler._complete_task(
             task_id, "writer-rel", "done",
         )
 
         # Now the path should be free
-        conflict = scheduler._file_lock_registry.check_conflict(  # noqa: SLF001
+        conflict = scheduler._file_lock_registry.check_conflict(
             ["src/release.py"],
         )
         assert conflict is None
@@ -1020,15 +1020,15 @@ class TestFileLocks:
             name="locked-task",
             task_type="agent",
         )
-        scheduler._init_task_state(task_id, task, None)  # noqa: SLF001
-        scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
-        scheduler._file_lock_registry.claim(  # noqa: SLF001
+        scheduler._init_task_state(task_id, task, None)
+        scheduler._task_states[task_id] = TaskState.ACTIVE
+        scheduler._file_lock_registry.claim(
             task_id, ["src/abort.py"],
         )
 
         await scheduler.abort()
 
-        conflict = scheduler._file_lock_registry.check_conflict(  # noqa: SLF001
+        conflict = scheduler._file_lock_registry.check_conflict(
             ["src/abort.py"],
         )
         assert conflict is None
@@ -1052,9 +1052,9 @@ class TestStructuralAdvisories:
             name="reader",
             task_type="agent",
         )
-        scheduler._init_task_state(task_id, task, None)  # noqa: SLF001
+        scheduler._init_task_state(task_id, task, None)
 
-        advisories = scheduler._analyze_structural_advisories(  # noqa: SLF001
+        advisories = scheduler._analyze_structural_advisories(
             [task_id],
         )
         assert len(advisories) == 1
@@ -1087,9 +1087,9 @@ class TestStructuralAdvisories:
             name="writer",
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, None)
 
-        advisories = sched._analyze_structural_advisories(  # noqa: SLF001
+        advisories = sched._analyze_structural_advisories(
             [task_id],
         )
         assert len(advisories) == 0
@@ -1112,12 +1112,12 @@ class TestMechanicalConstraints:
             name="leaf",
             task_type="agent",
         )
-        scheduler._init_task_state(task_id, task, None)  # noqa: SLF001
-        scheduler._mechanical_constraints.append(  # noqa: SLF001
+        scheduler._init_task_state(task_id, task, None)
+        scheduler._mechanical_constraints.append(
             ("No removed exports", "no_removed_exports"),
         )
 
-        results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
+        results = await scheduler._run_mechanical_constraints(
             task_id,
         )
         assert len(results) == 1
@@ -1138,8 +1138,8 @@ class TestMechanicalConstraints:
             name="leaf",
             task_type="agent",
         )
-        scheduler._init_task_state(task_id, task, None)  # noqa: SLF001
-        scheduler._mechanical_constraints.extend([  # noqa: SLF001
+        scheduler._init_task_state(task_id, task, None)
+        scheduler._mechanical_constraints.extend([
             ("Tests must pass", "tests_pass"),
             ("Lint clean", "lint_clean"),
             ("No new deps", "no_new_dependencies"),
@@ -1154,7 +1154,7 @@ class TestMechanicalConstraints:
             "asyncio.create_subprocess_exec",
             return_value=mock_process,
         ):
-            results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
+            results = await scheduler._run_mechanical_constraints(
                 task_id,
             )
         # Only the cheap one (no_new_dependencies) should run
@@ -1177,7 +1177,7 @@ class TestMechanicalConstraints:
             name="workflow-task",
             task_type="agent",
         )
-        scheduler._init_task_state(  # noqa: SLF001
+        scheduler._init_task_state(
             task_id, task, None,
         )
 
@@ -1189,12 +1189,12 @@ class TestMechanicalConstraints:
             task_type="agent",
         )
         child_task = _simple_task("child")
-        scheduler._init_task_state(  # noqa: SLF001
+        scheduler._init_task_state(
             child_id, child_task, task_id,
         )
-        scheduler._task_children[task_id].append(child_id)  # noqa: SLF001
+        scheduler._task_children[task_id].append(child_id)
 
-        scheduler._mechanical_constraints.extend([  # noqa: SLF001
+        scheduler._mechanical_constraints.extend([
             ("Tests must pass", "tests_pass"),
             ("No new deps", "no_new_dependencies"),
         ])
@@ -1208,7 +1208,7 @@ class TestMechanicalConstraints:
             "asyncio.create_subprocess_exec",
             return_value=mock_process,
         ):
-            results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
+            results = await scheduler._run_mechanical_constraints(
                 task_id,
             )
         # Both should run because task has subtasks
@@ -1232,12 +1232,12 @@ class TestMechanicalConstraints:
             name="leaf",
             task_type="agent",
         )
-        scheduler._init_task_state(task_id, task, None)  # noqa: SLF001
-        scheduler._mechanical_constraints.append(  # noqa: SLF001
+        scheduler._init_task_state(task_id, task, None)
+        scheduler._mechanical_constraints.append(
             ("Unknown check", "totally_bogus"),
         )
 
-        results = await scheduler._run_mechanical_constraints(  # noqa: SLF001
+        results = await scheduler._run_mechanical_constraints(
             task_id,
         )
         assert len(results) == 1
@@ -1259,11 +1259,11 @@ class TestFixThenReverify:
         fix_called = False
         check_call_count = 0
 
-        async def fixable_check(ctx: Any) -> CheckResult:  # noqa: ANN401
+        async def fixable_check(ctx: Any) -> CheckResult:
             nonlocal check_call_count
             check_call_count += 1
             if check_call_count == 1:
-                async def do_fix(c: Any) -> None:  # noqa: ANN401
+                async def do_fix(c: Any) -> None:
                     nonlocal fix_called
                     fix_called = True
 

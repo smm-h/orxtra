@@ -8,7 +8,7 @@ from uuid import UUID
 
 
 class _DomainEncoder(json.JSONEncoder):
-    def default(self, o: object) -> Any:  # noqa: ANN401
+    def default(self, o: object) -> Any:
         if isinstance(o, UUID):
             return str(o)
         if isinstance(o, datetime):
@@ -18,7 +18,7 @@ class _DomainEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-def _to_serializable(obj: Any) -> Any:  # noqa: ANN401
+def _to_serializable(obj: Any) -> Any:
     if isinstance(obj, list):
         return [_to_serializable(item) for item in obj]
     if hasattr(obj, "model_dump"):
@@ -32,7 +32,7 @@ def _truncate(value: str, *, limit: int = 60) -> str:
     return value[: limit - 3] + "..."
 
 
-def _format_cell(value: Any) -> str:  # noqa: ANN401
+def _format_cell(value: Any) -> str:
     if value is None:
         return "-"
     if isinstance(value, datetime):
@@ -72,7 +72,7 @@ def _table_single(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def format_table(data: Any) -> str:  # noqa: ANN401
+def format_table(data: Any) -> str:
     if isinstance(data, list):
         if not data:
             return "(no results)"
@@ -94,12 +94,12 @@ def format_table(data: Any) -> str:  # noqa: ANN401
     return str(data)
 
 
-def format_json(data: Any) -> str:  # noqa: ANN401
+def format_json(data: Any) -> str:
     serializable = _to_serializable(data)
     return json.dumps(serializable, indent=2, cls=_DomainEncoder)
 
 
-def format_output(data: Any, fmt: str) -> str:  # noqa: ANN401
+def format_output(data: Any, fmt: str) -> str:
     if fmt == "table":
         return format_table(data)
     if fmt == "json":

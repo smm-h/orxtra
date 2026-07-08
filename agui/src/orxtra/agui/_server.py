@@ -10,10 +10,8 @@ from ag_ui.core import (
     EventType,
 )
 from ag_ui.encoder import EventEncoder
-
 from fastware import Router
 from fastware.sse import Broadcaster
-
 from orxtra.agui._sinks import AGUIOverseerSink, AGUITransportSink
 from orxtra.agui._translator import AGUITranslator
 
@@ -28,8 +26,7 @@ _AG_UI_EVENT_TYPES: list[str] = [member.value for member in EventType]
 
 def _create_broadcaster() -> Broadcaster:
     """Create a Broadcaster pre-registered with all AG-UI event types."""
-    broadcaster = Broadcaster(strict=False, heartbeat_interval=15.0)
-    return broadcaster
+    return Broadcaster(strict=False, heartbeat_interval=15.0)
 
 
 def create_agui_router(

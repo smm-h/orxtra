@@ -1,6 +1,6 @@
 """A2A JSON-RPC server backed by the orxtra capability dispatcher."""
 
-# ruff: noqa: TC001,TC002,TC003,ARG002,PLC0415
+# ruff: noqa: TC001, ARG002
 
 from __future__ import annotations
 

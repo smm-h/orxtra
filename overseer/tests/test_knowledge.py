@@ -4,11 +4,12 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from .conftest import MockTraceWriter
 from orxtra.overseer._knowledge import (
     load_knowledge_files,
 )
 from orxtra.trace import InMemoryBackend
+
+from .conftest import MockTraceWriter
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -176,7 +177,7 @@ async def test_content_hash_skips_unchanged_with_mock(
 async def test_nonexistent_dir(
     tw: MockTraceWriter, run_id: UUID,
 ) -> None:
-    from pathlib import Path  # noqa: PLC0415
+    from pathlib import Path
 
     await load_knowledge_files(
         Path("/nonexistent/dir"), tw, run_id,

@@ -67,7 +67,7 @@ class IntegrationMockTransport:
         self._turn_index = 0
         self.send_calls: list[dict[str, Any]] = []
 
-    async def send(  # noqa: PLR0913
+    async def send(
         self,
         message: str,
         *,
@@ -231,7 +231,7 @@ class MultiAgentMockTransport:
                 return key
         return None
 
-    async def send(  # noqa: PLR0913
+    async def send(
         self,
         message: str,
         *,
@@ -394,7 +394,7 @@ def simple_task(
     name: str = "t1",
     agent: str = "test-agent",
     timeout: int = 60,
-    **kwargs: Any,  # noqa: ANN401
+    **kwargs: Any,
 ) -> TaskSpec:
     """Create a simple agent TaskSpec for testing."""
     return TaskSpec(
@@ -420,7 +420,7 @@ def simple_workflow(
     )
 
 
-def make_scheduler(  # noqa: PLR0913
+def make_scheduler(
     trace_writer: MockTraceWriter,
     transport: IntegrationMockTransport | MultiAgentMockTransport,
     run_id: uuid.UUID,

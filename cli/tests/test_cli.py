@@ -36,7 +36,7 @@ for _mod in _MOCK_MODS:
         sys.modules[_mod] = MagicMock()
         _installed_mocks.append(_mod)
 
-from orxtra.cli._cli import app  # noqa: E402
+from orxtra.cli._cli import app
 
 # Remove the mocks again: orxtra.cli._cli has already bound them, but
 # leaving MagicMocks in sys.modules poisons every test module imported
@@ -92,32 +92,32 @@ def test_no_command_shows_help() -> None:
 
 def test_all_groups_exist() -> None:
     expected = {"run", "inbox", "trace", "event", "validate", "config", "db", "dispatch", "worker"}
-    assert set(app._groups.keys()) == expected  # noqa: SLF001
+    assert set(app._groups.keys()) == expected
 
 
 # -- Structure: run commands ------------------------------------------------------
 
 
 def test_run_commands() -> None:
-    cmds = set(app._groups["run"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["run"].commands.keys())
     assert cmds == {"start", "list", "show", "abort", "pause", "resume"}
 
 
 def test_run_start_flags() -> None:
-    cmd = app._groups["run"].commands["start"]  # noqa: SLF001
+    cmd = app._groups["run"].commands["start"]
     flag_names = {f.name for f in cmd.flags}
     assert "config" in flag_names
     assert "intent" in flag_names
 
 
 def test_run_start_config_required() -> None:
-    cmd = app._groups["run"].commands["start"]  # noqa: SLF001
+    cmd = app._groups["run"].commands["start"]
     config_flag = next(f for f in cmd.flags if f.name == "config")
     assert config_flag.default is None
 
 
 def test_run_start_intent_required() -> None:
-    cmd = app._groups["run"].commands["start"]  # noqa: SLF001
+    cmd = app._groups["run"].commands["start"]
     intent_flag = next(f for f in cmd.flags if f.name == "intent")
     assert intent_flag.default is None
 
@@ -135,26 +135,26 @@ def test_run_start_missing_intent_fails() -> None:
 
 
 def test_run_show_has_run_id_arg() -> None:
-    cmd = app._groups["run"].commands["show"]  # noqa: SLF001
+    cmd = app._groups["run"].commands["show"]
     assert len(cmd.args) == 1
     assert cmd.args[0].name == "run_id"
     assert cmd.args[0].required is True
 
 
 def test_run_abort_has_run_id_arg() -> None:
-    cmd = app._groups["run"].commands["abort"]  # noqa: SLF001
+    cmd = app._groups["run"].commands["abort"]
     assert len(cmd.args) == 1
     assert cmd.args[0].name == "run_id"
 
 
 def test_run_pause_has_run_id_arg() -> None:
-    cmd = app._groups["run"].commands["pause"]  # noqa: SLF001
+    cmd = app._groups["run"].commands["pause"]
     assert len(cmd.args) == 1
     assert cmd.args[0].name == "run_id"
 
 
 def test_run_resume_has_run_id_arg() -> None:
-    cmd = app._groups["run"].commands["resume"]  # noqa: SLF001
+    cmd = app._groups["run"].commands["resume"]
     assert len(cmd.args) == 1
     assert cmd.args[0].name == "run_id"
 
@@ -169,24 +169,24 @@ def test_run_missing_subcommand_shows_help() -> None:
 
 
 def test_inbox_commands() -> None:
-    cmds = set(app._groups["inbox"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["inbox"].commands.keys())
     assert cmds == {"list", "show", "respond", "skip", "reject"}
 
 
 def test_inbox_list_has_run_flag() -> None:
-    cmd = app._groups["inbox"].commands["list"]  # noqa: SLF001
+    cmd = app._groups["inbox"].commands["list"]
     flag_names = {f.name for f in cmd.flags}
     assert "run" in flag_names
 
 
 def test_inbox_list_run_required() -> None:
-    cmd = app._groups["inbox"].commands["list"]  # noqa: SLF001
+    cmd = app._groups["inbox"].commands["list"]
     run_flag = next(f for f in cmd.flags if f.name == "run")
     assert run_flag.default is None
 
 
 def test_inbox_list_has_optional_status() -> None:
-    cmd = app._groups["inbox"].commands["list"]  # noqa: SLF001
+    cmd = app._groups["inbox"].commands["list"]
     status_flag = next(f for f in cmd.flags if f.name == "status")
     assert status_flag.default == ""
 
@@ -198,12 +198,12 @@ def test_inbox_list_missing_run_fails() -> None:
 
 
 def test_inbox_show_has_item_id_arg() -> None:
-    cmd = app._groups["inbox"].commands["show"]  # noqa: SLF001
+    cmd = app._groups["inbox"].commands["show"]
     assert cmd.args[0].name == "item_id"
 
 
 def test_inbox_respond_has_two_args() -> None:
-    cmd = app._groups["inbox"].commands["respond"]  # noqa: SLF001
+    cmd = app._groups["inbox"].commands["respond"]
     assert len(cmd.args) == 2
     arg_names = {a.name for a in cmd.args}
     assert "item_id" in arg_names
@@ -211,12 +211,12 @@ def test_inbox_respond_has_two_args() -> None:
 
 
 def test_inbox_skip_has_item_id_arg() -> None:
-    cmd = app._groups["inbox"].commands["skip"]  # noqa: SLF001
+    cmd = app._groups["inbox"].commands["skip"]
     assert cmd.args[0].name == "item_id"
 
 
 def test_inbox_reject_has_two_args() -> None:
-    cmd = app._groups["inbox"].commands["reject"]  # noqa: SLF001
+    cmd = app._groups["inbox"].commands["reject"]
     assert len(cmd.args) == 2
     arg_names = {a.name for a in cmd.args}
     assert "item_id" in arg_names
@@ -233,35 +233,35 @@ def test_inbox_missing_subcommand_shows_help() -> None:
 
 
 def test_trace_commands() -> None:
-    cmds = set(app._groups["trace"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["trace"].commands.keys())
     assert cmds == {"events", "transcript", "search", "tasks", "notepad"}
 
 
 def test_trace_events_has_run_id_arg() -> None:
-    cmd = app._groups["trace"].commands["events"]  # noqa: SLF001
+    cmd = app._groups["trace"].commands["events"]
     assert cmd.args[0].name == "run_id"
 
 
 def test_trace_events_has_type_flag() -> None:
-    cmd = app._groups["trace"].commands["events"]  # noqa: SLF001
+    cmd = app._groups["trace"].commands["events"]
     type_flag = next(f for f in cmd.flags if f.name == "type")
     assert type_flag.default == ""
 
 
 def test_trace_events_has_limit_flag() -> None:
-    cmd = app._groups["trace"].commands["events"]  # noqa: SLF001
+    cmd = app._groups["trace"].commands["events"]
     limit_flag = next(f for f in cmd.flags if f.name == "limit")
     assert limit_flag.type is int
     assert limit_flag.default == 100
 
 
 def test_trace_transcript_has_session_id_arg() -> None:
-    cmd = app._groups["trace"].commands["transcript"]  # noqa: SLF001
+    cmd = app._groups["trace"].commands["transcript"]
     assert cmd.args[0].name == "session_id"
 
 
 def test_trace_search_has_two_args() -> None:
-    cmd = app._groups["trace"].commands["search"]  # noqa: SLF001
+    cmd = app._groups["trace"].commands["search"]
     assert len(cmd.args) == 2
     arg_names = {a.name for a in cmd.args}
     assert "session_id" in arg_names
@@ -269,12 +269,12 @@ def test_trace_search_has_two_args() -> None:
 
 
 def test_trace_tasks_has_run_id_arg() -> None:
-    cmd = app._groups["trace"].commands["tasks"]  # noqa: SLF001
+    cmd = app._groups["trace"].commands["tasks"]
     assert cmd.args[0].name == "run_id"
 
 
 def test_trace_notepad_has_run_id_arg() -> None:
-    cmd = app._groups["trace"].commands["notepad"]  # noqa: SLF001
+    cmd = app._groups["trace"].commands["notepad"]
     assert cmd.args[0].name == "run_id"
 
 
@@ -288,12 +288,12 @@ def test_trace_missing_subcommand_shows_help() -> None:
 
 
 def test_event_commands() -> None:
-    cmds = set(app._groups["event"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["event"].commands.keys())
     assert cmds == {"fire"}
 
 
 def test_event_fire_has_two_args() -> None:
-    cmd = app._groups["event"].commands["fire"]  # noqa: SLF001
+    cmd = app._groups["event"].commands["fire"]
     assert len(cmd.args) == 2
     arg_names = {a.name for a in cmd.args}
     assert "run_id" in arg_names
@@ -301,7 +301,7 @@ def test_event_fire_has_two_args() -> None:
 
 
 def test_event_fire_has_optional_payload() -> None:
-    cmd = app._groups["event"].commands["fire"]  # noqa: SLF001
+    cmd = app._groups["event"].commands["fire"]
     payload_flag = next(f for f in cmd.flags if f.name == "payload")
     assert payload_flag.default == ""
 
@@ -316,22 +316,22 @@ def test_event_missing_subcommand_shows_help() -> None:
 
 
 def test_validate_commands() -> None:
-    cmds = set(app._groups["validate"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["validate"].commands.keys())
     assert cmds == {"agent", "workflow", "categories"}
 
 
 def test_validate_agent_has_path_arg() -> None:
-    cmd = app._groups["validate"].commands["agent"]  # noqa: SLF001
+    cmd = app._groups["validate"].commands["agent"]
     assert cmd.args[0].name == "path"
 
 
 def test_validate_workflow_has_path_arg() -> None:
-    cmd = app._groups["validate"].commands["workflow"]  # noqa: SLF001
+    cmd = app._groups["validate"].commands["workflow"]
     assert cmd.args[0].name == "path"
 
 
 def test_validate_categories_has_path_arg() -> None:
-    cmd = app._groups["validate"].commands["categories"]  # noqa: SLF001
+    cmd = app._groups["validate"].commands["categories"]
     assert cmd.args[0].name == "path"
 
 
@@ -345,17 +345,17 @@ def test_validate_missing_subcommand_shows_help() -> None:
 
 
 def test_config_commands() -> None:
-    cmds = set(app._groups["config"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["config"].commands.keys())
     assert cmds == {"show", "pricing"}
 
 
 def test_config_show_has_run_id_arg() -> None:
-    cmd = app._groups["config"].commands["show"]  # noqa: SLF001
+    cmd = app._groups["config"].commands["show"]
     assert cmd.args[0].name == "run_id"
 
 
 def test_config_pricing_no_args() -> None:
-    cmd = app._groups["config"].commands["pricing"]  # noqa: SLF001
+    cmd = app._groups["config"].commands["pricing"]
     assert len(cmd.args) == 0
 
 
@@ -369,37 +369,37 @@ def test_config_missing_subcommand_shows_help() -> None:
 
 
 def test_db_commands() -> None:
-    cmds = set(app._groups["db"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["db"].commands.keys())
     assert cmds == {"init", "verify"}
 
 
 def test_db_init_has_use_extension_stub_flag() -> None:
-    cmd = app._groups["db"].commands["init"]  # noqa: SLF001
+    cmd = app._groups["db"].commands["init"]
     flag = next(f for f in cmd.flags if f.name == "use-extension-stub")
     assert flag.type is bool
     assert flag.default is False
 
 
 def test_db_verify_no_extra_flags() -> None:
-    cmd = app._groups["db"].commands["verify"]  # noqa: SLF001
+    cmd = app._groups["db"].commands["verify"]
     assert len(cmd.flags) == 0
 
 
 def test_db_migrate_subgroup_exists() -> None:
-    db = app._groups["db"]  # noqa: SLF001
-    assert "migrate" in db._groups  # noqa: SLF001
+    db = app._groups["db"]
+    assert "migrate" in db._groups
 
 
 def test_db_migrate_commands() -> None:
-    db = app._groups["db"]  # noqa: SLF001
-    migrate = db._groups["migrate"]  # noqa: SLF001
+    db = app._groups["db"]
+    migrate = db._groups["migrate"]
     cmds = set(migrate.commands.keys())
     assert cmds == {"plan", "apply", "status"}
 
 
 def test_db_migrate_apply_has_dry_run_flag() -> None:
-    db = app._groups["db"]  # noqa: SLF001
-    migrate = db._groups["migrate"]  # noqa: SLF001
+    db = app._groups["db"]
+    migrate = db._groups["migrate"]
     cmd = migrate.commands["apply"]
     flag = next(f for f in cmd.flags if f.name == "dry-run")
     assert flag.type is bool
@@ -422,24 +422,24 @@ def test_db_migrate_missing_subcommand_shows_help() -> None:
 
 
 def test_dispatch_commands() -> None:
-    cmds = set(app._groups["dispatch"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["dispatch"].commands.keys())
     assert cmds == {"run"}
 
 
 def test_dispatch_run_has_cursor_flag() -> None:
-    cmd = app._groups["dispatch"].commands["run"]  # noqa: SLF001
+    cmd = app._groups["dispatch"].commands["run"]
     flag_names = {f.name for f in cmd.flags}
     assert "cursor" in flag_names
 
 
 def test_dispatch_run_has_poll_interval_flag() -> None:
-    cmd = app._groups["dispatch"].commands["run"]  # noqa: SLF001
+    cmd = app._groups["dispatch"].commands["run"]
     flag_names = {f.name for f in cmd.flags}
     assert "poll-interval" in flag_names
 
 
 def test_dispatch_run_has_batch_size_flag() -> None:
-    cmd = app._groups["dispatch"].commands["run"]  # noqa: SLF001
+    cmd = app._groups["dispatch"].commands["run"]
     flag_names = {f.name for f in cmd.flags}
     assert "batch-size" in flag_names
 
@@ -454,7 +454,7 @@ def test_dispatch_missing_subcommand_shows_help() -> None:
 
 
 def test_worker_commands() -> None:
-    cmds = set(app._groups["worker"].commands.keys())  # noqa: SLF001
+    cmds = set(app._groups["worker"].commands.keys())
     assert cmds == {"connect", "docker"}
 
 
@@ -462,7 +462,7 @@ def test_worker_commands() -> None:
 
 
 def test_total_command_count_is_27() -> None:
-    total = sum(len(g.commands) for g in app._groups.values())  # noqa: SLF001
+    total = sum(len(g.commands) for g in app._groups.values())
     assert total == 27
 
 

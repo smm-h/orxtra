@@ -64,7 +64,7 @@ class TestRunConsult:
             def __init__(self) -> None:
                 self.received_message: str | None = None
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -95,7 +95,7 @@ class TestRunConsult:
                 )
 
         spy = CapturingTransport()
-        scheduler._transport_registry["anthropic"] = spy  # noqa: SLF001
+        scheduler._transport_registry["anthropic"] = spy
         result = await scheduler.run_consult(
             "test-agent",
             "Check {task_name} output: {agent_output}",
@@ -118,7 +118,7 @@ class TestRunConsult:
             def __init__(self) -> None:
                 self.received_tools: list[Tool] | None = None
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -149,13 +149,13 @@ class TestRunConsult:
                 )
 
         spy = SpyTransport()
-        scheduler._transport_registry["anthropic"] = spy  # noqa: SLF001
+        scheduler._transport_registry["anthropic"] = spy
         await scheduler.run_consult("test-agent", "question")
         assert spy.received_tools == []
 
     async def test_missing_category_raises(self, tmp_path: Path) -> None:
         """run_consult raises ValueError when the agent's category is missing."""
-        from orxtra.agent import Agent  # noqa: PLC0415
+        from orxtra.agent import Agent
 
         agent = Agent(
             name="special-agent",
@@ -209,7 +209,7 @@ class TestRunConsult:
             def __init__(self) -> None:
                 self.received_system_prompt: str | None = None
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -240,7 +240,7 @@ class TestRunConsult:
                 )
 
         spy = PromptCapture()
-        scheduler._transport_registry["anthropic"] = spy  # noqa: SLF001
+        scheduler._transport_registry["anthropic"] = spy
         await scheduler.run_consult("test-agent", "question")
         assert spy.received_system_prompt == "You are a test agent."
 
@@ -326,7 +326,9 @@ class TestCheckExecutorIntegration:
         self, scheduler: Scheduler,
     ) -> None:
         """AgentExecution postcheck with invalid JSON returns passed=False."""
-        from orxtra.verify._execution import _run_agent  # noqa: PLC0415  # allow-private-import
+        from orxtra.verify._execution import (
+            _run_agent,  # allow-private-import
+        )
 
         agent_exec = AgentExecution(
             agent="test-agent",
@@ -337,7 +339,7 @@ class TestCheckExecutorIntegration:
         ctx = CheckContext(
             variables={},
             agent_output="some output",
-            run_id=scheduler._run_id,  # noqa: SLF001
+            run_id=scheduler._run_id,
             session_id=None,
             task_name="test_task",
             task_id=uuid6.uuid7(),
@@ -355,7 +357,9 @@ class TestCheckExecutorIntegration:
 
     async def test_agent_execution_valid_verdict(self, tmp_path: Path) -> None:
         """AgentExecution postcheck with valid verdict JSON returns passed=True."""
-        from orxtra.verify._execution import _run_agent  # noqa: PLC0415  # allow-private-import
+        from orxtra.verify._execution import (
+            _run_agent,  # allow-private-import
+        )
 
         verdict_json = json.dumps({
             "verdict": "pass",
@@ -371,7 +375,7 @@ class TestCheckExecutorIntegration:
         })
 
         class VerdictTransport:
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -421,7 +425,7 @@ class TestCheckExecutorIntegration:
         ctx = CheckContext(
             variables={},
             agent_output="task completed successfully",
-            run_id=sched._run_id,  # noqa: SLF001
+            run_id=sched._run_id,
             session_id=None,
             task_name="test_task",
             task_id=uuid6.uuid7(),

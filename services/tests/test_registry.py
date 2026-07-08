@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from orxtra.protocols import Capability
 from orxtra.services._registry import (
-    CAPABILITIES,
     get_capabilities,
     get_capability,
     get_capability_fn,
 )
-
 
 # All expected capability names
 EXPECTED_NAMES: set[str] = {

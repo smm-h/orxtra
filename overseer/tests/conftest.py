@@ -8,7 +8,6 @@ import uuid6
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    from pathlib import Path
     from uuid import UUID
 
 
@@ -70,7 +69,7 @@ class MockTraceWriter:
         }))
         return generated
 
-    async def create_inbox_item(  # noqa: PLR0913
+    async def create_inbox_item(
         self,
         run_id: UUID,
         decision_type: str,
@@ -80,7 +79,7 @@ class MockTraceWriter:
         work_proceeding: str | None = None,
         contradiction_impact: str | None = None,
         tags: list[str] | None = None,
-        deadline: Any = None,  # noqa: ANN401
+        deadline: Any = None,
         answer_event: str | None = None,
     ) -> UUID:
         generated = self._gen_id()
@@ -142,12 +141,12 @@ class MockConn:
         self._rows = rows or []
 
     async def fetch(
-        self, query: str, *args: Any,  # noqa: ANN401
+        self, query: str, *args: Any,
     ) -> list[dict[str, Any]]:
         return self._rows
 
     async def fetchrow(
-        self, query: str, *args: Any,  # noqa: ANN401
+        self, query: str, *args: Any,
     ) -> dict[str, Any] | None:
         return self._rows[0] if self._rows else None
 

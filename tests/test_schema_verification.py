@@ -22,10 +22,10 @@ pytestmark = skip_no_docker
 
 
 async def test_verify_schema_raises_on_empty_db(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """verify_schema on an empty DB raises SchemaError with actionable msg."""
-    import asyncpg  # noqa: PLC0415
+    import asyncpg
 
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://",
@@ -51,11 +51,11 @@ async def test_verify_schema_raises_on_empty_db(
 
 
 async def test_verify_schema_passes_after_init(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """verify_schema returns silently after db init."""
-    import asyncpg  # noqa: PLC0415
-    from _generated.schema_executor import (  # noqa: PLC0415
+    import asyncpg
+    from _generated.schema_executor import (
         execute,
     )
 
@@ -83,10 +83,10 @@ async def test_verify_schema_passes_after_init(
 
 
 async def test_verify_schema_error_message_is_actionable(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """The SchemaError message names specific missing objects."""
-    import asyncpg  # noqa: PLC0415
+    import asyncpg
 
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://",

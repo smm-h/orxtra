@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import tomllib
-from pathlib import Path  # noqa: TC003
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ def _supports_knowledge_hashes(
     writer: TraceWriter | StorageBackend,
 ) -> KnowledgeHashStorage | None:
     """Check if the writer supports knowledge hash persistence."""
-    from orxtra.trace import KnowledgeHashStorage  # noqa: PLC0415
+    from orxtra.trace import KnowledgeHashStorage
 
     if isinstance(writer, KnowledgeHashStorage):
         return writer

@@ -6,16 +6,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Protocol
 
 from orxtra.protocols import (
-    BudgetExhausted,
-    BudgetThresholdCrossed,
-    HealthDegraded,
-    InboxAnswered,
-    InboxRejected,
     OverseerEvent,
-    RunStarted,
-    StructuralAdvisory,
-    TaskEscalated,
-    TaskFailed,
 )
 
 if TYPE_CHECKING:
@@ -53,7 +44,7 @@ async def _maintain_current_allocations(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,  # noqa: ANN401
+    trace_writer: Any = None,
     run_id: UUID | None = None,
 ) -> None:
     """For budget events: do nothing, just log."""
@@ -70,7 +61,7 @@ async def _escalate_to_human_inbox(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,  # noqa: ANN401
+    trace_writer: Any = None,
     run_id: UUID | None = None,
 ) -> None:
     """Default fallback: create an inbox item for
@@ -104,7 +95,7 @@ async def _write_to_trace(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,  # noqa: ANN401
+    trace_writer: Any = None,
     run_id: UUID | None = None,
 ) -> None:
     """Write the event to trace as a headless fallback
@@ -116,7 +107,7 @@ async def _write_to_trace(
         event_type,
     )
     if trace_writer is not None and run_id is not None:
-        import dataclasses  # noqa: PLC0415
+        import dataclasses
 
         data: dict[str, Any] = {
             "event_type": event_type,
@@ -165,7 +156,7 @@ async def _log_only(
     event: OverseerEvent,
     logger: logging.Logger,
     *,
-    trace_writer: Any = None,  # noqa: ANN401
+    trace_writer: Any = None,
     run_id: UUID | None = None,
 ) -> None:
     """Log the event, no other action needed."""
@@ -251,7 +242,7 @@ class OverseerAdapter:
     """Bridges the scheduler's OverseerInterface protocol
     to the real Overseer instance."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         overseer: OverseerProtocol,
         health_monitor: HealthMonitorProtocol,
@@ -261,7 +252,7 @@ class OverseerAdapter:
         proportionality_threshold: float | None = None,
     ) -> None:
         if autonomy_level is None:
-            from orxtra.protocols import AutonomyLevel  # noqa: PLC0415
+            from orxtra.protocols import AutonomyLevel
             autonomy_level = AutonomyLevel.MAX
         self._overseer = overseer
         self._health_monitor = health_monitor
@@ -314,8 +305,8 @@ class OverseerAdapter:
 
     def _gate_tool(self, tool: Tool) -> Tool:
         """Wrap a single tool with autonomy gating."""
-        from orxtra.protocols import Confirmation, ToolOutput  # noqa: PLC0415
-        from orxtra.protocols import Tool as ToolCls  # noqa: PLC0415
+        from orxtra.protocols import Confirmation, ToolOutput
+        from orxtra.protocols import Tool as ToolCls
 
         action_type = TOOL_ACTION_TYPES.get(
             tool.name, "scope_change",
@@ -358,7 +349,7 @@ class OverseerAdapter:
         # Capture tool calls by iterating the session
         # stream directly instead of using the Overseer's
         # session, so we can inspect tool use events.
-        from orxtra.transport import ToolUse  # noqa: PLC0415
+        from orxtra.transport import ToolUse
 
         message = self._overseer.prepare_event(event)
         tool_calls: list[dict[str, Any]] = []
@@ -381,7 +372,7 @@ class OverseerAdapter:
     ) -> None:
         """Send a correction message to the Overseer
         session."""
-        from orxtra.transport import ToolUse  # noqa: PLC0415
+        from orxtra.transport import ToolUse
 
         tool_calls: list[dict[str, Any]] = []
         async for ev in self._overseer.session.send(
@@ -497,9 +488,9 @@ class OverseerAdapter:
 
         # Try to construct a TaskSpec and validate
         try:
-            from orxtra.protocols import TaskSpec  # noqa: PLC0415
-            from orxtra.scheduler._types import WorkflowConfig  # noqa: PLC0415
-            from orxtra.scheduler._validator import validate_task_tree  # noqa: PLC0415
+            from orxtra.protocols import TaskSpec
+            from orxtra.scheduler._types import WorkflowConfig
+            from orxtra.scheduler._validator import validate_task_tree
 
             task = TaskSpec(**args)
             config = WorkflowConfig(
@@ -682,10 +673,10 @@ class OverseerAdapter:
         The Overseer can read files, consult, etc.
         Returns the refined context text.
         """
-        from orxtra.scheduler._prompt_templates import (  # noqa: PLC0415
+        from orxtra.scheduler._prompt_templates import (
             render_template,
         )
-        from orxtra.transport import Result  # noqa: PLC0415
+        from orxtra.transport import Result
 
         message = render_template(
             "refine_context",

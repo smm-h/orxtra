@@ -61,6 +61,6 @@ async def test_failure_cleans_up_temp(tmp_path: Path) -> None:
 
     assert target.read_text() == "original"
     # No leftover temp files
-    remaining = list(tmp_path.iterdir())  # noqa: ASYNC240
+    remaining = list(tmp_path.iterdir())
     assert len(remaining) == 1
     assert remaining[0].name == "fail.txt"

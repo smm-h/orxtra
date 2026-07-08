@@ -188,21 +188,21 @@ async def test_halt_policy_pauses_workflow(
     # task_b should still be in CREATED state (never executed)
     task_b_ids = [
         tid
-        for tid, spec in scheduler._task_specs.items()  # noqa: SLF001
+        for tid, spec in scheduler._task_specs.items()
         if spec.name == "task_b"
     ]
     assert len(task_b_ids) == 1
-    task_b_state = scheduler._task_states[task_b_ids[0]]  # noqa: SLF001
+    task_b_state = scheduler._task_states[task_b_ids[0]]
     assert task_b_state == TaskState.CREATED
 
     # task_a should be escalated
     task_a_ids = [
         tid
-        for tid, spec in scheduler._task_specs.items()  # noqa: SLF001
+        for tid, spec in scheduler._task_specs.items()
         if spec.name == "task_a"
     ]
     assert len(task_a_ids) == 1
-    task_a_state = scheduler._task_states[task_a_ids[0]]  # noqa: SLF001
+    task_a_state = scheduler._task_states[task_a_ids[0]]
     assert task_a_state == TaskState.ESCALATED
 
 
@@ -222,11 +222,11 @@ async def test_abort_all_policy_cancels_remaining(
     # task_a escalated (this happens before the policy kicks in)
     task_a_ids = [
         tid
-        for tid, spec in scheduler._task_specs.items()  # noqa: SLF001
+        for tid, spec in scheduler._task_specs.items()
         if spec.name == "task_a"
     ]
     assert len(task_a_ids) == 1
-    task_a_state = scheduler._task_states[task_a_ids[0]]  # noqa: SLF001
+    task_a_state = scheduler._task_states[task_a_ids[0]]
     assert task_a_state == TaskState.ESCALATED
 
     # task_b was never started, so abort() doesn't cancel it
@@ -235,11 +235,11 @@ async def test_abort_all_policy_cancels_remaining(
     # remains in CREATED state.
     task_b_ids = [
         tid
-        for tid, spec in scheduler._task_specs.items()  # noqa: SLF001
+        for tid, spec in scheduler._task_specs.items()
         if spec.name == "task_b"
     ]
     assert len(task_b_ids) == 1
-    task_b_state = scheduler._task_states[task_b_ids[0]]  # noqa: SLF001
+    task_b_state = scheduler._task_states[task_b_ids[0]]
     assert task_b_state == TaskState.CREATED
 
 
@@ -263,20 +263,20 @@ async def test_continue_independent_runs_all_groups(
     # task_a escalated
     task_a_ids = [
         tid
-        for tid, spec in scheduler._task_specs.items()  # noqa: SLF001
+        for tid, spec in scheduler._task_specs.items()
         if spec.name == "task_a"
     ]
-    task_a_state = scheduler._task_states[task_a_ids[0]]  # noqa: SLF001
+    task_a_state = scheduler._task_states[task_a_ids[0]]
     assert task_a_state == TaskState.ESCALATED
 
     # task_b was still executed (completed normally via good transport)
     task_b_ids = [
         tid
-        for tid, spec in scheduler._task_specs.items()  # noqa: SLF001
+        for tid, spec in scheduler._task_specs.items()
         if spec.name == "task_b"
     ]
     assert len(task_b_ids) == 1
-    task_b_state = scheduler._task_states[task_b_ids[0]]  # noqa: SLF001
+    task_b_state = scheduler._task_states[task_b_ids[0]]
     assert task_b_state == TaskState.COMPLETED
 
 
@@ -304,17 +304,17 @@ async def test_parent_escalation_delivers_message(
     # Set up a fake parent task that is ACTIVE with a session
     parent_task_id = uuid6.uuid7()
     parent_session = MockParentSession()
-    scheduler._task_states[parent_task_id] = TaskState.ACTIVE  # noqa: SLF001
-    scheduler._task_specs[parent_task_id] = TaskSpec(  # noqa: SLF001
+    scheduler._task_states[parent_task_id] = TaskState.ACTIVE
+    scheduler._task_specs[parent_task_id] = TaskSpec(
         name="parent_task",
         agent="test-agent",
         task_prompt="orchestrate",
         timeout=30,
         context_refinement=False,
     )
-    scheduler._task_sessions[parent_task_id] = parent_session  # type: ignore[assignment]  # noqa: SLF001
-    scheduler._task_parents[parent_task_id] = None  # noqa: SLF001
-    scheduler._task_children[parent_task_id] = []  # noqa: SLF001
+    scheduler._task_sessions[parent_task_id] = parent_session  # type: ignore[assignment]
+    scheduler._task_parents[parent_task_id] = None
+    scheduler._task_children[parent_task_id] = []
 
     # Execute a child task that will escalate
     child_task = TaskSpec(
@@ -498,19 +498,19 @@ async def test_create_workflow_wires_params(
     # Set up a fake active task so check_active_task succeeds
     parent_task_id = uuid6.uuid7()
     session_id = "test-session"
-    scheduler._task_states[parent_task_id] = TaskState.ACTIVE  # noqa: SLF001
-    scheduler._task_specs[parent_task_id] = TaskSpec(  # noqa: SLF001
+    scheduler._task_states[parent_task_id] = TaskState.ACTIVE
+    scheduler._task_specs[parent_task_id] = TaskSpec(
         name="parent",
         agent="test-agent",
         task_prompt="orchestrate",
         timeout=30,
         context_refinement=False,
     )
-    scheduler._active_tasks[session_id] = parent_task_id  # noqa: SLF001
-    scheduler._task_parents[parent_task_id] = None  # noqa: SLF001
-    scheduler._task_children[parent_task_id] = []  # noqa: SLF001
+    scheduler._active_tasks[session_id] = parent_task_id
+    scheduler._task_parents[parent_task_id] = None
+    scheduler._task_children[parent_task_id] = []
 
-    from decimal import Decimal  # noqa: PLC0415
+    from decimal import Decimal
 
     params = CreateWorkflowParams(
         name="sub-workflow",
@@ -528,7 +528,7 @@ async def test_create_workflow_wires_params(
     workflow_id = UUID(result)
 
     # Verify the task spec was stored with the right fields
-    spec = scheduler._task_specs[workflow_id]  # noqa: SLF001
+    spec = scheduler._task_specs[workflow_id]
     assert spec.name == "sub-workflow"
     assert spec.budget == Decimal("5.00")
     assert spec.postchecks == []
@@ -547,5 +547,5 @@ async def test_create_workflow_wires_params(
     assert config_data["goals"] == ["pass tests", "lint clean"]
 
     # Verify parent-child relationship
-    assert scheduler._task_parents[workflow_id] == parent_task_id  # noqa: SLF001
-    assert workflow_id in scheduler._task_children[parent_task_id]  # noqa: SLF001
+    assert scheduler._task_parents[workflow_id] == parent_task_id
+    assert workflow_id in scheduler._task_children[parent_task_id]

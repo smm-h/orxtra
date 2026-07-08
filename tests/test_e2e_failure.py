@@ -58,7 +58,7 @@ class TestPostcheckFailureWithRetry:
 
         async def fail_then_pass(
             self_sched: Scheduler,
-            task: Any,  # noqa: ANN401
+            task: Any,
             task_id: uuid.UUID,
         ) -> list[CheckResult]:
             nonlocal postcheck_count
@@ -100,12 +100,12 @@ class TestPostcheckFailureWithRetry:
         config = simple_workflow(tasks=[task])
         scheduler = make_scheduler(trace_writer, transport, run_id)
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = fail_then_pass  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = fail_then_pass  # type: ignore[assignment]
         try:
             await scheduler.execute_workflow(config)
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
 
         # Two attempts were created
         attempt_calls = trace_writer.get_calls(
@@ -118,7 +118,7 @@ class TestPostcheckFailureWithRetry:
         # Task reached COMPLETED
         completed = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.COMPLETED
         ]
         assert len(completed) == 1
@@ -146,7 +146,7 @@ class TestRetryExhaustionEscalation:
 
         async def always_fail(
             self_sched: Scheduler,
-            task: Any,  # noqa: ANN401
+            task: Any,
             task_id: uuid.UUID,
         ) -> list[CheckResult]:
             return [
@@ -185,12 +185,12 @@ class TestRetryExhaustionEscalation:
         config = simple_workflow(tasks=[task])
         scheduler = make_scheduler(trace_writer, transport, run_id)
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = always_fail  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = always_fail  # type: ignore[assignment]
         try:
             await scheduler.execute_workflow(config)
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
 
         # Three attempts were created
         attempt_calls = trace_writer.get_calls(
@@ -201,7 +201,7 @@ class TestRetryExhaustionEscalation:
         # Task is in ESCALATED state
         escalated = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.ESCALATED
         ]
         assert len(escalated) == 1
@@ -238,7 +238,7 @@ class TestTimeoutCancelsTask:
         class SlowTransport:
             """Transport that calls start_task then sleeps indefinitely."""
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -248,7 +248,7 @@ class TestTimeoutCancelsTask:
                 session_id: str | None = None,
             ) -> AsyncIterator[TransportEvent]:
                 _ = model, system_prompt
-                import uuid6  # noqa: PLC0415
+                import uuid6
 
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
@@ -302,7 +302,7 @@ class TestTimeoutCancelsTask:
         # Task should be CANCELLED
         cancelled = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.CANCELLED
         ]
         assert len(cancelled) == 1
@@ -348,7 +348,7 @@ class TestMissingStartTask:
         # Task should be ESCALATED (no retries, fell through to escalation)
         escalated = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.ESCALATED
         ]
         assert len(escalated) == 1
@@ -401,7 +401,7 @@ class TestMissingEndTask:
         # Task should be ESCALATED
         escalated = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.ESCALATED
         ]
         assert len(escalated) == 1
@@ -495,7 +495,7 @@ class TestExceptionDuringSession:
         class FailOnceThenSucceedTransport:
             """First send() raises RuntimeError. Second send() succeeds."""
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -507,7 +507,7 @@ class TestExceptionDuringSession:
                 _ = model, system_prompt
                 nonlocal send_count
                 send_count += 1
-                import uuid6  # noqa: PLC0415
+                import uuid6
 
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
@@ -602,7 +602,7 @@ class TestExceptionDuringSession:
         # Task completed on second attempt
         completed = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.COMPLETED
         ]
         assert len(completed) == 1
@@ -662,7 +662,7 @@ class TestMissingStartTaskWithRetry:
         # Task completed on second attempt
         completed = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.COMPLETED
         ]
         assert len(completed) == 1

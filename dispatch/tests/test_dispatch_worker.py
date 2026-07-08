@@ -11,9 +11,6 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-import pytest
-from uuid6 import uuid7
-
 from orxtra.dispatch._dispatch_worker import DispatchWorker
 from orxtra.dispatch._memory_backend import InMemoryDispatchBackend
 from orxtra.dispatch._types import (
@@ -22,6 +19,7 @@ from orxtra.dispatch._types import (
     SubscriptionAction,
 )
 from orxtra.protocols import LogAction
+from uuid6 import uuid7
 
 NOW = datetime.now(tz=UTC)
 
@@ -34,7 +32,7 @@ NOW = datetime.now(tz=UTC)
 class StubFlushScheduler:
     """Minimal FlushScheduler that does nothing."""
 
-    def schedule_flush(self, deadline: float, callback: Any) -> object:  # noqa: ANN401
+    def schedule_flush(self, deadline: float, callback: Any) -> object:
         return None
 
     def cancel_flush(self, handle: object) -> None:
@@ -63,11 +61,11 @@ class StubPool:
     makes acquire() raise so the worker falls back to polling.
     """
 
-    async def acquire(self) -> Any:  # noqa: ANN401
+    async def acquire(self) -> Any:
         msg = "Stub pool does not support acquire"
         raise RuntimeError(msg)
 
-    async def release(self, conn: Any) -> None:  # noqa: ANN401
+    async def release(self, conn: Any) -> None:
         pass
 
     async def close(self) -> None:
@@ -156,7 +154,7 @@ class TestWorkerLifecycle:
     async def test_processes_events_and_advances_cursor(self) -> None:
         """Worker processes events and advances cursor."""
         backend = InMemoryDispatchBackend()
-        sub_id, action_id = _add_subscription_with_log(
+        _sub_id, action_id = _add_subscription_with_log(
             backend, event_types=["test.event"],
         )
 
@@ -206,7 +204,7 @@ class TestCompletionDedup:
     async def test_completed_action_not_reexecuted(self) -> None:
         """Pre-existing completion record prevents re-execution."""
         backend = InMemoryDispatchBackend()
-        sub_id, action_id = _add_subscription_with_log(
+        _sub_id, action_id = _add_subscription_with_log(
             backend, event_types=["test.dedup"],
         )
 
@@ -233,7 +231,7 @@ class TestCursorRestart:
     async def test_restart_from_cursor_skips_old_events(self) -> None:
         """Events before the cursor position are not re-processed."""
         backend = InMemoryDispatchBackend()
-        sub_id, action_id = _add_subscription_with_log(
+        _sub_id, action_id = _add_subscription_with_log(
             backend, event_types=["test.cursor"],
         )
 

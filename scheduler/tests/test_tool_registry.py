@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
-from uuid import UUID
 
 import pytest
 import uuid6
@@ -44,7 +42,7 @@ def _make_deps(tmp_path: Path) -> ToolDeps:
 
 def _make_dummy_tool(name: str) -> Tool:
     """Create a minimal Tool for testing."""
-    from unittest.mock import AsyncMock  # noqa: PLC0415
+    from unittest.mock import AsyncMock
     return Tool(
         name=name,
         description=f"Test tool: {name}",

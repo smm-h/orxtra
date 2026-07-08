@@ -4,9 +4,8 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from orxtra.protocols._types._actions import Action
+from pydantic import BaseModel, ConfigDict, Field
 
 
 def _utcnow() -> datetime:

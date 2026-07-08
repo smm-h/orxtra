@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import uuid6
 from orxtra.agent import Agent
-from orxtra.protocols import Tool, ToolError, ToolOutput
+from orxtra.protocols import Tool, ToolError
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._tool_registry import (
     ToolEntry,
@@ -108,7 +108,7 @@ async def _extract_tools(
         mock_session = MagicMock()
         mock_create.return_value = mock_session
 
-        await scheduler._create_agent_session(  # noqa: SLF001
+        await scheduler._create_agent_session(
             task, task_id, 1,
         )
 

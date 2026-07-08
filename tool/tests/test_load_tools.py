@@ -11,7 +11,6 @@ import pytest
 from orxtra.protocols import Confirmation, Tool, ToolError, ToolOutput
 from orxtra.tool._load_tools import make_load_tools_tool
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -141,7 +140,7 @@ class TestLoadToolsErrors:
             allowed=frozenset({"alpha"}),
         )
 
-        with pytest.raises(ToolError, match="not in allow list.*beta"):
+        with pytest.raises(ToolError, match=r"not in allow list.*beta"):
             await lt.execute({"names": ["beta"]})
 
     async def test_empty_names_raises(self) -> None:
@@ -163,7 +162,7 @@ class TestLoadToolsErrors:
             allowed=frozenset({"alpha"}),
         )
 
-        with pytest.raises(ToolError, match="not in allow list.*beta"):
+        with pytest.raises(ToolError, match=r"not in allow list.*beta"):
             await lt.execute({"names": ["alpha", "beta"]})
         # Nothing should have been loaded
         assert len(holder.tools) == 0

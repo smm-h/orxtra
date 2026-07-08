@@ -4,8 +4,6 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
-from pydantic import ValidationError
-
 from orxtra.dispatch import (
     AccumulatorEntry,
     FilterPredicate,
@@ -13,6 +11,7 @@ from orxtra.dispatch import (
     SubscriptionAction,
 )
 from orxtra.protocols import ScriptAction
+from pydantic import ValidationError
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 SUB_ID = UUID("01234567-89ab-cdef-0123-456789abcdef")

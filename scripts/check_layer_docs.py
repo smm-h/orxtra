@@ -64,7 +64,8 @@ def _parse_template_layers(template_path: Path) -> dict[str, set[str]]:
         # Split by | gives empty strings at start/end for well-formed
         # table rows. Filter them.
         cells = [c for c in cells if c]
-        if len(cells) < 2:
+        min_table_cells = 2  # layer name + sub-projects columns
+        if len(cells) < min_table_cells:
             continue
         layer_name = cells[0].strip().lower()
         sub_projects_cell = cells[1]
@@ -103,14 +104,14 @@ def main() -> int:
     missing_layers = ws_layer_names - tpl_layer_names
     extra_layers = tpl_layer_names - ws_layer_names
 
-    for layer in sorted(missing_layers):
-        errors.append(
-            f"Layer '{layer}' exists in workspace.toml but is missing from docs/_CLAUDE.md"
-        )
-    for layer in sorted(extra_layers):
-        errors.append(
-            f"Layer '{layer}' exists in docs/_CLAUDE.md but is missing from workspace.toml"
-        )
+    errors.extend(
+        f"Layer '{layer}' exists in workspace.toml but is missing from docs/_CLAUDE.md"
+        for layer in sorted(missing_layers)
+    )
+    errors.extend(
+        f"Layer '{layer}' exists in docs/_CLAUDE.md but is missing from workspace.toml"
+        for layer in sorted(extra_layers)
+    )
 
     # Compare project assignments within shared layers.
     for layer in sorted(ws_layer_names & tpl_layer_names):
@@ -120,16 +121,16 @@ def main() -> int:
         missing_projects = ws_projects - tpl_projects
         extra_projects = tpl_projects - ws_projects
 
-        for proj in sorted(missing_projects):
-            errors.append(
-                f"Layer '{layer}': project '{proj}' is in workspace.toml "
-                f"but missing from docs/_CLAUDE.md"
-            )
-        for proj in sorted(extra_projects):
-            errors.append(
-                f"Layer '{layer}': project '{proj}' is in docs/_CLAUDE.md "
-                f"but missing from workspace.toml"
-            )
+        errors.extend(
+            f"Layer '{layer}': project '{proj}' is in workspace.toml "
+            f"but missing from docs/_CLAUDE.md"
+            for proj in sorted(missing_projects)
+        )
+        errors.extend(
+            f"Layer '{layer}': project '{proj}' is in docs/_CLAUDE.md "
+            f"but missing from workspace.toml"
+            for proj in sorted(extra_projects)
+        )
 
     if errors:
         print("Layer documentation is out of sync with workspace.toml:\n")

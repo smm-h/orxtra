@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 from orxtra.session._session import Session
 from orxtra.session._sync import SyncSession
-from orxtra.transport import Result, StepFinish
+from orxtra.transport import Result
 
 from .conftest import MockTraceWriter, make_standard_events
 

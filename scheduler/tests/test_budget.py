@@ -38,7 +38,7 @@ def transport() -> MockTransport:
     return MockTransport(auto_execute_tools=True)
 
 
-def _make_scheduler(  # noqa: PLR0913
+def _make_scheduler(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     run_id: uuid6.UUID,
@@ -104,9 +104,9 @@ def test_cost_tracking_accumulates(
         task_prompt="do stuff",
         budget=Decimal("10.0"),
     )
-    scheduler._task_specs[task_id] = task  # noqa: SLF001
-    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
-    scheduler._accumulate_cost(  # noqa: SLF001
+    scheduler._task_specs[task_id] = task
+    scheduler._task_costs[task_id] = Decimal(0)
+    scheduler._accumulate_cost(
         task_id,
         task,
         Usage(
@@ -117,7 +117,7 @@ def test_cost_tracking_accumulates(
             cache_write_tokens=0,
         ),
     )
-    assert scheduler._task_costs[task_id] > Decimal(0)  # noqa: SLF001
+    assert scheduler._task_costs[task_id] > Decimal(0)
 
 
 def test_no_budget_no_enforcement(
@@ -136,9 +136,9 @@ def test_no_budget_no_enforcement(
         agent="test-agent",
         task_prompt="do stuff",
     )
-    scheduler._task_specs[task_id] = task  # noqa: SLF001
-    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
-    scheduler._accumulate_cost(  # noqa: SLF001
+    scheduler._task_specs[task_id] = task
+    scheduler._task_costs[task_id] = Decimal(0)
+    scheduler._accumulate_cost(
         task_id,
         task,
         Usage(
@@ -150,10 +150,10 @@ def test_no_budget_no_enforcement(
         ),
     )
     assert (
-        len(scheduler._budget_threshold_events) == 0  # noqa: SLF001
+        len(scheduler._budget_threshold_events) == 0
     )
     assert (
-        len(scheduler._budget_exhausted_events) == 0  # noqa: SLF001
+        len(scheduler._budget_exhausted_events) == 0
     )
 
 
@@ -174,9 +174,9 @@ def test_budget_threshold_event_at_80_pct(
         task_prompt="do stuff",
         budget=Decimal("0.001"),
     )
-    scheduler._task_specs[task_id] = task  # noqa: SLF001
-    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
-    scheduler._accumulate_cost(  # noqa: SLF001
+    scheduler._task_specs[task_id] = task
+    scheduler._task_costs[task_id] = Decimal(0)
+    scheduler._accumulate_cost(
         task_id,
         task,
         Usage(
@@ -188,10 +188,10 @@ def test_budget_threshold_event_at_80_pct(
         ),
     )
     assert (
-        len(scheduler._budget_threshold_events) >= 1  # noqa: SLF001
+        len(scheduler._budget_threshold_events) >= 1
     )
     assert (
-        scheduler._budget_threshold_events[0][0]  # noqa: SLF001
+        scheduler._budget_threshold_events[0][0]
         == task_id
     )
 
@@ -213,9 +213,9 @@ def test_budget_exhausted_event(
         task_prompt="do stuff",
         budget=Decimal("0.001"),
     )
-    scheduler._task_specs[task_id] = task  # noqa: SLF001
-    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
-    scheduler._accumulate_cost(  # noqa: SLF001
+    scheduler._task_specs[task_id] = task
+    scheduler._task_costs[task_id] = Decimal(0)
+    scheduler._accumulate_cost(
         task_id,
         task,
         Usage(
@@ -227,7 +227,7 @@ def test_budget_exhausted_event(
         ),
     )
     assert (
-        len(scheduler._budget_exhausted_events) >= 1  # noqa: SLF001
+        len(scheduler._budget_exhausted_events) >= 1
     )
 
 
@@ -248,7 +248,7 @@ async def test_budget_events_sent_to_overseer(
         overseer_interface=mock_overseer,
     )
     task_id = uuid6.uuid7()
-    scheduler._budget_threshold_events.append(  # noqa: SLF001
+    scheduler._budget_threshold_events.append(
         (
             task_id,
             "test",
@@ -256,7 +256,7 @@ async def test_budget_events_sent_to_overseer(
             Decimal("0.9"),
         ),
     )
-    await scheduler._send_budget_events(task_id)  # noqa: SLF001
+    await scheduler._send_budget_events(task_id)
     assert len(mock_overseer.events_sent) >= 1
 
 
@@ -275,7 +275,7 @@ def test_unlimited_policy_no_enforcement(
         budget_exhaustion_policy=BudgetExhaustionPolicy.UNLIMITED,
     )
     assert (
-        scheduler._budget_exhaustion_policy  # noqa: SLF001
+        scheduler._budget_exhaustion_policy
         == BudgetExhaustionPolicy.UNLIMITED
     )
 
@@ -303,9 +303,9 @@ async def test_budget_block_new_rejects_create_task(
         task_prompt="do stuff",
         budget=Decimal("0.001"),
     )
-    scheduler._task_specs[task_id] = task  # noqa: SLF001
-    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
-    scheduler._accumulate_cost(  # noqa: SLF001
+    scheduler._task_specs[task_id] = task
+    scheduler._task_costs[task_id] = Decimal(0)
+    scheduler._accumulate_cost(
         task_id,
         task,
         Usage(
@@ -316,12 +316,12 @@ async def test_budget_block_new_rejects_create_task(
             cache_write_tokens=0,
         ),
     )
-    assert scheduler._budget_blocked is True  # noqa: SLF001
+    assert scheduler._budget_blocked is True
 
     # Now try to create a task -- should be rejected
     session_id = "test-session"
-    scheduler._active_tasks[session_id] = task_id  # noqa: SLF001
-    scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
+    scheduler._active_tasks[session_id] = task_id
+    scheduler._task_states[task_id] = TaskState.ACTIVE
     with pytest.raises(ToolError, match="Budget exhausted"):
         await scheduler.handle_create_task(
             session_id,
@@ -351,10 +351,10 @@ async def test_budget_cancel_all_triggers_abort(
         task_prompt="do stuff",
         budget=Decimal("0.001"),
     )
-    scheduler._task_specs[task_id] = task  # noqa: SLF001
-    scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
-    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
-    scheduler._accumulate_cost(  # noqa: SLF001
+    scheduler._task_specs[task_id] = task
+    scheduler._task_states[task_id] = TaskState.ACTIVE
+    scheduler._task_costs[task_id] = Decimal(0)
+    scheduler._accumulate_cost(
         task_id,
         task,
         Usage(
@@ -368,7 +368,7 @@ async def test_budget_cancel_all_triggers_abort(
     # Let the event loop process the scheduled abort
     await asyncio.sleep(0.1)
     # Task should be cancelled
-    assert scheduler._task_states[task_id] == TaskState.CANCELLED  # noqa: SLF001
+    assert scheduler._task_states[task_id] == TaskState.CANCELLED
 
 
 @pytest.mark.asyncio
@@ -393,9 +393,9 @@ async def test_budget_timeout_grace_blocks_then_aborts(
         task_prompt="do stuff",
         budget=Decimal("0.001"),
     )
-    scheduler._task_specs[task_id] = task  # noqa: SLF001
-    scheduler._task_costs[task_id] = Decimal(0)  # noqa: SLF001
-    scheduler._accumulate_cost(  # noqa: SLF001
+    scheduler._task_specs[task_id] = task
+    scheduler._task_costs[task_id] = Decimal(0)
+    scheduler._accumulate_cost(
         task_id,
         task,
         Usage(
@@ -407,4 +407,4 @@ async def test_budget_timeout_grace_blocks_then_aborts(
         ),
     )
     # Should be blocked immediately
-    assert scheduler._budget_blocked is True  # noqa: SLF001
+    assert scheduler._budget_blocked is True

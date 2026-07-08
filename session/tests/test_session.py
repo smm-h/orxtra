@@ -188,7 +188,7 @@ class TestTokenAccumulation:
             ToolUse(
                 tool_use_id="tu_1",
                 tool_name="read_file",
-                input={"path": "/tmp/test"},  # noqa: S108
+                input={"path": "/tmp/test"},
                 output="file contents",
                 status="success",
             ),

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 
 import pytest
-
 from orxtra.services._dispatcher import DispatchContext, dispatch
+from pydantic import ValidationError
 
 
 @pytest.fixture
@@ -165,7 +164,7 @@ async def test_dispatch_pool_required_error() -> None:
 @pytest.mark.asyncio
 async def test_dispatch_invalid_params() -> None:
     ctx = DispatchContext(pool=AsyncMock())
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(ValidationError):
         await dispatch(ctx, "get_run", {"wrong_param": "value"})
 
 

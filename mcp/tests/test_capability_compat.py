@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
 from orxtra.mcp._server import get_tool_definitions
 from orxtra.services._registry import get_capabilities
 
@@ -35,9 +34,9 @@ def _normalize_schema(schema: dict[str, Any]) -> dict[str, Any]:
             # Extract the non-null type
             non_null = [t for t in prop["anyOf"] if t.get("type") != "null"]
             if len(non_null) == 1:
-                for k, v in non_null[0].items():
-                    if k != "title":
-                        normalized_prop[k] = v
+                normalized_prop.update(
+                    {k: v for k, v in non_null[0].items() if k != "title"},
+                )
             else:
                 # Multiple non-null types -- keep as-is
                 normalized_prop["anyOf"] = non_null

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from .conftest import FakeRecord
 from orxtra.services._inbox import (
     get_inbox_item,
     list_inbox,
@@ -14,6 +13,8 @@ from orxtra.services._inbox import (
     skip_inbox_item,
 )
 from orxtra.trace import InboxItem
+
+from .conftest import FakeRecord
 
 if TYPE_CHECKING:
     from uuid import UUID

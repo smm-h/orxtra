@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import shutil
 from pathlib import Path
-from typing import Any
 
 from orxtra.protocols import Confirmation, Tool, ToolError, ToolOutput
 from orxtra.tool._decorator import tool
@@ -239,8 +238,8 @@ async def _multi_edit_impl(
             )
             count = content.count(old_string)
             if count == 0:
-                msg = f"Edit {i}: old_string not found in {resolved}"
-                raise ToolError(msg)
+                failures.append(f"Edit {i}: old_string not found in {resolved}")
+                continue
             new_content = content.replace(old_string, new_string)
             await safe_write(
                 resolved,
@@ -256,11 +255,8 @@ async def _multi_edit_impl(
         except (ToolError, FileNotFoundError, OSError) as exc:
             failures.append(f"Edit {i}: {exc}")
 
-    parts: list[str] = []
-    for c in confirmations:
-        parts.append(c.message)
-    for f in failures:
-        parts.append(f"FAILED - {f}")
+    parts: list[str] = [c.message for c in confirmations]
+    parts.extend(f"FAILED - {f}" for f in failures)
 
     text = "\n".join(parts)
     if failures:

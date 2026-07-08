@@ -9,37 +9,6 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from orxtra.compose import CompositionEngine, resolve_variables
-
-# Matches {variable_name} placeholders (same pattern as compose._variables)
-_VAR_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
-
-
-def _resolve_task_variables(
-    template: str,
-    variables: dict[str, Any] | None,
-) -> str:
-    """Resolve variables in a task prompt template.
-
-    Wraps compose's strict resolve_variables with two adaptations
-    for the scheduler's workflow context:
-
-    1. Values are coerced to str (callers pass dict[str, Any]).
-    2. Unused variables are filtered out rather than rejected,
-       because the workflow executor accumulates all dependency
-       outputs as variables and tasks use only a subset.
-
-    Unresolved placeholders still raise ValueError (catches typos
-    in task prompts).
-    """
-    if not variables:
-        # No variables: still check for unresolved placeholders
-        return resolve_variables(template, {})
-    placeholders = set(_VAR_RE.findall(template))
-    filtered = {
-        k: str(v) for k, v in variables.items()
-        if k in placeholders
-    }
-    return resolve_variables(template, filtered)
 from orxtra.protocols import (
     CheckResult,
     EscalationPayload,
@@ -87,7 +56,43 @@ if TYPE_CHECKING:
 
 from orxtra.scheduler._base import SchedulerBase
 
+# Matches {variable_name} placeholders (same pattern as compose._variables)
+_VAR_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+
+
+def _resolve_task_variables(
+    template: str,
+    variables: dict[str, Any] | None,
+) -> str:
+    """Resolve variables in a task prompt template.
+
+    Wraps compose's strict resolve_variables with two adaptations
+    for the scheduler's workflow context:
+
+    1. Values are coerced to str (callers pass dict[str, Any]).
+    2. Unused variables are filtered out rather than rejected,
+       because the workflow executor accumulates all dependency
+       outputs as variables and tasks use only a subset.
+
+    Unresolved placeholders still raise ValueError (catches typos
+    in task prompts).
+    """
+    if not variables:
+        # No variables: still check for unresolved placeholders
+        return resolve_variables(template, {})
+    placeholders = set(_VAR_RE.findall(template))
+    filtered = {
+        k: str(v) for k, v in variables.items()
+        if k in placeholders
+    }
+    return resolve_variables(template, filtered)
+
+
 _logger = logging.getLogger("orxtra.scheduler")
+
+# Context-usage thresholds: warn at 80%, hand off at 90%.
+_CONTEXT_HANDOFF_THRESHOLD = 0.9
+_CONTEXT_WARNING_THRESHOLD = 0.8
 
 
 async def _deferred_stub_execute(
@@ -97,7 +102,7 @@ async def _deferred_stub_execute(
 
     If called, the LLM tried to use the tool before loading it.
     """
-    from orxtra.protocols import ToolError  # noqa: PLC0415
+    from orxtra.protocols import ToolError
     msg = (
         "This tool is deferred. "
         "Call load_tools first to load the full schema."
@@ -108,7 +113,7 @@ async def _deferred_stub_execute(
 class AgentExecutionMixin(SchedulerBase):
     """Mixin for agent and orchestrator task execution."""
 
-    async def _execute_orchestrator_task(  # noqa: C901, PLR0915
+    async def _execute_orchestrator_task(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -116,7 +121,7 @@ class AgentExecutionMixin(SchedulerBase):
         variables: dict[str, Any] | None = None,
     ) -> TaskResult:
         """Execute an orchestrator task with multi-turn suspension support."""
-        from orxtra.transport import SessionSuspended  # noqa: PLC0415
+        from orxtra.transport import SessionSuspended
 
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
@@ -228,7 +233,7 @@ class AgentExecutionMixin(SchedulerBase):
                         TaskState.ESCALATED.value,
                     )
 
-                    from orxtra.protocols import (  # noqa: PLC0415
+                    from orxtra.protocols import (
                         TaskEscalated,
                     )
 
@@ -305,7 +310,7 @@ class AgentExecutionMixin(SchedulerBase):
             task, task_id, parent_task_id, variables,
         )
 
-    async def _execute_agent_task(  # noqa: C901, PLR0912, PLR0915
+    async def _execute_agent_task(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -435,7 +440,7 @@ class AgentExecutionMixin(SchedulerBase):
                 )
             except Exception as exc:  # noqa: BLE001
                 await session.close()
-                from orxtra.scheduler._executor import classify_error  # noqa: PLC0415
+                from orxtra.scheduler._executor import classify_error
                 category = classify_error(exc)
                 await self._trace_writer.write_event(
                     run_id=self._run_id,
@@ -668,7 +673,7 @@ class AgentExecutionMixin(SchedulerBase):
             async for _ in parent_session.send(escalation_msg):
                 pass
         else:
-            from orxtra.protocols import (  # noqa: PLC0415
+            from orxtra.protocols import (
                 TaskEscalated,
             )
             await self._send_overseer_event(
@@ -737,7 +742,7 @@ class AgentExecutionMixin(SchedulerBase):
         """
         tokens_used, usage_percent = self._compute_context_usage(session)
 
-        if usage_percent >= 0.9:
+        if usage_percent >= _CONTEXT_HANDOFF_THRESHOLD:
             _logger.warning(
                 "Agent session %s at %.0f%% context"
                 " (%d/%d tokens), triggering handoff",
@@ -760,7 +765,7 @@ class AgentExecutionMixin(SchedulerBase):
                 task_id=task_id,
             )
             await self._agent_handoff(session, task_id)
-        elif usage_percent >= 0.8:
+        elif usage_percent >= _CONTEXT_WARNING_THRESHOLD:
             _logger.info(
                 "Agent session %s at %.0f%% context"
                 " (%d/%d tokens)",
@@ -795,16 +800,15 @@ class AgentExecutionMixin(SchedulerBase):
         session in _task_sessions.
         """
         # Ask the agent to summarize
-        from orxtra.scheduler._prompt_templates import (  # noqa: PLC0415
+        from orxtra.scheduler._prompt_templates import (
             load_template,
         )
 
-        summary_parts: list[str] = []
-        async for event in session.send(
-            load_template("handoff_request"),
-        ):
-            if isinstance(event, Result):
-                summary_parts.append(event.text)
+        summary_parts: list[str] = [
+            event.text
+            async for event in session.send(load_template("handoff_request"))
+            if isinstance(event, Result)
+        ]
 
         summary = "".join(summary_parts)
         if not summary:
@@ -839,7 +843,7 @@ class AgentExecutionMixin(SchedulerBase):
             new_session_id,
         )
 
-    async def _create_agent_session(  # noqa: C901, PLR0915
+    async def _create_agent_session(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -965,7 +969,7 @@ class AgentExecutionMixin(SchedulerBase):
                 it through the pipeline."""
                 entry = self._tool_registry.get_entry(name)
                 if entry is None:
-                    from orxtra.protocols import ToolError  # noqa: PLC0415
+                    from orxtra.protocols import ToolError
                     msg = f"Unknown tool: {name}"
                     raise ToolError(msg)
                 # Build deps matching what was used for
@@ -1066,7 +1070,7 @@ class AgentExecutionMixin(SchedulerBase):
 
         return session, session_id
 
-    def _build_agent_tools(  # noqa: C901
+    def _build_agent_tools(
         self,
         agent_def: Agent,
         task_id: UUID,
@@ -1184,7 +1188,7 @@ class AgentExecutionMixin(SchedulerBase):
 
         # Inline tool definitions (per-agent [[tools.define]]).
         if agent_def.inline_tools:
-            from orxtra.tool import DataToolDefinition  # noqa: PLC0415
+            from orxtra.tool import DataToolDefinition
 
             for itd in agent_def.inline_tools:
                 # Build a DataToolDefinition from the inline
@@ -1216,7 +1220,7 @@ class AgentExecutionMixin(SchedulerBase):
                     if not ns_match and "*" not in agent_def.allow:
                         continue
 
-                from orxtra.tool import (  # noqa: PLC0415
+                from orxtra.tool import (
                     CommandExecution,
                     HttpExecution,
                     MontyExecution,
@@ -1254,7 +1258,7 @@ class AgentExecutionMixin(SchedulerBase):
 
         return raw_tools
 
-    async def _assemble_agent_prompt(  # noqa: PLR0913
+    async def _assemble_agent_prompt(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -1319,7 +1323,7 @@ class AgentExecutionMixin(SchedulerBase):
                 )
             )
             if refined != prompt:
-                import difflib  # noqa: PLC0415
+                import difflib
 
                 diff = "\n".join(
                     difflib.unified_diff(

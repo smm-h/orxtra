@@ -8,7 +8,6 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 
 from orxtra.protocols import Capability
-
 from orxtra.services._params import (
     AbortRunParams,
     CreateSourceParams,

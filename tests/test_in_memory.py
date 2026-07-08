@@ -14,7 +14,7 @@ from orxtra.trace import InMemoryBackend, InMemoryEventBus
 
 # A simple callable that returns a TaskResult.
 # Must be importable, so we define it at module level.
-async def _noop_callable(context: Any) -> TaskResult:  # noqa: ANN401
+async def _noop_callable(context: Any) -> TaskResult:
     return TaskResult(
         output="hello from in-memory",
         structured_output={"status": "ok"},

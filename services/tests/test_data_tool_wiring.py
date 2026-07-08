@@ -136,7 +136,7 @@ class TestLoadCustomTools:
 
     def test_http_factory_produces_tool(self, tmp_path: Path) -> None:
         """Http-type entries have a real factory that builds a Tool."""
-        from orxtra.protocols import Tool  # noqa: PLC0415
+        from orxtra.protocols import Tool
 
         tools_dir = tmp_path / "tools"
         tools_dir.mkdir()
@@ -155,7 +155,7 @@ class TestLoadCustomTools:
         self, tmp_path: Path,
     ) -> None:
         """Monty-type entries have a real factory that builds a Tool."""
-        from orxtra.protocols import Tool  # noqa: PLC0415
+        from orxtra.protocols import Tool
 
         tools_dir = tmp_path / "tools"
         tools_dir.mkdir()

@@ -2,22 +2,17 @@
 
 from __future__ import annotations
 
+import importlib.util as _ilu
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock
 
-import pytest
 import uuid6
-
 from orxtra.protocols import (
     OverseerEvent,
     RunStarted,
     StructuralAdvisory,
-    TaskSpec,
 )
 from orxtra.scheduler import Scheduler
-
-import importlib.util as _ilu
 
 _spec = _ilu.spec_from_file_location(
     "tests.shared_mocks",

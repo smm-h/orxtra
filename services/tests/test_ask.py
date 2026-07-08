@@ -140,9 +140,9 @@ class TestAsk:
                 )
 
     def test_unknown_provider_type_raises(self) -> None:
-        with pytest.raises(ValueError, match="Unknown provider_type 'gemini'"):
-            from orxtra.services._ask import _build_transport
+        from orxtra.services._ask import _build_transport
 
+        with pytest.raises(ValueError, match="Unknown provider_type 'gemini'"):
             _build_transport("gemini", "sk-test")
 
 

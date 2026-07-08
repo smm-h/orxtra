@@ -158,7 +158,7 @@ class TestImportResolution:
     """Verify imports resolve to source trees."""
 
     def test_protocols_resolves_to_src(self) -> None:
-        import orxtra.protocols  # noqa: PLC0415
+        import orxtra.protocols
 
         init_path = Path(orxtra.protocols.__file__)
         expected = REPO_ROOT / "protocols" / "src"
@@ -168,7 +168,7 @@ class TestImportResolution:
         )
 
     def test_transport_resolves_to_src(self) -> None:
-        import orxtra.transport  # noqa: PLC0415
+        import orxtra.transport
 
         init_path = Path(orxtra.transport.__file__)
         expected = REPO_ROOT / "transport" / "src"
@@ -178,7 +178,7 @@ class TestImportResolution:
         )
 
     def test_scheduler_resolves_to_src(self) -> None:
-        import orxtra.scheduler  # noqa: PLC0415
+        import orxtra.scheduler
 
         init_path = Path(orxtra.scheduler.__file__)
         expected = REPO_ROOT / "scheduler" / "src"

@@ -54,7 +54,7 @@ def _mock_client(response: MagicMock) -> AsyncMock:
     return mock
 
 
-def _make_definition(  # noqa: PLR0913
+def _make_definition(
     *,
     name: str = "test_tool",
     description: str = "A test tool",
@@ -615,7 +615,7 @@ class TestNonHttpExecution:
     """build_http_tool rejects non-HttpExecution definitions."""
 
     def test_wrong_execution_type_raises_type_error(self) -> None:
-        from orxtra.tool._data_tool_types import (  # noqa: PLC0415
+        from orxtra.tool._data_tool_types import (
             MontyExecution,
             ResourceLimits,
         )

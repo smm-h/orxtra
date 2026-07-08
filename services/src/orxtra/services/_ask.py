@@ -4,9 +4,8 @@ import json
 from typing import Any
 
 from orxtra.protocols import run_sync
-from orxtra.transport import Result, Transport
-
 from orxtra.services._providers import _DEFAULT_RETRY_POLICY, _PROVIDER_TYPES
+from orxtra.transport import Result, Transport
 
 
 def _build_transport(
@@ -34,7 +33,7 @@ def _build_transport(
     return Transport(provider, _DEFAULT_RETRY_POLICY)
 
 
-async def ask(  # noqa: PLR0913
+async def ask(
     prompt: str,
     provider_type: str,
     model: str,
@@ -67,7 +66,7 @@ async def ask(  # noqa: PLR0913
     raise RuntimeError(msg)
 
 
-async def ask_structured(  # noqa: PLR0913
+async def ask_structured(
     prompt: str,
     provider_type: str,
     model: str,
@@ -111,7 +110,8 @@ async def ask_structured(  # noqa: PLR0913
 
     if not isinstance(result, dict):
         msg = f"LLM response is not a JSON object, got {type(result).__name__}"
-        raise ValueError(msg)
+        # Malformed LLM output is invalid data, not a programming type error.
+        raise ValueError(msg)  # noqa: TRY004
 
     # Validate required fields from schema
     required = schema.get("required", [])

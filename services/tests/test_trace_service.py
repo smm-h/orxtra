@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 from uuid import UUID
 
 import pytest
-from .conftest import FakeRecord
 from orxtra.services._trace import (
     get_notepad,
     get_task_attempts,
@@ -16,6 +15,8 @@ from orxtra.services._trace import (
     search_transcript,
 )
 from orxtra.trace import NotepadEntry, TaskAttempt, TaskSummary
+
+from .conftest import FakeRecord
 
 
 @pytest.mark.asyncio

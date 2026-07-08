@@ -39,7 +39,6 @@ from orxtra.tool._path import PathError, resolve_and_check
 from orxtra.tool._preview import FullRetrievalGuard, check_and_preview
 from orxtra.tool._renderers import TextRenderer
 
-
 _BINARY_CHECK_SIZE = 8192
 
 _EXTENSION_LANGUAGES: dict[str, str] = {
@@ -255,7 +254,9 @@ async def _read_impl(
     if _is_binary(resolved):
         text = "Binary file, cannot display"
         return ToolOutput(
-            data=FileContent(content=text, is_preview=False, total_lines=0, total_bytes=0),
+            data=FileContent(
+                content=text, is_preview=False, total_lines=0, total_bytes=0,
+            ),
             text=text,
         )
 
@@ -284,12 +285,18 @@ async def _read_impl(
                 "first without full=true."
             )
             return ToolOutput(
-                data=FileContent(content=msg, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+                data=FileContent(
+                    content=msg, is_preview=False,
+                    total_lines=total_lines, total_bytes=total_bytes,
+                ),
                 text=msg,
             )
         formatted = _format_with_line_numbers(selected, start_lineno)
         return ToolOutput(
-            data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+            data=FileContent(
+                content=content, is_preview=False,
+                total_lines=total_lines, total_bytes=total_bytes,
+            ),
             text=formatted,
         )
 
@@ -297,13 +304,19 @@ async def _read_impl(
     if result.is_preview:
         guard.record_preview(session_id, path_str)
         return ToolOutput(
-            data=FileContent(content=content, is_preview=True, total_lines=total_lines, total_bytes=total_bytes),
+            data=FileContent(
+                content=content, is_preview=True,
+                total_lines=total_lines, total_bytes=total_bytes,
+            ),
             text=result.content,
         )
 
     formatted = _format_with_line_numbers(selected, start_lineno)
     return ToolOutput(
-        data=FileContent(content=content, is_preview=False, total_lines=total_lines, total_bytes=total_bytes),
+        data=FileContent(
+            content=content, is_preview=False,
+            total_lines=total_lines, total_bytes=total_bytes,
+        ),
         text=formatted,
     )
 
@@ -313,7 +326,7 @@ def make_read_tool(
     preview_threshold: int,
     preview_lines: int,
     session_id: str = "default",
-    previewer: Any | None = None,  # noqa: ANN401
+    previewer: Any | None = None,
 ) -> Tool:
     """Construct the read file tool.
 
@@ -349,7 +362,7 @@ def _load_gitignore(read_root: Path) -> pathspec.PathSpec | None:  # type: ignor
     return pathspec.PathSpec.from_lines("gitignore", lines)
 
 
-def _list_recursive(  # noqa: C901
+def _list_recursive(
     resolved: Path,
     pattern: str | None,
     gitignore: pathspec.PathSpec | None = None,  # type: ignore[type-arg]
@@ -451,7 +464,7 @@ async def _list_dir_impl(
     dir_entries = [
         DirEntry(
             type=etype,
-            size=int(esize) if esize != "-" and esize != "?" else None,
+            size=int(esize) if esize not in {"-", "?"} else None,
             path=epath,
         )
         for etype, esize, epath in raw_entries
@@ -625,7 +638,7 @@ def _grep_iter_files(
     return results
 
 
-def _grep_format_results(  # noqa: PLR0913
+def _grep_format_results(
     mode: str,
     output_lines: list[str],
     matched_files: list[str],
@@ -672,7 +685,9 @@ async def _grep_impl(
     preview_threshold: int,
     preview_lines: int,
 ) -> ToolOutput[GrepResult]:
-    case_sensitive = params.case_sensitive if params.case_sensitive is not None else True
+    case_sensitive = (
+        params.case_sensitive if params.case_sensitive is not None else True
+    )
     compiled = _grep_compile(params.pattern, case_sensitive)
 
     search_path_str = params.path
@@ -682,7 +697,9 @@ async def _grep_impl(
         search_path = read_root
     _require_dir(search_path, search_path_str or str(read_root))
 
-    context_lines_count = params.context_lines if params.context_lines is not None else 0
+    context_lines_count = (
+        params.context_lines if params.context_lines is not None else 0
+    )
     max_results = params.max_results if params.max_results is not None else 100
     include = params.include
     mode = params.mode if params.mode is not None else "content"
@@ -852,7 +869,9 @@ async def _stat_impl(
             )
             for r in results
         ]
-        return ToolOutput(data=StatResult(files=stats), text=json.dumps(results, indent=2))
+        return ToolOutput(
+            data=StatResult(files=stats), text=json.dumps(results, indent=2),
+        )
 
     resolved = _resolve_path(raw_path, read_root)
     info = _stat_single(resolved, root_resolved)
@@ -861,7 +880,9 @@ async def _stat_impl(
         line_count=info["line_count"], language=info["language"],
         mtime=info["mtime"], binary=info.get("binary", False),
     )
-    return ToolOutput(data=StatResult(files=[stat_data]), text=json.dumps(info, indent=2))
+    return ToolOutput(
+        data=StatResult(files=[stat_data]), text=json.dumps(info, indent=2),
+    )
 
 
 def make_stat_tool(read_root: Path) -> Tool:
@@ -919,10 +940,7 @@ async def _diff_impl(
 
     diff_text = "".join(diff)
     identical = not diff_text
-    if identical:
-        display_text = "Files are identical."
-    else:
-        display_text = diff_text
+    display_text = "Files are identical." if identical else diff_text
 
     return ToolOutput(
         data=DiffResult(diff=diff_text, identical=identical),

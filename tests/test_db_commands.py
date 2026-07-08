@@ -15,11 +15,11 @@ pytestmark = skip_no_docker
 
 
 async def test_db_init_creates_schema_on_empty_db(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """db init on an empty database creates all schema objects."""
-    import asyncpg as _asyncpg  # noqa: PLC0415
-    from _generated.schema_executor import (  # noqa: PLC0415
+    import asyncpg as _asyncpg
+    from _generated.schema_executor import (
         execute,
         verify,
     )
@@ -67,11 +67,11 @@ async def test_db_init_creates_schema_on_empty_db(
 
 
 async def test_db_init_is_idempotent(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """Running db init twice produces no errors."""
-    import asyncpg as _asyncpg  # noqa: PLC0415
-    from _generated.schema_executor import (  # noqa: PLC0415
+    import asyncpg as _asyncpg
+    from _generated.schema_executor import (
         execute,
     )
 
@@ -103,11 +103,11 @@ async def test_db_init_is_idempotent(
 
 
 async def test_db_verify_detects_missing_on_empty_db(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """db verify on an empty database reports missing objects."""
-    import asyncpg as _asyncpg  # noqa: PLC0415
-    from _generated.schema_executor import (  # noqa: PLC0415
+    import asyncpg as _asyncpg
+    from _generated.schema_executor import (
         verify,
     )
 
@@ -129,11 +129,11 @@ async def test_db_verify_detects_missing_on_empty_db(
 
 
 async def test_db_verify_zero_missing_after_init(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """db verify reports zero missing after db init."""
-    import asyncpg as _asyncpg  # noqa: PLC0415
-    from _generated.schema_executor import (  # noqa: PLC0415
+    import asyncpg as _asyncpg
+    from _generated.schema_executor import (
         execute,
         verify,
     )

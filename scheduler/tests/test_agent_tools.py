@@ -83,7 +83,7 @@ async def _extract_tool_names(
         mock_session = MagicMock()
         mock_create.return_value = mock_session
 
-        await scheduler._create_agent_session(  # noqa: SLF001
+        await scheduler._create_agent_session(
             task, task_id, 1,
         )
 
@@ -205,7 +205,7 @@ class TestWriteToolsReceiveWriteQueue:
                 side_effect=capturing_wrap,
             ),
         ):
-            await sched._create_agent_session(  # noqa: SLF001
+            await sched._create_agent_session(
                 task, task_id, 1,
             )
 
@@ -223,8 +223,8 @@ class TestWriteToolsReceiveWriteQueue:
 
         # Verify the scheduler has write-safety
         # infrastructure that was passed to the tools.
-        assert sched._write_queue is not None  # noqa: SLF001
-        assert sched._stale_tracker is not None  # noqa: SLF001
+        assert sched._write_queue is not None
+        assert sched._stale_tracker is not None
 
 
 class TestAllLifecycleToolsAlwaysPresent:
@@ -334,7 +334,7 @@ class TestGitSubcommandsDependOnWriteAccess:
                 side_effect=capturing_make,
             ),
         ):
-            await sched._create_agent_session(  # noqa: SLF001
+            await sched._create_agent_session(
                 task, task_id, 1,
             )
 
@@ -383,7 +383,7 @@ class TestGitSubcommandsDependOnWriteAccess:
                 side_effect=capturing_make,
             ),
         ):
-            await sched._create_agent_session(  # noqa: SLF001
+            await sched._create_agent_session(
                 task, task_id, 1,
             )
 

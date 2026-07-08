@@ -19,7 +19,6 @@ from uuid import uuid4
 
 from orxtra.protocols import Tool, ToolOutput
 from orxtra.tool import scrub_data, scrub_text
-
 from orxtra.worker._protocol import ExecuteToolCall, ToolCallResult
 
 if TYPE_CHECKING:
@@ -29,7 +28,7 @@ if TYPE_CHECKING:
     from orxtra.secrets import SecretRegistry
 
 
-def wrap_tool_for_remote(  # noqa: PLR0913
+def wrap_tool_for_remote(
     tool: Tool,
     send_to_worker_fn: Callable[[ExecuteToolCall], Awaitable[ToolCallResult]],
     secret_registry: SecretRegistry | None,
@@ -104,7 +103,7 @@ def wrap_tool_for_remote(  # noqa: PLR0913
     )
 
 
-def wrap_tools_for_remote(  # noqa: PLR0913
+def wrap_tools_for_remote(
     tools: list[Tool],
     send_to_worker_fn: Callable[[ExecuteToolCall], Awaitable[ToolCallResult]],
     secret_registry: SecretRegistry | None,

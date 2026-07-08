@@ -52,7 +52,7 @@ def _patch_recovery() -> Iterator[None]:
 
 
 async def _noop_callable(
-    context: Any,  # noqa: ANN401, ARG001
+    context: Any,
 ) -> TaskResult:
     return TaskResult(
         output="noop",
@@ -142,7 +142,7 @@ class TestPgListener:
     ) -> None:
         """When pool is None, no PG listener is started.
         execute_workflow completes normally."""
-        assert scheduler._pool is None  # noqa: SLF001
+        assert scheduler._pool is None
         config = _noop_workflow()
         # Should complete without errors
         await scheduler.execute_workflow(config)

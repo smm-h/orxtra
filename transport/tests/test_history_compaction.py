@@ -7,14 +7,12 @@ import respx
 from orxtra.transport._events import (
     ContentBlock,
     TransportEvent,
-    Result,
     Usage,
 )
 from orxtra.transport._provider import RetryPolicy
 from orxtra.transport._transport import Transport
 
 from .helpers import CapturingProvider
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -34,12 +32,12 @@ def _retry_policy() -> RetryPolicy:
 
 
 async def _collect(
-    transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
+    transport: Transport, message: str, **kwargs: Any,
 ) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
 
-def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:  # noqa: ANN401
+def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:
     defaults: dict[str, Any] = {
         "model": "test-model",
         "system_prompt": "sys",

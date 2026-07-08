@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import importlib.util as _ilu
 import uuid
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 from orxtra.session._session import Session
-from orxtra.transport import TransportEvent, Result, StepFinish, StepStart
-
-import importlib.util as _ilu
-from pathlib import Path
+from orxtra.transport import Result, StepFinish, StepStart, TransportEvent
 
 _spec = _ilu.spec_from_file_location(
     "tests.shared_mocks",
@@ -27,7 +26,7 @@ class MockTraceWriter:
         self.transcript_entries: list[dict[str, Any]] = []
         self.write_transcript_entry = AsyncMock(side_effect=self._record_entry)
 
-    async def _record_entry(  # noqa: PLR0913
+    async def _record_entry(
         self,
         session_id: uuid.UUID,
         run_id: uuid.UUID,
@@ -48,7 +47,7 @@ class MockTraceWriter:
         })
 
 
-def make_standard_events(  # noqa: PLR0913
+def make_standard_events(
     session_id: str = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     text: str = "Hello!",
     input_tokens: int = 10,

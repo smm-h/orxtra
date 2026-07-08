@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import pytest
 from orxtra.session._session import Session
 from orxtra.transport import (
-    Continuation,
     Result,
     StepFinish,
     StepStart,

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
-import os
 import sys
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -13,12 +13,12 @@ from unittest.mock import AsyncMock
 _mcp_mod = sys.modules.get("mcp")
 if _mcp_mod is not None and getattr(_mcp_mod, "__file__", None) is None:
     for _p in sys.path:
-        _init = os.path.join(_p, "mcp", "__init__.py")
-        if os.path.isfile(_init):
+        _init = Path(_p) / "mcp" / "__init__.py"
+        if _init.is_file():
             _spec = importlib.util.spec_from_file_location(
                 "mcp",
                 _init,
-                submodule_search_locations=[os.path.join(_p, "mcp")],
+                submodule_search_locations=[str(Path(_p) / "mcp")],
             )
             if _spec and _spec.loader:
                 _real_mcp = importlib.util.module_from_spec(_spec)
@@ -31,10 +31,10 @@ from orxtra.mcp._server import MCPServer
 
 
 @pytest.fixture
-def mock_pool() -> Any:  # noqa: ANN401
+def mock_pool() -> Any:
     return AsyncMock()
 
 
 @pytest.fixture
-def server(mock_pool: Any) -> MCPServer:  # noqa: ANN401
+def server(mock_pool: Any) -> MCPServer:
     return MCPServer(mock_pool)

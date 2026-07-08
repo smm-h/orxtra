@@ -54,7 +54,7 @@ def build_lessons_refresher(
     async def _refresh(
         run_id: UUID,  # noqa: ARG001
     ) -> list[dict[str, Any]]:
-        from orxtra.overseer import (  # noqa: PLC0415
+        from orxtra.overseer import (
             filter_stale_lessons,
         )
 
@@ -79,17 +79,10 @@ def build_lessons_refresher(
         fresh, stale = await filter_stale_lessons(
             normalized, repo_dir,
         )
-        result: list[dict[str, Any]] = []
-        for lesson in fresh:
-            result.append({
-                "text": lesson["text"],
-                "stale": False,
-            })
-        for lesson in stale:
-            result.append({
-                "text": lesson["text"],
-                "stale": True,
-            })
+        result: list[dict[str, Any]] = [
+            {"text": lesson["text"], "stale": False} for lesson in fresh
+        ]
+        result.extend({"text": lesson["text"], "stale": True} for lesson in stale)
         return result
 
     return _refresh

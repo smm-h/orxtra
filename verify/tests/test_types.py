@@ -5,7 +5,7 @@ from orxtra.protocols import Severity
 
 class TestReExports:
     def test_all_reexports_accessible(self) -> None:
-        from orxtra.verify import (  # noqa: PLC0415
+        from orxtra.verify import (
             SEVERITY_ORDER,
             CheckAgentContext,
             CheckContext,
@@ -33,14 +33,14 @@ class TestReExports:
 
 class TestSeverityOrdering:
     def test_severity_order(self) -> None:
-        from orxtra.verify import SEVERITY_ORDER  # noqa: PLC0415
+        from orxtra.verify import SEVERITY_ORDER
 
         assert SEVERITY_ORDER[Severity.CRITICAL] > SEVERITY_ORDER[Severity.MAJOR]
         assert SEVERITY_ORDER[Severity.MAJOR] > SEVERITY_ORDER[Severity.MINOR]
         assert SEVERITY_ORDER[Severity.MINOR] > SEVERITY_ORDER[Severity.NIT]
 
     def test_severity_order_values(self) -> None:
-        from orxtra.verify import SEVERITY_ORDER  # noqa: PLC0415
+        from orxtra.verify import SEVERITY_ORDER
 
         assert SEVERITY_ORDER[Severity.CRITICAL] == 4
         assert SEVERITY_ORDER[Severity.MAJOR] == 3

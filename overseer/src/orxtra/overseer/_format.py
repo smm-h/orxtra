@@ -6,7 +6,7 @@ from decimal import Decimal
 from uuid import UUID
 
 
-def _to_json_safe(value: object) -> object:  # noqa: PLR0911
+def _to_json_safe(value: object) -> object:
     """Recursively convert a value to JSON-serializable form."""
     if isinstance(value, str | int | float | bool) or value is None:
         return value

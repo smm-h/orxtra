@@ -13,22 +13,20 @@ wires the concrete implementation; CLI registers the command.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from typing import TYPE_CHECKING, Any
 
 from orxtra.dispatch._action_executor import execute_action
 from orxtra.dispatch._delivery import match_subscription
-from orxtra.dispatch._types import FilterPredicate
 
 if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-
-    from orxtra.protocols import ActionExecutor, FlushScheduler
-
     from orxtra.dispatch._pg_backend import PgDispatchBackend
+    from orxtra.protocols import ActionExecutor, FlushScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +62,7 @@ class DispatchWorker:
     5. Wait for NOTIFY or poll interval, repeat
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         *,
         backend: PgDispatchBackend,
@@ -107,13 +105,11 @@ class DispatchWorker:
                     continue
                 # No events found; wait for NOTIFY or poll interval.
                 self._wake_event.clear()
-                try:
+                with contextlib.suppress(TimeoutError):
                     await asyncio.wait_for(
                         self._wait_for_wake_or_stop(),
                         timeout=self._poll_interval,
                     )
-                except TimeoutError:
-                    pass
         finally:
             await self._teardown_listen()
 
@@ -130,16 +126,14 @@ class DispatchWorker:
         wake_task = asyncio.create_task(self._wake_event.wait())
         stop_task = asyncio.create_task(self._stop_event.wait())
         try:
-            done, pending = await asyncio.wait(
+            _done, pending = await asyncio.wait(
                 {wake_task, stop_task},
                 return_when=asyncio.FIRST_COMPLETED,
             )
             for task in pending:
                 task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await task
-                except asyncio.CancelledError:
-                    pass
         except asyncio.CancelledError:
             wake_task.cancel()
             stop_task.cancel()
@@ -155,7 +149,7 @@ class DispatchWorker:
             logger.debug(
                 "LISTEN on %s established", self._events_channel,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 -- LISTEN setup failure degrades to polling
             logger.warning(
                 "Failed to set up LISTEN on %s; falling back to polling",
                 self._events_channel,
@@ -170,20 +164,20 @@ class DispatchWorker:
                 await self._listen_conn.remove_listener(
                     self._events_channel, self._on_notify,
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 -- teardown must never raise
                 logger.debug("Error removing listener", exc_info=True)
             try:
                 await self._pool.release(self._listen_conn)
-            except Exception:
+            except Exception:  # noqa: BLE001 -- teardown must never raise
                 logger.debug("Error releasing listen connection", exc_info=True)
             self._listen_conn = None
 
     def _on_notify(
         self,
-        connection: asyncpg.Connection[Any],
-        pid: int,
-        channel: str,
-        payload: str,
+        _connection: asyncpg.Connection[Any],
+        _pid: int,
+        _channel: str,
+        _payload: str,
     ) -> None:
         """NOTIFY callback: set the wake event to trigger an immediate poll."""
         self._wake_event.set()
@@ -266,7 +260,7 @@ class DispatchWorker:
             event_type: str,
             data: dict[str, object] | None,
         ) -> None:
-            from orxtra.trace import TraceWriter  # noqa: PLC0415
+            from orxtra.trace import TraceWriter
 
             writer = TraceWriter(self._pool)
             await writer.write_event(

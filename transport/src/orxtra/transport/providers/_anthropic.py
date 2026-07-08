@@ -78,7 +78,7 @@ class AnthropicProvider:
                 )
         return blocks
 
-    async def parse_stream(  # noqa: C901, PLR0912
+    async def parse_stream(
         self,
         byte_stream: AsyncIterator[bytes],
     ) -> AsyncIterator[TransportEvent]:

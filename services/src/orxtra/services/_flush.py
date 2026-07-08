@@ -18,10 +18,9 @@ class AsyncioFlushScheduler:
         callback: Callable[[], Awaitable[None]],
     ) -> object:
         loop = asyncio.get_running_loop()
-        handle = loop.call_later(
+        return loop.call_later(
             deadline, lambda: asyncio.ensure_future(callback()),
         )
-        return handle
 
     def cancel_flush(self, handle: object) -> None:
         if isinstance(handle, asyncio.TimerHandle):

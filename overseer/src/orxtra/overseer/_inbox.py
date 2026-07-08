@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from orxtra.trace import TraceWriter
 
 
-async def create_escalation_inbox(  # noqa: PLR0913
+async def create_escalation_inbox(
     trace_writer: TraceWriter,
     run_id: UUID,
     question: str,

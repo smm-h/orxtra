@@ -18,10 +18,10 @@ from typing import TYPE_CHECKING
 from pydantic import AnyUrl
 
 if TYPE_CHECKING:
+    from orxtra.protocols import OverseerEvent
+
     from mcp.server.fastmcp import FastMCP
     from mcp.server.session import ServerSession
-
-    from orxtra.protocols import OverseerEvent
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def _get_active_sessions(mcp_app: FastMCP) -> list[ServerSession]:
     session_map = getattr(manager, "_session_map", None)
     if session_map is None:
         return sessions
-    for _session_id, session_data in session_map.items():
+    for session_data in session_map.values():
         # Each entry may be a tuple/object containing the ServerSession
         session = getattr(session_data, "session", None)
         if session is not None:

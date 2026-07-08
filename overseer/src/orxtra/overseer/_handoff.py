@@ -22,8 +22,8 @@ async def perform_handoff(
     trace_writer: TraceWriter,
     run_id: UUID,
 ) -> Session:
-    from orxtra.session import create_session  # noqa: PLC0415
-    from orxtra.transport import Result  # noqa: PLC0415
+    from orxtra.session import create_session
+    from orxtra.transport import Result
 
     summary_parts: list[str] = []
     async for event in session.send(

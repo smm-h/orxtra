@@ -8,13 +8,12 @@ ping/pong and tracks worker connection state.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
-
-from pydantic import ValidationError
 
 from orxtra.worker._protocol import (
     ExecuteToolCall,
@@ -22,6 +21,7 @@ from orxtra.worker._protocol import (
     HeartbeatAck,
     ToolCallResult,
 )
+from pydantic import ValidationError
 
 if TYPE_CHECKING:
     from fastware import WebSocket
@@ -82,16 +82,12 @@ class BrainWorkerBridge:
         self._connected = False
         if self._heartbeat_task is not None:
             self._heartbeat_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._heartbeat_task
-            except asyncio.CancelledError:
-                pass
         if self._receive_task is not None:
             self._receive_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._receive_task
-            except asyncio.CancelledError:
-                pass
         # Fail any pending calls.
         for fut in self._pending.values():
             if not fut.done():
@@ -103,7 +99,7 @@ class BrainWorkerBridge:
     async def send_tool_call(
         self,
         call: ExecuteToolCall,
-        timeout: float | None = None,
+        timeout: float | None = None,  # noqa: ASYNC109 -- per-call timeout is the API
     ) -> ToolCallResult:
         """Send a tool call to the worker and await the result.
 
@@ -131,22 +127,21 @@ class BrainWorkerBridge:
                 result = await asyncio.wait_for(future, timeout=timeout)
             else:
                 result = await future
-
-            # Cache for idempotency.
-            self._result_cache[call.call_id] = result
-            return result
         except TimeoutError as exc:
             self._pending.pop(call.call_id, None)
-            raise ToolCallTimeoutError(
-                f"Tool call {call.call_id} timed out after {timeout}s",
-            ) from exc
+            msg = f"Tool call {call.call_id} timed out after {timeout}s"
+            raise ToolCallTimeoutError(msg) from exc
         except Exception:
             self._pending.pop(call.call_id, None)
             raise
+        else:
+            # Cache for idempotency.
+            self._result_cache[call.call_id] = result
+            return result
 
     async def _receive_loop(self) -> None:
         """Continuously receive messages from the worker WebSocket."""
-        from fastware import WebSocketDisconnect  # noqa: PLC0415
+        from fastware import WebSocketDisconnect
 
         try:
             while self._connected:
@@ -183,7 +178,7 @@ class BrainWorkerBridge:
                 # wire data has UUIDs as strings, strict mode requires
                 # UUID objects.  model_validate_json coerces correctly.
                 result = ToolCallResult.model_validate_json(json.dumps(data))
-            except (ValidationError, Exception) as exc:
+            except Exception as exc:  # noqa: BLE001 -- malformed worker data must not kill the loop
                 _logger.warning(
                     "Invalid ToolCallResult from worker %s: %s",
                     self._worker_id,
@@ -214,39 +209,36 @@ class BrainWorkerBridge:
 
     async def _heartbeat_loop(self) -> None:
         """Send heartbeats and detect timeouts."""
-        try:
-            while self._connected:
-                await asyncio.sleep(_HEARTBEAT_INTERVAL_S)
-                if not self._connected:
-                    break
+        while self._connected:
+            await asyncio.sleep(_HEARTBEAT_INTERVAL_S)
+            if not self._connected:
+                break
 
-                now = time.monotonic()
-                hb = Heartbeat(timestamp=now)
-                payload = _serialize_message("heartbeat", hb)
-                try:
-                    await self._ws.send_text(payload)
-                except Exception:
-                    _logger.warning(
-                        "Failed to send heartbeat to worker %s",
-                        self._worker_id,
-                    )
-                    self._mark_disconnected()
-                    break
+            now = time.monotonic()
+            hb = Heartbeat(timestamp=now)
+            payload = _serialize_message("heartbeat", hb)
+            try:
+                await self._ws.send_text(payload)
+            except Exception:  # noqa: BLE001 -- any send failure means disconnect
+                _logger.warning(
+                    "Failed to send heartbeat to worker %s",
+                    self._worker_id,
+                )
+                self._mark_disconnected()
+                break
 
-                # Wait for ack.
-                await asyncio.sleep(_HEARTBEAT_TIMEOUT_S)
-                if (
-                    self._connected
-                    and self._last_heartbeat_ack < now
-                ):
-                    _logger.warning(
-                        "Heartbeat timeout for worker %s",
-                        self._worker_id,
-                    )
-                    self._mark_disconnected()
-                    break
-        except asyncio.CancelledError:
-            raise
+            # Wait for ack.
+            await asyncio.sleep(_HEARTBEAT_TIMEOUT_S)
+            if (
+                self._connected
+                and self._last_heartbeat_ack < now
+            ):
+                _logger.warning(
+                    "Heartbeat timeout for worker %s",
+                    self._worker_id,
+                )
+                self._mark_disconnected()
+                break
 
     def _mark_disconnected(self) -> None:
         """Mark the worker as disconnected and fail pending calls."""
@@ -261,7 +253,7 @@ class BrainWorkerBridge:
         self._pending.clear()
 
 
-def _serialize_message(msg_type: str, model: Any) -> str:  # noqa: ANN401
+def _serialize_message(msg_type: str, model: Any) -> str:
     """Serialize a protocol message as a JSON envelope."""
     return json.dumps({
         "type": msg_type,

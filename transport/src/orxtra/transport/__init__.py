@@ -12,7 +12,6 @@ from orxtra.transport._events import (
     ContentBlock,
     ContextWarning,
     Error,
-    TransportEvent,
     LivenessWarning,
     RateLimit,
     Result,
@@ -27,6 +26,7 @@ from orxtra.transport._events import (
     Thinking,
     ToolExecuting,
     ToolUse,
+    TransportEvent,
     UnknownEvent,
     Usage,
 )
@@ -36,13 +36,11 @@ from orxtra.transport._state_machine import Continuation, TransportState
 from orxtra.transport._transport import Transport
 
 __all__ = [
-    "__version__",
     "ApiRetry",
     "ContentBlock",
     "ContextWarning",
     "Continuation",
     "Error",
-    "TransportEvent",
     "LivenessMonitor",
     "LivenessWarning",
     "Provider",
@@ -61,7 +59,9 @@ __all__ = [
     "ToolExecuting",
     "ToolUse",
     "Transport",
+    "TransportEvent",
     "TransportState",
     "UnknownEvent",
     "Usage",
+    "__version__",
 ]

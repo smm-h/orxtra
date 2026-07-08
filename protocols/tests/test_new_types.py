@@ -6,8 +6,6 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from orxtra.protocols import (
     Capability,
     CardContributor,
@@ -21,7 +19,7 @@ from orxtra.protocols import (
     UpdateComponents,
     UpdateDataModel,
 )
-
+from pydantic import ValidationError
 
 # -- EventSink[T] --
 

@@ -44,7 +44,6 @@ from orxtra.tool._write_tools import (
 )
 from orxtra.write_safety import StaleWriteTracker, WriteQueue
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -81,7 +80,7 @@ def scheduler_ref() -> Any:
 # Expected metadata for all tools
 # ---------------------------------------------------------------------------
 
-# (tool_name, expected_namespace, expected_tags)
+# Columns are tool_name, expected_namespace, expected_tags.
 EXPECTED_METADATA: list[tuple[str, str, frozenset[str]]] = [
     # fs.read tools
     ("read", "fs.read", frozenset({"readonly"})),

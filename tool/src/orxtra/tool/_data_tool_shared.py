@@ -75,14 +75,14 @@ def validate_args(
 
 
 def validate_output_schema(
-    response_data: Any,  # noqa: ANN401
+    response_data: Any,
     schema: dict[str, Any],
 ) -> None:
     """Validate response data against the output JSON Schema.
 
     Raises ToolError with a descriptive message on validation failure.
     """
-    import jsonschema  # noqa: PLC0415
+    import jsonschema
 
     try:
         jsonschema.validate(instance=response_data, schema=schema)

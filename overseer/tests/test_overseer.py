@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from .conftest import MockSession, MockTraceWriter
 from orxtra.overseer._autonomy import AutonomyLevel
 from orxtra.overseer._health import HealthMonitor
 from orxtra.overseer._overseer import Overseer
@@ -16,6 +15,8 @@ from orxtra.protocols import (
     TaskContext,
     TaskFailed,
 )
+
+from .conftest import MockSession, MockTraceWriter
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -91,7 +92,7 @@ def test_overseer_construction(
         health_monitor=HealthMonitor(threshold=0.5),
         read_root=tmp_path,
     )
-    assert overseer._autonomy_level == AutonomyLevel.HIGH  # noqa: SLF001
+    assert overseer._autonomy_level == AutonomyLevel.HIGH
 
 
 def test_prepare_run_started(

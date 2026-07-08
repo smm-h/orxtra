@@ -51,7 +51,7 @@ def validate_exec_arg(arg: str, read_root: Path) -> None:
             raise ToolError(msg) from exc
 
 
-async def run_subprocess(  # noqa: PLR0913
+async def run_subprocess(
     *,
     executable: str,
     args: list[str],
@@ -126,7 +126,7 @@ async def run_subprocess(  # noqa: PLR0913
         "duration_ms": duration_ms,
     }
 
-    import json  # noqa: PLC0415
+    import json
 
     return ToolOutput(
         data=ExecResult(

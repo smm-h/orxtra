@@ -83,7 +83,7 @@ class _MockTraceWriter:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    async def create_inbox_item(self, **kwargs: Any) -> Any:  # noqa: ANN401
+    async def create_inbox_item(self, **kwargs: Any) -> Any:
         self.calls.append(("create_inbox_item", kwargs))
         return uuid6.uuid7()
 

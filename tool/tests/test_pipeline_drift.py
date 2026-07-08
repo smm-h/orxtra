@@ -14,17 +14,14 @@ from __future__ import annotations
 
 import inspect
 from typing import Any
-from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 from orxtra.protocols import Tool, ToolOutput
 from orxtra.secrets import SecretRegistry
 from orxtra.tool._pipeline import wrap_tool_with_pipeline
-from orxtra.tool._scrub import scrub_data, scrub_text, scrub_tool_output
 from orxtra.worker._pipeline_split import wrap_tool_for_remote
 from orxtra.worker._protocol import ToolCallResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -50,7 +47,7 @@ class TestPipelineImportDrift:
 
     def test_local_pipeline_imports_scrub_tool_output(self) -> None:
         """tool/_pipeline.py imports scrub_tool_output from tool._scrub."""
-        import orxtra.tool._pipeline as mod  # noqa: PLC0415
+        import orxtra.tool._pipeline as mod
 
         source = inspect.getsource(mod)
         assert "from orxtra.tool._scrub import" in source
@@ -58,7 +55,7 @@ class TestPipelineImportDrift:
 
     def test_remote_pipeline_imports_scrub_functions(self) -> None:
         """worker/_pipeline_split.py imports scrub_text/scrub_data from tool."""
-        import orxtra.worker._pipeline_split as mod  # noqa: PLC0415
+        import orxtra.worker._pipeline_split as mod
 
         source = inspect.getsource(mod)
         assert "from orxtra.tool import" in source
@@ -67,7 +64,7 @@ class TestPipelineImportDrift:
 
     def test_lifecycle_handlers_import_scrub_text(self) -> None:
         """scheduler/_lifecycle_handlers.py imports scrub_text from tool."""
-        import orxtra.scheduler._lifecycle_handlers as mod  # noqa: PLC0415
+        import orxtra.scheduler._lifecycle_handlers as mod
 
         source = inspect.getsource(mod)
         assert "from orxtra.tool import" in source

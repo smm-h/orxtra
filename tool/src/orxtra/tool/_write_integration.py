@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-async def safe_write(  # noqa: PLR0913
+async def safe_write(
     path: Path,
     content: str | bytes,
     queue: WriteQueue,

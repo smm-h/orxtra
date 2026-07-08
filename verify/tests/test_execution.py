@@ -2,13 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .conftest import (
-    MockCheckExecutor,
-    make_check_context,
-    make_failing_verdict,
-    make_mixed_verdict,
-    make_passing_verdict,
-)
 from orxtra.protocols import (
     AgentExecution,
     CheckResult,
@@ -17,6 +10,14 @@ from orxtra.protocols import (
     WorkflowExecution,
 )
 from orxtra.verify._execution import execute_check
+
+from .conftest import (
+    MockCheckExecutor,
+    make_check_context,
+    make_failing_verdict,
+    make_mixed_verdict,
+    make_passing_verdict,
+)
 
 if TYPE_CHECKING:
     from orxtra.protocols import CheckContext

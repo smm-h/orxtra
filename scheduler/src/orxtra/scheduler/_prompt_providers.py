@@ -178,8 +178,7 @@ class LessonsProvider:
         if fresh:
             header = _load_template("lessons_verified")
             lines = [header]
-            for lesson in fresh:
-                lines.append(f"- {lesson['text']}")
+            lines.extend(f"- {lesson['text']}" for lesson in fresh)
             result.append(
                 Fragment(
                     name="lessons_verified",
@@ -228,11 +227,9 @@ class FailureContextProvider:
 
         header = _load_template("prior_failures")
         lines = [header]
-        for pa in prior:
-            lines.append(
-                f"Prior attempt {pa['attempt']}"
-                f" failed: {pa['error']}",
-            )
+        lines.extend(
+            f"Prior attempt {pa['attempt']} failed: {pa['error']}" for pa in prior
+        )
         return [
             Fragment(
                 name="prior_failures",

@@ -29,7 +29,7 @@ class StreamingTransport:
     def __init__(self) -> None:
         self.send_called: bool = False
 
-    async def send(  # noqa: PLR0913
+    async def send(
         self,
         message: str,
         *,
@@ -148,20 +148,20 @@ class TestStreamingAlwaysOn:
             timeout=60,
             context_refinement=False,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         _result = await sched.execute_task(
             task, None, task_id=task_id,
         )
 
         assert transport.send_called is True
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED
 
 
 class TestOrchestratorIgnoresDeltas:
@@ -176,7 +176,7 @@ class TestOrchestratorIgnoresDeltas:
         class OrchestratorStreamTransport:
             """Transport that emits StreamDelta in orchestrator send."""
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -231,17 +231,17 @@ class TestOrchestratorIgnoresDeltas:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
         )
 
         assert result.output == "orchestrator output"
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED

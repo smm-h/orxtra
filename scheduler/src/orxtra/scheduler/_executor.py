@@ -9,8 +9,8 @@ import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
+from orxtra.dispatch import TransientEventDelivery
 from orxtra.notepad import NotepadEntry
-from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import (
     AttemptSummary,
     BudgetExhaustionPolicy,
@@ -24,7 +24,6 @@ from orxtra.protocols import (
     TaskSpec,
     TaskState,
 )
-from orxtra.dispatch import TransientEventDelivery
 from orxtra.scheduler._agent_execution import AgentExecutionMixin
 from orxtra.scheduler._enforcement import EnforcementMixin
 from orxtra.scheduler._graph import (
@@ -34,6 +33,7 @@ from orxtra.scheduler._graph import (
 )
 from orxtra.scheduler._lifecycle_handlers import LifecycleHandlersMixin
 from orxtra.scheduler._locks import FileLockRegistry
+from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.scheduler._services import (
     ServiceInstance,
     check_health,
@@ -52,7 +52,7 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxtra.agent import Agent
-    from orxtra.protocols import EventSink, Execution, Tool
+    from orxtra.protocols import EventSink, Execution
     from orxtra.scheduler._overseer import (
         OverseerEvent,
         OverseerInterface,
@@ -122,7 +122,7 @@ class Scheduler(
     LifecycleHandlersMixin,
     EnforcementMixin,
 ):
-    def __init__(  # noqa: PLR0913, PLR0915
+    def __init__(
         self,
         trace_writer: TraceWriter | StorageBackend,
         transport_registry: dict[str, Transport],
@@ -186,7 +186,7 @@ class Scheduler(
         self._overseer_sinks: list[EventSink[OverseerEvent]] = overseer_sinks or []
 
         # Build tool registry once per Scheduler lifetime.
-        from orxtra.scheduler._tool_registry import (  # noqa: PLC0415
+        from orxtra.scheduler._tool_registry import (
             create_builtin_registry,
             validate_allow_lists,
         )
@@ -324,7 +324,7 @@ class Scheduler(
         self,
         execution: Execution,
     ) -> CheckResult:
-        from orxtra.protocols import (  # noqa: PLC0415
+        from orxtra.protocols import (
             WorkflowExecution,
         )
 
@@ -479,7 +479,7 @@ class Scheduler(
             return
         if self._pool is None:
             return
-        from orxtra.trace import (  # noqa: PLC0415
+        from orxtra.trace import (
             acquire_run_lock,
             clean_orphaned,
             reclaim_interrupted,
@@ -560,7 +560,7 @@ class Scheduler(
         self,
         pg_listener_task: asyncio.Task[None] | None,
         pg_listener_conn: asyncpg.pool.PoolConnectionProxy[Any] | None,
-        on_notification: Any,  # noqa: ANN401
+        on_notification: Any,
     ) -> None:
         """Clean up PG listener resources."""
         if pg_listener_task is not None:
@@ -682,7 +682,7 @@ class Scheduler(
                 if self._task_states.get(task_id_map[name]) == TaskState.ESCALATED
             ]
             if escalated_in_group:
-                from orxtra.scheduler._types import EscalationPolicy  # noqa: PLC0415
+                from orxtra.scheduler._types import EscalationPolicy
 
                 policy = config.escalation_policy
                 if policy == EscalationPolicy.HALT:
@@ -757,7 +757,7 @@ class Scheduler(
             task, task_id, parent_task_id, variables,
         )
 
-    def _make_task_context(  # noqa: PLR0913
+    def _make_task_context(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -800,7 +800,7 @@ class Scheduler(
             nesting_depth=depth,
         )
 
-    def _complete_task(  # noqa: PLR0913
+    def _complete_task(
         self,
         task_id: UUID,
         task_name: str,
@@ -886,7 +886,7 @@ class Scheduler(
         Uses the same FALLBACK_BEHAVIORS/FALLBACK_HANDLERS
         tables as degraded mode.
         """
-        from orxtra.scheduler._overseer import (  # noqa: PLC0415
+        from orxtra.scheduler._overseer import (
             _DEFAULT_FALLBACK,
             FALLBACK_BEHAVIORS,
             FALLBACK_HANDLERS,
@@ -921,7 +921,7 @@ class Scheduler(
         if self._overseer_interface.is_degraded(
             event_type,
         ):
-            from orxtra.scheduler._overseer import (  # noqa: PLC0415
+            from orxtra.scheduler._overseer import (
                 _DEFAULT_FALLBACK,
                 FALLBACK_BEHAVIORS,
                 FALLBACK_HANDLERS,
@@ -1005,7 +1005,7 @@ class Scheduler(
         for sink in self._overseer_sinks:
             try:
                 await sink.on_event(event)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _logger.exception(
                     "Overseer sink %s failed for %s",
                     type(sink).__name__,
@@ -1088,7 +1088,7 @@ class Scheduler(
     async def _send_pending_advisories(self) -> None:
         """Send stored structural advisories to the
         Overseer (or headless fallback handler)."""
-        import uuid as _uuid  # noqa: PLC0415
+        import uuid as _uuid
 
         for advisory in self._pending_advisories:
             event = StructuralAdvisory(

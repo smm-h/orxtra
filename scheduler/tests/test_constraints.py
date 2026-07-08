@@ -95,7 +95,7 @@ async def test_tests_pass_succeeds(
         "asyncio.create_subprocess_exec",
         mock_exec,
     ):
-        result = await scheduler._check_constraint(  # noqa: SLF001
+        result = await scheduler._check_constraint(
             ConstraintKind.TESTS_PASS, task_id,
         )
     assert result.passed is True
@@ -117,7 +117,7 @@ async def test_tests_pass_fails(
         "asyncio.create_subprocess_exec",
         mock_exec,
     ):
-        result = await scheduler._check_constraint(  # noqa: SLF001
+        result = await scheduler._check_constraint(
             ConstraintKind.TESTS_PASS, task_id,
         )
     assert result.passed is False
@@ -137,7 +137,7 @@ async def test_lint_clean_succeeds(
         "asyncio.create_subprocess_exec",
         mock_exec,
     ):
-        result = await scheduler._check_constraint(  # noqa: SLF001
+        result = await scheduler._check_constraint(
             ConstraintKind.LINT_CLEAN, task_id,
         )
     assert result.passed is True
@@ -157,7 +157,7 @@ async def test_no_new_dependencies_unchanged(
         "asyncio.create_subprocess_exec",
         mock_exec,
     ):
-        result = await scheduler._check_constraint(  # noqa: SLF001
+        result = await scheduler._check_constraint(
             ConstraintKind.NO_NEW_DEPENDENCIES, task_id,
         )
     assert result.passed is True
@@ -179,7 +179,7 @@ async def test_no_new_files_outside_inside_allowed(
         "asyncio.create_subprocess_exec",
         mock_exec,
     ):
-        result = await scheduler._check_constraint(  # noqa: SLF001
+        result = await scheduler._check_constraint(
             ConstraintKind.NO_NEW_FILES_OUTSIDE,
             task_id,
             constraint_text="no_new_files_outside(src/)",
@@ -203,7 +203,7 @@ async def test_no_new_files_outside_outside_allowed(
         "asyncio.create_subprocess_exec",
         mock_exec,
     ):
-        result = await scheduler._check_constraint(  # noqa: SLF001
+        result = await scheduler._check_constraint(
             ConstraintKind.NO_NEW_FILES_OUTSIDE,
             task_id,
             constraint_text="no_new_files_outside(src/)",
@@ -237,18 +237,18 @@ async def test_no_removed_exports_detects_removal(
     task_id = uuid6.uuid7()
 
     # Set up constraint
-    sched._mechanical_constraints = [  # noqa: SLF001
+    sched._mechanical_constraints = [
         ("no_removed_exports(*.py)", "no_removed_exports"),
     ]
 
     # Capture snapshot
-    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+    sched._capture_pre_task_snapshots(task_id)
 
     # Remove an export
     src.write_text("def foo(): pass\nVAL = 42\n")
 
     # Check
-    result = sched._check_no_removed_exports(  # noqa: SLF001
+    result = sched._check_no_removed_exports(
         task_id, "no_removed_exports(*.py)",
     )
     assert result.passed is False
@@ -277,13 +277,13 @@ async def test_no_removed_exports_passes_when_unchanged(
     src.write_text("def foo(): pass\ndef bar(): pass\n")
 
     task_id = uuid6.uuid7()
-    sched._mechanical_constraints = [  # noqa: SLF001
+    sched._mechanical_constraints = [
         ("no_removed_exports(*.py)", "no_removed_exports"),
     ]
-    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+    sched._capture_pre_task_snapshots(task_id)
 
     # Don't change anything
-    result = sched._check_no_removed_exports(  # noqa: SLF001
+    result = sched._check_no_removed_exports(
         task_id, "no_removed_exports(*.py)",
     )
     assert result.passed is True
@@ -311,15 +311,15 @@ async def test_no_changed_signatures_detects_change(
     src.write_text("def foo(a, b): pass\ndef bar(x): pass\n")
 
     task_id = uuid6.uuid7()
-    sched._mechanical_constraints = [  # noqa: SLF001
+    sched._mechanical_constraints = [
         ("no_changed_signatures(*.py)", "no_changed_signatures"),
     ]
-    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+    sched._capture_pre_task_snapshots(task_id)
 
     # Change foo's signature
     src.write_text("def foo(a, b, c): pass\ndef bar(x): pass\n")
 
-    result = sched._check_no_changed_signatures(  # noqa: SLF001
+    result = sched._check_no_changed_signatures(
         task_id, "no_changed_signatures(*.py)",
     )
     assert result.passed is False
@@ -348,12 +348,12 @@ async def test_no_changed_signatures_passes_when_unchanged(
     src.write_text("def foo(a, b): pass\n")
 
     task_id = uuid6.uuid7()
-    sched._mechanical_constraints = [  # noqa: SLF001
+    sched._mechanical_constraints = [
         ("no_changed_signatures(*.py)", "no_changed_signatures"),
     ]
-    sched._capture_pre_task_snapshots(task_id)  # noqa: SLF001
+    sched._capture_pre_task_snapshots(task_id)
 
-    result = sched._check_no_changed_signatures(  # noqa: SLF001
+    result = sched._check_no_changed_signatures(
         task_id, "no_changed_signatures(*.py)",
     )
     assert result.passed is True

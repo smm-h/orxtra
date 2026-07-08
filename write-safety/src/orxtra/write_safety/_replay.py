@@ -23,9 +23,9 @@ def is_transient_error(error: OSError) -> bool:
 
 async def with_transient_retry[T](
     fn: Callable[..., Awaitable[T]],
-    *args: Any,  # noqa: ANN401
+    *args: Any,
     max_retries: int = 3,
-    **kwargs: Any,  # noqa: ANN401
+    **kwargs: Any,
 ) -> T:
     """Call fn, retrying on transient OS errors with exponential backoff."""
     delay = 0.1

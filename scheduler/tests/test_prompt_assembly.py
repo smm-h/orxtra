@@ -14,15 +14,15 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 import pytest
 import uuid6
 from orxtra.compose import resolve_variables
 from orxtra.notepad import NotepadEntry
-from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import TaskSpec
+from orxtra.scheduler._prompt_providers import _render_notepad
 
 from .conftest import (
     MockTraceWriter,
@@ -33,9 +33,9 @@ from .conftest import (
 
 
 def _make_scheduler(
-    tmp_path: Any,  # noqa: ANN401
+    tmp_path: Any,
     run_id: UUID | None = None,
-) -> Any:  # noqa: ANN401
+) -> Any:
     from orxtra.scheduler._executor import Scheduler
 
     return Scheduler(
@@ -59,7 +59,7 @@ class TestPromptAssemblyGolden:
     compose fragments, these tests prove equivalence.
     """
 
-    async def test_base_prompt_only(self, tmp_path: Any) -> None:  # noqa: ANN401
+    async def test_base_prompt_only(self, tmp_path: Any) -> None:
         """Layer 1: base task prompt with task-ID preamble."""
         sched = _make_scheduler(tmp_path)
         task = TaskSpec(
@@ -71,7 +71,7 @@ class TestPromptAssemblyGolden:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, None, 1, attempt_id, [],
         )
 
@@ -84,7 +84,7 @@ class TestPromptAssemblyGolden:
         assert "## Prior Failure Context" not in result
         assert "Context from previous steps" not in result
 
-    async def test_with_variables(self, tmp_path: Any) -> None:  # noqa: ANN401
+    async def test_with_variables(self, tmp_path: Any) -> None:
         """Layer 1: variable substitution in task prompt."""
         sched = _make_scheduler(tmp_path)
         task = TaskSpec(
@@ -96,20 +96,20 @@ class TestPromptAssemblyGolden:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, {"item": "alpha"}, 1, attempt_id, [],
         )
 
         assert "Process alpha now." in result
         assert "{item}" not in result
 
-    async def test_with_constraints(self, tmp_path: Any) -> None:  # noqa: ANN401
+    async def test_with_constraints(self, tmp_path: Any) -> None:
         """Layer 2: active constraints section."""
         sched = _make_scheduler(tmp_path)
-        sched._active_constraints.append(  # noqa: SLF001
+        sched._active_constraints.append(
             ("No new dependencies", "mechanical"),
         )
-        sched._active_constraints.append(  # noqa: SLF001
+        sched._active_constraints.append(
             ("Keep files small", "advisory"),
         )
         task = TaskSpec(
@@ -121,7 +121,7 @@ class TestPromptAssemblyGolden:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, None, 1, attempt_id, [],
         )
 
@@ -129,7 +129,7 @@ class TestPromptAssemblyGolden:
         assert "- No new dependencies (mechanical)" in result
         assert "- Keep files small (advisory)" in result
 
-    async def test_with_notepad_entries(self, tmp_path: Any) -> None:  # noqa: ANN401
+    async def test_with_notepad_entries(self, tmp_path: Any) -> None:
         """Layer 2: notepad entries section."""
         run_id = uuid6.uuid7()
         sched = _make_scheduler(tmp_path, run_id=run_id)
@@ -141,7 +141,7 @@ class TestPromptAssemblyGolden:
             text="The API uses v2 endpoints",
             created_at=datetime.now(UTC),
         )
-        sched._notepad_entries.append(entry)  # noqa: SLF001
+        sched._notepad_entries.append(entry)
 
         task = TaskSpec(
             name="noted",
@@ -152,17 +152,17 @@ class TestPromptAssemblyGolden:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, None, 1, attempt_id, [],
         )
 
         assert "Context from previous steps" in result
         assert "The API uses v2 endpoints" in result
 
-    async def test_with_lessons(self, tmp_path: Any) -> None:  # noqa: ANN401
+    async def test_with_lessons(self, tmp_path: Any) -> None:
         """Layer 2: verified and stale lessons."""
         sched = _make_scheduler(tmp_path)
-        sched._lessons.extend([  # noqa: SLF001
+        sched._lessons.extend([
             {"text": "Always run tests", "stale": False},
             {"text": "Old pattern", "stale": True},
         ])
@@ -176,7 +176,7 @@ class TestPromptAssemblyGolden:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, None, 1, attempt_id, [],
         )
 
@@ -186,7 +186,7 @@ class TestPromptAssemblyGolden:
         assert "- Old pattern" in result
         assert "stale: source modified after lesson was created" in result
 
-    async def test_with_prior_failures(self, tmp_path: Any) -> None:  # noqa: ANN401
+    async def test_with_prior_failures(self, tmp_path: Any) -> None:
         """Layer 2: prior failure context on retry."""
         sched = _make_scheduler(tmp_path)
         task = TaskSpec(
@@ -204,7 +204,7 @@ class TestPromptAssemblyGolden:
             {"attempt": 2, "error": "Lint errors"},
         ]
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, None, 3, attempt_id, prior,
         )
 
@@ -213,7 +213,7 @@ class TestPromptAssemblyGolden:
         assert "Prior attempt 2 failed: Lint errors" in result
 
     async def test_no_prior_failures_on_first_attempt(
-        self, tmp_path: Any,  # noqa: ANN401
+        self, tmp_path: Any,
     ) -> None:
         """Prior failures not shown on attempt 1."""
         sched = _make_scheduler(tmp_path)
@@ -228,17 +228,17 @@ class TestPromptAssemblyGolden:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, None, 1, attempt_id, [],
         )
 
         assert "## Prior Failure Context" not in result
 
-    async def test_all_layers_combined(self, tmp_path: Any) -> None:  # noqa: ANN401
+    async def test_all_layers_combined(self, tmp_path: Any) -> None:
         """All layers present in the correct order."""
         run_id = uuid6.uuid7()
         sched = _make_scheduler(tmp_path, run_id=run_id)
-        sched._active_constraints.append(  # noqa: SLF001
+        sched._active_constraints.append(
             ("No new deps", "mechanical"),
         )
         entry = NotepadEntry(
@@ -249,8 +249,8 @@ class TestPromptAssemblyGolden:
             text="Use v2 API",
             created_at=datetime.now(UTC),
         )
-        sched._notepad_entries.append(entry)  # noqa: SLF001
-        sched._lessons.append(  # noqa: SLF001
+        sched._notepad_entries.append(entry)
+        sched._lessons.append(
             {"text": "Run tests first", "stale": False},
         )
 
@@ -266,7 +266,7 @@ class TestPromptAssemblyGolden:
         attempt_id = uuid6.uuid7()
         prior = [{"attempt": 1, "error": "Build failed"}]
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, None, 2, attempt_id, prior,
         )
 
@@ -346,7 +346,7 @@ class TestSchedulerStrictSubstitution:
     """
 
     async def test_unknown_placeholder_raises(
-        self, tmp_path: Any,  # noqa: ANN401
+        self, tmp_path: Any,
     ) -> None:
         """Strict: unknown {placeholder} in task_prompt is a hard error."""
         sched = _make_scheduler(tmp_path)
@@ -360,12 +360,12 @@ class TestSchedulerStrictSubstitution:
         attempt_id = uuid6.uuid7()
 
         with pytest.raises(ValueError, match="Unresolved placeholder"):
-            await sched._assemble_agent_prompt(  # noqa: SLF001
+            await sched._assemble_agent_prompt(
                 task, task_id, {}, 1, attempt_id, [],
             )
 
     async def test_unknown_placeholder_with_some_vars_raises(
-        self, tmp_path: Any,  # noqa: ANN401
+        self, tmp_path: Any,
     ) -> None:
         """Strict: unresolved placeholder raises even when some match."""
         sched = _make_scheduler(tmp_path)
@@ -379,12 +379,12 @@ class TestSchedulerStrictSubstitution:
         attempt_id = uuid6.uuid7()
 
         with pytest.raises(ValueError, match="Unresolved placeholder"):
-            await sched._assemble_agent_prompt(  # noqa: SLF001
+            await sched._assemble_agent_prompt(
                 task, task_id, {"matched": "found"}, 1, attempt_id, [],
             )
 
     async def test_unused_variables_filtered(
-        self, tmp_path: Any,  # noqa: ANN401
+        self, tmp_path: Any,
     ) -> None:
         """Unused variables are silently filtered (workflow pattern).
 
@@ -403,7 +403,7 @@ class TestSchedulerStrictSubstitution:
         attempt_id = uuid6.uuid7()
 
         # Should NOT raise despite extra unused variables
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id,
             {"extra": "value", "another": "unused"},
             1, attempt_id, [],
@@ -412,7 +412,7 @@ class TestSchedulerStrictSubstitution:
         assert "Hello world" in result
 
     async def test_normal_substitution_works(
-        self, tmp_path: Any,  # noqa: ANN401
+        self, tmp_path: Any,
     ) -> None:
         """Strict: matched variables are substituted correctly."""
         sched = _make_scheduler(tmp_path)
@@ -425,7 +425,7 @@ class TestSchedulerStrictSubstitution:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id,
             {"item": "alpha", "mode": "fast"},
             1, attempt_id, [],
@@ -436,7 +436,7 @@ class TestSchedulerStrictSubstitution:
         assert "{mode}" not in result
 
     async def test_non_string_values_coerced(
-        self, tmp_path: Any,  # noqa: ANN401
+        self, tmp_path: Any,
     ) -> None:
         """Non-string variable values are coerced to str."""
         sched = _make_scheduler(tmp_path)
@@ -449,14 +449,14 @@ class TestSchedulerStrictSubstitution:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id, {"count": 42}, 1, attempt_id, [],
         )
 
         assert "Count is 42" in result
 
     async def test_subset_used_from_accumulated_variables(
-        self, tmp_path: Any,  # noqa: ANN401
+        self, tmp_path: Any,
     ) -> None:
         """Only referenced variables are used; extras are filtered.
 
@@ -473,7 +473,7 @@ class TestSchedulerStrictSubstitution:
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
 
-        result = await sched._assemble_agent_prompt(  # noqa: SLF001
+        result = await sched._assemble_agent_prompt(
             task, task_id,
             {
                 "a_output": "result-a",
@@ -534,7 +534,7 @@ class TestPromptTemplatesExist:
         / "src" / "orxtra" / "scheduler" / "prompts"
     )
 
-    _EXPECTED_TEMPLATES = [
+    _EXPECTED_TEMPLATES: ClassVar[list[str]] = [
         "task_preamble",
         "constraints",
         "notepad",

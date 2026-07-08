@@ -14,8 +14,6 @@ from typing import Any
 from uuid import UUID
 
 import pytest
-from uuid6 import uuid7
-
 from orxtra.dispatch import (
     DispatchWorker,
     FilterPredicate,
@@ -31,6 +29,7 @@ from orxtra.services import (
     verify_schema,
 )
 from orxtra.trace import EVENTS_CHANNEL, TraceWriter
+from uuid6 import uuid7
 
 from tests.pg_fixtures import skip_no_docker
 
@@ -67,7 +66,7 @@ def dispatch_test_handler(events: list[dict[str, object]]) -> None:
 
 
 async def _fire_event(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     event_type: str,
     data: dict[str, Any] | None = None,
     source: str = "test",
@@ -130,7 +129,7 @@ async def _create_subscription_with_script_action(
 
 
 def _make_worker(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     backend: PgDispatchBackend,
     action_executor: TrackingActionExecutor | None = None,
     cursor_name: str = "test-cursor",
@@ -158,11 +157,11 @@ class TestGracefulStopRestart:
     """Graceful stop/restart: no loss, no double-execution."""
 
     async def test_worker_processes_events_then_stops(
-        self, pg_pool: Any,  # noqa: ANN401
+        self, pg_pool: Any,
     ) -> None:
         """Fire events, worker processes them, stop, no duplicates."""
         backend = PgDispatchBackend(pg_pool)
-        sub_id, action_id = await _create_subscription_with_log_action(
+        _sub_id, action_id = await _create_subscription_with_log_action(
             backend, event_types=["test.graceful"],
         )
 
@@ -191,18 +190,18 @@ class TestGracefulStopRestart:
         assert cursor_pos == ev_ids[-1]
 
     async def test_restart_after_graceful_stop_no_duplicates(
-        self, pg_pool: Any,  # noqa: ANN401
+        self, pg_pool: Any,
     ) -> None:
         """Restart after graceful stop does not re-process completed events."""
         _script_invocations.clear()
         backend = PgDispatchBackend(pg_pool)
-        sub_id, action_id = await _create_subscription_with_script_action(
+        _sub_id, action_id = await _create_subscription_with_script_action(
             backend, event_types=["test.restart"],
         )
 
         # Fire 2 events.
-        ev1, _ = await _fire_event(pg_pool, "test.restart", {"seq": 0})
-        ev2, _ = await _fire_event(pg_pool, "test.restart", {"seq": 1})
+        _ev1, _ = await _fire_event(pg_pool, "test.restart", {"seq": 0})
+        _ev2, _ = await _fire_event(pg_pool, "test.restart", {"seq": 1})
 
         # First run: process both events.
         worker1 = _make_worker(pg_pool, backend)
@@ -212,7 +211,7 @@ class TestGracefulStopRestart:
         await run1
 
         count_after_first = len(_script_invocations)
-        assert count_after_first == 2  # noqa: PLR2004
+        assert count_after_first == 2
 
         # Fire 1 more event.
         ev3, _ = await _fire_event(pg_pool, "test.restart", {"seq": 2})
@@ -225,7 +224,7 @@ class TestGracefulStopRestart:
         await run2
 
         # Total should be 3 (2 from first run + 1 from second).
-        assert len(_script_invocations) == 3  # noqa: PLR2004
+        assert len(_script_invocations) == 3
 
         # ev1 and ev2 were not re-processed.
         assert await backend.is_action_completed(ev3, action_id)
@@ -235,11 +234,11 @@ class TestHardKillSimulation:
     """Hard-kill mid-execution: no loss; interrupted action re-run or completed."""
 
     async def test_crash_mid_batch_reprocesses_uncompleted(
-        self, pg_pool: Any,  # noqa: ANN401
+        self, pg_pool: Any,
     ) -> None:
         """Simulate crash: events without completion records get re-processed."""
         backend = PgDispatchBackend(pg_pool)
-        sub_id, action_id = await _create_subscription_with_log_action(
+        _sub_id, action_id = await _create_subscription_with_log_action(
             backend, event_types=["test.crash"],
         )
 
@@ -273,12 +272,12 @@ class TestHardKillSimulation:
         assert cursor_pos == ev3
 
     async def test_completed_event_not_reexecuted(
-        self, pg_pool: Any,  # noqa: ANN401
+        self, pg_pool: Any,
     ) -> None:
         """Even if cursor is behind, completed events skip re-execution."""
         _script_invocations.clear()
         backend = PgDispatchBackend(pg_pool)
-        sub_id, action_id = await _create_subscription_with_script_action(
+        _sub_id, action_id = await _create_subscription_with_script_action(
             backend, event_types=["test.dedup"],
         )
 
@@ -311,21 +310,21 @@ class TestIdempotencyDedup:
     """Duplicate idempotency-key events never reach any action."""
 
     async def test_duplicate_idempotency_key_no_double_dispatch(
-        self, pg_pool: Any,  # noqa: ANN401
+        self, pg_pool: Any,
     ) -> None:
         """Idempotency key dedup at insert prevents double dispatch."""
         _script_invocations.clear()
         backend = PgDispatchBackend(pg_pool)
-        sub_id, action_id = await _create_subscription_with_script_action(
+        _sub_id, _action_id = await _create_subscription_with_script_action(
             backend, event_types=["test.idemp"],
         )
 
         # Fire same idempotency key twice.
-        ev1, inserted1 = await _fire_event(
+        _ev1, inserted1 = await _fire_event(
             pg_pool, "test.idemp", {"attempt": 1},
             idempotency_key="unique-key-123",
         )
-        ev2, inserted2 = await _fire_event(
+        _ev2, inserted2 = await _fire_event(
             pg_pool, "test.idemp", {"attempt": 2},
             idempotency_key="unique-key-123",
         )
@@ -354,11 +353,11 @@ class TestUnmigratedDb:
     """Worker refuses to start on unmigrated DB with actionable message."""
 
     async def test_verify_schema_rejects_empty_db(
-        self, pg_container: Any,  # noqa: ANN401
+        self, pg_container: Any,
     ) -> None:
         """verify_schema raises SchemaError on empty DB -- the dispatcher
         worker calls verify_schema at startup via the CLI command."""
-        import asyncpg  # noqa: PLC0415
+        import asyncpg
 
         url = pg_container.get_connection_url().replace(
             "postgresql+psycopg2://", "postgresql://",
@@ -384,7 +383,7 @@ class TestServiceFactory:
     """The create_dispatch_worker factory constructs a working worker."""
 
     async def test_factory_creates_runnable_worker(
-        self, pg_pool: Any,  # noqa: ANN401
+        self, pg_pool: Any,
     ) -> None:
         """create_dispatch_worker returns a DispatchWorker that can run/stop."""
         worker = create_dispatch_worker(

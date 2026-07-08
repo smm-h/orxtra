@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path as _Path
 from typing import TYPE_CHECKING
 
+from orxtra.overseer._format import format_event
 from orxtra.overseer._tools import (
     make_add_constraint_tool,
     make_create_inbox_item_tool,
@@ -11,7 +12,6 @@ from orxtra.overseer._tools import (
     make_update_workflow_status_tool,
     make_write_lesson_tool,
 )
-from orxtra.overseer._format import format_event
 from orxtra.protocols import OverseerEvent
 from orxtra.tool import (
     make_diff_tool,
@@ -43,7 +43,7 @@ def load_overseer_prompt() -> str:
 
 
 class Overseer:
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         session: Session,
         trace_writer: TraceWriter,

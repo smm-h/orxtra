@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import time
 import uuid
 from typing import TYPE_CHECKING
@@ -207,7 +206,7 @@ class AGUITranslator:
             ),
         ]
 
-    def _handle_result(self, event: object) -> list[BaseEvent]:
+    def _handle_result(self, _event: object) -> list[BaseEvent]:
         results: list[BaseEvent] = []
         results.extend(self._close_thinking())
         results.extend(self._close_text_message())
@@ -319,7 +318,7 @@ class AGUITranslator:
             })]
         return []
 
-    def _handle_run_started(self, event: object) -> list[BaseEvent]:
+    def _handle_run_started(self, _event: object) -> list[BaseEvent]:
         return [
             RunStartedEvent(
                 thread_id=self._thread_id,
@@ -368,7 +367,7 @@ class AGUITranslator:
             message=question,
             response_schema=response_schema,
             expires_at=deadline,
-            metadata=metadata if metadata else None,
+            metadata=metadata or None,
         )
 
         return RunFinishedEvent(

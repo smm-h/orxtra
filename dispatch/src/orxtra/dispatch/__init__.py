@@ -11,7 +11,6 @@ from orxtra.dispatch._action_executor import (
     execute_action,
     execute_actions_bounded,
 )
-from orxtra.protocols import ActionExecutor, EventFireCallback
 from orxtra.dispatch._delivery import (
     DualPhaseEventDelivery,
     TransientEventDelivery,
@@ -34,9 +33,9 @@ from orxtra.dispatch._types import (
     Subscription,
     SubscriptionAction,
 )
+from orxtra.protocols import ActionExecutor, EventFireCallback
 
 __all__ = [
-    "__version__",
     "AccumulatorEntry",
     "AccumulatorStorage",
     "ActionExecutor",
@@ -54,6 +53,7 @@ __all__ = [
     "SubscriptionAction",
     "SubscriptionStorage",
     "TransientEventDelivery",
+    "__version__",
     "execute_action",
     "execute_actions_bounded",
     "match_subscription",

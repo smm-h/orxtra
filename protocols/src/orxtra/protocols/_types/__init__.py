@@ -1,17 +1,4 @@
 from orxtra.protocols._autonomy import AutonomyLevel
-from orxtra.protocols._types._auth import (
-    ALL_SCOPES,
-    SCOPE_EVENTS_READ,
-    SCOPE_EVENTS_WRITE,
-    SCOPE_SOURCES_MANAGE,
-    SCOPE_SUBSCRIPTIONS_MANAGE,
-    ConsumerRecord,
-    CredentialRecord,
-    MacOutcome,
-    MacVerdict,
-    Principal,
-    TrustTier,
-)
 from orxtra.protocols._types._actions import (
     Action,
     AddConstraintParams,
@@ -36,12 +23,18 @@ from orxtra.protocols._types._actions import (
     WriteLessonParams,
     WriteLessonResult,
 )
-from orxtra.protocols._types._dispatch import (
-    AccumulatorEntry,
-    FilterPredicate,
-    Source,
-    Subscription,
-    SubscriptionAction,
+from orxtra.protocols._types._auth import (
+    ALL_SCOPES,
+    SCOPE_EVENTS_READ,
+    SCOPE_EVENTS_WRITE,
+    SCOPE_SOURCES_MANAGE,
+    SCOPE_SUBSCRIPTIONS_MANAGE,
+    ConsumerRecord,
+    CredentialRecord,
+    MacOutcome,
+    MacVerdict,
+    Principal,
+    TrustTier,
 )
 from orxtra.protocols._types._capability import (
     Capability,
@@ -57,6 +50,13 @@ from orxtra.protocols._types._checks import (
     OnSuccessCallback,
     PreRetryCallback,
     ScriptExecution,
+)
+from orxtra.protocols._types._dispatch import (
+    AccumulatorEntry,
+    FilterPredicate,
+    Source,
+    Subscription,
+    SubscriptionAction,
 )
 from orxtra.protocols._types._enums import (
     ALWAYS_ACTIVE_CONSTRAINTS,
@@ -79,14 +79,6 @@ from orxtra.protocols._types._events import (
     TaskEscalated,
     TaskFailed,
 )
-from orxtra.protocols._types._surfaces import (
-    CreateSurface,
-    DeleteSurface,
-    SurfaceOperation,
-    SurfaceSpec,
-    UpdateComponents,
-    UpdateDataModel,
-)
 from orxtra.protocols._types._results import (
     Confirmation,
     ConsultResponse,
@@ -103,6 +95,14 @@ from orxtra.protocols._types._results import (
     HttpResponse,
     StatResult,
     TaskLifecycleResult,
+)
+from orxtra.protocols._types._surfaces import (
+    CreateSurface,
+    DeleteSurface,
+    SurfaceOperation,
+    SurfaceSpec,
+    UpdateComponents,
+    UpdateDataModel,
 )
 from orxtra.protocols._types._task import (
     AttemptSummary,
@@ -147,11 +147,10 @@ __all__ = [
     "CheckResult",
     "CheckVerdict",
     "Confirmation",
-    "ConsumerRecord",
-    "CredentialRecord",
     "ConstraintKind",
     "ConstraintTier",
     "ConsultResponse",
+    "ConsumerRecord",
     "CreateInboxItemParams",
     "CreateInboxItemResult",
     "CreateSurface",
@@ -161,6 +160,7 @@ __all__ = [
     "CreateWaitForResult",
     "CreateWorkflowParams",
     "CreateWorkflowResult",
+    "CredentialRecord",
     "CriterionReview",
     "DeleteSurface",
     "DiffResult",
@@ -170,10 +170,10 @@ __all__ = [
     "EscalationPayload",
     "EventAction",
     "ExecResult",
-    "FilterPredicate",
     "Execution",
     "FileContent",
     "FileStat",
+    "FilterPredicate",
     "GitOutput",
     "GlobResult",
     "GrepMatch",
@@ -181,10 +181,10 @@ __all__ = [
     "HealthDegraded",
     "HttpResponse",
     "InboxAnswered",
-    "MacOutcome",
-    "MacVerdict",
     "InboxRejected",
     "LogAction",
+    "MacOutcome",
+    "MacVerdict",
     "OnSuccessCallback",
     "OverseerEvent",
     "PreRetryCallback",
@@ -196,12 +196,12 @@ __all__ = [
     "RunStarted",
     "ScriptAction",
     "ScriptExecution",
-    "Source",
-    "Subscription",
-    "SubscriptionAction",
     "Severity",
+    "Source",
     "StatResult",
     "StructuralAdvisory",
+    "Subscription",
+    "SubscriptionAction",
     "SurfaceOperation",
     "SurfaceSpec",
     "TaskContext",

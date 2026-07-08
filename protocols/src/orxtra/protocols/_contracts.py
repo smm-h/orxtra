@@ -25,14 +25,14 @@ if TYPE_CHECKING:
     from orxtra.protocols._types._tool import Tool
 
 T_contra = TypeVar("T_contra", contravariant=True)
-T_event = TypeVar("T_event", contravariant=True)
+T_event_contra = TypeVar("T_event_contra", contravariant=True)
 
 
 @runtime_checkable
-class EventSink(Protocol[T_event]):
+class EventSink(Protocol[T_event_contra]):
     """Receives typed events. Async because some sinks need I/O (PG writes)."""
 
-    async def on_event(self, event: T_event) -> None: ...
+    async def on_event(self, event: T_event_contra) -> None: ...
 
 
 @runtime_checkable

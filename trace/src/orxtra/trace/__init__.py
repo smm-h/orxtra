@@ -7,6 +7,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
+from orxtra.protocols import EventBus
 from orxtra.trace._lock import (
     RunLockError,
     acquire_run_lock,
@@ -19,7 +20,6 @@ from orxtra.trace._memory_backend import InMemoryBackend, InMemoryEventBus
 from orxtra.trace._pg_backend import PgBackend
 from orxtra.trace._pg_event_bus import PgEventBus
 from orxtra.trace._protocols import (
-    EventBus,
     EventStorage,
     InboxStorage,
     KnowledgeHashStorage,
@@ -41,10 +41,10 @@ from orxtra.trace._reader import (
     query_lessons,
     query_relevant_lessons,
     read_active_constraints,
-    read_event,
     read_assumptions,
     read_constraints,
     read_decisions,
+    read_event,
     read_inbox,
     read_inbox_item,
     read_latest_attempt,
@@ -65,6 +65,7 @@ from orxtra.trace._recovery import (
     reclaim_interrupted,
     reevaluate_blocked,
 )
+from orxtra.trace._trace_sink import TraceSink
 from orxtra.trace._transitions import (
     InvalidTransitionError,
     validate_run_transition,
@@ -79,7 +80,6 @@ from orxtra.trace._types import (
     TaskAttempt,
     TaskSummary,
 )
-from orxtra.trace._trace_sink import TraceSink
 from orxtra.trace._writer import TraceWriter
 
 # The PG NOTIFY channel used by the events trigger. Authoritative constant;
@@ -112,7 +112,6 @@ TABLE_NAMES: tuple[str, ...] = (
 __all__ = [
     "EVENTS_CHANNEL",
     "TABLE_NAMES",
-    "__version__",
     "EventBus",
     "EventStorage",
     "InMemoryBackend",
@@ -120,8 +119,8 @@ __all__ = [
     "InboxItem",
     "InboxStorage",
     "InvalidTransitionError",
-    "KnowledgeHashStorage",
     "IterationResult",
+    "KnowledgeHashStorage",
     "NotepadEntry",
     "NotepadStorage",
     "OverseerStorage",
@@ -141,13 +140,14 @@ __all__ = [
     "TaskSummary",
     "TraceSink",
     "TraceWriter",
+    "__version__",
     "acquire_run_lock",
     "clean_orphaned",
     "is_lock_stale",
     "list_iterations",
     "list_runs",
-    "lock_key",
     "list_tasks",
+    "lock_key",
     "query_events",
     "query_lessons",
     "query_relevant_lessons",
@@ -169,9 +169,9 @@ __all__ = [
     "read_transcript",
     "read_workflow_status",
     "reclaim_interrupted",
-    "replay",
     "reevaluate_blocked",
     "release_run_lock",
+    "replay",
     "search_transcript",
     "update_heartbeat",
     "validate_run_transition",

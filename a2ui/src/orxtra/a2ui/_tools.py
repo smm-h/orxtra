@@ -46,7 +46,7 @@ def make_render_surface_tool(registry: SurfaceRegistry) -> Tool:
             [op.model_dump() for op in ops],
             default=str,
         )
-        return ToolOutput(data=cast(list[object], ops), text=text)
+        return ToolOutput(data=cast("list[object]", ops), text=text)
 
     return Tool(
         name="render_surface",
@@ -92,7 +92,7 @@ def make_compose_surface_tool(fragment_lib: FragmentLibrary) -> Tool:
             [op.model_dump() for op in ops],
             default=str,
         )
-        return ToolOutput(data=cast(list[object], ops), text=text)
+        return ToolOutput(data=cast("list[object]", ops), text=text)
 
     return Tool(
         name="compose_surface",

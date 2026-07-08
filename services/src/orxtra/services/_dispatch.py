@@ -3,8 +3,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from uuid6 import uuid7
-
 from orxtra.protocols import (
     Action,
     DispatchBackend,
@@ -17,6 +15,7 @@ from orxtra.protocols import (
     SubscriptionAction,
     WorkflowAction,
 )
+from uuid6 import uuid7
 
 if TYPE_CHECKING:
     from uuid import UUID

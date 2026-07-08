@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxtra.protocols import CreateSurface, SurfaceOperation, UpdateComponents, UpdateDataModel
+from orxtra.protocols import (
+    CreateSurface,
+    SurfaceOperation,
+    UpdateComponents,
+    UpdateDataModel,
+)
 
 
 def _resolve_pointer(data: dict[str, Any], pointer: str) -> object:

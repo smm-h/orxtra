@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
 
 from orxtra.protocols import Confirmation, DirEntry, DirListing
 from orxtra.tool._renderers import JsonRenderer, TableRenderer, TextRenderer
-
 
 # -- TextRenderer tests -----------------------------------------------------
 
@@ -149,7 +147,7 @@ class TestTableRendererWithDataclasses:
         result = r.render([Row(x=1, y="a"), Row(x=2, y="b")])
         lines = result.strip().split("\n")
         assert len(lines) == 3
-        assert "x\ty" == lines[0]
+        assert lines[0] == "x\ty"
 
 
 class TestTableRendererEmptyDirListing:

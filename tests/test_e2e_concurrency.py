@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 def _register_check_module(
     module_name: str,
-    **functions: Any,  # noqa: ANN401
+    **functions: Any,
 ) -> types.ModuleType:
     """Register a synthetic module in sys.modules for callable tasks."""
     mod = types.ModuleType(module_name)
@@ -68,7 +68,7 @@ def _cleanup_modules(*module_names: str) -> None:
             sys.modules.pop(parent, None)
 
 
-def _patch_auto_commit() -> Any:  # noqa: ANN401
+def _patch_auto_commit() -> Any:
     """Patch _auto_commit to avoid subprocess calls in tests."""
     return patch(
         "orxtra.scheduler._executor.Scheduler._auto_commit",
@@ -140,7 +140,7 @@ class TestParallelIndependentTasks:
         # All 4 tasks completed
         completed = sum(
             1
-            for s in scheduler._task_states.values()  # noqa: SLF001
+            for s in scheduler._task_states.values()
             if s == TaskState.COMPLETED
         )
         assert completed == 4
@@ -153,7 +153,7 @@ class TestParallelIndependentTasks:
         assert len(groups[0]) == 4
 
         # Verify all outputs stored
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        outputs = scheduler._get_scoped_outputs(None)
         for i in range(4):
             assert outputs[f"task_{i}"] == f"result-{i}"
 
@@ -182,7 +182,7 @@ class TestForEachMaxConcurrency:
         lock = asyncio.Lock()
 
         async def produce_items(
-            ctx: Any,  # noqa: ANN401
+            ctx: Any,
         ) -> TaskResult:
             return TaskResult(
                 output="items",
@@ -195,7 +195,7 @@ class TestForEachMaxConcurrency:
             )
 
         async def process_item(
-            ctx: Any,  # noqa: ANN401
+            ctx: Any,
         ) -> TaskResult:
             nonlocal max_concurrent, current_concurrent
             async with lock:
@@ -257,7 +257,7 @@ class TestForEachMaxConcurrency:
             # All 6 iterations + setup + parent = 8 completed tasks
             completed = sum(
                 1
-                for s in scheduler._task_states.values()  # noqa: SLF001
+                for s in scheduler._task_states.values()
                 if s == TaskState.COMPLETED
             )
             # setup (1) + iterate parent (1) + 6 iterations = 8
@@ -339,7 +339,7 @@ class TestDiamondDependency:
         # All 4 tasks completed
         completed = sum(
             1
-            for s in scheduler._task_states.values()  # noqa: SLF001
+            for s in scheduler._task_states.values()
             if s == TaskState.COMPLETED
         )
         assert completed == 4
@@ -368,7 +368,7 @@ class TestDiamondDependency:
         # Map task IDs to names via scheduler's task specs
         id_to_name: dict[uuid.UUID, str] = {
             tid: spec.name
-            for tid, spec in scheduler._task_specs.items()  # noqa: SLF001
+            for tid, spec in scheduler._task_specs.items()
         }
 
         # Build attempt order: name -> position in attempt
@@ -386,7 +386,7 @@ class TestDiamondDependency:
         assert attempt_order["task_c"] < attempt_order["task_d"]
 
         # Verify outputs
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        outputs = scheduler._get_scoped_outputs(None)
         for c in "abcd":
             assert outputs[f"task_{c}"] == f"output-{c}"
 
@@ -543,13 +543,13 @@ class TestParallelOutputIsolation:
         # All tasks completed
         completed = sum(
             1
-            for s in scheduler._task_states.values()  # noqa: SLF001
+            for s in scheduler._task_states.values()
             if s == TaskState.COMPLETED
         )
         assert completed == 3
 
         # Each task's output is correctly stored
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        outputs = scheduler._get_scoped_outputs(None)
         for name, expected_msg in messages.items():
             assert outputs[f"task_{name}"] == expected_msg
 

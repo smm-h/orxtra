@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 import uuid6
 from orxtra.protocols import Tool, ToolError
-from orxtra.transport import Continuation, TransportEvent, Result, StepFinish, ToolUse
+from orxtra.transport import Continuation, Result, StepFinish, ToolUse, TransportEvent
 
 if TYPE_CHECKING:
     import uuid
@@ -102,7 +102,7 @@ class MockTraceWriter:
         )
         return attempt_id
 
-    async def complete_task_attempt(  # noqa: PLR0913
+    async def complete_task_attempt(
         self,
         attempt_id: uuid.UUID,
         agent_output: str,
@@ -127,7 +127,7 @@ class MockTraceWriter:
             duration_seconds=duration_seconds,
         )
 
-    async def fail_task_attempt(  # noqa: PLR0913
+    async def fail_task_attempt(
         self,
         attempt_id: uuid.UUID,
         error: str,
@@ -163,7 +163,7 @@ class MockTraceWriter:
         )
         return event_id
 
-    async def write_transcript_entry(  # noqa: PLR0913
+    async def write_transcript_entry(
         self,
         session_id: uuid.UUID,
         run_id: uuid.UUID,
@@ -278,7 +278,7 @@ class MockTraceWriter:
     async def subscribe_run_control(
         self,
         run_id: uuid.UUID,
-        callback: Any,  # noqa: ANN401
+        callback: Any,
     ) -> None:
         self._control_callback = callback
         self._record(
@@ -337,7 +337,7 @@ class MockTransport:
     def set_resume_events(self, *sequences: list[TransportEvent]) -> None:
         self._resume_event_sequences = list(sequences)
 
-    async def send(  # noqa: PLR0913
+    async def send(
         self,
         message: str,
         *,

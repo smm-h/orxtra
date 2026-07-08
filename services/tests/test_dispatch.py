@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import pytest
-from uuid6 import uuid7
-
 from orxtra.dispatch import FilterPredicate, InMemoryDispatchBackend
 from orxtra.services._dispatch import (
     create_source,
@@ -14,6 +12,7 @@ from orxtra.services._dispatch import (
     subscribe,
     unsubscribe,
 )
+from uuid6 import uuid7
 
 
 @pytest.fixture

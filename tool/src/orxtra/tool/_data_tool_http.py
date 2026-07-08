@@ -109,7 +109,7 @@ def _interpolate_url(
 
 
 def _validate_output_schema(
-    response_data: Any,  # noqa: ANN401
+    response_data: Any,
     schema: dict[str, Any],
 ) -> None:
     """Validate response data against the output JSON Schema.
@@ -275,7 +275,7 @@ def build_http_tool(
         if output_schema is not None:
             _validate_output_schema(response_data, output_schema)
 
-        from orxtra.tool._preview import (  # noqa: PLC0415
+        from orxtra.tool._preview import (
             check_and_preview,
         )
 

@@ -4,8 +4,6 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
-from uuid6 import uuid7
-
 from orxtra.dispatch import (
     AccumulatorEntry,
     FilterPredicate,
@@ -15,6 +13,7 @@ from orxtra.dispatch import (
     SubscriptionAction,
 )
 from orxtra.protocols import DispatchBackend, ScriptAction
+from uuid6 import uuid7
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 LATER = datetime(2025, 7, 1, 12, 5, 0, tzinfo=UTC)

@@ -14,12 +14,10 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from orxtra.protocols import FilterPredicate
-
 from orxtra.services._registry import get_capability, get_capability_fn
 
 if TYPE_CHECKING:
     import asyncpg
-
     from orxtra.protocols import DispatchBackend, EventBus
 
 
@@ -57,7 +55,7 @@ async def dispatch(
     context: DispatchContext,
     capability_name: str,
     raw_args: dict[str, Any],
-) -> Any:  # noqa: ANN401
+) -> Any:
     """Dispatch a capability call.
 
     1. Looks up the capability by name
@@ -75,7 +73,7 @@ async def dispatch(
 
     # Validate and parse args through the params model
     validated = cap.params_model(**raw_args)
-    kwargs = _prepare_kwargs(capability_name, validated)
+    kwargs = _prepare_kwargs(validated)
 
     fn = get_capability_fn(capability_name)
 
@@ -96,7 +94,7 @@ async def dispatch(
     return await fn(context.pool, **kwargs)
 
 
-def _prepare_kwargs(capability_name: str, validated: Any) -> dict[str, Any]:  # noqa: ANN401
+def _prepare_kwargs(validated: Any) -> dict[str, Any]:
     """Convert a validated params model instance to kwargs for the service function.
 
     Handles type coercions that the service functions expect:

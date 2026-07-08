@@ -117,7 +117,7 @@ _MIGRATION_SQL = [
 ]
 
 
-def _load_baseline_executor() -> Any:  # noqa: ANN401
+def _load_baseline_executor() -> Any:
     """Import the schema_executor from the frozen v0.8.0 baseline.
 
     The baseline directory contains a copy of the _generated package from
@@ -190,14 +190,13 @@ def _load_baseline_executor() -> Any:  # noqa: ANN401
 
 from orxtra.services import AsyncpgAdapter
 
-
 # ---------------------------------------------------------------------------
 # Test: full baseline -> migrate -> verify cycle
 # ---------------------------------------------------------------------------
 
 
 async def test_migration_from_v080_baseline(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """Full migration test: baseline v0.8.0 -> current schema.
 
@@ -206,7 +205,7 @@ async def test_migration_from_v080_baseline(
     3. Apply migration SQL (the four schema changes)
     4. Assert: data preserved, new columns/tables/types present
     """
-    import asyncpg as _asyncpg  # noqa: PLC0415
+    import asyncpg as _asyncpg
 
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://",
@@ -560,10 +559,10 @@ def _run_pgdesign(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 async def test_pgdesign_migrate_generate_succeeds(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """pgdesign can generate a baseline migration from the schema."""
-    import asyncpg as _asyncpg  # noqa: PLC0415
+    import asyncpg as _asyncpg
 
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://",
@@ -611,10 +610,10 @@ async def test_pgdesign_migrate_generate_succeeds(
 
 
 async def test_pgdesign_migrate_status_on_empty_db(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> None:
     """migrate status works on a DB with no migration history."""
-    import asyncpg as _asyncpg  # noqa: PLC0415
+    import asyncpg as _asyncpg
 
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://",

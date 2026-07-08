@@ -8,7 +8,7 @@ except ModuleNotFoundError:
     import tomli as tomllib
 
 
-def resolve(attrs: dict, config: dict, body: str) -> str:
+def resolve(_attrs: dict, _config: dict, _body: str) -> str:
     workspace_file = Path(__file__).resolve().parent.parent / ".rlsbl-monorepo" / "workspace.toml"
     if not workspace_file.is_file():
         return "unknown"

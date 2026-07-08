@@ -57,7 +57,7 @@ def compositor_config(
 
 
 @pytest.fixture
-def app(compositor_config: CompositorConfig) -> Any:  # noqa: ANN401
+def app(compositor_config: CompositorConfig) -> Any:
     return create_compositor(compositor_config)
 
 
@@ -65,12 +65,12 @@ def app(compositor_config: CompositorConfig) -> Any:  # noqa: ANN401
 
 
 class TestHealthEndpoint:
-    async def test_returns_200(self, app: Any) -> None:  # noqa: ANN401
+    async def test_returns_200(self, app: Any) -> None:
         async with AsyncTestClient(app) as client:
             resp = await client.get("/health")
             assert resp.status_code == 200
 
-    async def test_returns_ok_status(self, app: Any) -> None:  # noqa: ANN401
+    async def test_returns_ok_status(self, app: Any) -> None:
         async with AsyncTestClient(app) as client:
             resp = await client.get("/health")
             data = resp.json()
@@ -78,19 +78,19 @@ class TestHealthEndpoint:
 
 
 class TestAgentCardEndpoint:
-    async def test_returns_200(self, app: Any) -> None:  # noqa: ANN401
+    async def test_returns_200(self, app: Any) -> None:
         async with AsyncTestClient(app) as client:
             resp = await client.get("/.well-known/agent.json")
             assert resp.status_code == 200
 
-    async def test_returns_valid_json(self, app: Any) -> None:  # noqa: ANN401
+    async def test_returns_valid_json(self, app: Any) -> None:
         async with AsyncTestClient(app) as client:
             resp = await client.get("/.well-known/agent.json")
             data = resp.json()
             assert data["name"] == "test-agent"
             assert data["version"] == "0.0.1"
 
-    async def test_contains_capabilities(self, app: Any) -> None:  # noqa: ANN401
+    async def test_contains_capabilities(self, app: Any) -> None:
         async with AsyncTestClient(app) as client:
             resp = await client.get("/.well-known/agent.json")
             data = resp.json()
@@ -99,7 +99,7 @@ class TestAgentCardEndpoint:
 
 
 class TestMcpMount:
-    async def test_mcp_path_is_mounted(self, app: Any) -> None:  # noqa: ANN401
+    async def test_mcp_path_is_mounted(self, app: Any) -> None:
         """Verify the /mcp path is handled by the MCP sub-app.
 
         The MCP StreamableHTTPSessionManager requires its lifespan to
@@ -124,14 +124,14 @@ class TestMcpMount:
 
 
 class TestA2aMount:
-    async def test_a2a_agent_card_accessible(self, app: Any) -> None:  # noqa: ANN401
+    async def test_a2a_agent_card_accessible(self, app: Any) -> None:
         """Verify the A2A agent card route at /a2a/.well-known/agent-card.json."""
         async with AsyncTestClient(app) as client:
             # The A2A SDK uses agent-card.json (with hyphen), not agent.json
             resp = await client.get("/a2a/.well-known/agent-card.json")
             assert resp.status_code == 200
 
-    async def test_a2a_jsonrpc_endpoint(self, app: Any) -> None:  # noqa: ANN401
+    async def test_a2a_jsonrpc_endpoint(self, app: Any) -> None:
         """Verify the A2A JSON-RPC endpoint accepts POST at /a2a."""
         async with AsyncTestClient(app) as client:
             resp = await client.post(

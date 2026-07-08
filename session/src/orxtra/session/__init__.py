@@ -13,11 +13,11 @@ from orxtra.session._session import Session
 from orxtra.session._sync import SyncSession
 
 __all__ = [
-    "__version__",
     "PRICING_TABLE",
     "Session",
     "SyncSession",
     "TokenRates",
+    "__version__",
     "compute_cost_usd",
     "create_session",
 ]

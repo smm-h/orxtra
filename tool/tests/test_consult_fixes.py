@@ -52,7 +52,7 @@ class _MockTransport:
         self._events = [Result(text="answer")] if events is None else events
         self.send_calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
 
-    async def send(self, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+    async def send(self, *args: Any, **kwargs: Any) -> Any:
         self.send_calls.append((args, kwargs))
         for event in self._events:
             yield event

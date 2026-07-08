@@ -29,13 +29,12 @@ if TYPE_CHECKING:
         TaskResult,
         TaskSpec,
         TaskState,
-        Tool,
     )
     from orxtra.scheduler._locks import FileLockRegistry
     from orxtra.scheduler._overseer import OverseerEvent, OverseerInterface
     from orxtra.scheduler._services import ServiceInstance
-    from orxtra.secrets import SecretRegistry
     from orxtra.scheduler._tool_registry import ToolEntry, ToolRegistry
+    from orxtra.secrets import SecretRegistry
     from orxtra.session import Session
     from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport, Usage
@@ -123,7 +122,7 @@ class SchedulerBase(ABC):
     ) -> TaskResult: ...
 
     @abstractmethod
-    def _make_task_context(  # noqa: PLR0913
+    def _make_task_context(
         self,
         task: TaskSpec,
         task_id: UUID,
@@ -134,7 +133,7 @@ class SchedulerBase(ABC):
     ) -> TaskContext: ...
 
     @abstractmethod
-    def _complete_task(  # noqa: PLR0913
+    def _complete_task(
         self,
         task_id: UUID,
         task_name: str,
@@ -339,7 +338,7 @@ class SchedulerBase(ABC):
         callable_path: str,
         context: TaskContext,
     ) -> None:
-        import importlib  # noqa: PLC0415
+        import importlib
         parts = callable_path.split(":")
         if len(parts) != 2:  # noqa: PLR2004
             msg = (

@@ -112,7 +112,7 @@ def _validate_secrets(
 
     # Execution-level fields
     exec_cfg = definition.execution
-    from orxtra.tool._data_tool_types import (  # noqa: PLC0415
+    from orxtra.tool._data_tool_types import (
         CommandExecution,
         HttpExecution,
         MontyExecution,

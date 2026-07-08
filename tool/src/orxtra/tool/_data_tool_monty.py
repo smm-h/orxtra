@@ -84,7 +84,7 @@ def _build_read_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``read`` capability: reads a file and returns its content."""
-    from orxtra.tool import make_read_tool  # noqa: PLC0415
+    from orxtra.tool import make_read_tool
 
     tool = make_read_tool(
         deps.read_root,
@@ -104,7 +104,7 @@ def _build_write_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``write`` capability: writes a file through write-safety."""
-    from orxtra.tool import make_write_tool  # noqa: PLC0415
+    from orxtra.tool import make_write_tool
 
     tool = make_write_tool(
         deps.read_root,
@@ -125,7 +125,7 @@ def _build_edit_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``edit`` capability: find-and-replace through write-safety."""
-    from orxtra.tool import make_edit_tool  # noqa: PLC0415
+    from orxtra.tool import make_edit_tool
 
     tool = make_edit_tool(
         deps.read_root,
@@ -154,7 +154,7 @@ def _build_http_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``http`` capability: makes HTTP requests."""
-    from orxtra.tool import make_http_tool  # noqa: PLC0415
+    from orxtra.tool import make_http_tool
 
     tool = make_http_tool(allowed_hosts="allow_all")
     _ = deps  # http tool doesn't need deps
@@ -186,7 +186,7 @@ def _build_command_capability(
     executable and arg validation settings, backed by the relocated
     subprocess machinery.
     """
-    from orxtra.tool._subprocess import run_subprocess  # noqa: PLC0415
+    from orxtra.tool._subprocess import run_subprocess
 
     # The command capability config is in the MontyExecution's
     # parent definition. We need a CommandExecution config to be
@@ -246,7 +246,7 @@ def _build_list_dir_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``list_dir`` capability."""
-    from orxtra.tool import make_list_dir_tool  # noqa: PLC0415
+    from orxtra.tool import make_list_dir_tool
 
     tool = make_list_dir_tool(deps.read_root)
 
@@ -261,7 +261,7 @@ def _build_grep_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``grep`` capability."""
-    from orxtra.tool import make_grep_tool  # noqa: PLC0415
+    from orxtra.tool import make_grep_tool
 
     tool = make_grep_tool(
         deps.read_root,
@@ -283,7 +283,7 @@ def _build_glob_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``glob`` capability."""
-    from orxtra.tool import make_glob_tool  # noqa: PLC0415
+    from orxtra.tool import make_glob_tool
 
     tool = make_glob_tool(deps.read_root)
 
@@ -301,7 +301,7 @@ def _build_stat_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``stat`` capability."""
-    from orxtra.tool import make_stat_tool  # noqa: PLC0415
+    from orxtra.tool import make_stat_tool
 
     tool = make_stat_tool(deps.read_root)
 
@@ -316,7 +316,7 @@ def _build_diff_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``diff`` capability."""
-    from orxtra.tool import make_diff_tool  # noqa: PLC0415
+    from orxtra.tool import make_diff_tool
 
     tool = make_diff_tool(deps.read_root)
 
@@ -331,7 +331,7 @@ def _build_delete_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``delete`` capability."""
-    from orxtra.tool import make_delete_tool  # noqa: PLC0415
+    from orxtra.tool import make_delete_tool
 
     tool = make_delete_tool(deps.read_root, deps.write_scope)
 
@@ -354,7 +354,7 @@ def _build_move_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``move`` capability."""
-    from orxtra.tool import make_move_tool  # noqa: PLC0415
+    from orxtra.tool import make_move_tool
 
     tool = make_move_tool(
         deps.read_root, deps.write_scope,
@@ -376,7 +376,7 @@ def _build_copy_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``copy`` capability."""
-    from orxtra.tool import make_copy_tool  # noqa: PLC0415
+    from orxtra.tool import make_copy_tool
 
     tool = make_copy_tool(
         deps.read_root, deps.write_scope,
@@ -398,7 +398,7 @@ def _build_mkdir_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``mkdir`` capability."""
-    from orxtra.tool import make_mkdir_tool  # noqa: PLC0415
+    from orxtra.tool import make_mkdir_tool
 
     tool = make_mkdir_tool(deps.read_root, deps.write_scope)
 
@@ -413,7 +413,7 @@ def _build_set_executable_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``set_executable`` capability."""
-    from orxtra.tool import make_set_executable_tool  # noqa: PLC0415
+    from orxtra.tool import make_set_executable_tool
 
     tool = make_set_executable_tool(deps.read_root, deps.write_scope)
 
@@ -428,7 +428,7 @@ def _build_multi_edit_capability(
     deps: ToolDeps,
 ) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Build the ``multi_edit`` capability."""
-    from orxtra.tool import make_multi_edit_tool  # noqa: PLC0415
+    from orxtra.tool import make_multi_edit_tool
 
     tool = make_multi_edit_tool(
         deps.read_root, deps.write_scope,
@@ -629,7 +629,7 @@ def build_command_tool(
         )
         raise TypeError(msg)
 
-    from orxtra.tool._subprocess import run_subprocess  # noqa: PLC0415
+    from orxtra.tool._subprocess import run_subprocess
 
     params = dict(definition.params)
     parameters = build_json_schema_params(params)

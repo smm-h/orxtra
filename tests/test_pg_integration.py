@@ -64,13 +64,13 @@ class TestSchemaCreation:
 
     async def test_all_tables_created(self, pg_pool: asyncpg.Pool) -> None:
         """All expected tables exist after schema creation."""
-        from _generated.tables_auth import (  # noqa: PLC0415
+        from _generated.tables_auth import (
             TABLE_NAMES as AUTH_TABLES,
         )
-        from _generated.tables_dispatch import (  # noqa: PLC0415
+        from _generated.tables_dispatch import (
             TABLE_NAMES as DISPATCH_TABLES,
         )
-        from _generated.tables_trace import (  # noqa: PLC0415
+        from _generated.tables_trace import (
             TABLE_NAMES as TRACE_TABLES,
         )
 
@@ -245,7 +245,7 @@ class TestAdvisoryLocks:
         writer = TraceWriter(pg_pool)
         run_id = await _create_run(writer)
 
-        from orxtra.trace import lock_key  # noqa: PLC0415
+        from orxtra.trace import lock_key
 
         key = lock_key(run_id)
 

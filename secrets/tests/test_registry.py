@@ -97,7 +97,7 @@ class TestImmutability:
     def test_dict_is_copied(self) -> None:
         original = {"TOKEN": "abc123"}
         reg = SecretRegistry(original)
-        original["TOKEN"] = "modified"  # noqa: S105
+        original["TOKEN"] = "modified"
         original["NEW"] = "new_val"
         assert reg.substitute("{{secret:TOKEN}}") == "abc123"
         assert reg.substitute("{{secret:NEW}}") == "{{secret:NEW}}"
@@ -108,8 +108,8 @@ class TestDeepImmutability:
     def test_secrets_dict_is_immutable(self) -> None:
         registry = SecretRegistry({"TOKEN": "abc123"})
         with pytest.raises(TypeError):
-            registry._secrets["new"] = "val"  # type: ignore[index]  # noqa: SLF001
-        assert isinstance(registry._scrub_order, tuple)  # noqa: SLF001
+            registry._secrets["new"] = "val"  # type: ignore[index]
+        assert isinstance(registry._scrub_order, tuple)
 
 
 class TestResolve:

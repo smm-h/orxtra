@@ -10,11 +10,11 @@ except PackageNotFoundError:
 from orxtra.auth._authenticator import AuthAuditEvent, Authenticator
 from orxtra.auth._authorizer import Authorizer
 from orxtra.auth._backend import AuthBackend
-from orxtra.protocols import ConsumerRecord, CredentialRecord
 from orxtra.auth._exceptions import AuthenticationError, AuthorizationError
 from orxtra.auth._inmemory import InMemoryAuthBackend
 from orxtra.auth._middleware import auth_middleware
 from orxtra.auth._verifiers import HashCredentialVerifier, HmacCredentialVerifier
+from orxtra.protocols import ConsumerRecord, CredentialRecord
 
 __all__ = [
     "AuthAuditEvent",

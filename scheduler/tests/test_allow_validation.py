@@ -10,7 +10,6 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -201,7 +200,7 @@ class TestValidateExplicitNames:
 
 
 # ---------------------------------------------------------------
-# validate_allow_lists: tags
+# validate_allow_lists -- tags
 # ---------------------------------------------------------------
 
 
@@ -252,7 +251,7 @@ class TestValidateTags:
 
 
 # ---------------------------------------------------------------
-# validate_allow_lists: wildcards
+# validate_allow_lists -- wildcards
 # ---------------------------------------------------------------
 
 
@@ -325,7 +324,7 @@ class TestValidateSyntheticEntries:
         as valid in tag filters."""
         registry = create_builtin_registry()
         # All synthetic tags should be known.
-        for _name, (_ns, tags) in SYNTHETIC_ENTRIES.items():
+        for (_ns, tags) in SYNTHETIC_ENTRIES.values():
             for tag in tags:
                 agents = {
                     "a": _agent("a", [f"#{tag}"]),

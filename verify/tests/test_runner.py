@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .conftest import MockCheckExecutor, make_check_context, make_passing_verdict
 from orxtra.protocols import AgentExecution, ScriptExecution, Severity
 from orxtra.verify._runner import run_checks
+
+from .conftest import MockCheckExecutor, make_check_context, make_passing_verdict
 
 if TYPE_CHECKING:
     from orxtra.protocols import CheckContext

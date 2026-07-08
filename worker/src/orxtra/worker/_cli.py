@@ -10,7 +10,6 @@ import asyncio
 from pathlib import Path
 
 import strictcli
-
 from orxtra.worker._docker import DockerWorker
 from orxtra.worker._native import NativeWorker
 

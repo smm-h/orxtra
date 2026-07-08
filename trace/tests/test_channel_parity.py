@@ -13,7 +13,6 @@ from pathlib import Path
 
 from orxtra.trace import EVENTS_CHANNEL
 
-
 # Path to the generated trigger DDL -- relative to the repo root.
 _POST_TABLES = (
     Path(__file__).resolve().parents[2]  # trace/tests -> trace -> repo root
@@ -28,7 +27,7 @@ def test_events_channel_matches_trigger_ddl() -> None:
     ddl_text = _POST_TABLES.read_text()
 
     # Extract all pg_notify channel names from the generated DDL.
-    # Pattern: pg_notify('channel_name', ...)
+    # Each match captures the channel name from a pg_notify call in the DDL.
     matches = re.findall(r"pg_notify\('([^']+)'", ddl_text)
 
     assert len(matches) > 0, (
@@ -43,7 +42,7 @@ def test_events_channel_matches_trigger_ddl() -> None:
     )
 
     ddl_channel = unique_channels.pop()
-    assert EVENTS_CHANNEL == ddl_channel, (
+    assert ddl_channel == EVENTS_CHANNEL, (
         f"EVENTS_CHANNEL={EVENTS_CHANNEL!r} does not match "
         f"the trigger DDL channel={ddl_channel!r}"
     )

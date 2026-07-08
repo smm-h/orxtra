@@ -11,6 +11,7 @@ Covers:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -40,7 +41,7 @@ from orxtra.trace import EVENTS_CHANNEL, InMemoryEventBus
 # ---------------------------------------------------------------------------
 
 SLUG = "test-source"
-BEARER_TOKEN = "test-bearer-token-replay"  # noqa: S105
+BEARER_TOKEN = "test-bearer-token-replay"
 
 
 def _make_event(
@@ -159,7 +160,7 @@ def _make_app(
     dispatch_backend: InMemoryDispatchBackend,
     authenticator: Authenticator,
     event_bus: InMemoryEventBus | None = None,
-) -> Any:  # noqa: ANN401
+) -> Any:
     """Build a minimal ASGI app with the incoming router."""
     mock_pool = AsyncMock()
     incoming_router = create_incoming_router(
@@ -479,7 +480,7 @@ class TestSSEStreamNotRegisteredWithoutEventBus:
 
 
 async def _collect_from_generator(
-    gen: Any,  # noqa: ANN401
+    gen: Any,
     max_events: int,
     collect_timeout: float = 2.0,
 ) -> list[str]:
@@ -533,7 +534,7 @@ class TestSSEGeneratorNoLoss:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, event_id: UUID,  # noqa: ANN401
+            pool: Any, event_id: UUID,
         ) -> dict[str, Any] | None:
             return full_events.get(event_id)
 
@@ -637,7 +638,7 @@ class TestSSEGeneratorLastEventIDResume:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, event_id: UUID,  # noqa: ANN401
+            pool: Any, event_id: UUID,
         ) -> dict[str, Any] | None:
             if event_id == live_id:
                 return live_event
@@ -705,7 +706,7 @@ class TestSSEGeneratorDeduplication:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, event_id: UUID,  # noqa: ANN401
+            pool: Any, event_id: UUID,
         ) -> dict[str, Any] | None:
             return live_events.get(event_id)
 
@@ -769,7 +770,7 @@ class TestSSEGeneratorSourceFilter:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, eid: UUID,  # noqa: ANN401
+            pool: Any, eid: UUID,
         ) -> dict[str, Any] | None:
             if eid == our_event_id:
                 return our_event
@@ -1003,10 +1004,8 @@ class TestSSEGeneratorCleanup:
 
             # Cancel the task (simulating client disconnect).
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
 
             # After cleanup, no subscribers should remain.
             subs = event_bus._subscribers.get(EVENTS_CHANNEL, [])
@@ -1022,7 +1021,7 @@ class TestSSEGeneratorCleanup:
         mock_pool = AsyncMock()
 
         async def mock_read_event(
-            pool: Any, eid: UUID,  # noqa: ANN401
+            pool: Any, eid: UUID,
         ) -> dict[str, Any] | None:
             if eid == event_id:
                 return full_event

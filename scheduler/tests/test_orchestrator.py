@@ -81,13 +81,13 @@ class TestOrchestratorDispatch:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
@@ -95,7 +95,7 @@ class TestOrchestratorDispatch:
 
         # Orchestrator completes with output from transport
         assert result.output == "done"
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED
 
     async def test_orchestrator_transitions_active_then_completed(
         self,
@@ -116,13 +116,13 @@ class TestOrchestratorDispatch:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         await sched.execute_task(task, None, task_id=task_id)
 
@@ -162,8 +162,8 @@ class TestHandleAwaitTask:
     ) -> None:
         scheduler = make_scheduler()
         task_id = uuid.uuid4()
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = TaskSpec(  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = TaskSpec(
             name="child",
             agent="test-agent",
             task_prompt="do stuff",
@@ -174,7 +174,7 @@ class TestHandleAwaitTask:
         result = await scheduler.handle_await_task(
             "session-1", str(task_id),
         )
-        assert scheduler._pending_await["session-1"] == str(task_id)  # noqa: SLF001
+        assert scheduler._pending_await["session-1"] == str(task_id)
         assert "Awaiting" in result
 
     async def test_handle_await_task_nonexistent_raises(
@@ -203,7 +203,7 @@ class TestOrchestratorSuspension:
     2. Resume: receives child result, returns final output
     """
 
-    async def test_orchestrator_suspends_and_resumes(  # noqa: C901
+    async def test_orchestrator_suspends_and_resumes(
         self,
         make_scheduler: Callable[..., Scheduler],
         trace_writer: MockTraceWriter,
@@ -218,7 +218,7 @@ class TestOrchestratorSuspension:
             def __init__(self) -> None:
                 self._resumed = False
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -226,7 +226,7 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = model, system_prompt
                 sid = session_id or str(uuid6.uuid7())
                 tool_map = {t.name: t for t in tools}
@@ -284,7 +284,7 @@ class TestOrchestratorSuspension:
                     session_id=sid,
                 )
 
-            async def resume(  # noqa: PLR0913
+            async def resume(
                 self,
                 continuation: Continuation,
                 result: str,
@@ -293,7 +293,7 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = continuation, model, system_prompt, tools
                 self._resumed = True
                 sid = session_id or str(uuid6.uuid7())
@@ -339,7 +339,7 @@ class TestOrchestratorSuspension:
                 self._suspending = SuspendingTransport()
                 self._resumed = False
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -347,7 +347,7 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 self._send_count += 1
                 if self._send_count == 1:
                     # Orchestrator's initial send
@@ -414,7 +414,7 @@ class TestOrchestratorSuspension:
                         tool_calls=2,
                     )
 
-            async def resume(  # noqa: PLR0913
+            async def resume(
                 self,
                 continuation: Continuation,
                 result: str,
@@ -423,7 +423,7 @@ class TestOrchestratorSuspension:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 self._resumed = True
                 async for ev in self._suspending.resume(
                     continuation,
@@ -448,20 +448,20 @@ class TestOrchestratorSuspension:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
         )
 
         # Verify the orchestrator completed
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED
         assert result.output is not None
         output_lower = result.output.lower()
         assert (
@@ -470,7 +470,7 @@ class TestOrchestratorSuspension:
         )
 
         # Verify transport was actually resumed
-        assert transport._resumed is True  # noqa: SLF001
+        assert transport._resumed is True
 
         # Verify trace saw suspended and active transitions
         transitions = [
@@ -509,7 +509,7 @@ class TestOrchestratorMultiChild:
                 self._send_count = 0
                 self._resume_count = 0
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -517,7 +517,7 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = model, system_prompt
                 self._send_count += 1
                 sid = session_id or str(uuid6.uuid7())
@@ -632,7 +632,7 @@ class TestOrchestratorMultiChild:
                         tool_calls=2,
                     )
 
-            async def resume(  # noqa: PLR0913
+            async def resume(
                 self,
                 continuation: Continuation,
                 result: str,
@@ -641,7 +641,7 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = model, system_prompt
                 _ = continuation
                 self._resume_count += 1
@@ -730,13 +730,13 @@ class TestOrchestratorMultiChild:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
@@ -746,12 +746,12 @@ class TestOrchestratorMultiChild:
         assert len(child_ids) == 2
 
         # Orchestrator completed
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED
         assert result.output is not None
         assert "both" in result.output.lower()
 
         # Transport went through 2 resumes
-        assert transport._resume_count == 2  # noqa: SLF001
+        assert transport._resume_count == 2
 
         # Verify trace: suspended twice, active 3+ times
         transitions = [
@@ -786,13 +786,13 @@ class TestOrchestratorMultiChild:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
@@ -800,7 +800,7 @@ class TestOrchestratorMultiChild:
 
         # Orchestrator completes successfully
         assert result.output == "orchestrator output"
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED
         assert result.check_results == []
 
     async def test_orchestrator_with_failing_postchecks_escalates(
@@ -827,13 +827,13 @@ class TestOrchestratorMultiChild:
                 ScriptExecution(callable="check_quality"),
             ],
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         # Monkey-patch _run_postchecks to return failure
         async def _failing_postchecks(
@@ -847,13 +847,13 @@ class TestOrchestratorMultiChild:
                 ),
             ]
 
-        sched._run_postchecks = _failing_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        sched._run_postchecks = _failing_postchecks  # type: ignore[assignment]
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
         )
 
-        assert sched._task_states[task_id] == TaskState.ESCALATED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.ESCALATED
         assert result.output is None
         assert any(
             not cr.passed for cr in result.check_results
@@ -887,7 +887,7 @@ class TestOrchestratorMultiChild:
             def __init__(self) -> None:
                 self._send_count = 0
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -895,7 +895,7 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = model, system_prompt
                 self._send_count += 1
                 sid = session_id or str(uuid6.uuid7())
@@ -963,7 +963,7 @@ class TestOrchestratorMultiChild:
                         tool_calls=0,
                     )
 
-            async def resume(  # noqa: PLR0913
+            async def resume(
                 self,
                 continuation: Continuation,
                 result: str,
@@ -972,7 +972,7 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = (
                     continuation, model,
                     system_prompt, tools,
@@ -1013,13 +1013,13 @@ class TestOrchestratorMultiChild:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
@@ -1028,7 +1028,7 @@ class TestOrchestratorMultiChild:
         # The child timed out. The orchestrator resumes with
         # the child's "no output" result (since child returned
         # TaskResult(output=None) on timeout).
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED
         assert result.output is not None
         # The resume message contains "no output" for timed-out child
         assert "no output" in result.output.lower()
@@ -1057,7 +1057,7 @@ class TestOrchestratorMultiChild:
                 self._send_count = 0
                 self._resume_count = 0
 
-            async def send(  # noqa: PLR0913
+            async def send(
                 self,
                 message: str,
                 *,
@@ -1065,7 +1065,7 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = model, system_prompt
                 self._send_count += 1
                 sid = session_id or str(uuid6.uuid7())
@@ -1183,7 +1183,7 @@ class TestOrchestratorMultiChild:
                         tool_calls=2,
                     )
 
-            async def resume(  # noqa: PLR0913
+            async def resume(
                 self,
                 continuation: Continuation,
                 result: str,
@@ -1192,7 +1192,7 @@ class TestOrchestratorMultiChild:
                 system_prompt: str,
                 tools: list[Tool],
                 session_id: str | None = None,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 _ = model, system_prompt
                 _ = continuation
                 self._resume_count += 1
@@ -1266,13 +1266,13 @@ class TestOrchestratorMultiChild:
             context_refinement=False,
             orchestrator=True,
         )
-        task_id = await sched._trace_writer.create_task(  # noqa: SLF001
-            run_id=sched._run_id,  # noqa: SLF001
+        task_id = await sched._trace_writer.create_task(
+            run_id=sched._run_id,
             parent_task_id=None,
             name=task.name,
             task_type="agent",
         )
-        sched._init_task_state(task_id, task, parent=None)  # noqa: SLF001
+        sched._init_task_state(task_id, task, parent=None)
 
         result = await sched.execute_task(
             task, None, task_id=task_id,
@@ -1282,12 +1282,12 @@ class TestOrchestratorMultiChild:
         assert len(child_ids) == 3
 
         # Orchestrator completed
-        assert sched._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert sched._task_states[task_id] == TaskState.COMPLETED
         assert result.output is not None
         assert "3" in result.output or "all" in result.output.lower()
 
         # Transport went through 3 resumes
-        assert transport._resume_count == 3  # noqa: SLF001
+        assert transport._resume_count == 3
 
         # Verify trace: suspended 3 times
         transitions = [

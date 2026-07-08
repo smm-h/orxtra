@@ -9,8 +9,7 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 from orxtra.agent import load_agents, load_categories
 from orxtra.overseer import load_knowledge_files
 from orxtra.protocols import BudgetExhaustionPolicy
-from orxtra.scheduler import Scheduler, load_workflow
-from orxtra.scheduler import ToolEntry
+from orxtra.scheduler import Scheduler, ToolEntry, load_workflow
 from orxtra.secrets import create_secret_registry
 from orxtra.services._injection import (
     build_constraints_refresher,
@@ -141,7 +140,7 @@ def _load_custom_tools(
     Monty and command types use ``build_monty_tool`` and
     ``build_command_tool`` respectively, with capability-derived tags.
     """
-    from orxtra.tool import (  # noqa: PLC0415
+    from orxtra.tool import (
         CommandExecution,
         HttpExecution,
         MontyExecution,
@@ -167,11 +166,11 @@ def _load_custom_tools(
                 derived_tags.add("mutation")
 
             def _http_factory(
-                deps: Any,  # noqa: ANN401
+                deps: Any,
                 *,
-                _defn: Any = defn,  # noqa: ANN401
+                _defn: Any = defn,
                 _sr: SecretRegistry | None = secret_registry,
-            ) -> Any:  # noqa: ANN401
+            ) -> Any:
                 return build_http_tool(
                     _defn,
                     secret_registry=_sr,
@@ -189,10 +188,10 @@ def _load_custom_tools(
             derived_tags.update(cap_tags)
 
             def _monty_factory(
-                deps: Any,  # noqa: ANN401
+                deps: Any,
                 *,
-                _defn: Any = defn,  # noqa: ANN401
-            ) -> Any:  # noqa: ANN401
+                _defn: Any = defn,
+            ) -> Any:
                 return build_monty_tool(_defn, deps)
 
             factory = _monty_factory
@@ -202,10 +201,10 @@ def _load_custom_tools(
             derived_tags.add("mutation")
 
             def _command_factory(
-                deps: Any,  # noqa: ANN401
+                deps: Any,
                 *,
-                _defn: Any = defn,  # noqa: ANN401
-            ) -> Any:  # noqa: ANN401
+                _defn: Any = defn,
+            ) -> Any:
                 return build_command_tool(_defn, deps)
 
             factory = _command_factory
@@ -233,7 +232,7 @@ async def start_run(
     config: RunConfig,
     *,
     transport_registry: dict[str, Any] | None = None,
-    overseer: Any | None = None,  # noqa: ANN401
+    overseer: Any | None = None,
     backend: StorageBackend | None = None,
 ) -> UUID:
     # When a StorageBackend is provided, use it for all operations.

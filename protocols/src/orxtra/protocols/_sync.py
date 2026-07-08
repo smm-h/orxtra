@@ -8,7 +8,7 @@ from typing import Any, TypeVar
 T = TypeVar("T")
 
 
-def run_sync(coro: Coroutine[Any, Any, T]) -> T:
+def run_sync(coro: Coroutine[Any, Any, T]) -> T:  # noqa: UP047 -- matches original TypeVar style
     """Run an async coroutine from synchronous code.
 
     Three modes:

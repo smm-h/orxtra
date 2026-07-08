@@ -53,16 +53,16 @@ async def lifespan(
     Shutdown:
       1. Close pool
     """
-    import asyncpg  # noqa: PLC0415
-    from orxtra.a2a import SkillRegistry, build_agent_card  # noqa: PLC0415
-    from orxtra.services import DispatchContext, get_capabilities  # noqa: PLC0415
+    import asyncpg
+    from orxtra.a2a import SkillRegistry, build_agent_card
+    from orxtra.services import DispatchContext, get_capabilities
 
     log.info("Starting up: connecting to database")
     pool: asyncpg.Pool = await asyncpg.create_pool(server_config.db_url)
 
     try:
-        from orxtra.dispatch import PgDispatchBackend  # noqa: PLC0415
-        from orxtra.services import verify_schema  # noqa: PLC0415
+        from orxtra.dispatch import PgDispatchBackend
+        from orxtra.services import verify_schema
 
         log.info("Verifying database schema")
         await verify_schema(pool)
@@ -93,7 +93,7 @@ async def lifespan(
         # Build incoming webhook router if authenticator is configured.
         incoming_router = None
         if authenticator is not None:
-            from orxtra.incoming import create_incoming_router  # noqa: PLC0415
+            from orxtra.incoming import create_incoming_router
 
             incoming_router = create_incoming_router(
                 pool=pool,
@@ -121,7 +121,7 @@ async def lifespan(
 
 
 def _build_authenticator(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     secrets_env: dict[str, str],
 ) -> Authenticator:
     """Construct the full auth stack from a secrets env mapping.
@@ -129,13 +129,13 @@ def _build_authenticator(
     Creates SecretRegistry, EnvMacProvider, AuthBackend, verifiers,
     and assembles them into an Authenticator.
     """
-    from orxtra.auth import (  # noqa: PLC0415
+    from orxtra.auth import (
         AuthBackend,
         Authenticator,
         HashCredentialVerifier,
         HmacCredentialVerifier,
     )
-    from orxtra.secrets import EnvMacProvider, create_secret_registry  # noqa: PLC0415
+    from orxtra.secrets import EnvMacProvider, create_secret_registry
 
     registry = create_secret_registry(secrets_env)
     mac_provider = EnvMacProvider(registry)
@@ -148,7 +148,7 @@ def _build_authenticator(
     return Authenticator(auth_backend, verifiers)
 
 
-def build_app(server_config: ServerConfig) -> Any:  # noqa: ANN401
+def build_app(server_config: ServerConfig) -> Any:
     """Build the full ASGI app with lifespan wired in.
 
     Returns an ASGI callable that runs the lifespan on startup/shutdown.
@@ -157,7 +157,7 @@ def build_app(server_config: ServerConfig) -> Any:  # noqa: ANN401
     compositor: Any = None
     lifespan_cm: Any = None
 
-    async def app(scope: dict[str, Any], receive: Any, send: Any) -> None:  # noqa: ANN401
+    async def app(scope: dict[str, Any], receive: Any, send: Any) -> None:
         nonlocal compositor, lifespan_cm
 
         if scope["type"] == "lifespan":

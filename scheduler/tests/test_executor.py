@@ -89,7 +89,7 @@ class TestExecuteSimpleWorkflow:
 
         completed = [
             tid
-            for tid, state in scheduler._task_states.items()  # noqa: SLF001
+            for tid, state in scheduler._task_states.items()
             if state == TaskState.COMPLETED
         ]
         assert len(completed) == 1
@@ -99,7 +99,7 @@ class TestExecuteSimpleWorkflow:
     ) -> None:
         config = _simple_workflow()
         await scheduler.execute_workflow(config)
-        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})
         assert "t1" in outputs
         assert outputs["t1"] == "Mock response"
 
@@ -121,7 +121,7 @@ class TestExecuteWithDeps:
 
         completed = [
             tid
-            for tid, state in scheduler._task_states.items()  # noqa: SLF001
+            for tid, state in scheduler._task_states.items()
             if state == TaskState.COMPLETED
         ]
         assert len(completed) == 2
@@ -135,7 +135,7 @@ class TestExecuteWithDeps:
         )
         await scheduler.execute_workflow(config)
 
-        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})
         assert "a" in outputs
         assert "b" in outputs
 
@@ -152,7 +152,7 @@ class TestParallelExecution:
 
         completed = [
             tid
-            for tid, state in scheduler._task_states.items()  # noqa: SLF001
+            for tid, state in scheduler._task_states.items()
             if state == TaskState.COMPLETED
         ]
         assert len(completed) == 2
@@ -176,7 +176,7 @@ class TestDiamondDependency:
 
         completed = [
             tid
-            for tid, state in scheduler._task_states.items()  # noqa: SLF001
+            for tid, state in scheduler._task_states.items()
             if state == TaskState.COMPLETED
         ]
         assert len(completed) == 4
@@ -210,7 +210,7 @@ class TestAgentToolCallPath:
         config = _simple_workflow()
         await scheduler.execute_workflow(config)
 
-        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})
         assert outputs.get("t1") == "Mock response"
 
     async def test_precheck_failure_blocks(
@@ -231,8 +231,8 @@ class TestAgentToolCallPath:
                 ),
             ]
 
-        original = Scheduler._run_prechecks  # noqa: SLF001
-        Scheduler._run_prechecks = failing_prechecks  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_prechecks
+        Scheduler._run_prechecks = failing_prechecks  # type: ignore[assignment]
         try:
             task = _simple_task()
             config = _simple_workflow(tasks=[task])
@@ -247,14 +247,14 @@ class TestAgentToolCallPath:
             )
             await sched.execute_workflow(config)
 
-            states = list(sched._task_states.values())  # noqa: SLF001
+            states = list(sched._task_states.values())
             assert TaskState.COMPLETED not in states
             assert (
                 TaskState.ESCALATED in states
                 or TaskState.PRECHECK_FAILED in states
             )
         finally:
-            Scheduler._run_prechecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_prechecks = original  # type: ignore[assignment]
 
     async def test_postcheck_failure_from_end_task(
         self, run_id: uuid.UUID, tmp_path: Path,
@@ -283,7 +283,7 @@ class TestAgentToolCallPath:
                 ),
             ]
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
+        original = Scheduler._run_postchecks
 
         class RetryTransport:
             """Calls start_task and end_task on each
@@ -295,7 +295,7 @@ class TestAgentToolCallPath:
             async def send(
                 self,
                 message: str,
-                **kwargs: Any,  # noqa: ANN401
+                **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 self._sends += 1
                 tools = kwargs.get("tools", [])
@@ -356,7 +356,7 @@ class TestAgentToolCallPath:
                     tool_calls=2,
                 )
 
-        Scheduler._run_postchecks = postchecks_fail_then_pass  # type: ignore[assignment]  # noqa: SLF001
+        Scheduler._run_postchecks = postchecks_fail_then_pass  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="retry-task",
@@ -387,12 +387,12 @@ class TestAgentToolCallPath:
 
             completed = [
                 tid
-                for tid, state in sched._task_states.items()  # noqa: SLF001
+                for tid, state in sched._task_states.items()
                 if state == TaskState.COMPLETED
             ]
             assert len(completed) == 1
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
 
 
 class TestStartTask:
@@ -409,15 +409,15 @@ class TestStartTask:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
 
         result = await scheduler.handle_start_task(
             "sess-1", str(task_id),
         )
         assert "active" in result.lower()
-        assert scheduler._task_states[task_id] == TaskState.ACTIVE  # noqa: SLF001
-        assert scheduler._active_tasks["sess-1"] == task_id  # noqa: SLF001
+        assert scheduler._task_states[task_id] == TaskState.ACTIVE
+        assert scheduler._active_tasks["sess-1"] == task_id
 
     async def test_rejects_non_created_task(
         self,
@@ -432,8 +432,8 @@ class TestStartTask:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.ACTIVE
+        scheduler._task_specs[task_id] = task
 
         with pytest.raises(ToolError):
             await scheduler.handle_start_task(
@@ -464,17 +464,17 @@ class TestEndTask:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
-        scheduler._task_children[task_id] = []  # noqa: SLF001
-        scheduler._task_parents[task_id] = None  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
+        scheduler._task_children[task_id] = []
+        scheduler._task_parents[task_id] = None
 
         await scheduler.handle_start_task("sess-1", str(task_id))
         result = await scheduler.handle_end_task(
             "sess-1", "Done",
         )
         assert "completed" in result.lower()
-        assert scheduler._task_states[task_id] == TaskState.COMPLETED  # noqa: SLF001
+        assert scheduler._task_states[task_id] == TaskState.COMPLETED
 
     async def test_stores_output_on_completion(
         self,
@@ -489,16 +489,16 @@ class TestEndTask:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
-        scheduler._task_children[task_id] = []  # noqa: SLF001
-        scheduler._task_parents[task_id] = None  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
+        scheduler._task_children[task_id] = []
+        scheduler._task_parents[task_id] = None
 
         await scheduler.handle_start_task("sess-1", str(task_id))
         await scheduler.handle_end_task(
             "sess-1", "my output",
         )
-        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})
         assert outputs["t1"] == "my output"
 
     async def test_blocks_with_incomplete_subtasks(
@@ -520,11 +520,11 @@ class TestEndTask:
             name="child",
             task_type="agent",
         )
-        scheduler._task_states[parent_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
-        scheduler._task_children[parent_id] = [child_id]  # noqa: SLF001
-        scheduler._task_parents[parent_id] = None  # noqa: SLF001
-        scheduler._task_states[child_id] = TaskState.ACTIVE  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.CREATED
+        scheduler._task_specs[parent_id] = parent_task
+        scheduler._task_children[parent_id] = [child_id]
+        scheduler._task_parents[parent_id] = None
+        scheduler._task_states[child_id] = TaskState.ACTIVE
 
         await scheduler.handle_start_task("sess-1", str(parent_id))
 
@@ -540,8 +540,8 @@ class TestEndTask:
         """Auto-commit must run before postchecks so checks verify committed state."""
         call_order: list[str] = []
 
-        original_auto_commit = scheduler._auto_commit  # noqa: SLF001
-        original_run_postchecks = scheduler._run_postchecks  # noqa: SLF001
+        original_auto_commit = scheduler._auto_commit
+        original_run_postchecks = scheduler._run_postchecks
 
         async def tracking_auto_commit(*a: object, **kw: object) -> None:
             call_order.append("auto_commit")
@@ -560,10 +560,10 @@ class TestEndTask:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
-        scheduler._task_children[task_id] = []  # noqa: SLF001
-        scheduler._task_parents[task_id] = None  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
+        scheduler._task_children[task_id] = []
+        scheduler._task_parents[task_id] = None
 
         await scheduler.handle_start_task("sess-1", str(task_id))
 
@@ -604,8 +604,8 @@ class TestActiveTaskEnforcement:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
 
         result = await scheduler.handle_start_task(
             "sess-1", str(task_id),
@@ -627,9 +627,9 @@ class TestHandleCreateTask:
             name="parent",
             task_type="agent",
         )
-        scheduler._task_states[parent_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
-        scheduler._task_children[parent_id] = []  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.CREATED
+        scheduler._task_specs[parent_id] = parent_task
+        scheduler._task_children[parent_id] = []
 
         await scheduler.handle_start_task("sess-1", str(parent_id))
 
@@ -644,12 +644,12 @@ class TestHandleCreateTask:
             "sess-1", params.model_dump(),
         )
         child_id = uuid.UUID(result)
-        assert child_id in scheduler._task_states  # noqa: SLF001
+        assert child_id in scheduler._task_states
         assert (
-            scheduler._task_states[child_id]  # noqa: SLF001
+            scheduler._task_states[child_id]
             == TaskState.CREATED
         )
-        assert child_id in scheduler._task_children[parent_id]  # noqa: SLF001
+        assert child_id in scheduler._task_children[parent_id]
 
 
 class TestHandleCreateWorkflow:
@@ -666,9 +666,9 @@ class TestHandleCreateWorkflow:
             name="parent",
             task_type="agent",
         )
-        scheduler._task_states[parent_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
-        scheduler._task_children[parent_id] = []  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.CREATED
+        scheduler._task_specs[parent_id] = parent_task
+        scheduler._task_children[parent_id] = []
 
         await scheduler.handle_start_task("sess-1", str(parent_id))
 
@@ -681,8 +681,8 @@ class TestHandleCreateWorkflow:
             "sess-1", params.model_dump(),
         )
         wf_id = uuid.UUID(result)
-        assert wf_id in scheduler._task_states  # noqa: SLF001
-        assert wf_id in scheduler._task_children[parent_id]  # noqa: SLF001
+        assert wf_id in scheduler._task_states
+        assert wf_id in scheduler._task_children[parent_id]
 
     async def test_stores_task_spec(
         self,
@@ -697,9 +697,9 @@ class TestHandleCreateWorkflow:
             name="parent",
             task_type="agent",
         )
-        scheduler._task_states[parent_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
-        scheduler._task_children[parent_id] = []  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.CREATED
+        scheduler._task_specs[parent_id] = parent_task
+        scheduler._task_children[parent_id] = []
 
         await scheduler.handle_start_task("sess-1", str(parent_id))
 
@@ -712,7 +712,7 @@ class TestHandleCreateWorkflow:
             "sess-1", params.model_dump(),
         )
         wf_id = uuid.UUID(result)
-        assert wf_id in scheduler._task_specs  # noqa: SLF001
+        assert wf_id in scheduler._task_specs
 
 
 class TestHandleCreateWaitFor:
@@ -729,9 +729,9 @@ class TestHandleCreateWaitFor:
             name="parent",
             task_type="agent",
         )
-        scheduler._task_states[parent_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[parent_id] = parent_task  # noqa: SLF001
-        scheduler._task_children[parent_id] = []  # noqa: SLF001
+        scheduler._task_states[parent_id] = TaskState.CREATED
+        scheduler._task_specs[parent_id] = parent_task
+        scheduler._task_children[parent_id] = []
 
         await scheduler.handle_start_task("sess-1", str(parent_id))
 
@@ -744,9 +744,9 @@ class TestHandleCreateWaitFor:
             "sess-1", params.model_dump(),
         )
         wait_id = uuid.UUID(result)
-        assert wait_id in scheduler._task_states  # noqa: SLF001
+        assert wait_id in scheduler._task_states
         assert (
-            scheduler._task_states[wait_id]  # noqa: SLF001
+            scheduler._task_states[wait_id]
             == TaskState.CREATED
         )
 
@@ -758,7 +758,7 @@ class TestRetry:
         trace_writer = MockTraceWriter()
 
         call_count = 0
-        original_run_postchecks = Scheduler._run_postchecks  # noqa: SLF001
+        original_run_postchecks = Scheduler._run_postchecks
 
         async def mock_postchecks(
             self: Scheduler,
@@ -781,7 +781,7 @@ class TestRetry:
 
         class RetryTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -838,7 +838,7 @@ class TestRetry:
                     tool_calls=2,
                 )
 
-        Scheduler._run_postchecks = mock_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        Scheduler._run_postchecks = mock_postchecks  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="retry-task",
@@ -869,12 +869,12 @@ class TestRetry:
 
             completed = [
                 tid
-                for tid, state in sched._task_states.items()  # noqa: SLF001
+                for tid, state in sched._task_states.items()
                 if state == TaskState.COMPLETED
             ]
             assert len(completed) == 1
         finally:
-            Scheduler._run_postchecks = original_run_postchecks  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original_run_postchecks  # type: ignore[assignment]
 
     async def test_retry_exhausted_escalates(
         self, run_id: uuid.UUID, tmp_path: Path,
@@ -894,7 +894,7 @@ class TestRetry:
 
         class RetryTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -951,8 +951,8 @@ class TestRetry:
                     tool_calls=2,
                 )
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="fail-task",
@@ -983,12 +983,12 @@ class TestRetry:
 
             escalated = [
                 tid
-                for tid, state in sched._task_states.items()  # noqa: SLF001
+                for tid, state in sched._task_states.items()
                 if state == TaskState.ESCALATED
             ]
             assert len(escalated) == 1
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
 
     async def test_escalation_payload_constructed(
         self, run_id: uuid.UUID, tmp_path: Path,
@@ -1008,7 +1008,7 @@ class TestRetry:
 
         class RetryTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -1065,8 +1065,8 @@ class TestRetry:
                     tool_calls=2,
                 )
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="esc-task",
@@ -1096,7 +1096,7 @@ class TestRetry:
             assert esc["task_name"] == "esc-task"
             assert esc["attempts"] == 2
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
 
 
 class TestTaskTimeout:
@@ -1147,7 +1147,7 @@ class TestTaskTimeout:
 
         cancelled = [
             tid
-            for tid, state in sched._task_states.items()  # noqa: SLF001
+            for tid, state in sched._task_states.items()
             if state == TaskState.CANCELLED
         ]
         assert len(cancelled) == 1
@@ -1160,9 +1160,9 @@ class TestBudgetTracking:
         config = _simple_workflow()
         await scheduler.execute_workflow(config)
 
-        for tid in scheduler._task_costs:  # noqa: SLF001
+        for tid in scheduler._task_costs:
             assert isinstance(
-                scheduler._task_costs[tid],  # noqa: SLF001
+                scheduler._task_costs[tid],
                 Decimal,
             )
 
@@ -1204,7 +1204,7 @@ class TestAccumulateCostError:
             the error happens during cost accumulation."""
 
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -1327,7 +1327,7 @@ class TestFunctionTask:
 
         try:
             await scheduler.execute_workflow(config)
-            outputs = scheduler._task_outputs.get(  # noqa: SLF001
+            outputs = scheduler._task_outputs.get(
                 None, {},
             )
             assert outputs["func-task"] == "function result"
@@ -1471,7 +1471,7 @@ class TestForEach:
 
         class FailSecondTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 nonlocal call_count
                 call_count += 1
@@ -1549,8 +1549,8 @@ class TestForEach:
             variables={"items": ["a", "b", "c"]},
         )
         for_each_states = [
-            s for tid, s in sched._task_states.items()  # noqa: SLF001
-            if sched._task_specs.get(tid, TaskSpec(name="")).name == "abort-task"  # noqa: SLF001
+            s for tid, s in sched._task_states.items()
+            if sched._task_specs.get(tid, TaskSpec(name="")).name == "abort-task"
         ]
         assert TaskState.POSTCHECK_FAILED in for_each_states
 
@@ -1563,7 +1563,7 @@ class TestForEach:
 
         class TrackedTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 nonlocal concurrent_count, max_concurrent
                 concurrent_count += 1
@@ -1650,9 +1650,9 @@ class TestTaskOutputPropagation:
     ) -> None:
         config = _simple_workflow()
         await scheduler.execute_workflow(config)
-        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})
         assert outputs["t1"] == "Mock response"
-        meta = scheduler._task_results_meta.get(  # noqa: SLF001
+        meta = scheduler._task_results_meta.get(
             None, {},
         )
         assert meta["t1"]["passed"] is True
@@ -1665,7 +1665,7 @@ class TestTaskOutputPropagation:
 
         class CapturingTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
@@ -1772,11 +1772,11 @@ class TestAbort:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.ACTIVE
+        scheduler._task_specs[task_id] = task
 
         await scheduler.abort()
-        assert scheduler._task_states[task_id] == TaskState.CANCELLED  # noqa: SLF001
+        assert scheduler._task_states[task_id] == TaskState.CANCELLED
 
 
 class TestSessionTracking:
@@ -1793,11 +1793,11 @@ class TestSessionTracking:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
 
         await scheduler.handle_start_task("sess-a", str(task_id))
-        assert scheduler._active_tasks["sess-a"] == task_id  # noqa: SLF001
+        assert scheduler._active_tasks["sess-a"] == task_id
 
     async def test_multiple_sessions(
         self,
@@ -1819,15 +1819,15 @@ class TestSessionTracking:
             name="tb",
             task_type="agent",
         )
-        scheduler._task_states[id_a] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[id_a] = task_a  # noqa: SLF001
-        scheduler._task_states[id_b] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[id_b] = task_b  # noqa: SLF001
+        scheduler._task_states[id_a] = TaskState.CREATED
+        scheduler._task_specs[id_a] = task_a
+        scheduler._task_states[id_b] = TaskState.CREATED
+        scheduler._task_specs[id_b] = task_b
 
         await scheduler.handle_start_task("sess-a", str(id_a))
         await scheduler.handle_start_task("sess-b", str(id_b))
-        assert scheduler._active_tasks["sess-a"] == id_a  # noqa: SLF001
-        assert scheduler._active_tasks["sess-b"] == id_b  # noqa: SLF001
+        assert scheduler._active_tasks["sess-a"] == id_a
+        assert scheduler._active_tasks["sess-b"] == id_b
 
 
 class TestWorkflowValidation:
@@ -1943,7 +1943,7 @@ class TestPreRetryCallback:
 
         class RetryTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -2000,8 +2000,8 @@ class TestPreRetryCallback:
                     tool_calls=2,
                 )
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = fail_then_pass_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = fail_then_pass_postchecks  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="pr-task",
@@ -2034,7 +2034,7 @@ class TestPreRetryCallback:
             await sched.execute_workflow(config)
             assert pre_retry_called
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
             sys.modules.pop(
                 "tests.preretry_helpers", None,
             )
@@ -2074,7 +2074,7 @@ class TestPreRetryCallback:
 
         class RetryTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 tools = kwargs.get("tools", [])
                 tool_map = {t.name: t for t in tools}
@@ -2131,8 +2131,8 @@ class TestPreRetryCallback:
                     tool_calls=2,
                 )
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = always_fail_postchecks  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="abort-pr-task",
@@ -2162,12 +2162,12 @@ class TestPreRetryCallback:
             )
             escalated = [
                 tid
-                for tid, s in sched._task_states.items()  # noqa: SLF001
+                for tid, s in sched._task_states.items()
                 if s == TaskState.ESCALATED
             ]
             assert len(escalated) == 1
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
             sys.modules.pop(
                 "tests.preretry_abort_helpers", None,
             )
@@ -2203,7 +2203,7 @@ class TestRetryResume:
 
         class TrackingTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 sid = kwargs.get("session_id")
                 session_ids_seen.append(sid)
@@ -2260,8 +2260,8 @@ class TestRetryResume:
                     tool_calls=2,
                 )
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = fail_then_pass_postchecks  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = fail_then_pass_postchecks  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="resume-task",
@@ -2294,7 +2294,7 @@ class TestRetryResume:
             # First attempt has no prior session
             assert session_ids_seen[0] is None
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]
 
 
 class TestRetryInjectFailure:
@@ -2327,7 +2327,7 @@ class TestRetryInjectFailure:
 
         class CapturingTransport:
             async def send(
-                self, message: str, **kwargs: Any,  # noqa: ANN401
+                self, message: str, **kwargs: Any,
             ) -> AsyncIterator[TransportEvent]:
                 received_prompts.append(message)
                 tools = kwargs.get("tools", [])
@@ -2385,8 +2385,8 @@ class TestRetryInjectFailure:
                     tool_calls=2,
                 )
 
-        original = Scheduler._run_postchecks  # noqa: SLF001
-        Scheduler._run_postchecks = fail_then_pass  # type: ignore[assignment]  # noqa: SLF001
+        original = Scheduler._run_postchecks
+        Scheduler._run_postchecks = fail_then_pass  # type: ignore[assignment]
         try:
             task = TaskSpec(
                 name="inject-task",
@@ -2419,4 +2419,4 @@ class TestRetryInjectFailure:
             assert "Prior attempt" in received_prompts[1]
             assert "failed" in received_prompts[1].lower()
         finally:
-            Scheduler._run_postchecks = original  # type: ignore[assignment]  # noqa: SLF001
+            Scheduler._run_postchecks = original  # type: ignore[assignment]

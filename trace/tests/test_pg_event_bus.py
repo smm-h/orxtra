@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock
 import pytest
 from orxtra.trace._pg_event_bus import PgEventBus
 
-
 # ---------------------------------------------------------------------------
 # Mock infrastructure
 # ---------------------------------------------------------------------------
@@ -24,10 +23,10 @@ class FakeConnection:
     def __init__(self) -> None:
         self.listeners: dict[str, list[Any]] = {}
 
-    async def add_listener(self, channel: str, callback: Any) -> None:  # noqa: ANN401
+    async def add_listener(self, channel: str, callback: Any) -> None:
         self.listeners.setdefault(channel, []).append(callback)
 
-    async def remove_listener(self, channel: str, callback: Any) -> None:  # noqa: ANN401
+    async def remove_listener(self, channel: str, callback: Any) -> None:
         cbs = self.listeners.get(channel, [])
         if callback in cbs:
             cbs.remove(callback)

@@ -13,10 +13,10 @@ from orxtra.write_safety._replay import is_transient_error, with_transient_retry
 from orxtra.write_safety._stale import StaleWriteError, StaleWriteTracker, compute_hash
 
 __all__ = [
-    "__version__",
     "StaleWriteError",
     "StaleWriteTracker",
     "WriteQueue",
+    "__version__",
     "atomic_write",
     "compute_hash",
     "is_transient_error",

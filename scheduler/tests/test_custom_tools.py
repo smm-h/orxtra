@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 import uuid6
 from orxtra.agent import Agent
 from orxtra.protocols import TaskSpec, Tool
@@ -96,7 +95,7 @@ async def _extract_tool_names(
         mock_session = MagicMock()
         mock_create.return_value = mock_session
 
-        await scheduler._create_agent_session(  # noqa: SLF001
+        await scheduler._create_agent_session(
             task, task_id, 1,
         )
 

@@ -9,15 +9,12 @@ trace data into the scheduler's in-memory lists:
 """
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
-import pytest
 import uuid6
 from orxtra.compose import CompositionEngine
-from orxtra.notepad import NotepadEntry
 from orxtra.scheduler._prompt_providers import (
     ConstraintsProvider,
     LessonsProvider,
@@ -191,7 +188,7 @@ class TestLessonsRefresher:
         ) as mock_filter:
             async def _filter(
                 lessons: list[dict[str, Any]],
-                repo_dir: Path,  # noqa: ARG001
+                repo_dir: Path,
             ) -> tuple[
                 list[dict[str, Any]], list[dict[str, Any]],
             ]:
@@ -239,7 +236,7 @@ class TestLessonsRefresher:
         ) as mock_filter:
             async def _filter(
                 lessons: list[dict[str, Any]],
-                repo_dir: Path,  # noqa: ARG001
+                repo_dir: Path,
             ) -> tuple[
                 list[dict[str, Any]], list[dict[str, Any]],
             ]:
@@ -257,8 +254,8 @@ class TestLessonsRefresher:
             lessons = await refresher(run_id)
 
         assert len(lessons) == 2
-        fresh = [l for l in lessons if not l["stale"]]
-        stale = [l for l in lessons if l["stale"]]
+        fresh = [lesson for lesson in lessons if not lesson["stale"]]
+        stale = [lesson for lesson in lessons if lesson["stale"]]
         assert len(fresh) == 1
         assert len(stale) == 1
 
@@ -303,7 +300,7 @@ class TestLessonsRefresher:
         ) as mock_filter:
             async def _filter(
                 lessons: list[dict[str, Any]],
-                repo_dir: Path,  # noqa: ARG001
+                repo_dir: Path,
             ) -> tuple[
                 list[dict[str, Any]], list[dict[str, Any]],
             ]:
@@ -409,10 +406,10 @@ class TestSchedulerRefreshIntegration:
     async def test_constraint_end_to_end(self) -> None:
         """Write constraint to trace, build scheduler with
         refresh callback, verify prompt contains constraint."""
-        from orxtra.scheduler._executor import Scheduler
-
         # Use conftest helpers
         import importlib.util as _ilu
+
+        from orxtra.scheduler._executor import Scheduler
 
         _spec = _ilu.spec_from_file_location(
             "tests.shared_mocks",
@@ -421,8 +418,8 @@ class TestSchedulerRefreshIntegration:
         )
         _mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
         _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
-        MockTraceWriter = _mod.MockTraceWriter
-        MockTransport = _mod.MockTransport
+        mock_trace_writer_cls = _mod.MockTraceWriter
+        mock_transport_cls = _mod.MockTransport
 
         from orxtra.agent import Agent
         from orxtra.protocols import TaskSpec
@@ -449,9 +446,9 @@ class TestSchedulerRefreshIntegration:
         )
 
         scheduler = Scheduler(
-            trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
+            trace_writer=mock_trace_writer_cls(),  # type: ignore[arg-type]
             transport_registry={
-                "anthropic": MockTransport(
+                "anthropic": mock_transport_cls(
                     auto_execute_tools=True,
                 ),
             },  # type: ignore[dict-item]
@@ -464,14 +461,14 @@ class TestSchedulerRefreshIntegration:
         )
 
         # The scheduler's _active_constraints starts empty
-        assert scheduler._active_constraints == []  # noqa: SLF001
+        assert scheduler._active_constraints == []
 
         # Call the refresh method directly
-        await scheduler._refresh_injection_data()  # noqa: SLF001
+        await scheduler._refresh_injection_data()
 
         # Now constraints should be populated
-        assert len(scheduler._active_constraints) == 1  # noqa: SLF001
-        assert scheduler._active_constraints[0] == (  # noqa: SLF001
+        assert len(scheduler._active_constraints) == 1
+        assert scheduler._active_constraints[0] == (
             "All functions must have docstrings",
             "advisory",
         )
@@ -485,7 +482,7 @@ class TestSchedulerRefreshIntegration:
         )
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
-        prompt = await scheduler._assemble_agent_prompt(  # noqa: SLF001
+        prompt = await scheduler._assemble_agent_prompt(
             task, task_id, None, 1, attempt_id, [],
         )
         assert "All functions must have docstrings" in prompt
@@ -493,9 +490,9 @@ class TestSchedulerRefreshIntegration:
 
     async def test_notepad_end_to_end(self) -> None:
         """Write notepad entry to trace, refresh, verify prompt."""
-        from orxtra.scheduler._executor import Scheduler
-
         import importlib.util as _ilu
+
+        from orxtra.scheduler._executor import Scheduler
 
         _spec = _ilu.spec_from_file_location(
             "tests.shared_mocks",
@@ -504,8 +501,8 @@ class TestSchedulerRefreshIntegration:
         )
         _mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
         _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
-        MockTraceWriter = _mod.MockTraceWriter
-        MockTransport = _mod.MockTransport
+        mock_trace_writer_cls = _mod.MockTraceWriter
+        mock_transport_cls = _mod.MockTransport
 
         from orxtra.agent import Agent
         from orxtra.protocols import TaskSpec
@@ -532,9 +529,9 @@ class TestSchedulerRefreshIntegration:
         )
 
         scheduler = Scheduler(
-            trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
+            trace_writer=mock_trace_writer_cls(),  # type: ignore[arg-type]
             transport_registry={
-                "anthropic": MockTransport(
+                "anthropic": mock_transport_cls(
                     auto_execute_tools=True,
                 ),
             },  # type: ignore[dict-item]
@@ -546,9 +543,9 @@ class TestSchedulerRefreshIntegration:
             refresh_notepad=refresher,
         )
 
-        await scheduler._refresh_injection_data()  # noqa: SLF001
+        await scheduler._refresh_injection_data()
 
-        assert len(scheduler._notepad_entries) == 1  # noqa: SLF001
+        assert len(scheduler._notepad_entries) == 1
 
         task = TaskSpec(
             name="test-task",
@@ -558,7 +555,7 @@ class TestSchedulerRefreshIntegration:
         )
         task_id = uuid6.uuid7()
         attempt_id = uuid6.uuid7()
-        prompt = await scheduler._assemble_agent_prompt(  # noqa: SLF001
+        prompt = await scheduler._assemble_agent_prompt(
             task, task_id, None, 1, attempt_id, [],
         )
         assert "API rate limit is 100 req/min" in prompt
@@ -566,9 +563,9 @@ class TestSchedulerRefreshIntegration:
 
     async def test_no_callbacks_leaves_empty(self) -> None:
         """When no refresh callbacks are set, data stays empty."""
-        from orxtra.scheduler._executor import Scheduler
-
         import importlib.util as _ilu
+
+        from orxtra.scheduler._executor import Scheduler
 
         _spec = _ilu.spec_from_file_location(
             "tests.shared_mocks",
@@ -577,8 +574,8 @@ class TestSchedulerRefreshIntegration:
         )
         _mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
         _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
-        MockTraceWriter = _mod.MockTraceWriter
-        MockTransport = _mod.MockTransport
+        mock_trace_writer_cls = _mod.MockTraceWriter
+        mock_transport_cls = _mod.MockTransport
 
         from orxtra.agent import Agent
 
@@ -591,9 +588,9 @@ class TestSchedulerRefreshIntegration:
         )
 
         scheduler = Scheduler(
-            trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
+            trace_writer=mock_trace_writer_cls(),  # type: ignore[arg-type]
             transport_registry={
-                "anthropic": MockTransport(
+                "anthropic": mock_transport_cls(
                     auto_execute_tools=True,
                 ),
             },  # type: ignore[dict-item]
@@ -604,8 +601,8 @@ class TestSchedulerRefreshIntegration:
             autonomy_level="max",
         )
 
-        await scheduler._refresh_injection_data()  # noqa: SLF001
+        await scheduler._refresh_injection_data()
 
-        assert scheduler._active_constraints == []  # noqa: SLF001
-        assert scheduler._lessons == []  # noqa: SLF001
-        assert scheduler._notepad_entries == []  # noqa: SLF001
+        assert scheduler._active_constraints == []
+        assert scheduler._lessons == []
+        assert scheduler._notepad_entries == []

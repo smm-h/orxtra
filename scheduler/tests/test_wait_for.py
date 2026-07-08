@@ -131,7 +131,7 @@ class TestWaitForCompletesOnFire:
         await asyncio.wait_for(wf_task, timeout=5.0)
 
         # The single task should be COMPLETED.
-        states = list(sched._task_states.values())  # noqa: SLF001
+        states = list(sched._task_states.values())
         assert len(states) == 1
         assert states[0] == TaskState.COMPLETED
 
@@ -174,7 +174,7 @@ class TestWaitForTimesOut:
 
         await sched.execute_workflow(config)
 
-        states = list(sched._task_states.values())  # noqa: SLF001
+        states = list(sched._task_states.values())
         assert len(states) == 1
         assert states[0] == TaskState.CANCELLED
 
@@ -272,8 +272,8 @@ class TestWaitForWithDependencies:
         await asyncio.wait_for(wf_task, timeout=5.0)
 
         # All three tasks should be COMPLETED.
-        assert len(sched._task_states) == 3  # noqa: SLF001
-        for state in sched._task_states.values():  # noqa: SLF001
+        assert len(sched._task_states) == 3
+        for state in sched._task_states.values():
             assert state == TaskState.COMPLETED
 
         # C must have run after B.
@@ -321,7 +321,7 @@ class TestWaitForWithDualPhase:
 
         await asyncio.wait_for(wf_task, timeout=5.0)
 
-        states = list(sched._task_states.values())  # noqa: SLF001
+        states = list(sched._task_states.values())
         assert len(states) == 1
         assert states[0] == TaskState.COMPLETED
 
@@ -352,6 +352,6 @@ class TestWaitForWithDualPhase:
 
         await sched.execute_workflow(config)
 
-        states = list(sched._task_states.values())  # noqa: SLF001
+        states = list(sched._task_states.values())
         assert len(states) == 1
         assert states[0] == TaskState.CANCELLED

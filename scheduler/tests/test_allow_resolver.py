@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from orxtra.scheduler._allow_resolver import resolve_allow_list
 
 # A representative tool registry for testing.

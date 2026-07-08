@@ -35,20 +35,20 @@ from orxtra.scheduler._types import (
 from orxtra.scheduler._validator import validate_task_tree
 
 __all__ = [
-    "__version__",
     "CycleError",
     "EscalationPolicy",
     "FileLockRegistry",
     "OverseerAdapter",
     "OverseerInterface",
     "Scheduler",
-    "ToolEntry",
-    "classify_error",
     "ServiceConfig",
     "ServiceInstance",
+    "ToolEntry",
     "WorkflowConfig",
+    "__version__",
     "build_graph",
     "check_health",
+    "classify_error",
     "find_parallel_groups",
     "load_workflow",
     "start_service",

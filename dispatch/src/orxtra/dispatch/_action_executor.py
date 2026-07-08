@@ -131,4 +131,4 @@ async def _run_event(
             "EventAction requires an event_fire_callback but none was provided"
         )
         raise RuntimeError(msg)
-    await callback(action.event_type, action.data if action.data else None)
+    await callback(action.event_type, action.data or None)

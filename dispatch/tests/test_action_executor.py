@@ -6,11 +6,9 @@ import logging
 from typing import Any
 
 import pytest
-
 from _handlers import script_calls
 from orxtra.dispatch import execute_action, execute_actions_bounded
 from orxtra.protocols import EventAction, LogAction, ScriptAction, WorkflowAction
-
 
 # -- Fixtures and helpers --
 

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 async def _noop_callable(
-    context: Any,  # noqa: ANN401, ARG001
+    context: Any,
 ) -> TaskResult:
     return TaskResult(
         output="noop",
@@ -79,7 +79,7 @@ class TestSignalDelivery:
         assert len(calls) == 1
         assert calls[0]["run_id"] == run_id
         # The mock stores the callback for later invocation
-        assert trace_writer._control_callback is cb  # noqa: SLF001
+        assert trace_writer._control_callback is cb
 
     async def test_transition_run_fires_callback(
         self,
@@ -106,8 +106,8 @@ class TestSignalDelivery:
 
         # Simulate what the real TraceWriter does after a
         # transition: invoke the stored control callback.
-        assert trace_writer._control_callback is not None  # noqa: SLF001
-        await trace_writer._control_callback(  # noqa: SLF001
+        assert trace_writer._control_callback is not None
+        await trace_writer._control_callback(
             run_id, "aborted",
         )
 
@@ -127,10 +127,10 @@ class TestSignalDelivery:
             pass
 
         await trace_writer.subscribe_run_control(run_id, cb)
-        assert trace_writer._control_callback is cb  # noqa: SLF001
+        assert trace_writer._control_callback is cb
 
         await trace_writer.unsubscribe_run_control(run_id)
-        assert trace_writer._control_callback is None  # noqa: SLF001
+        assert trace_writer._control_callback is None
 
         calls = trace_writer.get_calls(
             "unsubscribe_run_control",
@@ -190,7 +190,7 @@ class TestSignalDelivery:
         assert calls[0]["run_id"] == run_a
         assert calls[1]["run_id"] == run_b
         # Latest callback wins in the mock
-        assert trace_writer._control_callback is cb_b  # noqa: SLF001
+        assert trace_writer._control_callback is cb_b
 
     # -- _handle_control_signal dispatch --
 
@@ -208,17 +208,17 @@ class TestSignalDelivery:
             agent="test-agent",
             task_prompt="do stuff",
         )
-        scheduler._init_task_state(  # noqa: SLF001
+        scheduler._init_task_state(
             task_id, task_spec, parent=None,
         )
-        scheduler._task_states[task_id] = TaskState.ACTIVE  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.ACTIVE
 
-        await scheduler._handle_control_signal(  # noqa: SLF001
+        await scheduler._handle_control_signal(
             run_id, "aborted",
         )
 
         assert (
-            scheduler._task_states[task_id]  # noqa: SLF001
+            scheduler._task_states[task_id]
             == TaskState.CANCELLED
         )
         # abort() also transitions via trace_writer
@@ -241,7 +241,7 @@ class TestSignalDelivery:
         """_handle_control_signal('paused') sets the paused flag."""
         assert not scheduler.is_paused
 
-        await scheduler._handle_control_signal(  # noqa: SLF001
+        await scheduler._handle_control_signal(
             run_id, "paused",
         )
 
@@ -255,7 +255,7 @@ class TestSignalDelivery:
         """An unrecognized status is silently ignored."""
         assert not scheduler.is_paused
 
-        await scheduler._handle_control_signal(  # noqa: SLF001
+        await scheduler._handle_control_signal(
             run_id, "unknown_status",
         )
 

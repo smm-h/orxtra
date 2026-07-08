@@ -7,16 +7,15 @@ import respx
 from orxtra.protocols import Tool, ToolOutput
 from orxtra.transport._events import (
     ContentBlock,
-    TransportEvent,
     ToolExecuting,
     ToolUse,
+    TransportEvent,
     Usage,
 )
 from orxtra.transport._provider import RetryPolicy
 from orxtra.transport._transport import Transport
 
 from .helpers import MockProvider
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -58,12 +57,12 @@ def _make_tool(
 
 
 async def _collect(
-    transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
+    transport: Transport, message: str, **kwargs: Any,
 ) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
 
-def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:  # noqa: ANN401
+def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:
     defaults: dict[str, Any] = {
         "model": "test-model",
         "system_prompt": "sys",

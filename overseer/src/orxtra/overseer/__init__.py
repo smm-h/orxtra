@@ -18,12 +18,12 @@ from orxtra.overseer._learning import (
 from orxtra.overseer._overseer import Overseer, OverseerEvent, load_overseer_prompt
 
 __all__ = [
-    "__version__",
     "AutonomyLevel",
     "HealthMetrics",
     "HealthMonitor",
     "Overseer",
     "OverseerEvent",
+    "__version__",
     "check_staleness",
     "filter_stale_lessons",
     "load_knowledge_files",

@@ -4,7 +4,7 @@ import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 from uuid import UUID
 
 import pytest

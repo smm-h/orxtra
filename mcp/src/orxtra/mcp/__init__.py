@@ -31,9 +31,9 @@ def __getattr__(name: str) -> object:
 
 
 __all__ = [
-    "__version__",
     "MCPServer",
     "McpNotificationSink",
+    "__version__",
     "create_app",
     "get_tool_definitions",
 ]

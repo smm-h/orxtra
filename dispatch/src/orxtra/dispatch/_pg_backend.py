@@ -15,10 +15,9 @@ from orxtra.protocols import EventAction, LogAction, ScriptAction, WorkflowActio
 
 if TYPE_CHECKING:
     import asyncpg
-
     from orxtra.protocols import Action
 
-type _ActionType = type[ScriptAction] | type[LogAction] | type[WorkflowAction] | type[EventAction]
+type _ActionType = type[ScriptAction | LogAction | WorkflowAction | EventAction]
 
 # Map Action subclass -> DB action_type string.
 _ACTION_TYPE_MAP: dict[_ActionType, str] = {
@@ -32,7 +31,9 @@ _ACTION_TYPE_MAP: dict[_ActionType, str] = {
 _ACTION_CLASS_MAP: dict[str, _ActionType] = {v: k for k, v in _ACTION_TYPE_MAP.items()}
 
 
-def _serialize_action(action: ScriptAction | LogAction | WorkflowAction | EventAction) -> tuple[str, str]:
+def _serialize_action(
+    action: ScriptAction | LogAction | WorkflowAction | EventAction,
+) -> tuple[str, str]:
     """Decompose an Action into (action_type, action_config_json)."""
     action_type = _ACTION_TYPE_MAP.get(type(action))
     if action_type is None:
@@ -47,7 +48,9 @@ def _deserialize_action(action_type: str, action_config: str) -> Action:
     if cls is None:
         msg = f"Unknown action_type in DB: {action_type!r}"
         raise ValueError(msg)
-    data = json.loads(action_config) if isinstance(action_config, str) else action_config
+    data = (
+        json.loads(action_config) if isinstance(action_config, str) else action_config
+    )
     return cls.model_validate(data)
 
 
@@ -292,12 +295,11 @@ class PgDispatchBackend:
     ) -> UUID | None:
         """Return the last_processed_event_id for *cursor_name*, or None."""
         async with self._pool.acquire() as conn:
-            row = await conn.fetchval(
+            return await conn.fetchval(
                 "SELECT last_processed_event_id"
                 " FROM dispatch_cursor WHERE cursor_name = $1",
                 cursor_name,
             )
-        return row
 
     async def advance_cursor(
         self, cursor_name: str, event_id: UUID,

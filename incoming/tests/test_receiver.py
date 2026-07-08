@@ -18,7 +18,6 @@ from uuid import UUID
 import pytest
 from fastware import Router, create_app
 from fastware.testing import AsyncTestClient
-
 from orxtra.auth import (
     Authenticator,
     HmacCredentialVerifier,
@@ -202,7 +201,7 @@ def _make_app(
     dispatch_backend: InMemoryDispatchBackend,
     authenticator: Authenticator,
     max_body_bytes: int = 1_048_576,
-) -> Any:  # noqa: ANN401
+) -> Any:
     """Build a minimal ASGI app with the incoming router."""
     # We use a mock pool since fire_event is mocked in tests.
     mock_pool = AsyncMock()

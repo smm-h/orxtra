@@ -10,7 +10,11 @@ except PackageNotFoundError:
 from orxtra.tool._consult_tool import make_consult_tool
 from orxtra.tool._data_tool_http import build_http_tool
 from orxtra.tool._data_tool_loader import load_tool_definition, load_tool_definitions
-from orxtra.tool._data_tool_monty import build_command_tool, build_monty_tool, derive_tags
+from orxtra.tool._data_tool_monty import (
+    build_command_tool,
+    build_monty_tool,
+    derive_tags,
+)
 from orxtra.tool._data_tool_types import (
     CommandExecution,
     DataToolDefinition,
@@ -72,7 +76,6 @@ from orxtra.tool._write_tools import (
 __all__ = [
     "CommandExecution",
     "DataToolDefinition",
-    "derive_tags",
     "FullRetrievalGuard",
     "HttpExecution",
     "JsonRenderer",
@@ -94,6 +97,7 @@ __all__ = [
     "check_write_scope",
     "collect_tools",
     "compose",
+    "derive_tags",
     "load_tool_definition",
     "load_tool_definitions",
     "make_await_task_tool",

@@ -6,22 +6,18 @@ factory, and the McpNotificationSink.
 
 from __future__ import annotations
 
-import asyncio
 import json
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from orxtra.mcp._server import (
     MCPServer,
     _annotations_for_capability,
-    _build_fastmcp,
     _mcp_capabilities,
 )
 from orxtra.protocols import Capability
 from orxtra.services import DispatchContext
 from pydantic import BaseModel
-
 
 # ------------------------------------------------------------------
 # Fixtures
@@ -267,7 +263,7 @@ async def test_notification_sink_on_event_run_started() -> None:
     from orxtra.mcp._notification_sink import McpNotificationSink
     from orxtra.protocols._types._events import RunStarted
 
-    mock_session = AsyncMock()
+    AsyncMock()
     mock_manager = AsyncMock()
     mock_manager._session_map = {}
 
@@ -310,8 +306,8 @@ async def test_notification_sink_on_event_with_session() -> None:
 
 async def test_notification_sink_inbox_event() -> None:
     """InboxAnswered event triggers notification."""
-    from uuid import uuid4
     from unittest.mock import MagicMock
+    from uuid import uuid4
 
     from orxtra.mcp._notification_sink import McpNotificationSink
     from orxtra.protocols._types._events import InboxAnswered
@@ -342,8 +338,8 @@ async def test_notification_sink_inbox_event() -> None:
 
 async def test_notification_sink_task_failed_event() -> None:
     """TaskFailed event triggers notification."""
-    from uuid import uuid4
     from unittest.mock import MagicMock
+    from uuid import uuid4
 
     from orxtra.mcp._notification_sink import McpNotificationSink
     from orxtra.protocols._types._events import TaskFailed

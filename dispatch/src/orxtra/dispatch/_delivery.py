@@ -5,18 +5,16 @@ import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from uuid6 import uuid7
-
+from orxtra.dispatch._action_executor import execute_action
+from orxtra.dispatch._protocols import DispatchBackend
+from orxtra.dispatch._types import AccumulatorEntry, FilterPredicate
 from orxtra.protocols import (
     ActionExecutor,
     EventFireCallback,
     FlushScheduler,
     SubscriptionAction,
 )
-
-from orxtra.dispatch._action_executor import execute_action
-from orxtra.dispatch._protocols import DispatchBackend
-from orxtra.dispatch._types import AccumulatorEntry, FilterPredicate
+from uuid6 import uuid7
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -44,7 +42,7 @@ class TransientEventDelivery:
         event_name: str,
         payload: dict[str, object] | None = None,
         *,
-        source: str | None = None,
+        source: str | None = None,  # noqa: ARG002 -- EventDelivery protocol signature
     ) -> None:
         futures = self._listeners.pop(event_name, [])
         for fut in futures:
@@ -71,7 +69,7 @@ class TransientEventDelivery:
 def match_subscription(
     event_type: str,
     source: str | None,
-    data: dict[str, Any] | None,
+    data: dict[str, Any] | None,  # noqa: ARG001 -- reserved for jsonb predicates
     filter_predicate: FilterPredicate,
 ) -> bool:
     """Evaluate whether an event matches a subscription's filter.
@@ -82,14 +80,16 @@ def match_subscription(
     - ``data_predicates``: reserved for future jsonb matching; ignored now.
     - All None fields are treated as wildcards (match everything).
     """
-    if filter_predicate.event_types is not None:
-        if event_type not in filter_predicate.event_types:
-            return False
-    if filter_predicate.sources is not None:
-        if source is None or source not in filter_predicate.sources:
-            return False
+    if (
+        filter_predicate.event_types is not None
+        and event_type not in filter_predicate.event_types
+    ):
+        return False
     # data_predicates: reserved, not evaluated yet.
-    return True
+    return not (
+        filter_predicate.sources is not None
+        and (source is None or source not in filter_predicate.sources)
+    )
 
 
 class DualPhaseEventDelivery:
@@ -193,7 +193,7 @@ class DualPhaseEventDelivery:
             actions = await self._backend.list_actions(sub.id)
             for sub_action in actions:
                 if sub_action.accumulator_config is not None:
-                    await self._buffer_or_flush(sub_action, event_payload, event_id)
+                    await self._buffer_or_flush(sub_action, event_id)
                 else:
                     await execute_action(
                         sub_action.action,
@@ -205,7 +205,6 @@ class DualPhaseEventDelivery:
     async def _buffer_or_flush(
         self,
         sub_action: SubscriptionAction,
-        event_payload: dict[str, object],
         event_id: UUID | None = None,
     ) -> None:
         """Buffer event for accumulator; flush inline if count threshold reached."""

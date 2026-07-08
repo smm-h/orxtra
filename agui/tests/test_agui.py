@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
 
 import pytest
 import uuid6
 from ag_ui.core import (
     CustomEvent,
-    EventType,
     RunErrorEvent,
     RunFinishedEvent,
     RunStartedEvent,
@@ -26,7 +24,6 @@ from ag_ui.core import (
     ToolCallResultEvent,
     ToolCallStartEvent,
 )
-
 from orxtra.agui._sinks import AGUIOverseerSink, AGUITransportSink
 from orxtra.agui._state import StateManager
 from orxtra.agui._translator import AGUITranslator

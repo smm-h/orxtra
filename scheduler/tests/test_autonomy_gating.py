@@ -18,8 +18,8 @@ from orxtra.scheduler._overseer import OverseerAdapter
 
 async def _dummy_execute(
     args: dict[str, Any],
-) -> Any:  # noqa: ANN401
-    from orxtra.protocols import Confirmation, ToolOutput  # noqa: PLC0415
+) -> Any:
+    from orxtra.protocols import Confirmation, ToolOutput
     _ = args
     return ToolOutput(data=Confirmation(message="executed"), text="executed")
 
@@ -39,7 +39,7 @@ def _make_adapter(
     """Create an OverseerAdapter with bypassed __init__
     and the given autonomy level."""
     adapter = OverseerAdapter.__new__(OverseerAdapter)
-    adapter._autonomy_level = level  # noqa: SLF001
+    adapter._autonomy_level = level
     return adapter
 
 
@@ -155,12 +155,12 @@ class TestSessionToolsGating:
         ]
         read_tool = _make_tool("read")
         session = _MockSession(
-            scope_tools + [read_tool],
+            [*scope_tools, read_tool],
         )
         overseer = _MockOverseer(session)
         monitor = _MockHealthMonitor()
 
-        adapter = OverseerAdapter(
+        OverseerAdapter(
             overseer=overseer,  # type: ignore[arg-type]
             health_monitor=monitor,  # type: ignore[arg-type]
             autonomy_level=AutonomyLevel.LOW,

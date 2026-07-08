@@ -168,7 +168,7 @@ class TestCoherenceSummary:
             overseer=adapter,
         )
 
-        await scheduler._write_coherence_summary()  # noqa: SLF001
+        await scheduler._write_coherence_summary()
 
         calls = tw.get_calls(
             "write_coherence_summary",
@@ -187,7 +187,7 @@ class TestCoherenceSummary:
             overseer=None,
         )
 
-        await scheduler._write_coherence_summary()  # noqa: SLF001
+        await scheduler._write_coherence_summary()
 
         calls = tw.get_calls(
             "write_coherence_summary",
@@ -209,7 +209,7 @@ class TestCoherenceSummary:
             overseer=adapter,
         )
 
-        await scheduler._write_coherence_summary()  # noqa: SLF001
+        await scheduler._write_coherence_summary()
 
         calls = tw.get_calls(
             "write_coherence_summary",

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any
 
 import pytest
 from orxtra.protocols import (
@@ -21,7 +20,6 @@ from orxtra.protocols import (
     TaskLifecycleResult,
     ToolOutput,
 )
-
 
 # -- ToolOutput tests -------------------------------------------------------
 

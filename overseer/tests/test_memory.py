@@ -5,7 +5,6 @@ from typing import Any
 
 import pytest
 import uuid6
-from .conftest import MockPool
 from orxtra.overseer._memory import (
     query_assumptions,
     query_constraints,
@@ -14,8 +13,10 @@ from orxtra.overseer._memory import (
     query_workflow_status,
 )
 
+from .conftest import MockPool
 
-def _make_row(**kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+
+def _make_row(**kwargs: Any) -> dict[str, Any]:
     defaults: dict[str, Any] = {
         "id": uuid6.uuid7(),
         "created_at": datetime.now(tz=UTC),

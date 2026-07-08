@@ -4,10 +4,9 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 import respx
-from orxtra.protocols import Confirmation, Tool, ToolOutput
+from orxtra.protocols import Tool, ToolOutput
 from orxtra.transport._events import (
     ContentBlock,
-    TransportEvent,
     Result,
     SessionSuspended,
     StepStart,
@@ -15,6 +14,7 @@ from orxtra.transport._events import (
     StreamToolUse,
     StreamUsage,
     ToolUse,
+    TransportEvent,
     Usage,
 )
 from orxtra.transport._provider import RetryPolicy
@@ -68,7 +68,7 @@ class MockProvider:
                 if block.type == "text" and block.text is not None:
                     yield StreamDelta(text=block.text)
                 elif block.type == "thinking" and block.text is not None:
-                    from orxtra.transport._events import Thinking  # noqa: PLC0415
+                    from orxtra.transport._events import Thinking
                     yield Thinking(text=block.text)
                 elif block.type == "tool_use":
                     yield StreamToolUse(
@@ -182,7 +182,7 @@ def _make_tool(
 
 
 async def _collect(
-    transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
+    transport: Transport, message: str, **kwargs: Any,
 ) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
@@ -191,7 +191,7 @@ async def _collect_resume(
     transport: Transport,
     continuation: Continuation,
     await_result: str,
-    **kwargs: Any,  # noqa: ANN401
+    **kwargs: Any,
 ) -> list[TransportEvent]:
     return [
         event
@@ -199,7 +199,7 @@ async def _collect_resume(
     ]
 
 
-def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:  # noqa: ANN401
+def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:
     defaults: dict[str, Any] = {
         "model": "test-model",
         "system_prompt": "sys",
@@ -209,7 +209,7 @@ def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:  # noqa: ANN401
     return defaults
 
 
-def _default_resume_kwargs(**overrides: Any) -> dict[str, Any]:  # noqa: ANN401
+def _default_resume_kwargs(**overrides: Any) -> dict[str, Any]:
     defaults: dict[str, Any] = {
         "model": "test-model",
         "system_prompt": "sys",

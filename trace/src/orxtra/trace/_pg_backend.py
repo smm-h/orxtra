@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-
     from orxtra.trace._types import (
         InboxItem,
         IterationResult,
@@ -454,7 +453,9 @@ class PgBackend:
 
     # -- KnowledgeHashStorage --
 
-    async def write_knowledge_hash(self, run_id: UUID, path: str, file_hash: str) -> None:
+    async def write_knowledge_hash(
+        self, run_id: UUID, path: str, file_hash: str,
+    ) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO knowledge_hashes (id, run_id, path, file_hash)"

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 import pytest
 from orxtra.secrets import SecretRegistry, create_secret_registry
 

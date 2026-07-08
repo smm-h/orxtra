@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 from decimal import Decimal
 from typing import Any
 
 import pytest
+from orxtra.protocols import EventBus
 from orxtra.trace._memory_backend import InMemoryBackend, InMemoryEventBus
 from orxtra.trace._protocols import (
-    EventBus,
     EventStorage,
     InboxStorage,
     KnowledgeHashStorage,
@@ -233,7 +232,7 @@ class TestTaskOperations:
     async def test_create_and_list_tasks(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max")
         t1 = await backend.create_task(run_id, None, "task1", "agent")
-        t2 = await backend.create_task(run_id, t1, "task2", "agent")
+        await backend.create_task(run_id, t1, "task2", "agent")
         tasks = await backend.list_tasks(run_id)
         assert len(tasks) == 2
         assert tasks[0].name == "task1"

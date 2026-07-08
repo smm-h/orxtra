@@ -84,7 +84,7 @@ class TestFalsePositiveFiltering:
 # ---------------------------------------------------------------------------
 
 
-def _make_mock_pool() -> Any:  # noqa: ANN401
+def _make_mock_pool() -> Any:
     """Create a mock asyncpg pool with acquire() context manager."""
     pool = AsyncMock()
     conn = AsyncMock()

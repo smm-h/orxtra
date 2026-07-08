@@ -8,6 +8,7 @@ lifecycle.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import shutil
 from pathlib import Path
@@ -15,9 +16,6 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-import websockets
-from websockets.asyncio.server import serve as ws_serve
-
 from orxtra.worker._docker import DockerNotFoundError, DockerWorker
 from orxtra.worker._native import NativeWorker, build_worker_tools
 from orxtra.worker._protocol import (
@@ -28,9 +26,10 @@ from orxtra.worker._protocol import (
     WorkerRegistration,
 )
 from orxtra.write_safety import StaleWriteTracker, WriteQueue
+from websockets.asyncio.server import serve as ws_serve
 
 
-def _serialize(msg_type: str, model: Any) -> str:  # noqa: ANN401
+def _serialize(msg_type: str, model: Any) -> str:
     """Serialize a protocol message as a JSON envelope."""
     return json.dumps({
         "type": msg_type,
@@ -90,7 +89,7 @@ class TestProtocolRoundtrip:
         worker_connected = asyncio.Event()
         result_received = asyncio.Event()
 
-        async def mock_brain(ws: Any) -> None:  # noqa: ANN401
+        async def mock_brain(ws: Any) -> None:
             # Wait for registration message.
             raw = await ws.recv()
             envelope = json.loads(raw)
@@ -141,10 +140,8 @@ class TestProtocolRoundtrip:
             # Cancel the worker if still running.
             worker.stop()
             worker_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await worker_task
-            except asyncio.CancelledError:
-                pass
 
         assert len(registration) == 1
         assert registration[0].root == str(tmp_path.resolve())
@@ -166,7 +163,7 @@ class TestWriteSafety:
         results: list[ToolCallResult] = []
         result_received = asyncio.Event()
 
-        async def mock_brain(ws: Any) -> None:  # noqa: ANN401
+        async def mock_brain(ws: Any) -> None:
             # Consume registration.
             await ws.recv()
 
@@ -205,10 +202,8 @@ class TestWriteSafety:
 
             worker.stop()
             worker_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await worker_task
-            except asyncio.CancelledError:
-                pass
 
         assert len(results) == 1
         assert results[0].error is None
@@ -229,7 +224,7 @@ class TestHeartbeat:
         ack_received = asyncio.Event()
         acks: list[HeartbeatAck] = []
 
-        async def mock_brain(ws: Any) -> None:  # noqa: ANN401
+        async def mock_brain(ws: Any) -> None:
             # Consume registration.
             await ws.recv()
 
@@ -260,10 +255,8 @@ class TestHeartbeat:
 
             worker.stop()
             worker_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await worker_task
-            except asyncio.CancelledError:
-                pass
 
         assert len(acks) == 1
         assert acks[0].timestamp == 12345.678
@@ -279,7 +272,7 @@ class TestUnknownTool:
         results: list[ToolCallResult] = []
         result_received = asyncio.Event()
 
-        async def mock_brain(ws: Any) -> None:  # noqa: ANN401
+        async def mock_brain(ws: Any) -> None:
             await ws.recv()  # registration
 
             call = ExecuteToolCall(
@@ -312,10 +305,8 @@ class TestUnknownTool:
 
             worker.stop()
             worker_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await worker_task
-            except asyncio.CancelledError:
-                pass
 
         assert len(results) == 1
         assert results[0].error is not None
@@ -329,7 +320,7 @@ _docker_available = shutil.which("docker") is not None
 
 
 class TestDockerWorker:
-    def test_docker_not_found_raises(self, tmp_path: Path, monkeypatch: Any) -> None:  # noqa: ANN401
+    def test_docker_not_found_raises(self, tmp_path: Path, monkeypatch: Any) -> None:
         """DockerWorker should raise DockerNotFoundError when docker is missing."""
         monkeypatch.setattr(shutil, "which", lambda _name: None)
         worker = DockerWorker(
@@ -369,7 +360,5 @@ class TestDockerWorker:
 
         # Clean up.
         run_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError, Exception):
             await run_task
-        except (asyncio.CancelledError, Exception):
-            pass

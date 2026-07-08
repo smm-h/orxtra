@@ -114,7 +114,7 @@ def _extract_target_module(node: ast.Import | ast.ImportFrom) -> str | None:
     return None
 
 
-def _collect_runtime_imports(  # noqa: C901
+def _collect_runtime_imports(
     tree: ast.Module,
 ) -> list[tuple[int, str]]:
     """Collect all runtime orxtra imports as (line_number, target_module) pairs.
@@ -123,7 +123,7 @@ def _collect_runtime_imports(  # noqa: C901
     """
     results: list[tuple[int, str]] = []
 
-    def _walk_body(body: list[ast.stmt], in_type_checking: bool = False) -> None:  # noqa: C901
+    def _walk_body(body: list[ast.stmt], in_type_checking: bool = False) -> None:
         for node in body:
             if isinstance(node, ast.If) and _is_type_checking_block(node):
                 # Recurse into the if-body marking it as type-checking
@@ -196,18 +196,21 @@ def _collect_cross_package_private_imports(
                 _walk_body(node.orelse, in_type_checking=True)
                 continue
 
-            if isinstance(node, ast.ImportFrom) and not in_type_checking:
-                if node.module is not None:
-                    parts = node.module.split(".")
-                    # Match orxtra.X._something
-                    if (
-                        len(parts) >= _PRIVATE_IMPORT_MIN_PARTS
-                        and parts[0] == "orxtra"
-                        and parts[2].startswith("_")
-                        and parts[1] != source_package
-                        and not _is_suppressed(node.lineno)
-                    ):
-                        results.append((node.lineno, parts[1], node.module))
+            if (
+                isinstance(node, ast.ImportFrom)
+                and not in_type_checking
+                and node.module is not None
+            ):
+                parts = node.module.split(".")
+                # Match orxtra.X._something
+                if (
+                    len(parts) >= _PRIVATE_IMPORT_MIN_PARTS
+                    and parts[0] == "orxtra"
+                    and parts[2].startswith("_")
+                    and parts[1] != source_package
+                    and not _is_suppressed(node.lineno)
+                ):
+                    results.append((node.lineno, parts[1], node.module))
 
             if isinstance(node, ast.Import) and not in_type_checking:
                 for alias in node.names:
@@ -283,7 +286,7 @@ def _module_name_from_test_path(py_file: Path) -> str | None:
     return None
 
 
-def _check_file(  # noqa: C901
+def _check_file(
     py_file: Path,
     source_module: str,
     *,
@@ -403,7 +406,7 @@ def main() -> int:
     for w in warnings:
         print(w)
 
-    total = len(errors) + len(warnings)
+    len(errors) + len(warnings)
     if errors:
         print(f"\n{len(errors)} error(s), {len(warnings)} warning(s)")
         return 1

@@ -15,6 +15,7 @@ SSE event format: id: <event_id>\\nevent: <event_type>\\ndata: <json>\\n\\n
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from typing import TYPE_CHECKING, Any
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def _serialize_value(value: Any) -> Any:  # noqa: ANN401
+def _serialize_value(value: Any) -> Any:
     """Convert UUIDs and datetimes to strings for JSON serialization."""
     if isinstance(value, UUID):
         return str(value)
@@ -61,7 +62,7 @@ def _format_sse_event(event: dict[str, Any]) -> str:
 
 
 async def stream_handler(
-    request: Any,  # noqa: ANN401
+    request: Any,
     *,
     pool: asyncpg.Pool[Any],
     dispatch_backend: DispatchBackend,
@@ -217,10 +218,8 @@ async def _sse_generator(
                     )
                 except TimeoutError:
                     get_task.cancel()
-                    try:
+                    with contextlib.suppress(asyncio.CancelledError):
                         await get_task
-                    except asyncio.CancelledError:
-                        pass
                     get_task = None
                     yield ": heartbeat\n\n"
                     continue
@@ -232,10 +231,8 @@ async def _sse_generator(
         finally:
             if get_task is not None and not get_task.done():
                 get_task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await get_task
-                except asyncio.CancelledError:
-                    pass
 
     except asyncio.CancelledError:
         return

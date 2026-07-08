@@ -39,9 +39,9 @@ ROOT = Path(__file__).resolve().parent.parent
 def _load_api_key() -> str:
     env_file = ROOT / ".env"
     for line in env_file.read_text().splitlines():
-        line = line.strip()
-        if line.startswith("OPENAI_API_KEY=") and not line.endswith("="):
-            return line.split("=", 1)[1]
+        stripped = line.strip()
+        if stripped.startswith("OPENAI_API_KEY=") and not stripped.endswith("="):
+            return stripped.split("=", 1)[1]
     msg = "OPENAI_API_KEY not found or empty in .env"
     raise RuntimeError(msg)
 
@@ -57,7 +57,7 @@ def _load_system_prompt() -> str:
 # -- Mock tools ---------------------------------------------------------------
 
 
-async def _mock_execute(args: dict[str, Any]) -> ToolOutput[Confirmation]:
+async def _mock_execute(_args: dict[str, Any]) -> ToolOutput[Confirmation]:
     """Mock tool executor -- acknowledges the call without doing real work."""
     result = json.dumps({"status": "ok", "message": "Tool call acknowledged (mock)"})
     return ToolOutput(data=Confirmation(message=result), text=result)

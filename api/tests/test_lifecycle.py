@@ -97,7 +97,7 @@ class TestBuildAuthenticator:
 
         assert isinstance(authenticator, Authenticator)
         # Three verifiers: bearer, api_key, hmac.
-        assert set(authenticator._verifiers.keys()) == {  # noqa: SLF001
+        assert set(authenticator._verifiers.keys()) == {
             "bearer",
             "api_key",
             "hmac",

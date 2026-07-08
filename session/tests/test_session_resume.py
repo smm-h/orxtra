@@ -5,7 +5,6 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-import pytest
 from orxtra.session._factory import _transcript_to_messages, create_session
 
 from .conftest import MockTraceWriter, MockTransport
@@ -114,7 +113,7 @@ class TestSessionResumeWithHistory:
         """Resuming a session loads transcript and injects into transport."""
         session_id = str(uuid.uuid4())
         transport = MockTransport()
-        trace_writer = MockTraceWriter()
+        MockTraceWriter()
         run_id = uuid.uuid4()
 
         transcript = [
@@ -148,7 +147,7 @@ class TestSessionResumeWithHistory:
         """No transcript means no history injection."""
         session_id = str(uuid.uuid4())
         transport = MockTransport()
-        trace_writer = MockTraceWriter()
+        MockTraceWriter()
         run_id = uuid.uuid4()
 
         backend = MockBackend(

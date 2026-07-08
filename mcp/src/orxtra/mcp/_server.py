@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# ruff: noqa: ANN401
 import asyncio
 import contextlib
 import json
@@ -100,14 +99,13 @@ def _simplify_schema(schema: dict[str, Any]) -> dict[str, Any]:
         if "anyOf" in prop:
             non_null = [t for t in prop["anyOf"] if t.get("type") != "null"]
             if len(non_null) == 1:
-                for k, v in non_null[0].items():
-                    if k != "title":
-                        simplified[k] = v
+                simplified.update(
+                    {k: v for k, v in non_null[0].items() if k != "title"},
+                )
         else:
-            for k, v in prop.items():
-                if k in ("title", "description"):
-                    continue
-                simplified[k] = v
+            simplified.update(
+                {k: v for k, v in prop.items() if k not in ("title", "description")},
+            )
 
         if "format" in prop and "format" not in simplified:
             simplified["format"] = prop["format"]
@@ -449,7 +447,7 @@ class MCPServer:
 _PARSE_ERROR = -32700
 _INVALID_REQUEST = -32600
 _METHOD_NOT_FOUND = -32601
-_INVALID_PARAMS = -32602  # noqa: F841
+_INVALID_PARAMS = -32602
 _INTERNAL_ERROR = -32603
 
 

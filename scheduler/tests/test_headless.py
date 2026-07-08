@@ -26,7 +26,7 @@ from orxtra.scheduler._validator import validate_task_tree
 if TYPE_CHECKING:
     import uuid
 
-from .conftest import make_agent, make_categories, MockTraceWriter, MockTransport
+from .conftest import MockTraceWriter, MockTransport, make_agent, make_categories
 
 
 def _make_headless_scheduler(
@@ -87,8 +87,8 @@ class TestHeadlessWorkflow:
         await sched.execute_workflow(config)
 
         assert (
-            sched._task_states[  # noqa: SLF001
-                list(sched._task_states.keys())[0]  # noqa: SLF001
+            sched._task_states[
+                next(iter(sched._task_states.keys()))
             ]
             == TaskState.COMPLETED
         )
@@ -159,10 +159,10 @@ class TestHeadlessBudgetExhaustion:
         )
 
         # Manually trigger budget blocked state
-        sched._budget_blocked = True  # noqa: SLF001
+        sched._budget_blocked = True
 
         # Verify that the budget_blocked flag is set
-        assert sched._budget_blocked is True  # noqa: SLF001
+        assert sched._budget_blocked is True
 
         # The mechanical enforcement works without an
         # Overseer -- BLOCK_NEW sets _budget_blocked

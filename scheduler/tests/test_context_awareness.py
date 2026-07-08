@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pytest
 import uuid6
-from orxtra.agent import Agent
 from orxtra.scheduler._executor import Scheduler
 
 from .conftest import MockTraceWriter, MockTransport, make_agent, make_categories

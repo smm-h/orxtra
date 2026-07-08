@@ -10,7 +10,11 @@ from uuid import UUID
 import pytest
 from orxtra.protocols import Tool, ToolError, ToolOutput
 from orxtra.secrets import SecretRegistry
-from orxtra.tool._pipeline import compose, wrap_tool_with_pipeline, wrap_tools_for_session
+from orxtra.tool._pipeline import (
+    compose,
+    wrap_tool_with_pipeline,
+    wrap_tools_for_session,
+)
 from orxtra.tool._scrub import scrub_data, scrub_text, scrub_tool_output
 
 # ---------------------------------------------------------------------------
@@ -275,7 +279,7 @@ class TestTransientRetry:
     @pytest.mark.asyncio
     async def test_transient_error_retried_and_succeeds(self) -> None:
         """Tool that raises OSError(EIO) once then succeeds is retried."""
-        import errno  # noqa: PLC0415
+        import errno
 
         call_count = 0
 
@@ -306,7 +310,7 @@ class TestTransientRetry:
     @pytest.mark.asyncio
     async def test_non_transient_error_not_retried(self) -> None:
         """Non-transient OSError (e.g., ENOENT) propagates immediately."""
-        import errno  # noqa: PLC0415
+        import errno
 
         call_count = 0
 

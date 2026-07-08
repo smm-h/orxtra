@@ -70,7 +70,7 @@ def run_id() -> uuid.UUID:
 
 
 @pytest.fixture
-def scheduler(  # noqa: PLR0913
+def scheduler(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -90,7 +90,7 @@ def scheduler(  # noqa: PLR0913
 
 
 @pytest.fixture
-def make_scheduler(  # noqa: PLR0913
+def make_scheduler(
     trace_writer: MockTraceWriter,
     transport: MockTransport,
     agents: dict[str, Agent],
@@ -100,7 +100,7 @@ def make_scheduler(  # noqa: PLR0913
 ) -> Callable[..., Scheduler]:
     """Factory fixture for creating scheduler instances."""
 
-    def _make(**kwargs: Any) -> Scheduler:  # noqa: ANN401
+    def _make(**kwargs: Any) -> Scheduler:
         defaults: dict[str, Any] = {
             "trace_writer": trace_writer,
             "transport_registry": {"anthropic": transport},

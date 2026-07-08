@@ -140,7 +140,7 @@ async def verify_schema(pool: asyncpg.Pool[Any]) -> None:
     Raises:
         SchemaError: If required schema objects are missing.
     """
-    from _generated.schema_executor import (  # noqa: PLC0415
+    from _generated.schema_executor import (
         verify,
     )
 

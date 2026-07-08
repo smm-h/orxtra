@@ -7,7 +7,6 @@ import logging
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.protocols import (
     CheckResult,
     TaskContext,
@@ -15,6 +14,7 @@ from orxtra.protocols import (
     TaskSpec,
     TaskState,
 )
+from orxtra.scheduler._prompt_providers import _render_notepad
 from orxtra.scheduler._prompt_templates import (
     load_template,
     render_template,
@@ -67,7 +67,7 @@ class TaskDispatchMixin(SchedulerBase):
         )
 
         # Send to Overseer (or headless fallback)
-        from orxtra.protocols import (  # noqa: PLC0415
+        from orxtra.protocols import (
             StructuralAdvisory,
         )
         await self._send_overseer_event(
@@ -361,7 +361,7 @@ class TaskDispatchMixin(SchedulerBase):
             ],
         )
 
-    async def _execute_for_each(  # noqa: C901
+    async def _execute_for_each(
         self,
         task: TaskSpec,
         task_id: UUID,

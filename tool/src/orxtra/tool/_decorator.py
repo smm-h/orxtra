@@ -12,14 +12,13 @@ import sys
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar, get_type_hints
 
-from pydantic import BaseModel, ValidationError
-
 from orxtra.protocols import Renderer, Tool, ToolError, ToolOutput
+from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T")
 
 
-class ToolTemplate(Generic[T]):
+class ToolTemplate(Generic[T]):  # noqa: UP046 -- matches original TypeVar style
     """An unbound tool definition. Call ``.bind(**deps)`` to get a ``Tool``.
 
     Created by the ``@tool`` decorator. The template captures the function,
@@ -28,22 +27,22 @@ class ToolTemplate(Generic[T]):
     """
 
     __slots__ = (
-        "name",
-        "description",
         "_fn",
+        "_namespace",
         "_params_model",
         "_renderer",
-        "_suspending",
-        "_namespace",
-        "_tags",
         "_schema",
+        "_suspending",
+        "_tags",
+        "description",
+        "name",
     )
 
     def __init__(
         self,
         name: str,
         description: str,
-        fn: Any,  # noqa: ANN401
+        fn: Any,
         params_model: type[BaseModel],
         renderer: Renderer[Any],
         *,
@@ -67,7 +66,7 @@ class ToolTemplate(Generic[T]):
         name: str | None = None,
         namespace: str | None = None,
         tags: frozenset[str] | None = None,
-        **deps: Any,  # noqa: ANN401
+        **deps: Any,
     ) -> Tool:
         """Bind dependencies to produce a ready-to-use ``Tool``.
 
@@ -149,7 +148,7 @@ def tool(
     caller_localns: dict[str, Any] = caller_frame.f_locals.copy()
     caller_globalns: dict[str, Any] = caller_frame.f_globals
 
-    def decorator(fn: Any) -> ToolTemplate[Any]:  # noqa: ANN401 -- fn type varies
+    def decorator(fn: Any) -> ToolTemplate[Any]:
         # Extract the Pydantic model from the first parameter's type annotation
         sig = inspect.signature(fn)
         params = list(sig.parameters.keys())

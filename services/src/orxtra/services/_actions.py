@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from orxtra.dispatch import execute_action
-from orxtra.protocols import Action, ActionExecutor, EventAction, EventFireCallback, WorkflowAction
+from orxtra.protocols import (
+    Action,
+    EventFireCallback,
+)
 
 if TYPE_CHECKING:
-    from pathlib import Path
-    from uuid import UUID
 
     import asyncpg
 
@@ -34,7 +35,7 @@ class ServicesActionExecutor:
     async def execute_workflow(
         self,
         workflow_path: str,
-        config: dict[str, object],
+        config: dict[str, object],  # noqa: ARG002 -- ActionExecutor protocol signature
         events: list[dict[str, object]],
     ) -> None:
         # Lazy import to avoid circular dependency at module level.

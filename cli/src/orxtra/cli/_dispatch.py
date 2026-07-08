@@ -56,8 +56,8 @@ def register_dispatch_commands(app: strictcli.App) -> None:
         batch_size: int = kwargs.get("batch_size", 100)  # type: ignore[assignment]
 
         async def _run() -> None:
-            import asyncpg as _asyncpg  # noqa: PLC0415
-            from orxtra.services import (  # noqa: PLC0415
+            import asyncpg as _asyncpg
+            from orxtra.services import (
                 SchemaError,
                 create_dispatch_worker,
                 verify_schema,

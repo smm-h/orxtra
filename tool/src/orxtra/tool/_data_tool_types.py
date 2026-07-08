@@ -90,7 +90,7 @@ class CommandExecution(BaseModel):
     timeout_ceiling: int
 
 
-def _execution_discriminator(v: Any) -> str:  # noqa: ANN401
+def _execution_discriminator(v: Any) -> str:
     """Discriminator for execution type union."""
     if isinstance(v, dict):
         return str(v.get("type", ""))

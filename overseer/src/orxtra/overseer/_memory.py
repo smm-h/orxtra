@@ -5,9 +5,17 @@ from typing import TYPE_CHECKING, Any
 
 from orxtra.trace import (
     query_lessons as _query_lessons,
+)
+from orxtra.trace import (
     read_assumptions as _read_assumptions,
+)
+from orxtra.trace import (
     read_constraints as _read_constraints,
+)
+from orxtra.trace import (
     read_decisions as _read_decisions,
+)
+from orxtra.trace import (
     read_workflow_status as _read_workflow_status,
 )
 
@@ -16,7 +24,7 @@ if TYPE_CHECKING:
 
 
 async def query_decisions(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     run_id: UUID,
     limit: int = 10,
 ) -> list[dict[str, Any]]:
@@ -34,7 +42,7 @@ async def query_decisions(
 
 
 async def query_constraints(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     run_id: UUID,
     active_only: bool = True,
 ) -> list[dict[str, Any]]:
@@ -52,7 +60,7 @@ async def query_constraints(
 
 
 async def query_assumptions(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     run_id: UUID,
     status: str | None = None,
 ) -> list[dict[str, Any]]:
@@ -75,7 +83,7 @@ async def query_assumptions(
 
 
 async def query_lessons(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     run_id: UUID | None = None,
     tags: list[str] | None = None,
     permanent_only: bool = False,
@@ -99,7 +107,7 @@ async def query_lessons(
 
 
 async def query_workflow_status(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     workflow_id: UUID,
 ) -> dict[str, Any] | None:
     row = await _read_workflow_status(pool, workflow_id)

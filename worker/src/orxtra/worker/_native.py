@@ -30,8 +30,8 @@ from orxtra.tool import (
     make_set_executable_tool,
     make_stat_tool,
     make_write_tool,
+    run_subprocess,
 )
-from orxtra.tool import run_subprocess
 from orxtra.worker._protocol import (
     ExecuteToolCall,
     Heartbeat,
@@ -186,7 +186,7 @@ def build_worker_tools(
     return {t.name: t for t in tools}
 
 
-def _serialize_message(msg_type: str, model: Any) -> str:  # noqa: ANN401
+def _serialize_message(msg_type: str, model: Any) -> str:
     """Serialize a protocol message as a JSON envelope."""
     return json.dumps({
         "type": msg_type,
@@ -241,10 +241,12 @@ class NativeWorker:
 
     async def _connect_and_run(self) -> None:
         """Connect to the brain, register, and enter the message loop."""
-        import websockets  # noqa: PLC0415
+        import websockets
 
         headers = {"Authorization": f"Bearer {self._api_key}"}
-        async with websockets.connect(self._brain_url, additional_headers=headers) as ws:
+        async with websockets.connect(
+            self._brain_url, additional_headers=headers,
+        ) as ws:
             _logger.info("Connected to brain at %s", self._brain_url)
 
             # Send registration.
@@ -261,11 +263,14 @@ class NativeWorker:
 
             # Message loop.
             async for raw_message in ws:
-                if isinstance(raw_message, bytes):
-                    raw_message = raw_message.decode("utf-8")
-                await self._handle_message(ws, raw_message)
+                text = (
+                    raw_message.decode("utf-8")
+                    if isinstance(raw_message, bytes)
+                    else raw_message
+                )
+                await self._handle_message(ws, text)
 
-    async def _handle_message(self, ws: Any, raw: str) -> None:  # noqa: ANN401
+    async def _handle_message(self, ws: Any, raw: str) -> None:
         """Parse and dispatch a single message from the brain."""
         try:
             envelope: dict[str, Any] = json.loads(raw)
@@ -312,12 +317,11 @@ class NativeWorker:
 
             # Track mutations from write tools.
             mutations: list[str] = []
-            if "path" in call.args:
-                if tool.name in {
-                    "write", "edit", "multi_edit", "delete",
-                    "move", "copy", "mkdir", "set_executable",
-                }:
-                    mutations.append(str(call.args["path"]))
+            if "path" in call.args and tool.name in {
+                "write", "edit", "multi_edit", "delete",
+                "move", "copy", "mkdir", "set_executable",
+            }:
+                mutations.append(str(call.args["path"]))
             if "source" in call.args and tool.name in {"move", "copy"}:
                 mutations.append(str(call.args["source"]))
             if "destination" in call.args and tool.name in {"move", "copy"}:

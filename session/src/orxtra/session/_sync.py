@@ -24,10 +24,9 @@ class SyncSession:
         events: list[TransportEvent] = []
 
         async def _collect() -> None:
-            async for event in self._session.send(
-                prompt, **kwargs,
-            ):
-                events.append(event)
+            events.extend(
+                [event async for event in self._session.send(prompt, **kwargs)],
+            )
 
         run_sync(_collect())
         return events

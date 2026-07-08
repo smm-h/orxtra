@@ -11,7 +11,7 @@ from orxtra.notepad._reader import read_notepad
 from orxtra.notepad._types import NotepadEntry
 
 __all__ = [
-    "__version__",
     "NotepadEntry",
+    "__version__",
     "read_notepad",
 ]

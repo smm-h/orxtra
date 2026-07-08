@@ -365,14 +365,15 @@ class RecoveryOperations(Protocol):
     async def clean_orphaned(self) -> int: ...
 
 
-from orxtra.protocols import EventBus as EventBus  # re-export for backward compat
 
 
 @runtime_checkable
 class KnowledgeHashStorage(Protocol):
     """Persistence for knowledge file content hashes."""
 
-    async def write_knowledge_hash(self, run_id: UUID, path: str, file_hash: str) -> None: ...
+    async def write_knowledge_hash(
+        self, run_id: UUID, path: str, file_hash: str,
+    ) -> None: ...
 
     async def read_knowledge_hashes(self, run_id: UUID) -> dict[str, str]: ...
 
@@ -400,4 +401,3 @@ class StorageBackend(
     lifecycle (long-lived connections for LISTEN/NOTIFY).
     """
 
-    ...

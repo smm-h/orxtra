@@ -39,4 +39,6 @@ class DeleteSurface(BaseModel):
     surface_id: str
 
 
-type SurfaceOperation = CreateSurface | UpdateComponents | UpdateDataModel | DeleteSurface
+type SurfaceOperation = (
+    CreateSurface | UpdateComponents | UpdateDataModel | DeleteSurface
+)

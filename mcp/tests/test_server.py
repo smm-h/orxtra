@@ -32,12 +32,12 @@ def _rpc(
 
 
 @pytest.fixture
-def mock_pool() -> Any:  # noqa: ANN401
+def mock_pool() -> Any:
     return AsyncMock()
 
 
 @pytest.fixture
-def server(mock_pool: Any) -> MCPServer:  # noqa: ANN401
+def server(mock_pool: Any) -> MCPServer:
     return MCPServer(mock_pool)
 
 
@@ -565,7 +565,7 @@ def test_serialize_empty_containers() -> None:
 
 @patch("orxtra.mcp._server.event_stream")
 async def test_event_listener_forwards_notifications(
-    mock_event_stream: Any,  # noqa: ANN401
+    mock_event_stream: Any,
 ) -> None:
     """Events from services event_stream are forwarded as JSON-RPC notifications."""
     written: list[bytes] = []
@@ -580,7 +580,7 @@ async def test_event_listener_forwards_notifications(
     events = [{"event_type": "task_completed", "run_id": "abc"}]
 
     async def _fake_stream(
-        bus: Any, *, channel: str = "events",  # noqa: ANN401
+        bus: Any, *, channel: str = "events",
     ) -> Any:
         for event in events:
             yield event
@@ -593,7 +593,7 @@ async def test_event_listener_forwards_notifications(
     server = MCPServer(pool=AsyncMock(), event_bus=mock_bus)
     writer = MockWriter()
 
-    task = await server._start_event_listener(writer)  # noqa: SLF001
+    task = await server._start_event_listener(writer)
 
     # Give it time to iterate
     await asyncio.sleep(0.05)

@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING, Self
 from uuid import UUID
 
 import pytest
-from uuid6 import uuid7
-
 from orxtra.dispatch._pg_backend import (
     PgDispatchBackend,
     _deserialize_action,
@@ -26,6 +24,7 @@ from orxtra.protocols import (
     ScriptAction,
     WorkflowAction,
 )
+from uuid6 import uuid7
 
 if TYPE_CHECKING:
     from collections.abc import ItemsView, KeysView, ValuesView

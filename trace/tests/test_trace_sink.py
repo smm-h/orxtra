@@ -8,7 +8,6 @@ from uuid import UUID
 
 import pytest
 import uuid6
-
 from orxtra.protocols import (
     BudgetExhausted,
     BudgetThresholdCrossed,
@@ -19,7 +18,6 @@ from orxtra.protocols import (
     TaskEscalated,
 )
 from orxtra.trace._trace_sink import TraceSink, _serialize_event, _to_snake_case
-
 
 # ── Unit tests for helpers ──
 

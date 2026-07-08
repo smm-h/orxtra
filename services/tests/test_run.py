@@ -532,7 +532,7 @@ def test_serialize_config_redacts_credentials() -> None:
     create_run, so api_keys and db_url passwords must be redacted.
     """
     sentinel_key = "sk-ant-SENTINEL-API-KEY-12345"
-    sentinel_password = "SENTINEL-DB-PASSWORD"  # noqa: S105
+    sentinel_password = "SENTINEL-DB-PASSWORD"
     config = RunConfig(
         workflow_path=Path("/workflow.toml"),
         agents_dir=Path("/agents"),
@@ -569,7 +569,7 @@ def test_serialize_config_db_url_without_password_unchanged() -> None:
 
 def test_serialize_config_redacts_query_param_password() -> None:
     """Regression: asyncpg/libpq accept ?password=... in the URL query."""
-    sentinel_password = "SENTINEL-QUERY-PASSWORD"  # noqa: S105
+    sentinel_password = "SENTINEL-QUERY-PASSWORD"
     config = RunConfig(
         workflow_path=Path("/workflow.toml"),
         agents_dir=Path("/agents"),

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import time
+from datetime import UTC
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 import uuid6
-
 from orxtra.trace._transitions import (
     InvalidTransitionError,
     validate_run_transition,
@@ -25,7 +26,6 @@ from orxtra.trace._types import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from datetime import datetime
-    from decimal import Decimal
     from uuid import UUID
 
 
@@ -627,35 +627,36 @@ class InMemoryBackend:
     async def read_transcript(
         self, session_id: UUID,
     ) -> list[dict[str, Any]]:
-        results = []
-        for t in self._transcripts:
-            if t["session_id"] == session_id:
-                results.append({
-                    "turn": t["turn"],
-                    "role": t["role"],
-                    "content": t["content"],
-                    "tool_calls": t["tool_calls"],
-                    "tokens": t["tokens"],
-                    "created_at": t["created_at"],
-                })
-        return results
+        return [
+            {
+                "turn": t["turn"],
+                "role": t["role"],
+                "content": t["content"],
+                "tool_calls": t["tool_calls"],
+                "tokens": t["tokens"],
+                "created_at": t["created_at"],
+            }
+            for t in self._transcripts
+            if t["session_id"] == session_id
+        ]
 
     async def search_transcript(
         self, session_id: UUID, query: str,
     ) -> list[dict[str, Any]]:
-        results = []
         query_lower = query.lower()
-        for t in self._transcripts:
-            if t["session_id"] == session_id and query_lower in t["content"].lower():
-                results.append({
-                    "turn": t["turn"],
-                    "role": t["role"],
-                    "content": t["content"],
-                    "tool_calls": t["tool_calls"],
-                    "tokens": t["tokens"],
-                    "created_at": t["created_at"],
-                })
-        return results
+        return [
+            {
+                "turn": t["turn"],
+                "role": t["role"],
+                "content": t["content"],
+                "tool_calls": t["tool_calls"],
+                "tokens": t["tokens"],
+                "created_at": t["created_at"],
+            }
+            for t in self._transcripts
+            if t["session_id"] == session_id
+            and query_lower in t["content"].lower()
+        ]
 
     async def read_run_report(
         self, run_id: UUID,
@@ -692,16 +693,16 @@ class InMemoryBackend:
         )
 
     async def list_runs(self) -> list[RunSummary]:
-        results = []
-        for run in reversed(list(self._runs.values())):
-            results.append(RunSummary(
+        return [
+            RunSummary(
                 id=run["id"],
                 intent=run["intent"],
                 status=run["status"],
                 created_at=run["created_at"],
                 finished_at=run["finished_at"],
-            ))
-        return results
+            )
+            for run in reversed(list(self._runs.values()))
+        ]
 
     async def read_inbox(
         self, run_id: UUID, status: str | None = None,
@@ -719,18 +720,18 @@ class InMemoryBackend:
     async def read_notepad(
         self, run_id: UUID,
     ) -> list[NotepadEntry]:
-        results = []
-        for entry in self._notepad_entries:
-            if entry["run_id"] == run_id:
-                results.append(NotepadEntry(
-                    run_id=entry["run_id"],
-                    task_name=entry["task_name"],
-                    agent_name=entry["agent_name"],
-                    entry_type=entry["entry_type"],
-                    text=entry["text"],
-                    created_at=entry["created_at"],
-                ))
-        return results
+        return [
+            NotepadEntry(
+                run_id=entry["run_id"],
+                task_name=entry["task_name"],
+                agent_name=entry["agent_name"],
+                entry_type=entry["entry_type"],
+                text=entry["text"],
+                created_at=entry["created_at"],
+            )
+            for entry in self._notepad_entries
+            if entry["run_id"] == run_id
+        ]
 
     async def read_active_constraints(
         self, run_id: UUID,
@@ -790,11 +791,11 @@ class InMemoryBackend:
     async def read_session_token_counts(
         self, session_id: UUID,
     ) -> list[dict[str, Any]]:
-        results = []
-        for t in self._transcripts:
-            if t["session_id"] == session_id and t["tokens"] is not None:
-                results.append({"tokens": t["tokens"]})
-        return results
+        return [
+            {"tokens": t["tokens"]}
+            for t in self._transcripts
+            if t["session_id"] == session_id and t["tokens"] is not None
+        ]
 
     async def read_session_turn_count(
         self, session_id: UUID,
@@ -932,7 +933,7 @@ class InMemoryBackend:
 
     async def acquire_run_lock(self, run_id: UUID) -> None:
         if self._run_locks.get(run_id):
-            from orxtra.trace._lock import RunLockError  # noqa: PLC0415
+            from orxtra.trace._lock import RunLockError
             msg = f"run {run_id} is already locked by another process"
             raise RunLockError(msg)
         self._run_locks[run_id] = True
@@ -1008,7 +1009,9 @@ class InMemoryBackend:
 
     # ── KnowledgeHashStorage ──
 
-    async def write_knowledge_hash(self, run_id: UUID, path: str, file_hash: str) -> None:
+    async def write_knowledge_hash(
+        self, run_id: UUID, path: str, file_hash: str,
+    ) -> None:
         self._knowledge_hashes.setdefault(run_id, {})[path] = file_hash
 
     async def read_knowledge_hashes(self, run_id: UUID) -> dict[str, str]:
@@ -1033,10 +1036,8 @@ class InMemoryEventBus:
         cbs = self._subscribers.get(channel)
         if cbs is None:
             return
-        try:
+        with contextlib.suppress(ValueError):
             cbs.remove(callback)
-        except ValueError:
-            pass
         if not cbs:
             del self._subscribers[channel]
 
@@ -1047,5 +1048,5 @@ class InMemoryEventBus:
 
 def _now() -> datetime:
     """Return current UTC datetime."""
-    from datetime import datetime, timezone  # noqa: PLC0415
-    return datetime.now(timezone.utc)
+    from datetime import datetime
+    return datetime.now(UTC)

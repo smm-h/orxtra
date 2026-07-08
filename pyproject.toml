@@ -164,6 +164,9 @@ dev = [
 
 [tool.ruff]
 target-version = "py312"
+# Frozen snapshots of pgdesign-generated code captured at release time for
+# migration tests. Historical artifacts -- never edited, never linted.
+extend-exclude = ["tests/migration_baselines"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -175,6 +178,15 @@ ignore = [
     "FBT",     # boolean positional args -- too noisy for tool constructors
     "TD",      # todo comments -- not relevant
     "FIX",     # fixme comments -- not relevant
+    "TC002",   # pydantic models resolve field annotations at runtime;
+    "TC003",   # TYPE_CHECKING-gating those imports breaks model building
+    "PLC0415", # lazy imports are deliberate: layer seams, optional deps, cycle breaks
+    "PLR0913", # tool/service constructors take many typed parameters by design
+    "ANN401",  # Any at protocol seams (tool payloads, handler kwargs) is deliberate
+    "C901",    # complexity budgets don't fit dispatcher/executor-style functions
+    "PLR0911", # (same: many-return dispatchers)
+    "PLR0912", # (same: many-branch dispatchers)
+    "PLR0915", # (same: long orchestration functions)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -183,26 +195,23 @@ ignore = [
     "PLR2004", # magic values in tests are fine
     "ARG",     # unused args in fixtures are fine
     "INP001",  # tests are implicit namespace packages
+    "SLF001",  # tests exercise private internals by design
+    "E501",    # long literal lines in test data/assertions
+    "S105",    # dummy credentials in test fixtures
+    "S106",    # dummy credentials in test fixtures
+    "S108",    # hardcoded /tmp paths in tests are fine
+    "ASYNC240", # blocking Path methods in async tests are fine
+    "E402",    # tests manipulate sys.path / import order deliberately
 ]
-"**/_task.py" = ["TC002", "TC003"]   # pydantic models need runtime imports
-"**/_tools.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
-"**/_execution.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
-"**/_types.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
-"**/_actions.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
-"**/_checks.py" = ["TC002", "TC003"]  # pydantic models/check types need runtime imports
-"**/_protocol.py" = ["TC002", "TC003"]  # pydantic models need runtime imports
-"**/_events.py" = ["TC003"]  # dataclass field annotations need runtime imports
-"**/_auth.py" = ["TC003"]  # dataclass field annotations need runtime imports
-"**/_verifiers.py" = ["TC002", "TC003"]  # protocols types used at runtime (constructors, enum access)
-"**/_mac_provider.py" = ["TC002"]  # SecretRegistry used at runtime in __init__
 "**/_tool.py" = ["UP046"]  # ToolOutput uses Generic[T] (matches original code)
-"**/_writer.py" = ["PLR0913"]  # DB write methods have many columns
 "hatch_build.py" = [
     "INP001",  # build hook is a standalone script, not a package
 ]
 "scripts/**" = [
     "S603",    # subprocess calls are expected in scripts
     "INP001",  # scripts are implicit namespace packages
+    "E501",    # dev tooling scripts: long report/format strings
+    "S607",    # invoking tools by name from PATH is intended in dev scripts
 ]
 # pgdesign-generated DDL modules: machine-generated code with long DDL strings,
 # unsorted imports, and patterns that don't match hand-written style rules.

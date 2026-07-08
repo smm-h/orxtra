@@ -60,7 +60,7 @@ def make_check_context(
     task_name: str = "test-task",
     attempt: int = 1,
 ) -> CheckContext:
-    from orxtra.protocols import CheckContext  # noqa: PLC0415
+    from orxtra.protocols import CheckContext
 
     return CheckContext(
         variables=variables or {},

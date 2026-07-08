@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
     from orxtra.protocols import EventSink, Tool
     from orxtra.trace import StorageBackend, TraceWriter
-    from orxtra.transport import TransportEvent, Transport
+    from orxtra.transport import Transport, TransportEvent
 
 from orxtra.transport import Continuation, Result, SessionSuspended, StepFinish, ToolUse
 
@@ -19,7 +19,7 @@ _logger = logging.getLogger("orxtra.session")
 
 
 class Session:
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         transport: Transport,
         model: str,
@@ -45,7 +45,9 @@ class Session:
         self.total_cache_read_tokens: int = 0
         self.total_cache_write_tokens: int = 0
         self.turn_count: int = 0
-        self._event_handlers: dict[type, list[Callable[[Any], None]]] = defaultdict(list)
+        self._event_handlers: dict[type, list[Callable[[Any], None]]] = (
+            defaultdict(list)
+        )
 
     @property
     def session_id(self) -> str | None:

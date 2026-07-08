@@ -46,11 +46,11 @@ def pg_container() -> Iterator[Any]:
 
 @pytest.fixture
 async def pg_pool(
-    pg_container: Any,  # noqa: ANN401
+    pg_container: Any,
 ) -> AsyncIterator[asyncpg.Pool]:
     """Create an asyncpg pool with the full orxtra schema."""
-    import asyncpg as _asyncpg  # noqa: PLC0415
-    from _generated.schema_executor import (  # noqa: PLC0415
+    import asyncpg as _asyncpg
+    from _generated.schema_executor import (
         execute as schema_execute,
     )
 

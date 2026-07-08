@@ -36,8 +36,8 @@ def build_transport_registry(
     """
     registry: dict[str, Transport] = {}
     for name, config in provider_configs.items():
-        config = dict(config)  # shallow copy so we can pop
-        provider_type = config.pop("type", None)
+        cfg = dict(config)  # shallow copy so we can pop
+        provider_type = cfg.pop("type", None)
         if provider_type is None:
             msg = (
                 f"Provider config '{name}' missing required 'type' field"
@@ -50,6 +50,6 @@ def build_transport_registry(
                 f" Supported: {', '.join(sorted(_PROVIDER_TYPES))}"
             )
             raise ValueError(msg)
-        provider = provider_cls(**config)
+        provider = provider_cls(**cfg)
         registry[name] = Transport(provider, _DEFAULT_RETRY_POLICY)
     return registry

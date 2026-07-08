@@ -6,7 +6,6 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 
 from ag_ui.core import BaseEvent
-
 from orxtra.agui._translator import AGUITranslator
 from orxtra.protocols import OverseerEvent
 from orxtra.transport import TransportEvent

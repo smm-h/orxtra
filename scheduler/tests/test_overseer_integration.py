@@ -190,7 +190,7 @@ _PATCH_HANDOFF = patch.object(
 )
 
 
-def _make_scheduler(  # noqa: PLR0913
+def _make_scheduler(
     read_root: Path,
     trace_writer: MockTraceWriter | None = None,
     overseer: MockOverseerAdapter | None = None,
@@ -325,13 +325,13 @@ def _make_adapter_for_verify() -> (
     adapter = OverseerAdapter.__new__(
         OverseerAdapter,
     )
-    adapter._health_monitor = monitor  # type: ignore[assignment]  # noqa: SLF001
-    adapter._last_tool_calls = {}  # noqa: SLF001
-    adapter._previous_tool_calls = {}  # noqa: SLF001
-    adapter._current_tool_calls = []  # noqa: SLF001
-    adapter._budget_limit = None  # noqa: SLF001
-    adapter._spent_fn = None  # noqa: SLF001
-    adapter._proportionality_threshold = None  # noqa: SLF001
+    adapter._health_monitor = monitor  # type: ignore[assignment]
+    adapter._last_tool_calls = {}
+    adapter._previous_tool_calls = {}
+    adapter._current_tool_calls = []
+    adapter._budget_limit = None
+    adapter._spent_fn = None
+    adapter._proportionality_threshold = None
     return adapter, monitor
 
 
@@ -352,7 +352,7 @@ class TestOverseerEventSending:
         )
         event = _run_started_event()
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 event,
             )
         assert len(adapter.events) == 1
@@ -369,7 +369,7 @@ class TestOverseerEventSending:
         )
         event = _task_failed_event()
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 event,
             )
         assert len(adapter.events) == 1
@@ -386,7 +386,7 @@ class TestOverseerEventSending:
         )
         event = _inbox_answered_event()
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 event,
             )
         assert len(adapter.events) == 1
@@ -403,7 +403,7 @@ class TestOverseerEventSending:
         )
         event = _inbox_rejected_event()
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 event,
             )
         assert len(adapter.events) == 1
@@ -420,7 +420,7 @@ class TestOverseerEventSending:
         )
         event = _structural_advisory_event()
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 event,
             )
         assert len(adapter.events) == 1
@@ -437,7 +437,7 @@ class TestOverseerEventSending:
         )
         event = _budget_threshold_event()
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 event,
             )
         assert len(adapter.events) == 1
@@ -453,7 +453,7 @@ class TestOverseerEventSending:
         event = _run_started_event()
         # No overseer -> returns immediately,
         # _check_session_handoff never reached.
-        await scheduler._send_overseer_event(event)  # noqa: SLF001
+        await scheduler._send_overseer_event(event)
 
 
 class TestVerifyThenAcceptLoop:
@@ -471,7 +471,7 @@ class TestVerifyThenAcceptLoop:
         )
 
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 _run_started_event(),
             )
 
@@ -491,7 +491,7 @@ class TestVerifyThenAcceptLoop:
         )
 
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 _run_started_event(),
             )
 
@@ -522,7 +522,7 @@ class TestVerifyThenAcceptLoop:
                 logger="orxtra.scheduler",
             ),
         ):
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 _run_started_event(),
             )
 
@@ -549,7 +549,7 @@ class TestVerifyThenAcceptLoop:
         )
 
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 _run_started_event(),
             )
 
@@ -575,7 +575,7 @@ class TestDegradedMode:
 
         # Degraded path returns before handoff check,
         # so no patch needed.
-        await scheduler._send_overseer_event(  # noqa: SLF001
+        await scheduler._send_overseer_event(
             _task_failed_event(),
         )
 
@@ -597,7 +597,7 @@ class TestDegradedMode:
             logging.WARNING,
             logger="orxtra.scheduler",
         ):
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 _task_failed_event(),
             )
 
@@ -619,7 +619,7 @@ class TestDegradedMode:
         )
 
         with _PATCH_HANDOFF:
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 _run_started_event(),
             )
 
@@ -648,7 +648,7 @@ class TestDegradedMode:
             logging.WARNING,
             logger="orxtra.scheduler",
         ):
-            await scheduler._send_overseer_event(  # noqa: SLF001
+            await scheduler._send_overseer_event(
                 event,
             )
 
@@ -676,7 +676,7 @@ class TestCoherenceSummary:
             overseer=adapter,
         )
 
-        await scheduler._write_coherence_summary()  # noqa: SLF001
+        await scheduler._write_coherence_summary()
 
         calls = tw.get_calls(
             "write_coherence_summary",
@@ -695,7 +695,7 @@ class TestCoherenceSummary:
             overseer=None,
         )
 
-        await scheduler._write_coherence_summary()  # noqa: SLF001
+        await scheduler._write_coherence_summary()
 
         calls = tw.get_calls(
             "write_coherence_summary",
@@ -735,7 +735,7 @@ class TestSessionHandoff:
             handoff_performer=mock_performer,
         )
 
-        await scheduler._check_session_handoff()  # noqa: SLF001
+        await scheduler._check_session_handoff()
 
         assert adapter.mock_session is new_session
 
@@ -760,7 +760,7 @@ class TestSessionHandoff:
             handoff_performer=mock_performer,
         )
 
-        await scheduler._check_session_handoff()  # noqa: SLF001
+        await scheduler._check_session_handoff()
 
         mock_performer.assert_not_called()
         assert adapter.mock_session is original
@@ -792,7 +792,7 @@ class TestSessionHandoff:
             handoff_performer=mock_performer,
         )
 
-        await scheduler._check_session_handoff()  # noqa: SLF001
+        await scheduler._check_session_handoff()
 
         assert adapter.session is new_session
         assert (
@@ -807,7 +807,7 @@ class TestRepetitionDetection:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._previous_tool_calls = {  # noqa: SLF001
+        adapter._previous_tool_calls = {
             "TaskFailed": [
                 {
                     "tool_name": "add_constraint",
@@ -815,7 +815,7 @@ class TestRepetitionDetection:
                 },
             ],
         }
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "add_constraint",
                 "input": {"kind": "budget"},
@@ -834,7 +834,7 @@ class TestRepetitionDetection:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._previous_tool_calls = {  # noqa: SLF001
+        adapter._previous_tool_calls = {
             "TaskFailed": [
                 {
                     "tool_name": "add_constraint",
@@ -842,7 +842,7 @@ class TestRepetitionDetection:
                 },
             ],
         }
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "add_constraint",
                 "input": {"kind": "timeout"},
@@ -865,7 +865,7 @@ class TestConstraintConsistency:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "add_constraint",
                 "input": {
@@ -893,7 +893,7 @@ class TestConstraintConsistency:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "add_constraint",
                 "input": {
@@ -925,11 +925,11 @@ class TestProportionalityCheck:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._proportionality_threshold = 0.5  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal("2.00")  # noqa: SLF001
+        adapter._budget_limit = Decimal("10.00")
+        adapter._proportionality_threshold = 0.5
+        adapter._spent_fn = lambda: Decimal("2.00")
         # Remaining = 8.00, threshold = 4.00
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_workflow",
                 "input": {"budget": "5.00"},
@@ -947,11 +947,11 @@ class TestProportionalityCheck:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._proportionality_threshold = 0.5  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal("2.00")  # noqa: SLF001
+        adapter._budget_limit = Decimal("10.00")
+        adapter._proportionality_threshold = 0.5
+        adapter._spent_fn = lambda: Decimal("2.00")
         # Remaining = 8.00, threshold = 4.00
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_workflow",
                 "input": {"budget": "3.00"},
@@ -970,7 +970,7 @@ class TestProportionalityCheck:
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
         # _budget_limit defaults to None
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_workflow",
                 "input": {"budget": "999.00"},
@@ -988,10 +988,10 @@ class TestProportionalityCheck:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._proportionality_threshold = 0.5  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._budget_limit = Decimal("10.00")
+        adapter._proportionality_threshold = 0.5
+        adapter._spent_fn = lambda: Decimal(0)
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_workflow",
                 "input": {"name": "test"},
@@ -1009,10 +1009,10 @@ class TestProportionalityCheck:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._proportionality_threshold = 0.5  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal("10.00")  # noqa: SLF001
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._budget_limit = Decimal("10.00")
+        adapter._proportionality_threshold = 0.5
+        adapter._spent_fn = lambda: Decimal("10.00")
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_workflow",
                 "input": {"budget": "1.00"},
@@ -1030,11 +1030,11 @@ class TestProportionalityCheck:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._proportionality_threshold = 0.5  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
+        adapter._budget_limit = Decimal("10.00")
+        adapter._proportionality_threshold = 0.5
+        adapter._spent_fn = lambda: Decimal(0)
         # Remaining = 10.00, threshold = 5.00
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_workflow",
                 "input": {"budget": "5.00"},
@@ -1052,11 +1052,11 @@ class TestProportionalityCheck:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._proportionality_threshold = 0.5  # noqa: SLF001
+        adapter._budget_limit = Decimal("10.00")
+        adapter._proportionality_threshold = 0.5
         # spent_fn left as None (default)
         # Remaining = 10.00, threshold = 5.00
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_workflow",
                 "input": {"budget": "6.00"},
@@ -1074,10 +1074,10 @@ class TestProportionalityCheck:
         self,
     ) -> None:
         adapter, _ = _make_adapter_for_verify()
-        adapter._budget_limit = Decimal("10.00")  # noqa: SLF001
-        adapter._proportionality_threshold = 0.5  # noqa: SLF001
-        adapter._spent_fn = lambda: Decimal(0)  # noqa: SLF001
-        adapter._current_tool_calls = [  # noqa: SLF001
+        adapter._budget_limit = Decimal("10.00")
+        adapter._proportionality_threshold = 0.5
+        adapter._spent_fn = lambda: Decimal(0)
+        adapter._current_tool_calls = [
             {
                 "tool_name": "create_task",
                 "input": {"budget": "999.00"},

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-import pytest
 from orxtra.session._session import Session
 from orxtra.transport import Result, StepFinish, StepStart, TransportEvent
 
@@ -160,7 +159,7 @@ class TestSessionSinks:
         run_id: uuid.UUID,
     ) -> None:
         """resume() also dispatches to sinks."""
-        from orxtra.transport import Continuation  # noqa: PLC0415
+        from orxtra.transport import Continuation
 
         sid = "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8091"
         resume_events = make_standard_events(session_id=sid, text="resumed")

@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 import pytest
 from orxtra.protocols import ToolError
 from orxtra.tool._data_tool_monty import (
-    derive_tags,
     build_command_tool,
     build_monty_tool,
+    derive_tags,
 )
 from orxtra.tool._data_tool_types import (
     CommandExecution,
@@ -76,7 +76,7 @@ class _StubToolDeps:
 # ---------------------------------------------------------------------------
 
 
-def _make_monty_definition(  # noqa: PLR0913
+def _make_monty_definition(
     *,
     name: str = "test_monty",
     description: str = "A test monty tool",
@@ -111,7 +111,7 @@ def _make_monty_definition(  # noqa: PLR0913
     )
 
 
-def _make_command_definition(  # noqa: PLR0913
+def _make_command_definition(
     *,
     name: str = "test_command",
     description: str = "A test command tool",
@@ -204,8 +204,8 @@ result
         # after safe_write for a new file, record_read is called,
         # so the tracker's internal _reads dict should contain the path.
         canonical = target_file.resolve()
-        assert canonical in deps.stale_tracker._reads  # noqa: SLF001
-        assert deps.session_id in deps.stale_tracker._reads[canonical]  # noqa: SLF001
+        assert canonical in deps.stale_tracker._reads
+        assert deps.session_id in deps.stale_tracker._reads[canonical]
         # Result is returned.
         assert "Wrote" in result.text
 

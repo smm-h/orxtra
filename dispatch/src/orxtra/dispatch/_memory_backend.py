@@ -154,7 +154,7 @@ class InMemoryDispatchBackend:
         self,
         event_id: UUID,
         action_id: UUID,
-        result_status: str,
+        result_status: str,  # noqa: ARG002 -- DispatchBackend protocol signature
     ) -> None:
         self._completions.add((event_id, action_id))
 

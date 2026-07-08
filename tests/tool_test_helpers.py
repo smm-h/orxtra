@@ -12,7 +12,7 @@ class MockRenderer:
         self.calls: list[Any] = []
         self._prefix = prefix
 
-    def render(self, data: Any) -> str:  # noqa: ANN401
+    def render(self, data: Any) -> str:
         self.calls.append(data)
         return f"{self._prefix}{data!s}"
 

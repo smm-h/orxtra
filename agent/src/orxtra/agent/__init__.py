@@ -12,9 +12,9 @@ from orxtra.agent._loader import load_agent, load_agents
 from orxtra.agent._types import Agent, InlineToolDefinition
 
 __all__ = [
-    "__version__",
     "Agent",
     "InlineToolDefinition",
+    "__version__",
     "load_agent",
     "load_agents",
     "load_categories",

@@ -5,12 +5,11 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 import respx
-from orxtra.protocols import Confirmation, Tool, ToolError, ToolOutput
+from orxtra.protocols import Tool, ToolError, ToolOutput
 from orxtra.transport._events import (
     ApiRetry,
     ContentBlock,
     Error,
-    TransportEvent,
     Result,
     StepFinish,
     StepStart,
@@ -19,6 +18,7 @@ from orxtra.transport._events import (
     Text,
     Thinking,
     ToolUse,
+    TransportEvent,
     Usage,
 )
 from orxtra.transport._provider import RetryPolicy
@@ -78,12 +78,12 @@ def _make_tool(
 
 
 async def _collect(
-    transport: Transport, message: str, **kwargs: Any,  # noqa: ANN401
+    transport: Transport, message: str, **kwargs: Any,
 ) -> list[TransportEvent]:
     return [event async for event in transport.send(message, **kwargs)]
 
 
-def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:  # noqa: ANN401
+def _default_send_kwargs(**overrides: Any) -> dict[str, Any]:
     defaults: dict[str, Any] = {
         "model": "test-model",
         "system_prompt": "sys",

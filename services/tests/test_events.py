@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import threading
 from typing import TYPE_CHECKING
@@ -520,10 +521,8 @@ class TestEventStreamCleanup:
 
         # Cancel.
         task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await task
-        except asyncio.CancelledError:
-            pass
 
         subs = bus._subscribers.get(EVENTS_CHANNEL, [])
         assert len(subs) == 0

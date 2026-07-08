@@ -40,7 +40,7 @@ def _schema_dir() -> str:
 
 def _find_pgdesign() -> str:
     """Locate the pgdesign binary on PATH."""
-    import shutil  # noqa: PLC0415
+    import shutil
 
     path = shutil.which("pgdesign")
     if path is None:
@@ -117,7 +117,7 @@ def _register_migrate_commands(
         _run_pgdesign("status", _require_db(db))
 
 
-def register_db_commands(app: strictcli.App) -> None:  # noqa: C901
+def register_db_commands(app: strictcli.App) -> None:
     """Register the ``db`` command group on the orxtra CLI."""
     db_group = app.group(
         "db",
@@ -146,7 +146,7 @@ def register_db_commands(app: strictcli.App) -> None:  # noqa: C901
         )
 
         async def _run() -> None:
-            from _generated.schema_executor import (  # noqa: PLC0415
+            from _generated.schema_executor import (
                 ensure_schema,
                 execute,
             )
@@ -193,7 +193,7 @@ def register_db_commands(app: strictcli.App) -> None:  # noqa: C901
         db_url = _require_db(db)
 
         async def _run() -> None:
-            from _generated.schema_executor import (  # noqa: PLC0415
+            from _generated.schema_executor import (
                 verify,
             )
 

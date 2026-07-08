@@ -13,7 +13,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import uuid6
-from orxtra.protocols import CheckResult, ScriptExecution, TaskResult, TaskSpec, TaskState
+from orxtra.protocols import (
+    CheckResult,
+    ScriptExecution,
+    TaskResult,
+    TaskSpec,
+    TaskState,
+)
 from orxtra.scheduler import WorkflowConfig
 
 from tests.conftest import (
@@ -38,7 +44,7 @@ if TYPE_CHECKING:
 
 def _register_check_module(
     module_name: str,
-    **functions: Any,  # noqa: ANN401
+    **functions: Any,
 ) -> types.ModuleType:
     """Register a synthetic module in sys.modules for callable tasks."""
     mod = types.ModuleType(module_name)
@@ -63,7 +69,7 @@ def _cleanup_modules(*module_names: str) -> None:
             sys.modules.pop(parent, None)
 
 
-def _patch_auto_commit() -> Any:  # noqa: ANN401
+def _patch_auto_commit() -> Any:
     """Patch _auto_commit to avoid subprocess calls in tests."""
     return patch(
         "orxtra.scheduler._executor.Scheduler._auto_commit",
@@ -118,13 +124,13 @@ class TestSingleTask:
         # Verify task reached COMPLETED in scheduler state
         completed = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.COMPLETED
         ]
         assert len(completed) == 1
 
         # Verify output stored (scoped under parent=None for top-level)
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        outputs = scheduler._get_scoped_outputs(None)
         assert outputs.get("t1") == "Result A"
 
         # Verify transport consumed the turn
@@ -154,12 +160,12 @@ class TestSingleTask:
 
         # No overseer interface was provided, so no overseer events
         # should appear. The scheduler has no overseer_interface set.
-        assert scheduler._overseer_interface is None  # noqa: SLF001
+        assert scheduler._overseer_interface is None
 
         # Workflow completed successfully
         completed = [
             tid
-            for tid, s in scheduler._task_states.items()  # noqa: SLF001
+            for tid, s in scheduler._task_states.items()
             if s == TaskState.COMPLETED
         ]
         assert len(completed) == 1
@@ -246,13 +252,13 @@ class TestDependencies:
         # Both tasks completed
         completed_count = sum(
             1
-            for s in scheduler._task_states.values()  # noqa: SLF001
+            for s in scheduler._task_states.values()
             if s == TaskState.COMPLETED
         )
         assert completed_count == 2
 
         # Output from A is stored
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        outputs = scheduler._get_scoped_outputs(None)
         assert outputs.get("task_a") == "output from A"
         assert outputs.get("task_b") == "output from B"
 
@@ -322,12 +328,12 @@ class TestDependencies:
         # All three tasks completed
         completed_count = sum(
             1
-            for s in scheduler._task_states.values()  # noqa: SLF001
+            for s in scheduler._task_states.values()
             if s == TaskState.COMPLETED
         )
         assert completed_count == 3
 
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        outputs = scheduler._get_scoped_outputs(None)
         assert outputs["research"] == "research findings"
         assert outputs["generate"] == "generated content"
         assert outputs["review"] == "review approved"
@@ -366,8 +372,8 @@ class TestDependencies:
         original_send = transport.send
 
         async def intercepting_send(
-            message: str, **kwargs: Any,  # noqa: ANN401
-        ) -> Any:  # noqa: ANN401
+            message: str, **kwargs: Any,
+        ) -> Any:
             captured_prompts.append(message)
             async for event in original_send(message, **kwargs):
                 yield event
@@ -457,12 +463,12 @@ class TestParallelExecution:
         # Both tasks completed
         completed_count = sum(
             1
-            for s in scheduler._task_states.values()  # noqa: SLF001
+            for s in scheduler._task_states.values()
             if s == TaskState.COMPLETED
         )
         assert completed_count == 2
 
-        outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+        outputs = scheduler._get_scoped_outputs(None)
         assert outputs["task_x"] == "x_done"
         assert outputs["task_y"] == "y_done"
 
@@ -480,7 +486,7 @@ class TestFunctionTask:
         trace_writer = MockTraceWriter()
         transport = IntegrationMockTransport([])
 
-        async def my_func(ctx: Any) -> TaskResult:  # noqa: ANN401
+        async def my_func(ctx: Any) -> TaskResult:
             return TaskResult(
                 output="function_result",
                 structured_output=None,
@@ -509,13 +515,13 @@ class TestFunctionTask:
             # Task completed
             completed = [
                 tid
-                for tid, s in scheduler._task_states.items()  # noqa: SLF001
+                for tid, s in scheduler._task_states.items()
                 if s == TaskState.COMPLETED
             ]
             assert len(completed) == 1
 
             # Output stored
-            outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+            outputs = scheduler._get_scoped_outputs(None)
             assert outputs["func_task"] == "function_result"
 
             # Trace recorded creation and completion
@@ -534,7 +540,7 @@ class TestFunctionTask:
         trace_writer = MockTraceWriter()
         transport = IntegrationMockTransport([])
 
-        async def structured_func(ctx: Any) -> TaskResult:  # noqa: ANN401
+        async def structured_func(ctx: Any) -> TaskResult:
             return TaskResult(
                 output="text_result",
                 structured_output={"key": "value", "count": 42},
@@ -564,7 +570,7 @@ class TestFunctionTask:
 
             # Structured output is used when available (per
             # execute_workflow variable propagation logic)
-            structured = scheduler._get_scoped_structured(None)  # noqa: SLF001
+            structured = scheduler._get_scoped_structured(None)
             assert structured["struct_task"] == {
                 "key": "value",
                 "count": 42,
@@ -590,7 +596,7 @@ class TestForEach:
         """
         trace_writer = MockTraceWriter()
 
-        async def produce_items(ctx: Any) -> TaskResult:  # noqa: ANN401
+        async def produce_items(ctx: Any) -> TaskResult:
             return TaskResult(
                 output="items",
                 structured_output=["alpha", "beta", "gamma"],
@@ -671,7 +677,7 @@ class TestForEach:
             # (along with 3 iteration sub-tasks + 1 setup task = 5 total)
             completed_count = sum(
                 1
-                for s in scheduler._task_states.values()  # noqa: SLF001
+                for s in scheduler._task_states.values()
                 if s == TaskState.COMPLETED
             )
             # setup + iterate (parent) + 3 iteration sub-tasks = 5
@@ -679,7 +685,7 @@ class TestForEach:
 
             # The iterate task's output should contain results from
             # all iterations
-            outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+            outputs = scheduler._get_scoped_outputs(None)
             assert outputs["setup"] is not None
 
         finally:
@@ -698,7 +704,7 @@ class TestPostchecks:
         """A task with script postchecks that pass completes normally."""
         trace_writer = MockTraceWriter()
 
-        async def passing_check(ctx: Any) -> CheckResult:  # noqa: ANN401
+        async def passing_check(ctx: Any) -> CheckResult:
             return CheckResult(passed=True, message="All good")
 
         module_name = "_e2e_test_funcs.checks_mod"
@@ -734,12 +740,12 @@ class TestPostchecks:
             # Task completed (postchecks passed)
             completed = [
                 tid
-                for tid, s in scheduler._task_states.items()  # noqa: SLF001
+                for tid, s in scheduler._task_states.items()
                 if s == TaskState.COMPLETED
             ]
             assert len(completed) == 1
 
-            outputs = scheduler._get_scoped_outputs(None)  # noqa: SLF001
+            outputs = scheduler._get_scoped_outputs(None)
             assert outputs["checked_task"] == "work done"
 
         finally:

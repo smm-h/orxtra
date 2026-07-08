@@ -11,7 +11,6 @@ import uuid
 from typing import Any
 
 import pytest
-import uuid6
 from orxtra.protocols import TaskSpec, TaskState
 from orxtra.scheduler._executor import Scheduler
 from orxtra.secrets import SecretRegistry
@@ -82,10 +81,10 @@ class TestEndTaskOutputScrubbing:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
-        scheduler._task_children[task_id] = []  # noqa: SLF001
-        scheduler._task_parents[task_id] = None  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
+        scheduler._task_children[task_id] = []
+        scheduler._task_parents[task_id] = None
 
         await scheduler.handle_start_task("sess-1", str(task_id))
 
@@ -97,7 +96,7 @@ class TestEndTaskOutputScrubbing:
         )
 
         # The stored output must contain the placeholder, not the secret.
-        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})
         stored = outputs.get("t1", "")
         assert "hunter2-secret" not in (stored or ""), (
             "Real secret value leaked into task outputs"
@@ -127,15 +126,15 @@ class TestEndTaskOutputScrubbing:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
-        scheduler._task_children[task_id] = []  # noqa: SLF001
-        scheduler._task_parents[task_id] = None  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
+        scheduler._task_children[task_id] = []
+        scheduler._task_parents[task_id] = None
 
         await scheduler.handle_start_task("sess-1", str(task_id))
         await scheduler.handle_end_task("sess-1", "normal message")
 
-        outputs = scheduler._task_outputs.get(None, {})  # noqa: SLF001
+        outputs = scheduler._task_outputs.get(None, {})
         assert outputs["t1"] == "normal message"
 
     @pytest.mark.asyncio
@@ -160,10 +159,10 @@ class TestEndTaskOutputScrubbing:
             name="t1",
             task_type="agent",
         )
-        scheduler._task_states[task_id] = TaskState.CREATED  # noqa: SLF001
-        scheduler._task_specs[task_id] = task  # noqa: SLF001
-        scheduler._task_children[task_id] = []  # noqa: SLF001
-        scheduler._task_parents[task_id] = None  # noqa: SLF001
+        scheduler._task_states[task_id] = TaskState.CREATED
+        scheduler._task_specs[task_id] = task
+        scheduler._task_children[task_id] = []
+        scheduler._task_parents[task_id] = None
 
         await scheduler.handle_start_task("sess-1", str(task_id))
         await scheduler.handle_end_task(
@@ -171,5 +170,5 @@ class TestEndTaskOutputScrubbing:
         )
 
         # The pending message (used for auto-commit) must be scrubbed too.
-        pending = scheduler._pending_end_task_message  # noqa: SLF001
+        pending = scheduler._pending_end_task_message
         assert "tok-99" not in str(pending)

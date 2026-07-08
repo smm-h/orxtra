@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 _MUTATION_TAG = "mutation"
 
 
-def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
+def wrap_tool_with_pipeline(
     tool: Tool,
     scheduler_check: Callable[[str], UUID],
     secret_registry: SecretRegistry | None,
@@ -99,7 +99,7 @@ def wrap_tool_with_pipeline(  # noqa: C901, PLR0913
     )
 
 
-def wrap_tools_for_session(  # noqa: PLR0913
+def wrap_tools_for_session(
     tools: list[Tool],
     scheduler_check: Callable[[str], UUID],
     secret_registry: SecretRegistry | None,

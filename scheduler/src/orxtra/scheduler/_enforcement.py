@@ -121,7 +121,7 @@ class EnforcementMixin(SchedulerBase):
             self._budget_threshold_events
         ):
             if tid == task_id:
-                from orxtra.protocols import (  # noqa: PLC0415
+                from orxtra.protocols import (
                     BudgetThresholdCrossed,
                 )
 
@@ -143,7 +143,7 @@ class EnforcementMixin(SchedulerBase):
             self._budget_exhausted_events
         ):
             if tid == task_id:
-                from orxtra.protocols import (  # noqa: PLC0415
+                from orxtra.protocols import (
                     BudgetExhausted,
                 )
 

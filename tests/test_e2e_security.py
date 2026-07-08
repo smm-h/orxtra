@@ -12,13 +12,13 @@ from __future__ import annotations
 
 import pytest
 from orxtra.protocols import Tool, ToolError, ToolOutput
+from orxtra.tool import wrap_tools_for_session
 from orxtra.tool._consult_tool import (
     _CONSULT_STRIP_NAMES,
     _CONSULT_STRIP_TAGS,
     should_strip_for_consult,
 )
 from orxtra.tool._pipeline import _MUTATION_TAG
-from orxtra.tool import wrap_tools_for_session
 
 
 async def _noop(args: dict[str, object]) -> ToolOutput[None]:

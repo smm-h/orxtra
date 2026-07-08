@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
 from orxtra.dispatch import TransientEventDelivery
 from orxtra.protocols import EventDelivery
 

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-
     from orxtra.protocols import EventBus
 
 

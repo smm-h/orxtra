@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _write_agent(  # noqa: PLR0913
+def _write_agent(
     directory: Path,
     filename: str,
     name: str,

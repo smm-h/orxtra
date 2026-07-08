@@ -10,18 +10,16 @@ Covers:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 
-import pytest
 import uuid6
 from orxtra.agent import Agent
 from orxtra.protocols import Tool, ToolOutput
 from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._prompt_templates import render_template
 from orxtra.scheduler._tool_registry import (
-    Edge,
     ToolEntry,
     ToolRegistry,
     create_builtin_registry,
@@ -33,10 +31,6 @@ from .conftest import (
     MockTransport,
     make_categories,
 )
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
 
 # ---------------------------------------------------------------
 # Helpers
@@ -232,7 +226,7 @@ class TestRegistryBasedSurfacing:
         registry.add_edge("alpha", "beta", "follows")
         registry.add_edge("alpha", "gamma", "related_to")
 
-        suggested, appendix = self._make_appendix(registry)
+        _suggested, appendix = self._make_appendix(registry)
         tool = _dummy_tool("alpha", result_text="done")
         wrapped = wrap_tool_with_pipeline(
             tool=tool,
@@ -269,7 +263,7 @@ class TestRegistryBasedSurfacing:
         registry.add_edge("a", "c", "follows")
         registry.add_edge("b", "c", "follows")
 
-        suggested, appendix = self._make_appendix(registry)
+        _suggested, appendix = self._make_appendix(registry)
 
         tool_a = _dummy_tool("a", result_text="result-a")
         wrapped_a = wrap_tool_with_pipeline(
@@ -397,7 +391,7 @@ class TestNoAutoLoading:
             mock_session = MagicMock()
             mock_create.return_value = mock_session
 
-            await sched._create_agent_session(  # noqa: SLF001
+            await sched._create_agent_session(
                 task, task_id, 1,
             )
 

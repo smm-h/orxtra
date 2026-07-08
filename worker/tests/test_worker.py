@@ -6,18 +6,15 @@ bridge send/receive, heartbeat timeout, and idempotent call dedup.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
-
 from orxtra.worker._brain import (
     BrainWorkerBridge,
-    ToolCallTimeoutError,
     WorkerDisconnectedError,
     _serialize_message,
 )
@@ -30,7 +27,6 @@ from orxtra.worker._protocol import (
     WorkerRegistration,
 )
 from orxtra.worker._registry import WorkerConflictError, WorkerRegistry
-
 
 # ── 9.1: Protocol serialization roundtrip ──
 

@@ -43,7 +43,7 @@ def _serialize_event(event: dict[str, Any]) -> dict[str, Any]:
 
 
 async def replay_handler(
-    request: Any,  # noqa: ANN401
+    request: Any,
     *,
     pool: asyncpg.Pool[Any],
     dispatch_backend: DispatchBackend,

@@ -12,7 +12,7 @@ from uuid import UUID
 class _ExtendedEncoder(json.JSONEncoder):
     """Handles UUID, Decimal, datetime, Path."""
 
-    def default(self, o: object) -> Any:  # noqa: ANN401
+    def default(self, o: object) -> Any:
         if isinstance(o, UUID):
             return str(o)
         if isinstance(o, Decimal):
@@ -27,7 +27,7 @@ class _ExtendedEncoder(json.JSONEncoder):
 class TextRenderer:
     """Renders data as plain text."""
 
-    def render(self, data: Any) -> str:  # noqa: ANN401
+    def render(self, data: Any) -> str:
         if isinstance(data, str):
             return data
         # Confirmation-like objects: prefer .message attribute
@@ -42,12 +42,12 @@ class JsonRenderer:
     def __init__(self, indent: int = 2) -> None:
         self._indent = indent
 
-    def render(self, data: Any) -> str:  # noqa: ANN401
+    def render(self, data: Any) -> str:
         obj = self._to_serializable(data)
         return json.dumps(obj, cls=_ExtendedEncoder, indent=self._indent)
 
     @staticmethod
-    def _to_serializable(data: Any) -> Any:  # noqa: ANN401
+    def _to_serializable(data: Any) -> Any:
         if dataclasses.is_dataclass(data) and not isinstance(data, type):
             return dataclasses.asdict(data)
         if hasattr(data, "model_dump"):
@@ -58,24 +58,28 @@ class JsonRenderer:
 class TableRenderer:
     """Renders list-of-dicts or DirListing as tab-separated text."""
 
-    def render(self, data: Any) -> str:  # noqa: ANN401
+    def render(self, data: Any) -> str:
         rows = self._extract_rows(data)
         if not rows:
             return ""
         headers = list(rows[0].keys())
         lines = ["\t".join(headers)]
-        for row in rows:
-            lines.append("\t".join(str(row.get(h, "")) for h in headers))
+        lines.extend(
+            "\t".join(str(row.get(h, "")) for h in headers) for row in rows
+        )
         return "\n".join(lines)
 
     @staticmethod
-    def _extract_rows(data: Any) -> list[dict[str, Any]]:  # noqa: ANN401
+    def _extract_rows(data: Any) -> list[dict[str, Any]]:
         # DirListing-like: has .entries that are dataclasses
         if hasattr(data, "entries"):
             entries = data.entries
             if entries and dataclasses.is_dataclass(entries[0]):
                 return [dataclasses.asdict(e) for e in entries]
-            return [dict(e) if isinstance(e, dict) else {"value": str(e)} for e in entries]
+            return [
+                dict(e) if isinstance(e, dict) else {"value": str(e)}
+                for e in entries
+            ]
         # Already a list of dicts
         if isinstance(data, list):
             result: list[dict[str, Any]] = []

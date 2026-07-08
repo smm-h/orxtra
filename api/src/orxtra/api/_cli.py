@@ -75,7 +75,7 @@ def register_serve_command(app: strictcli.App) -> None:
 
         asgi_app = build_app(server_config)
 
-        from fastware import serve  # noqa: PLC0415
+        from fastware import serve
 
         serve(
             asgi_app,

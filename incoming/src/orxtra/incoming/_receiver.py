@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 DEFAULT_MAX_BODY_BYTES = 1_048_576
 
 
-def create_incoming_router(  # noqa: C901
+def create_incoming_router(
     *,
     pool: asyncpg.Pool[Any],
     dispatch_backend: DispatchBackend,
@@ -53,7 +53,7 @@ def create_incoming_router(  # noqa: C901
     """
     router = Router()
 
-    async def webhook_handler(request: Any) -> JSONResponse | TextResponse:  # noqa: ANN401, PLR0911
+    async def webhook_handler(request: Any) -> JSONResponse | TextResponse:
         """POST /events/{slug} -- receive an external webhook event."""
         slug: str = request.path_params.get("slug", "")
 
@@ -137,7 +137,7 @@ def create_incoming_router(  # noqa: C901
 
     # -- Replay endpoint --
 
-    async def _replay_handler(request: Any) -> JSONResponse | TextResponse:  # noqa: ANN401
+    async def _replay_handler(request: Any) -> JSONResponse | TextResponse:
         return await replay_handler(
             request,
             pool=pool,
@@ -151,8 +151,8 @@ def create_incoming_router(  # noqa: C901
 
     if event_bus is not None:
         async def _stream_handler(
-            request: Any,  # noqa: ANN401
-        ) -> Any:  # noqa: ANN401
+            request: Any,
+        ) -> Any:
             return await stream_handler(
                 request,
                 pool=pool,
@@ -176,7 +176,7 @@ class _ExtractionError(Exception):
 
 
 def _build_presented_credential(
-    request: Any,  # noqa: ANN401
+    request: Any,
     raw_body: bytes,
     config: dict[str, Any],
 ) -> str:
@@ -228,7 +228,7 @@ def _build_presented_credential(
 
 
 def _extract_event_type(
-    request: Any,  # noqa: ANN401
+    request: Any,
     raw_body: bytes,
     config: dict[str, Any],
 ) -> str:
@@ -283,7 +283,7 @@ def _extract_event_type(
 
 
 def _extract_idempotency_key(
-    request: Any,  # noqa: ANN401
+    request: Any,
     config: dict[str, Any],
 ) -> str | None:
     """Extract the idempotency key from a configurable header."""

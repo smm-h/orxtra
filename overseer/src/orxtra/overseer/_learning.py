@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 async def query_relevant_lessons(
-    pool: Any,  # noqa: ANN401
+    pool: Any,
     run_id: UUID,  # noqa: ARG001
     tags: list[str],
 ) -> list[dict[str, Any]]:

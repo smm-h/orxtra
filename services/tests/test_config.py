@@ -5,9 +5,10 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
-from .conftest import FakeRecord
 from orxtra.services._config import show_config, show_pricing
 from orxtra.session import PRICING_TABLE
+
+from .conftest import FakeRecord
 
 if TYPE_CHECKING:
     from uuid import UUID

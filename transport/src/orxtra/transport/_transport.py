@@ -13,7 +13,6 @@ from ._events import (
     ApiRetry,
     ContentBlock,
     Error,
-    TransportEvent,
     LivenessWarning,
     RateLimit,
     Result,
@@ -28,6 +27,7 @@ from ._events import (
     Thinking,
     ToolExecuting,
     ToolUse,
+    TransportEvent,
     UnknownEvent,
     Usage,
 )
@@ -130,7 +130,7 @@ class Transport:
         keep_from = turn_starts[-max_turns]
         del history[:keep_from]
 
-    async def send(  # noqa: PLR0913
+    async def send(
         self,
         message: str,
         *,
@@ -280,7 +280,9 @@ class Transport:
                 )
                 continue
 
-            yield ToolExecuting(tool_use_id=tool_use_id, tool_name=tool_name, tool_input=tool_input)
+            yield ToolExecuting(
+                tool_use_id=tool_use_id, tool_name=tool_name, tool_input=tool_input,
+            )
             start = time.monotonic_ns()
             try:
                 result = await tool.execute(tool_input)
@@ -565,7 +567,11 @@ class Transport:
 
             # Emit ToolExecuting before execution
             events.append(
-                ToolExecuting(tool_use_id=tool_use_id, tool_name=tool_name, tool_input=tool_input),
+                ToolExecuting(
+                    tool_use_id=tool_use_id,
+                    tool_name=tool_name,
+                    tool_input=tool_input,
+                ),
             )
 
             # Check for suspension BEFORE execution
@@ -705,7 +711,7 @@ class Transport:
             utilization=utilization,
         )
 
-    async def _send_streaming_with_retry(  # noqa: C901, PLR0912
+    async def _send_streaming_with_retry(
         self,
         *,
         url: str,

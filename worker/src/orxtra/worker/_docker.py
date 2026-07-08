@@ -53,7 +53,7 @@ class DockerWorker:
             msg = "docker CLI not found on PATH"
             raise DockerNotFoundError(msg)
 
-        import uuid  # noqa: PLC0415
+        import uuid
         self._container_name = f"orxtra-worker-{uuid.uuid4().hex[:12]}"
 
         cmd = [

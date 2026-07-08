@@ -8,8 +8,6 @@ from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING
 
-import pytest
-
 from orxtra.auth import AuthBackend
 from orxtra.protocols import TrustTier
 
@@ -65,7 +63,7 @@ class TestConsumerCRUD:
     async def test_get_nonexistent_consumer(
         self, pg_pool: asyncpg.Pool
     ) -> None:
-        import uuid  # noqa: PLC0415
+        import uuid
 
         backend = AuthBackend(pg_pool)
         result = await backend.get_consumer(uuid.uuid4())

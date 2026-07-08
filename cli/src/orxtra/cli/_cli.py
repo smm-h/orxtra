@@ -23,7 +23,7 @@ def _require_db(db: str) -> str:
     return db
 
 
-def _print(data: Any, fmt: str) -> None:  # noqa: ANN401
+def _print(data: Any, fmt: str) -> None:
     print(format_output(data, fmt))
 
 
@@ -228,7 +228,9 @@ def cmd_inbox_respond(
 @inbox_group.command(name="skip", help="Skip an inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
 def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
-    _dispatch_and_print(_require_db(db), "skip_inbox_item", {"item_id": item_id}, format)
+    _dispatch_and_print(
+        _require_db(db), "skip_inbox_item", {"item_id": item_id}, format,
+    )
 
 
 @inbox_group.command(name="reject", help="Reject an inbox item (options insufficient).")
@@ -423,30 +425,32 @@ def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_no_pool("show_pricing", {}, format)
 
 
+# Registration imports below run after app construction on purpose
+# (each module registers its commands against the constructed app).
 # -- Serve command (from orxtra.api) --
 
-from orxtra.api import register_serve_command
+from orxtra.api import register_serve_command  # noqa: E402
 
 register_serve_command(app)
 
 
 # -- DB commands (from orxtra.cli._db) --
 
-from orxtra.cli._db import register_db_commands
+from orxtra.cli._db import register_db_commands  # noqa: E402
 
 register_db_commands(app)
 
 
 # -- Dispatch commands --
 
-from orxtra.cli._dispatch import register_dispatch_commands
+from orxtra.cli._dispatch import register_dispatch_commands  # noqa: E402
 
 register_dispatch_commands(app)
 
 
 # -- Worker commands (from orxtra.worker) --
 
-from orxtra.worker import register_worker_commands
+from orxtra.worker import register_worker_commands  # noqa: E402
 
 register_worker_commands(app)
 

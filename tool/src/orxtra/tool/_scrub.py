@@ -29,7 +29,7 @@ class _ScrubEncoder(json.JSONEncoder):
     JsonRenderer._to_serializable handle in _renderers.py.
     """
 
-    def default(self, o: object) -> Any:  # noqa: ANN401
+    def default(self, o: object) -> Any:
         if isinstance(o, UUID):
             return str(o)
         if isinstance(o, Decimal):
@@ -50,7 +50,7 @@ def scrub_text(registry: SecretRegistry, text: str) -> str:
     return registry.scrub(text)
 
 
-def scrub_data(registry: SecretRegistry, data: Any) -> Any:  # noqa: ANN401
+def scrub_data(registry: SecretRegistry, data: Any) -> Any:
     """Scrub secret values from structured data.
 
     Serializes data to JSON (handling dataclasses, pydantic models,

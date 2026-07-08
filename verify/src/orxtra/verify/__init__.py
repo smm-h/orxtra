@@ -22,7 +22,6 @@ from orxtra.verify._types import (
 )
 
 __all__ = [
-    "__version__",
     "SEVERITY_ORDER",
     "CheckAgentContext",
     "CheckContext",
@@ -32,6 +31,7 @@ __all__ = [
     "CheckVerdict",
     "CriterionReview",
     "Severity",
+    "__version__",
     "execute_check",
     "run_checks",
 ]

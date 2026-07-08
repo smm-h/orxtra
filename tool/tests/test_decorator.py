@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic import BaseModel
-
 from orxtra.protocols import Tool, ToolError, ToolOutput
 from orxtra.tool._decorator import ToolTemplate, tool
 from orxtra.tool._renderers import JsonRenderer, TextRenderer
-
+from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
 # Test models
@@ -308,7 +306,7 @@ class TestToolDecoratorEdgeCases:
         with pytest.raises(TypeError, match="must have a type annotation"):
 
             @tool("bad", "No annotation.", renderer=TextRenderer())
-            async def no_annotation(params) -> str:  # type: ignore[no-untyped-def]
+            async def no_annotation(params) -> str:  # type: ignore[no-untyped-def]  # noqa: ANN001
                 return "oops"
 
     def test_non_basemodel_first_param_raises_type_error(self) -> None:

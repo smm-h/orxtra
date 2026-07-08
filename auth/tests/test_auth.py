@@ -5,12 +5,11 @@ import hmac
 import json
 
 import pytest
-
 from orxtra.auth import (
     AuthAuditEvent,
     AuthenticationError,
-    AuthorizationError,
     Authenticator,
+    AuthorizationError,
     Authorizer,
     HashCredentialVerifier,
     HmacCredentialVerifier,
@@ -23,15 +22,12 @@ from orxtra.protocols import (
     SCOPE_EVENTS_WRITE,
     SCOPE_SOURCES_MANAGE,
     SCOPE_SUBSCRIPTIONS_MANAGE,
-    EventSink,
     KeyedMacProvider,
     MacOutcome,
-    MacVerdict,
     Principal,
     TrustTier,
 )
 from orxtra.secrets import EnvMacProvider, SecretRegistry
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -129,7 +125,7 @@ async def test_credential_stores_secret_ref(
 
 
 # ---------------------------------------------------------------------------
-# Backend: get_credentials_by_consumer
+# Backend -- get_credentials_by_consumer
 # ---------------------------------------------------------------------------
 
 
@@ -351,12 +347,12 @@ async def test_scope_vocabulary(
 
 def test_all_scopes_constant() -> None:
     """ALL_SCOPES contains exactly the defined scope constants."""
-    assert ALL_SCOPES == frozenset({
+    assert frozenset({
         SCOPE_EVENTS_READ,
         SCOPE_EVENTS_WRITE,
         SCOPE_SOURCES_MANAGE,
         SCOPE_SUBSCRIPTIONS_MANAGE,
-    })
+    }) == ALL_SCOPES
 
 
 # ---------------------------------------------------------------------------
@@ -389,7 +385,7 @@ async def test_authenticate_disabled_consumer(
 
 
 async def _echo_app(
-    scope: dict,  # noqa: ANN401
+    scope: dict,
     receive: object,
     send: object,
 ) -> None:
@@ -422,7 +418,7 @@ class _ResponseCapture:
         self.headers: list[tuple[bytes, bytes]] = []
         self.body: bytes = b""
 
-    async def __call__(self, message: dict) -> None:  # noqa: ANN401
+    async def __call__(self, message: dict) -> None:
         if message["type"] == "http.response.start":
             self.status = message["status"]
             self.headers = message.get("headers", [])
@@ -495,7 +491,7 @@ async def test_middleware_non_http_passthrough(
     called = False
 
     async def passthrough_app(
-        scope: dict,  # noqa: ANN401
+        scope: dict,
         receive: object,
         send: object,
     ) -> None:

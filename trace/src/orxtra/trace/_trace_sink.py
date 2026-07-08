@@ -47,7 +47,8 @@ def _serialize_event(event: OverseerEvent) -> dict[str, Any]:
     for field in dataclasses.fields(event):
         val = getattr(event, field.name)
         # Convert non-JSON-serializable types to string
-        result[field.name] = str(val) if not isinstance(val, (str, int, float, bool, type(None), dict, list)) else val
+        json_types = (str, int, float, bool, type(None), dict, list)
+        result[field.name] = val if isinstance(val, json_types) else str(val)
     return result
 
 

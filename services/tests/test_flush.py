@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
 from orxtra.protocols import FlushScheduler
 from orxtra.services._flush import AsyncioFlushScheduler
 

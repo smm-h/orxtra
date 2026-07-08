@@ -67,7 +67,7 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     router.mount("/a2a", a2a_app)
 
     # -- AG-UI SSE routes (native, under /ag-ui) --
-    from orxtra.agui import create_agui_router  # noqa: PLC0415
+    from orxtra.agui import create_agui_router
 
     agui_router, _broadcaster = create_agui_router()
 
@@ -85,12 +85,12 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     _agent_card_json = _serialize_agent_card(config.agent_card)
 
     @router.get("/.well-known/agent.json")
-    async def agent_card_handler(request: Any) -> dict[str, Any]:  # noqa: ANN401, ARG001
+    async def agent_card_handler(request: Any) -> dict[str, Any]:  # noqa: ARG001
         return _agent_card_json
 
     # -- Health check --
     @router.get("/health")
-    async def health_handler(request: Any) -> dict[str, str]:  # noqa: ANN401, ARG001
+    async def health_handler(request: Any) -> dict[str, str]:  # noqa: ARG001
         return {"status": "ok"}
 
     # -- Workers WebSocket placeholder (Phase 9) --
@@ -109,13 +109,13 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     return app
 
 
-def _build_mcp_app(dispatch_context: DispatchContext) -> Any:  # noqa: ANN401
+def _build_mcp_app(dispatch_context: DispatchContext) -> Any:
     """Build the MCP Starlette app with root-relative routing.
 
     When mounted at /mcp, fastware strips the prefix. The MCP app
     must use streamable_http_path="/" so the inner route matches.
     """
-    from orxtra.mcp import MCPServer  # noqa: PLC0415
+    from orxtra.mcp import MCPServer
 
     server = MCPServer(
         pool=dispatch_context.pool,
@@ -131,13 +131,13 @@ def _build_a2a_app(
     dispatch_context: DispatchContext,
     agent_card: AgentCard,
     skill_registry: SkillRegistry,
-) -> Any:  # noqa: ANN401
+) -> Any:
     """Build the A2A Starlette app with root-relative routing.
 
     When mounted at /a2a, fastware strips the prefix. The A2A app
     must use rpc_url="/" so the inner JSON-RPC route matches.
     """
-    from orxtra.a2a import create_app as create_a2a_app  # noqa: PLC0415
+    from orxtra.a2a import create_app as create_a2a_app
 
     return create_a2a_app(
         dispatch_context,
@@ -157,7 +157,7 @@ def _mount_authenticated_agui(
     Creates a sub-app from the AG-UI router, wraps it with the auth
     middleware, and mounts it at /ag-ui on the root router.
     """
-    from orxtra.auth import auth_middleware  # noqa: PLC0415
+    from orxtra.auth import auth_middleware
 
     agui_app = create_app(agui_router)
     authed_agui = auth_middleware(agui_app, authenticator)
@@ -166,7 +166,7 @@ def _mount_authenticated_agui(
 
 def _serialize_agent_card(agent_card: AgentCard) -> dict[str, Any]:
     """Convert an A2A AgentCard protobuf to a JSON-serializable dict."""
-    from google.protobuf.json_format import MessageToDict  # noqa: PLC0415
+    from google.protobuf.json_format import MessageToDict
 
     result: dict[str, Any] = MessageToDict(agent_card, preserving_proto_field_name=True)
     return result

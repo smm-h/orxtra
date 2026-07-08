@@ -4,8 +4,12 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
-
-from orxtra.protocols import ActionExecutor, EventAction, LogAction, ScriptAction, WorkflowAction
+from orxtra.protocols import (
+    ActionExecutor,
+    EventAction,
+    LogAction,
+    WorkflowAction,
+)
 from orxtra.services._actions import (
     ServicesActionExecutor,
     execute_service_action,

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, get_type_hints
+from typing import TYPE_CHECKING
 
 import pytest
+from orxtra.protocols import EventBus
 from orxtra.trace._pg_backend import PgBackend
 from orxtra.trace._pg_event_bus import PgEventBus
 from orxtra.trace._protocols import (
-    EventBus,
     EventStorage,
     InboxStorage,
     KnowledgeHashStorage,

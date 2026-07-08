@@ -92,7 +92,7 @@ class ToolRegistry:
             raise ValueError(msg)
         self._entries[entry.name] = entry
 
-    def register_custom(  # noqa: PLR0913
+    def register_custom(
         self,
         name: str,
         namespace: str,
@@ -207,7 +207,7 @@ _WRITE_TOOL_NAMES = frozenset({
 })
 
 
-def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
+def _make_builtin_entries() -> list[ToolEntry]:
     """Create ToolEntry objects for all 18 built-in tools.
 
     Import the make_* constructors lazily to avoid circular imports
@@ -218,7 +218,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     # -- Read tools (fs.read, readonly) --
 
     def _read_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_read_tool  # noqa: PLC0415
+        from orxtra.tool import make_read_tool
         return make_read_tool(
             deps.read_root,
             deps.preview_threshold,
@@ -235,7 +235,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _list_dir_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_list_dir_tool  # noqa: PLC0415
+        from orxtra.tool import make_list_dir_tool
         return make_list_dir_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -247,7 +247,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _glob_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_glob_tool  # noqa: PLC0415
+        from orxtra.tool import make_glob_tool
         return make_glob_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -259,7 +259,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _grep_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_grep_tool  # noqa: PLC0415
+        from orxtra.tool import make_grep_tool
         return make_grep_tool(
             deps.read_root,
             deps.preview_threshold,
@@ -275,7 +275,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _stat_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_stat_tool  # noqa: PLC0415
+        from orxtra.tool import make_stat_tool
         return make_stat_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -287,7 +287,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _diff_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_diff_tool  # noqa: PLC0415
+        from orxtra.tool import make_diff_tool
         return make_diff_tool(deps.read_root)
 
     entries.append(ToolEntry(
@@ -301,7 +301,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     # -- Write tools (fs.write, mutation) --
 
     def _write_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_write_tool  # noqa: PLC0415
+        from orxtra.tool import make_write_tool
         return make_write_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -317,7 +317,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _edit_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_edit_tool  # noqa: PLC0415
+        from orxtra.tool import make_edit_tool
         return make_edit_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -333,7 +333,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _multi_edit_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_multi_edit_tool  # noqa: PLC0415
+        from orxtra.tool import make_multi_edit_tool
         return make_multi_edit_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -349,7 +349,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _mkdir_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_mkdir_tool  # noqa: PLC0415
+        from orxtra.tool import make_mkdir_tool
         return make_mkdir_tool(deps.read_root, deps.write_scope)
 
     entries.append(ToolEntry(
@@ -361,7 +361,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _move_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_move_tool  # noqa: PLC0415
+        from orxtra.tool import make_move_tool
         return make_move_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -377,7 +377,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _copy_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_copy_tool  # noqa: PLC0415
+        from orxtra.tool import make_copy_tool
         return make_copy_tool(
             deps.read_root, deps.write_scope,
             deps.write_queue, deps.stale_tracker,
@@ -393,7 +393,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _delete_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_delete_tool  # noqa: PLC0415
+        from orxtra.tool import make_delete_tool
         return make_delete_tool(deps.read_root, deps.write_scope)
 
     entries.append(ToolEntry(
@@ -405,7 +405,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     ))
 
     def _set_executable_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_set_executable_tool  # noqa: PLC0415
+        from orxtra.tool import make_set_executable_tool
         return make_set_executable_tool(
             deps.read_root, deps.write_scope,
         )
@@ -421,7 +421,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     # -- Notepad (io.notepad, mutation) --
 
     def _notepad_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_notepad_tool  # noqa: PLC0415
+        from orxtra.tool import make_notepad_tool
         return make_notepad_tool(
             deps.trace_writer,
             str(deps.run_id),
@@ -440,7 +440,7 @@ def _make_builtin_entries() -> list[ToolEntry]:  # noqa: C901, PLR0915
     # -- HTTP (io.http, readonly+mutation) --
 
     def _http_factory(deps: ToolDeps) -> Tool:
-        from orxtra.tool import make_http_tool  # noqa: PLC0415
+        from orxtra.tool import make_http_tool
         _ = deps
         return make_http_tool(allowed_hosts="allow_all")
 
@@ -548,7 +548,7 @@ SYNTHETIC_ENTRIES: dict[str, tuple[str, frozenset[str]]] = {
 }
 
 
-def validate_allow_lists(  # noqa: C901, PLR0912
+def validate_allow_lists(
     agents: dict[str, Any],
     registry: ToolRegistry,
 ) -> None:

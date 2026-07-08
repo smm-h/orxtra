@@ -4,11 +4,12 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 import uuid6
-from .conftest import MockTraceWriter
 from orxtra.overseer._autonomy import AutonomyLevel
 from orxtra.overseer._health import HealthMonitor
 from orxtra.overseer._overseer import Overseer, load_overseer_prompt
 from orxtra.protocols import Tool
+
+from .conftest import MockTraceWriter
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

@@ -25,7 +25,7 @@ _DESCRIPTION = (
 async def _notepad_impl(
     params: NotepadParams,
     *,
-    trace_writer: Any,  # noqa: ANN401
+    trace_writer: Any,
     run_id: str,
     task_name: str,
     agent_name: str,
@@ -38,7 +38,7 @@ async def _notepad_impl(
 
 
 def make_notepad_tool(
-    trace_writer: Any,  # noqa: ANN401
+    trace_writer: Any,
     run_id: str,
     task_name: str,
     agent_name: str,

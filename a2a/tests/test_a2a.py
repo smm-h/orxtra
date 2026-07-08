@@ -348,7 +348,7 @@ class TestTaskStateBridge:
 
     def test_exhaustive_enum_coverage(self) -> None:
         """Verify the import-time exhaustive check."""
-        from orxtra.a2a._state_bridge import _MAP  # noqa: PLC0415
+        from orxtra.a2a._state_bridge import _MAP
 
         for member in TaskState:
             assert member in _MAP, (

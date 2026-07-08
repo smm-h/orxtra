@@ -38,7 +38,7 @@ class FakeRecord:
     def items(self) -> Iterator[tuple[str, Any]]:
         return self._data.items()
 
-    def __getitem__(self, key: str) -> Any:  # noqa: ANN401
+    def __getitem__(self, key: str) -> Any:
         return self._data[key]
 
 

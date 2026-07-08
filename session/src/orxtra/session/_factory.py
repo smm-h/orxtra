@@ -42,7 +42,7 @@ def _transcript_to_messages(
     return messages
 
 
-async def create_session(  # noqa: PLR0913
+async def create_session(
     transport: Transport,
     model: str,
     system_prompt: str,
@@ -75,9 +75,15 @@ async def create_session(  # noqa: PLR0913
                 if tokens:
                     session.total_input_tokens += tokens.get("input_tokens", 0)
                     session.total_output_tokens += tokens.get("output_tokens", 0)
-                    session.total_reasoning_tokens += tokens.get("reasoning_tokens", 0)
-                    session.total_cache_read_tokens += tokens.get("cache_read_tokens", 0)
-                    session.total_cache_write_tokens += tokens.get("cache_write_tokens", 0)
+                    session.total_reasoning_tokens += tokens.get(
+                        "reasoning_tokens", 0,
+                    )
+                    session.total_cache_read_tokens += tokens.get(
+                        "cache_read_tokens", 0,
+                    )
+                    session.total_cache_write_tokens += tokens.get(
+                        "cache_write_tokens", 0,
+                    )
             session.turn_count = await backend.read_session_turn_count(sid)
 
             # Load conversation history and inject into transport
@@ -87,7 +93,7 @@ async def create_session(  # noqa: PLR0913
                 transport.inject_history(session_id, messages)
 
         elif pool is not None:
-            from orxtra.trace import (  # noqa: PLC0415
+            from orxtra.trace import (
                 read_session_token_counts,
                 read_session_turn_count,
                 read_transcript,
@@ -99,9 +105,15 @@ async def create_session(  # noqa: PLR0913
                 if tokens:
                     session.total_input_tokens += tokens.get("input_tokens", 0)
                     session.total_output_tokens += tokens.get("output_tokens", 0)
-                    session.total_reasoning_tokens += tokens.get("reasoning_tokens", 0)
-                    session.total_cache_read_tokens += tokens.get("cache_read_tokens", 0)
-                    session.total_cache_write_tokens += tokens.get("cache_write_tokens", 0)
+                    session.total_reasoning_tokens += tokens.get(
+                        "reasoning_tokens", 0,
+                    )
+                    session.total_cache_read_tokens += tokens.get(
+                        "cache_read_tokens", 0,
+                    )
+                    session.total_cache_write_tokens += tokens.get(
+                        "cache_write_tokens", 0,
+                    )
             session.turn_count = await read_session_turn_count(pool, sid)
 
             # Load conversation history and inject into transport

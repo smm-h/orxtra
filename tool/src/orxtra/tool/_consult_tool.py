@@ -76,7 +76,7 @@ async def _consult_impl(
     # Reconstruct http tool in consult_mode if the agent is allowed http
     agent_tools: list[str] = agent_def.allow
     if "http" in agent_tools and "http" in tool_registry:
-        from orxtra.tool._http_tool import make_http_tool  # noqa: PLC0415
+        from orxtra.tool._http_tool import make_http_tool
 
         filtered_tools["http"] = make_http_tool(
             allowed_hosts="allow_all", consult_mode=True,
@@ -84,7 +84,7 @@ async def _consult_impl(
 
     # Reconstruct git tool in consult mode with read-only subcommands
     if "git" in agent_tools and "git" in tool_registry:
-        from orxtra.tool._git_tool import make_git_tool  # noqa: PLC0415
+        from orxtra.tool._git_tool import make_git_tool
 
         filtered_tools["git"] = make_git_tool(
             read_root=read_root,
@@ -133,11 +133,11 @@ async def _consult_impl(
     )
 
 
-def make_consult_tool(  # noqa: PLR0913
+def make_consult_tool(
     tool_registry: dict[str, Tool],
     transport_registry: dict[str, Any],
-    trace_writer: Any,  # noqa: ARG001, ANN401
-    run_id: Any,  # noqa: ARG001, ANN401
+    trace_writer: Any,  # noqa: ARG001
+    run_id: Any,  # noqa: ARG001
     read_root: Path,
     categories: dict[str, str],
     agents: dict[str, Any],

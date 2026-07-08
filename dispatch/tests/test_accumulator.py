@@ -7,8 +7,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
-from uuid6 import uuid7
-
 from _handlers import flush_calls
 from orxtra.dispatch import (
     DualPhaseEventDelivery,
@@ -18,6 +16,7 @@ from orxtra.dispatch import (
     SubscriptionAction,
 )
 from orxtra.protocols import Action, ScriptAction
+from uuid6 import uuid7
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 
@@ -213,7 +212,7 @@ class TestFlushSchedulerIntegration:
         assert len(flush_calls) == 0
         # But the scheduler should have been called.
         assert len(scheduler.scheduled) == 1
-        deadline, callback = scheduler.scheduled[0]
+        deadline, _callback = scheduler.scheduled[0]
         assert deadline == 60
 
     async def test_scheduled_callback_flushes(self) -> None:

@@ -14,12 +14,12 @@ class _ChannelState:
     and list of application-level callbacks.
     """
 
-    __slots__ = ("conn", "handler", "callbacks")
+    __slots__ = ("callbacks", "conn", "handler")
 
     def __init__(
         self,
         conn: asyncpg.Connection,
-        handler: Any,  # noqa: ANN401
+        handler: Any,
         callbacks: list[Callable[[str], Awaitable[None]]],
     ) -> None:
         self.conn = conn
@@ -66,8 +66,10 @@ class PgEventBus:
         ) -> None:
             # asyncpg notifications are sync callbacks; fan-out to
             # all registered async callbacks on the running loop.
-            for cb in list(callbacks):
-                asyncio.ensure_future(cb(payload))
+            for cb in callbacks:
+                # Fire-and-forget fan-out; the loop keeps the task alive
+                # and callback errors surface via the loop exception handler.
+                asyncio.ensure_future(cb(payload))  # noqa: RUF006
 
         await conn.add_listener(channel, _on_notification)  # type: ignore[arg-type]
         self._channels[channel] = _ChannelState(conn, _on_notification, callbacks)
@@ -94,7 +96,7 @@ class PgEventBus:
 
     async def publish(self, channel: str, payload: str) -> None:
         """Publish a notification on a channel via NOTIFY."""
-        await self._pool.execute(f"NOTIFY {channel}, $1", payload)  # noqa: S608
+        await self._pool.execute(f"NOTIFY {channel}, $1", payload)
 
     async def close(self) -> None:
         """Unsubscribe from all channels and release connections."""

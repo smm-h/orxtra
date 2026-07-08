@@ -6,9 +6,6 @@ import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
-import pytest
-from uuid6 import uuid7
-
 from orxtra.dispatch import (
     DualPhaseEventDelivery,
     FilterPredicate,
@@ -18,6 +15,7 @@ from orxtra.dispatch import (
     match_subscription,
 )
 from orxtra.protocols import Action, EventDelivery, LogAction, ScriptAction
+from uuid6 import uuid7
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 

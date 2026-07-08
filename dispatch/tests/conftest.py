@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from orxtra.dispatch import InMemoryDispatchBackend
 
 # Make test modules importable for ScriptAction tests that use
