@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from fastware import JSONResponse, Router, TextResponse
 from orxtra.auth import AuthenticationError
@@ -224,7 +224,7 @@ def _build_presented_credential(
     if auth_value.lower().startswith("bearer "):
         auth_value = auth_value[7:]
 
-    return auth_value
+    return cast(str, auth_value)
 
 
 def _extract_event_type(
@@ -254,7 +254,7 @@ def _extract_event_type(
         if value is None:
             msg = f"Missing event type header: {field}"
             raise _ExtractionError(msg)
-        return value
+        return cast(str, value)
 
     if source_type == "json_field":
         try:
@@ -276,7 +276,7 @@ def _extract_event_type(
         return current
 
     if source_type == "constant":
-        return field
+        return cast(str, field)
 
     msg = f"Unknown event_type_source: {source_type!r}"
     raise _ExtractionError(msg)
@@ -290,4 +290,4 @@ def _extract_idempotency_key(
     header_name = config.get("idempotency_header")
     if header_name is None:
         return None
-    return request.header(header_name)
+    return cast("str | None", request.header(header_name))
