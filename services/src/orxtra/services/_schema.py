@@ -75,7 +75,10 @@ class AsyncpgTx:
 class AsyncpgAdapter:
     """Adapter wrapping asyncpg.Connection to satisfy AsyncConnection."""
 
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
+    def __init__(
+        self,
+        conn: asyncpg.Connection[Any] | asyncpg.pool.PoolConnectionProxy[Any],
+    ) -> None:
         self._conn = conn
 
     async def execute(self, query: str) -> None:
@@ -140,7 +143,7 @@ async def verify_schema(pool: asyncpg.Pool[Any]) -> None:
     Raises:
         SchemaError: If required schema objects are missing.
     """
-    from _generated.schema_executor import (
+    from _generated.schema_executor import (  # type: ignore[import-not-found]
         verify,
     )
 

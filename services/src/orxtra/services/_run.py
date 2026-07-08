@@ -3,6 +3,7 @@ from __future__ import annotations
 import tomllib
 from decimal import Decimal
 from pathlib import Path
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlsplit, urlunsplit
 
@@ -157,6 +158,8 @@ def _load_custom_tools(
         derived_tags: set[str] = set()
         if defn.tags:
             derived_tags.update(defn.tags)
+
+        factory: Callable[..., Any]
 
         if isinstance(defn.execution, HttpExecution):
             # HTTP: derive from method.
