@@ -558,6 +558,10 @@ def _run_pgdesign(args: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
+@pytest.mark.skipif(
+    shutil.which("pgdesign") is None,
+    reason="pgdesign binary not found on PATH",
+)
 async def test_pgdesign_migrate_generate_succeeds(
     pg_container: Any,
 ) -> None:
@@ -609,6 +613,10 @@ async def test_pgdesign_migrate_generate_succeeds(
         assert "subscriptions" in content
 
 
+@pytest.mark.skipif(
+    shutil.which("pgdesign") is None,
+    reason="pgdesign binary not found on PATH",
+)
 async def test_pgdesign_migrate_status_on_empty_db(
     pg_container: Any,
 ) -> None:
