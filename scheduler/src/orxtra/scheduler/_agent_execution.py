@@ -1208,17 +1208,19 @@ class AgentExecutionMixin(SchedulerBase):
 
             for itd in agent_def.inline_tools:
                 # Build a DataToolDefinition from the inline
-                # raw dict to get proper validation.
-                defn = DataToolDefinition(
-                    name=itd.name,
-                    description=itd.description,
-                    namespace=itd.namespace,
-                    deferred=itd.deferred,
-                    tags=itd.tags,
-                    params=itd.params or {},
-                    execution=itd.execution,
-                    output=itd.output,
-                )
+                # raw dict to get proper validation. Use
+                # model_validate to coerce execution/output
+                # dicts into their discriminated union types.
+                defn = DataToolDefinition.model_validate({
+                    "name": itd.name,
+                    "description": itd.description,
+                    "namespace": itd.namespace,
+                    "deferred": itd.deferred,
+                    "tags": itd.tags,
+                    "params": itd.params or {},
+                    "execution": itd.execution,
+                    "output": itd.output,
+                })
 
                 # Only build if the tool name resolves
                 # through the allow list (explicit name or

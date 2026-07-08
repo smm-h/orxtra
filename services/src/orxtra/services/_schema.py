@@ -48,7 +48,10 @@ if _SCHEMA_DIR not in sys.path:
 class AsyncpgTx:
     """Adapter wrapping asyncpg transaction to satisfy AsyncTransaction."""
 
-    def __init__(self, conn: asyncpg.Connection[Any]) -> None:
+    def __init__(
+        self,
+        conn: asyncpg.Connection[Any] | asyncpg.pool.PoolConnectionProxy[Any],
+    ) -> None:
         self._conn = conn
         self._tx: Any = None
 
