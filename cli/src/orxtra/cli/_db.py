@@ -16,13 +16,14 @@ import asyncio
 import subprocess
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 import asyncpg
 import strictcli
 from orxtra.services import PG_UUIDV7_STUB, AsyncpgAdapter
 
 
-def _die(message: str) -> None:
+def _die(message: str) -> NoReturn:
     print(message, file=sys.stderr)
     sys.exit(1)
 
@@ -81,7 +82,7 @@ def _register_migrate_commands(
         help="Database migration commands (wraps pgdesign).",
     )
 
-    @migrate_group.command(
+    @migrate_group.command(  # type: ignore[untyped-decorator]
         name="plan",
         help="Preview schema changes without generating files.",
     )
@@ -90,11 +91,11 @@ def _register_migrate_commands(
     ) -> None:
         _run_pgdesign("plan", _require_db(db))
 
-    @migrate_group.command(
+    @migrate_group.command(  # type: ignore[untyped-decorator]
         name="apply",
         help="Apply pending migrations to the database.",
     )
-    @strictcli.flag(
+    @strictcli.flag(  # type: ignore[untyped-decorator]
         name="dry-run",
         type=bool,
         default=False,
@@ -107,7 +108,7 @@ def _register_migrate_commands(
         extra = ["--dry-run"] if dry_run else ["--no-dry-run"]
         _run_pgdesign("apply", _require_db(db), extra)
 
-    @migrate_group.command(
+    @migrate_group.command(  # type: ignore[untyped-decorator]
         name="status",
         help="Show applied and pending migration status.",
     )
@@ -124,11 +125,11 @@ def register_db_commands(app: strictcli.App) -> None:
         help="Database provisioning and migration commands.",
     )
 
-    @db_group.command(
+    @db_group.command(  # type: ignore[untyped-decorator]
         name="init",
         help="Create the database schema (idempotent).",
     )
-    @strictcli.flag(
+    @strictcli.flag(  # type: ignore[untyped-decorator]
         name="use-extension-stub",
         type=bool,
         default=False,
@@ -146,7 +147,7 @@ def register_db_commands(app: strictcli.App) -> None:
         )
 
         async def _run() -> None:
-            from _generated.schema_executor import (
+            from _generated.schema_executor import (  # type: ignore[import-not-found]
                 ensure_schema,
                 execute,
             )
@@ -183,7 +184,7 @@ def register_db_commands(app: strictcli.App) -> None:
 
         asyncio.run(_run())
 
-    @db_group.command(
+    @db_group.command(  # type: ignore[untyped-decorator]
         name="verify",
         help="Verify the database schema is complete.",
     )
