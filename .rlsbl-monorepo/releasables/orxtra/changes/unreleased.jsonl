@@ -1,1 +1,2 @@
 {"id":"18c03d674bd8239d4b608ce1e1024fc69bfb5aabe21819ef","commits":["28d58922524376c123f26fbdf9a396e34069fdf1"],"user_facing":false,"packages":[".","a2a","a2ui","agent","agui","api","auth","cli","dispatch","incoming","mcp","notepad","overseer","protocols","scheduler","secrets","services","session","tool","trace","transport","verify","worker","write-safety"]}
+{"id":"18c03efb6f04042ed7978b4728b34b4787478c75569c883f","commits":["fd474e6b8e20c3d014fab29e950583bea1aac7bf"],"user_facing":false,"packages":["."]}
