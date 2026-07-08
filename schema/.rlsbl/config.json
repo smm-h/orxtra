@@ -2,5 +2,6 @@
   "targets": [
     "pgdesign"
   ],
-  "private": false
+  "private": false,
+  "coverage_unit": "commit"
 }

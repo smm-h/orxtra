@@ -13,5 +13,6 @@
         ]
       }
     ]
-  }
+  },
+  "coverage_unit": "commit"
 }
