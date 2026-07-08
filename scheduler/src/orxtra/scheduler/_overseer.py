@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Protocol
 
 from orxtra.protocols import (
-    OverseerEvent,
+    OverseerEvent as OverseerEvent,
 )
 
 if TYPE_CHECKING:
