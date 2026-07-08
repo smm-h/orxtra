@@ -84,7 +84,7 @@ class DispatchWorker:
         self._batch_size = batch_size
         self._stop_event = asyncio.Event()
         self._wake_event = asyncio.Event()
-        self._listen_conn: asyncpg.Connection[Any] | None = None
+        self._listen_conn: asyncpg.pool.PoolConnectionProxy[asyncpg.Record] | None = None
 
     async def run(self) -> None:
         """Main loop: poll, match, execute, advance, wait."""
@@ -142,8 +142,9 @@ class DispatchWorker:
     async def _setup_listen(self) -> None:
         """Acquire a dedicated connection and LISTEN on the events channel."""
         try:
-            self._listen_conn = await self._pool.acquire()
-            await self._listen_conn.add_listener(
+            conn = await self._pool.acquire()
+            self._listen_conn = conn
+            await conn.add_listener(
                 self._events_channel, self._on_notify,
             )
             logger.debug(
@@ -174,10 +175,10 @@ class DispatchWorker:
 
     def _on_notify(
         self,
-        _connection: asyncpg.Connection[Any],
+        _connection: asyncpg.Connection[Any] | asyncpg.pool.PoolConnectionProxy[Any],
         _pid: int,
         _channel: str,
-        _payload: str,
+        _payload: object,
     ) -> None:
         """NOTIFY callback: set the wake event to trigger an immediate poll."""
         self._wake_event.set()

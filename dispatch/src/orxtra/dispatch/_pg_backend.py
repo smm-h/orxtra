@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
 
 from orxtra.dispatch._types import (
@@ -295,10 +295,13 @@ class PgDispatchBackend:
     ) -> UUID | None:
         """Return the last_processed_event_id for *cursor_name*, or None."""
         async with self._pool.acquire() as conn:
-            return await conn.fetchval(
-                "SELECT last_processed_event_id"
-                " FROM dispatch_cursor WHERE cursor_name = $1",
-                cursor_name,
+            return cast(
+                "UUID | None",
+                await conn.fetchval(
+                    "SELECT last_processed_event_id"
+                    " FROM dispatch_cursor WHERE cursor_name = $1",
+                    cursor_name,
+                ),
             )
 
     async def advance_cursor(
