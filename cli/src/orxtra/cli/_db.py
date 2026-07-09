@@ -82,7 +82,7 @@ def _register_migrate_commands(
         help="Database migration commands (wraps pgdesign).",
     )
 
-    @migrate_group.command(  # type: ignore[untyped-decorator]
+    @migrate_group.command(
         name="plan",
         help="Preview schema changes without generating files.",
     )
@@ -91,11 +91,11 @@ def _register_migrate_commands(
     ) -> None:
         _run_pgdesign("plan", _require_db(db))
 
-    @migrate_group.command(  # type: ignore[untyped-decorator]
+    @migrate_group.command(
         name="apply",
         help="Apply pending migrations to the database.",
     )
-    @strictcli.flag(  # type: ignore[untyped-decorator]
+    @strictcli.flag(
         name="dry-run",
         type=bool,
         default=False,
@@ -108,7 +108,7 @@ def _register_migrate_commands(
         extra = ["--dry-run"] if dry_run else ["--no-dry-run"]
         _run_pgdesign("apply", _require_db(db), extra)
 
-    @migrate_group.command(  # type: ignore[untyped-decorator]
+    @migrate_group.command(
         name="status",
         help="Show applied and pending migration status.",
     )
@@ -125,11 +125,11 @@ def register_db_commands(app: strictcli.App) -> None:
         help="Database provisioning and migration commands.",
     )
 
-    @db_group.command(  # type: ignore[untyped-decorator]
+    @db_group.command(
         name="init",
         help="Create the database schema (idempotent).",
     )
-    @strictcli.flag(  # type: ignore[untyped-decorator]
+    @strictcli.flag(
         name="use-extension-stub",
         type=bool,
         default=False,
@@ -184,7 +184,7 @@ def register_db_commands(app: strictcli.App) -> None:
 
         asyncio.run(_run())
 
-    @db_group.command(  # type: ignore[untyped-decorator]
+    @db_group.command(
         name="verify",
         help="Verify the database schema is complete.",
     )

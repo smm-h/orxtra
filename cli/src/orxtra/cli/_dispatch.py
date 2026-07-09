@@ -20,23 +20,23 @@ def register_dispatch_commands(app: strictcli.App) -> None:
     """Register the ``dispatch`` command group on the orxtra CLI."""
     dispatch_group = app.group("dispatch", help="Dispatch worker commands.")
 
-    @dispatch_group.command(  # type: ignore[untyped-decorator]
+    @dispatch_group.command(
         name="run",
         help="Run the persistent dispatch worker.",
     )
-    @strictcli.flag(  # type: ignore[untyped-decorator]
+    @strictcli.flag(
         name="cursor",
         type=str,
         help="Cursor name for this worker instance.",
         default="main",
     )
-    @strictcli.flag(  # type: ignore[untyped-decorator]
+    @strictcli.flag(
         name="poll-interval",
         type=float,
         help="Fallback poll interval in seconds.",
         default=5.0,
     )
-    @strictcli.flag(  # type: ignore[untyped-decorator]
+    @strictcli.flag(
         name="batch-size",
         type=int,
         help="Max events per polling batch.",
