@@ -26,7 +26,8 @@ def create_app(dispatch_context: DispatchContext) -> ASGIApp:
 
     Args:
         dispatch_context: Infrastructure dependencies for dispatching
-            capability calls (pool, dispatch_backend, event_bus).
+            capability calls (pool, dispatch_backend, principal storage,
+            and the authenticated caller context).
 
     Returns:
         A Starlette ASGI app that speaks the MCP streamable HTTP

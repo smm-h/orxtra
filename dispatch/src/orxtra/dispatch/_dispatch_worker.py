@@ -92,7 +92,9 @@ class DispatchWorker:
         self._batch_size = batch_size
         self._stop_event = asyncio.Event()
         self._wake_event = asyncio.Event()
-        self._listen_conn: asyncpg.pool.PoolConnectionProxy[asyncpg.Record] | None = None
+        self._listen_conn: (
+            asyncpg.pool.PoolConnectionProxy[asyncpg.Record] | None
+        ) = None
 
     async def run(self) -> None:
         """Main loop: poll, match, execute, advance, wait."""
