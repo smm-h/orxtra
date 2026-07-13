@@ -1,9 +1,16 @@
 """HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app.
 
-Each protocol handles its own authentication:
-  - MCP: SDK's TransportSecuritySettings (inside the mounted app)
-  - A2A: Agent Card security schemes (inside the mounted app)
-  - Native routes (/ag-ui/*, /workers/*): orxtra auth middleware
+Authentication is enforced by orxtra's transport-level auth middleware
+(``orxtra.auth.auth_middleware``), not by the protocol sub-apps themselves:
+  - MCP (/mcp): auth wall wraps the mounted sub-app
+  - A2A (/a2a): auth wall wraps the mounted sub-app
+  - AG-UI (/ag-ui/*): auth wall wraps the mounted sub-app
+
+The wall applies only when an ``Authenticator`` is configured on the
+``CompositorConfig``. With no authenticator, the sub-apps are mounted raw
+(explicit unauthenticated mode -- not a runtime fallback). The middleware
+passes non-HTTP scopes (websocket, lifespan) through untouched, so mounted
+sub-app lifespans and the native /workers/connect WebSocket are unaffected.
 """
 
 from __future__ import annotations
@@ -53,7 +60,7 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     # prefix so the inner path becomes "/". We build the MCP app
     # with streamable_http_path="/" so routing works after mount.
     mcp_app = _build_mcp_app(config.dispatch_context)
-    router.mount("/mcp", mcp_app)
+    _mount_sub_app(router, "/mcp", mcp_app, config.authenticator)
 
     # -- Mount A2A at /a2a --
     # Similarly, the A2A Starlette app has its JSON-RPC route at
@@ -64,16 +71,17 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
         config.agent_card,
         config.skill_registry,
     )
-    router.mount("/a2a", a2a_app)
+    _mount_sub_app(router, "/a2a", a2a_app, config.authenticator)
 
-    # -- AG-UI SSE routes (native, under /ag-ui) --
+    # -- AG-UI SSE routes (under /ag-ui) --
     from orxtra.agui import create_agui_router
 
     agui_router, _broadcaster = create_agui_router()
 
-    # Wrap AG-UI routes with auth if an authenticator is provided.
+    # Wrap AG-UI routes with the auth wall if an authenticator is provided.
     if config.authenticator is not None:
-        _mount_authenticated_agui(router, agui_router, config.authenticator)
+        agui_app = create_app(agui_router)
+        _mount_sub_app(router, "/ag-ui", agui_app, config.authenticator)
     else:
         router.include_router(agui_router, prefix="/ag-ui")
 
@@ -147,21 +155,28 @@ def _build_a2a_app(
     )
 
 
-def _mount_authenticated_agui(
+def _mount_sub_app(
     root: Router,
-    agui_router: Router,
-    authenticator: Authenticator,
+    prefix: str,
+    sub_app: Any,
+    authenticator: Authenticator | None,
 ) -> None:
-    """Mount AG-UI routes with auth middleware applied.
+    """Mount a pre-built ASGI sub-app, wrapping it in the auth wall when configured.
 
-    Creates a sub-app from the AG-UI router, wraps it with the auth
-    middleware, and mounts it at /ag-ui on the root router.
+    When an authenticator is provided, the sub-app is wrapped with the
+    transport-level auth middleware before mounting -- every HTTP request
+    to the prefix must present a valid credential or receive 401. The
+    middleware passes non-HTTP scopes (websocket, lifespan) through
+    untouched, so the sub-app's lifespan still runs.
+
+    With no authenticator, the sub-app is mounted raw (explicit
+    unauthenticated mode -- not a runtime fallback).
     """
-    from orxtra.auth import auth_middleware
+    if authenticator is not None:
+        from orxtra.auth import auth_middleware
 
-    agui_app = create_app(agui_router)
-    authed_agui = auth_middleware(agui_app, authenticator)
-    root.mount("/ag-ui", authed_agui)
+        sub_app = auth_middleware(sub_app, authenticator)
+    root.mount(prefix, sub_app)
 
 
 def _serialize_agent_card(agent_card: AgentCard) -> dict[str, Any]:
