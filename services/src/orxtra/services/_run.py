@@ -153,7 +153,7 @@ def _load_custom_tools(
         derive_tags,
     )
 
-    _BUILDERS: dict[type, Any] = {
+    builders: dict[type, Any] = {
         HttpExecution: build_http_tool,
         MontyExecution: build_monty_tool,
         CommandExecution: build_command_tool,
@@ -183,7 +183,7 @@ def _load_custom_tools(
             # Command: always mutation.
             derived_tags.add("mutation")
 
-        builder = _BUILDERS.get(type(defn.execution))
+        builder = builders.get(type(defn.execution))
         if builder is None:
             msg = (
                 f"Unknown execution type for tool {defn.name!r}: "
