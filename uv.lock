@@ -20,6 +20,7 @@ members = [
     "orxtra-cli",
     "orxtra-compose",
     "orxtra-dispatch",
+    "orxtra-identity",
     "orxtra-incoming",
     "orxtra-mcp",
     "orxtra-notepad",
@@ -897,6 +898,7 @@ dev = [
     { name = "orxtra-cli" },
     { name = "orxtra-compose" },
     { name = "orxtra-dispatch" },
+    { name = "orxtra-identity" },
     { name = "orxtra-incoming" },
     { name = "orxtra-mcp" },
     { name = "orxtra-notepad" },
@@ -949,6 +951,7 @@ dev = [
     { name = "orxtra-cli", editable = "cli" },
     { name = "orxtra-compose", editable = "compose" },
     { name = "orxtra-dispatch", editable = "dispatch" },
+    { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-incoming", editable = "incoming" },
     { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-notepad", editable = "notepad" },
@@ -1187,6 +1190,29 @@ requires-dist = [
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "pydantic", specifier = ">=2" },
     { name = "uuid6" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxtra-identity"
+version = "0.9.0"
+source = { editable = "identity" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "orxtra-protocols" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg" },
+    { name = "orxtra-protocols", editable = "protocols" },
 ]
 
 [package.metadata.requires-dev]
