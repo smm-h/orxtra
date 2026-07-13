@@ -58,11 +58,12 @@ class SchedulerBase(ABC):
     _agents: dict[str, Agent]
     _categories: dict[str, str]
     _run_id: UUID
+    _run_principal_id: UUID
     _read_root: Path
     _overseer_interface: OverseerInterface | None
     _model_context_limit: int
     _handoff_checker: Callable[[Any, int], Awaitable[bool]] | None
-    _handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None
+    _handoff_performer: Callable[[Any, Any, UUID, UUID], Awaitable[Any]] | None
     _budget_exhaustion_policy: BudgetExhaustionPolicy
     _budget_limit: Decimal | None
     _proportionality_threshold: float | None

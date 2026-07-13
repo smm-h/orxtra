@@ -14,7 +14,7 @@ BEGIN
     PERFORM pg_notify('orxtra_events', json_build_object(
         'event_id', NEW.id,
         'run_id', NEW.run_id,
-        'source', NEW.source,
+        'principal_id', NEW.principal_id::text,
         'event_type', NEW.event_type
     )::text);
     RETURN NEW;
@@ -28,7 +28,7 @@ BEGIN
     PERFORM pg_notify('orxtra_events', json_build_object(
         'event_id', NEW.id,
         'run_id', NEW.run_id,
-        'source', NEW.source,
+        'principal_id', NEW.principal_id::text,
         'event_type', NEW.event_type
     )::text);
     RETURN NEW;

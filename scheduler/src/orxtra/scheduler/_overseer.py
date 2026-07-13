@@ -46,9 +46,10 @@ async def _maintain_current_allocations(
     *,
     trace_writer: Any = None,
     run_id: UUID | None = None,
+    principal_id: UUID | None = None,
 ) -> None:
     """For budget events: do nothing, just log."""
-    _ = trace_writer, run_id
+    _ = trace_writer, run_id, principal_id
     event_type = type(event).__name__
     logger.info(
         "Degraded mode: maintaining current"
@@ -63,9 +64,11 @@ async def _escalate_to_human_inbox(
     *,
     trace_writer: Any = None,
     run_id: UUID | None = None,
+    principal_id: UUID | None = None,
 ) -> None:
     """Default fallback: create an inbox item for
     human intervention."""
+    _ = principal_id
     event_type = type(event).__name__
     logger.info(
         "Degraded mode: escalating %s to human"
@@ -97,6 +100,7 @@ async def _write_to_trace(
     *,
     trace_writer: Any = None,
     run_id: UUID | None = None,
+    principal_id: UUID | None = None,
 ) -> None:
     """Write the event to trace as a headless fallback
     record. For TaskFailed/TaskEscalated, also creates
@@ -124,6 +128,7 @@ async def _write_to_trace(
             run_id=run_id,
             event_type=f"headless_{event_type}",
             data=data,
+            principal_id=principal_id,
         )
         # For failure/escalation events, create an
         # inbox item for human review
@@ -158,9 +163,10 @@ async def _log_only(
     *,
     trace_writer: Any = None,
     run_id: UUID | None = None,
+    principal_id: UUID | None = None,
 ) -> None:
     """Log the event, no other action needed."""
-    _ = trace_writer, run_id
+    _ = trace_writer, run_id, principal_id
     event_type = type(event).__name__
     logger.info(
         "Headless mode: %s (no action needed)",

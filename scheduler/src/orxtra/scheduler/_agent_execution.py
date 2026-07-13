@@ -126,6 +126,7 @@ class AgentExecutionMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
+            principal_id=self._run_principal_id,
         )
 
         session, session_id_str = await self._create_agent_session(
@@ -168,6 +169,7 @@ class AgentExecutionMixin(SchedulerBase):
                     task_id,
                     TaskState.SUSPENDED.value,
                     "awaiting child task",
+                    principal_id=self._run_principal_id,
                 )
 
                 child_result = await self.execute_task(
@@ -180,6 +182,7 @@ class AgentExecutionMixin(SchedulerBase):
                     task_id,
                     TaskState.ACTIVE.value,
                     "child task completed",
+                    principal_id=self._run_principal_id,
                 )
 
                 resume_msg = render_template(
@@ -210,6 +213,7 @@ class AgentExecutionMixin(SchedulerBase):
                 self._task_states[task_id] = TaskState.POSTCHECKING
                 await self._trace_writer.transition_task(
                     task_id, TaskState.POSTCHECKING.value,
+                    principal_id=self._run_principal_id,
                 )
 
                 postcheck_results = await self._run_postchecks(
@@ -222,6 +226,7 @@ class AgentExecutionMixin(SchedulerBase):
                     await self._trace_writer.transition_task(
                         task_id,
                         TaskState.POSTCHECK_FAILED.value,
+                        principal_id=self._run_principal_id,
                     )
                     # Orchestrator session has ended, can't retry.
                     # Escalate immediately.
@@ -231,6 +236,7 @@ class AgentExecutionMixin(SchedulerBase):
                     await self._trace_writer.transition_task(
                         task_id,
                         TaskState.ESCALATED.value,
+                        principal_id=self._run_principal_id,
                     )
 
                     from orxtra.protocols import (
@@ -273,6 +279,7 @@ class AgentExecutionMixin(SchedulerBase):
                 self._task_states[task_id] = TaskState.COMPLETED
                 await self._trace_writer.transition_task(
                     task_id, TaskState.COMPLETED.value,
+                    principal_id=self._run_principal_id,
                 )
                 return TaskResult(
                     output=output_text,
@@ -284,6 +291,7 @@ class AgentExecutionMixin(SchedulerBase):
             self._task_states[task_id] = TaskState.COMPLETED
             await self._trace_writer.transition_task(
                 task_id, TaskState.COMPLETED.value,
+                principal_id=self._run_principal_id,
             )
 
             return TaskResult(
@@ -354,6 +362,7 @@ class AgentExecutionMixin(SchedulerBase):
                     await self._trace_writer.transition_task(
                         task_id,
                         TaskState.ESCALATED.value,
+                        principal_id=self._run_principal_id,
                     )
                     return TaskResult(
                         output=None,
@@ -454,6 +463,7 @@ class AgentExecutionMixin(SchedulerBase):
                         "category": category.value,
                     },
                     task_id=task_id,
+                    principal_id=self._run_principal_id,
                 )
                 await self._complete_attempt(
                     attempt_id, session, "", False,
@@ -643,6 +653,7 @@ class AgentExecutionMixin(SchedulerBase):
         self._file_lock_registry.release(task_id)
         await self._trace_writer.transition_task(
             task_id, TaskState.ESCALATED.value,
+            principal_id=self._run_principal_id,
         )
 
         # Try parent agent first, fall back to Overseer
@@ -763,6 +774,7 @@ class AgentExecutionMixin(SchedulerBase):
                     "action": "handoff",
                 },
                 task_id=task_id,
+                principal_id=self._run_principal_id,
             )
             await self._agent_handoff(session, task_id)
         elif usage_percent >= _CONTEXT_WARNING_THRESHOLD:
@@ -786,6 +798,7 @@ class AgentExecutionMixin(SchedulerBase):
                     "action": "warning",
                 },
                 task_id=task_id,
+                principal_id=self._run_principal_id,
             )
 
     async def _agent_handoff(
@@ -917,6 +930,7 @@ class AgentExecutionMixin(SchedulerBase):
                     "duration_ms": duration_ms,
                 },
                 task_id=task_id,
+                principal_id=self._run_principal_id,
             )
 
         # Build result-appendix callback for advisory
@@ -1408,6 +1422,7 @@ class AgentExecutionMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.CANCELLED
         await self._trace_writer.transition_task(
             task_id, TaskState.CANCELLED.value,
+            principal_id=self._run_principal_id,
         )
 
     async def _complete_attempt(

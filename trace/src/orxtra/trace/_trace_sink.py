@@ -64,17 +64,19 @@ class TraceSink:
         self,
         trace_writer: TraceWriter,
         run_id: UUID,
+        run_principal_id: UUID,
     ) -> None:
         self._trace_writer = trace_writer
         self._run_id = run_id
+        self._run_principal_id = run_principal_id
 
     async def on_event(self, event: OverseerEvent) -> None:
-        """Write the OverseerEvent to trace storage."""
+        """Write the OverseerEvent to trace storage, attributed to the run."""
         event_type = _to_snake_case(type(event).__name__)
         data = _serialize_event(event)
         await self._trace_writer.write_event(
             run_id=self._run_id,
             event_type=event_type,
             data=data,
-            source="overseer",
+            principal_id=self._run_principal_id,
         )

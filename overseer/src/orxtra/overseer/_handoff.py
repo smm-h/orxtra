@@ -21,6 +21,7 @@ async def perform_handoff(
     session: Session,
     trace_writer: TraceWriter,
     run_id: UUID,
+    run_principal_id: UUID,
 ) -> Session:
     from orxtra.session import create_session
     from orxtra.transport import Result
@@ -43,6 +44,7 @@ async def perform_handoff(
             "old_session_id": session.resume_id(),
             "summary_length": len(summary),
         },
+        principal_id=run_principal_id,
     )
 
     new_session = await create_session(

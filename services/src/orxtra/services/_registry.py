@@ -98,6 +98,13 @@ _INJECT_SOURCE_CREATE: frozenset[str] = frozenset({
     "principal_storage",
     "caller_principal",
 })
+# fire_event attributes the event to the authenticated caller's principal.
+# Injection order is deterministic (pool, then caller_principal last), matching
+# the fire_event service fn signature.
+_INJECT_POOL_AND_CALLER: frozenset[str] = frozenset({
+    "pool",
+    "caller_principal",
+})
 _INJECT_NONE: frozenset[str] = frozenset()
 
 
@@ -303,7 +310,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="event",
             required_scope=SCOPE_EVENTS_WRITE,
-            injects=_INJECT_POOL,
+            injects=_INJECT_POOL_AND_CALLER,
         ),
         # -- Config --
         Capability(

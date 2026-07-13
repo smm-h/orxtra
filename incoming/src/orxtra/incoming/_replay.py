@@ -12,12 +12,13 @@ from uuid import UUID
 
 from fastware import JSONResponse, TextResponse
 from orxtra.auth import AuthenticationError
+from orxtra.protocols import KIND_SOURCE
 from orxtra.trace import replay
 
 if TYPE_CHECKING:
     import asyncpg
     from orxtra.auth import Authenticator
-    from orxtra.protocols import DispatchBackend, Source
+    from orxtra.protocols import DispatchBackend, PrincipalStorage, Source
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ async def replay_handler(
     pool: asyncpg.Pool[Any],
     dispatch_backend: DispatchBackend,
     authenticator: Authenticator,
+    principal_storage: PrincipalStorage,
 ) -> JSONResponse | TextResponse:
     """GET /events/{slug}/replay -- replay historical events for a source."""
     slug: str = request.path_params.get("slug", "")
@@ -80,14 +82,20 @@ async def replay_handler(
         presented = presented[7:]
 
     try:
-        # Phase 4 will attribute replayed access to this AuthContext; for
-        # now we capture (not discard) the verification result and hold it
-        # in hand at the replay call site below.
+        # The AuthContext identifies the presenting consumer (logged below).
+        # Replay is scoped to the SOURCE principal's events, resolved below.
         auth_context = await authenticator.verify_by_credential_id(
             credential_id, presented,
         )
     except AuthenticationError:
         return TextResponse("Authentication failed", status=401)
+
+    # -- Resolve the source's principal to scope the replay --
+    source_principal = await principal_storage.get_principal_by_ref(
+        KIND_SOURCE, source.id,
+    )
+    if source_principal is None:
+        return TextResponse("Source principal missing", status=500)
 
     # -- Parse query params --
     since_raw = request.query("since")
@@ -108,7 +116,7 @@ async def replay_handler(
     # -- Query events --
     events = await replay(
         pool,
-        source=slug,
+        principal_id=source_principal.id,
         since_id=since_id,
         limit=limit,
     )

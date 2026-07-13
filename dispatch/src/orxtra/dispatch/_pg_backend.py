@@ -366,11 +366,12 @@ class PgDispatchBackend:
         """Return events after *since_id*, ordered by id (UUIDv7 = time-ordered).
 
         Each row is returned as a dict with keys:
-        id, run_id, task_id, event_type, source, data, idempotency_key, created_at.
+        id, run_id, task_id, event_type, principal_id, data, idempotency_key,
+        created_at.
         """
         if since_id is not None:
             query = (
-                "SELECT id, run_id, task_id, event_type, source,"
+                "SELECT id, run_id, task_id, event_type, principal_id,"
                 " data, idempotency_key, created_at"
                 " FROM events WHERE id > $1"
                 " ORDER BY id LIMIT $2"
@@ -378,7 +379,7 @@ class PgDispatchBackend:
             params: list[Any] = [since_id, limit]
         else:
             query = (
-                "SELECT id, run_id, task_id, event_type, source,"
+                "SELECT id, run_id, task_id, event_type, principal_id,"
                 " data, idempotency_key, created_at"
                 " FROM events ORDER BY id LIMIT $1"
             )

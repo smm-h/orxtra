@@ -14,9 +14,11 @@ from orxtra.trace._memory_backend import InMemoryBackend
 if TYPE_CHECKING:
     from .conftest import MockPool
 
-# InMemoryBackend does not enforce the principals FK; a shared stand-in id
-# suffices for the creating actor in these replay fixtures.
+# InMemoryBackend does not enforce the principals FK; shared stand-in ids
+# suffice for the acting principals in these replay fixtures.
 _CREATED_BY = uuid6.uuid7()
+PRINCIPAL_A = uuid6.uuid7()
+PRINCIPAL_B = uuid6.uuid7()
 
 EVENT_ID_1 = UUID("01900000-0000-7000-8000-000000000001")
 EVENT_ID_2 = UUID("01900000-0000-7000-8000-000000000002")
@@ -38,7 +40,7 @@ class TestReplayPg:
                 "run_id": RUN_ID,
                 "task_id": None,
                 "event_type": "run_transition",
-                "source": "internal",
+                "principal_id": PRINCIPAL_A,
                 "data": {"old_status": "created", "new_status": "running"},
                 "created_at": NOW,
             },
@@ -49,7 +51,7 @@ class TestReplayPg:
         assert len(result) == 1
         assert result[0]["id"] == EVENT_ID_1
         assert result[0]["event_type"] == "run_transition"
-        assert result[0]["source"] == "internal"
+        assert result[0]["principal_id"] == PRINCIPAL_A
 
     @pytest.mark.asyncio
     async def test_replay_filter_by_event_type(self, mock_pool: MockPool) -> None:
@@ -64,16 +66,17 @@ class TestReplayPg:
         assert ["task_transition"] in args
 
     @pytest.mark.asyncio
-    async def test_replay_filter_by_source(self, mock_pool: MockPool) -> None:
+    async def test_replay_filter_by_principal(self, mock_pool: MockPool) -> None:
         mock_pool.conn.queue_fetch([])
 
         result = await replay(  # type: ignore[arg-type]
-            mock_pool, source="agent"
+            mock_pool, principal_id=PRINCIPAL_A,
         )
 
         assert result == []
-        _sql, args = mock_pool.conn.executed[-1]
-        assert "agent" in args
+        sql, args = mock_pool.conn.executed[-1]
+        assert "principal_id = $" in sql.lower()
+        assert PRINCIPAL_A in args
 
     @pytest.mark.asyncio
     async def test_replay_cursor_since_id(self, mock_pool: MockPool) -> None:
@@ -109,9 +112,9 @@ class TestReplayInMemory:
         backend = InMemoryBackend()
         run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
-        eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1})
-        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
-        eid3, _ = await backend.write_event(run_id, "ev_c", {"k": 3})
+        eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1}, principal_id=_CREATED_BY)
+        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2}, principal_id=_CREATED_BY)
+        eid3, _ = await backend.write_event(run_id, "ev_c", {"k": 3}, principal_id=_CREATED_BY)
 
         result = await backend.replay()
 
@@ -127,9 +130,9 @@ class TestReplayInMemory:
         backend = InMemoryBackend()
         run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
-        await backend.write_event(run_id, "ev_a", {"k": 1})
-        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
-        await backend.write_event(run_id, "ev_a", {"k": 3})
+        await backend.write_event(run_id, "ev_a", {"k": 1}, principal_id=_CREATED_BY)
+        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2}, principal_id=_CREATED_BY)
+        await backend.write_event(run_id, "ev_a", {"k": 3}, principal_id=_CREATED_BY)
 
         result = await backend.replay(event_types=["ev_b"])
 
@@ -138,14 +141,18 @@ class TestReplayInMemory:
         assert result[0]["event_type"] == "ev_b"
 
     @pytest.mark.asyncio
-    async def test_replay_filter_source(self) -> None:
+    async def test_replay_filter_principal(self) -> None:
         backend = InMemoryBackend()
         run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
-        await backend.write_event(run_id, "ev_a", {"k": 1}, source="internal")
-        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2}, source="agent")
+        await backend.write_event(
+            run_id, "ev_a", {"k": 1}, principal_id=PRINCIPAL_A,
+        )
+        eid2, _ = await backend.write_event(
+            run_id, "ev_b", {"k": 2}, principal_id=PRINCIPAL_B,
+        )
 
-        result = await backend.replay(source="agent")
+        result = await backend.replay(principal_id=PRINCIPAL_B)
 
         assert len(result) == 1
         assert result[0]["id"] == eid2
@@ -155,9 +162,9 @@ class TestReplayInMemory:
         backend = InMemoryBackend()
         run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
-        eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1})
-        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
-        eid3, _ = await backend.write_event(run_id, "ev_c", {"k": 3})
+        eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1}, principal_id=_CREATED_BY)
+        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2}, principal_id=_CREATED_BY)
+        eid3, _ = await backend.write_event(run_id, "ev_c", {"k": 3}, principal_id=_CREATED_BY)
 
         result = await backend.replay(since_id=eid2)
 
@@ -172,7 +179,7 @@ class TestReplayInMemory:
         run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         for i in range(10):
-            await backend.write_event(run_id, "ev", {"i": i})
+            await backend.write_event(run_id, "ev", {"i": i}, principal_id=_CREATED_BY)
 
         result = await backend.replay(limit=3)
 

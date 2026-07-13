@@ -13,6 +13,7 @@ from orxtra.dispatch._action_executor import (
 )
 from orxtra.dispatch._delivery import (
     DualPhaseEventDelivery,
+    SourcePrincipalResolver,
     TransientEventDelivery,
     match_subscription,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "InMemoryDispatchBackend",
     "PgDispatchBackend",
     "Source",
+    "SourcePrincipalResolver",
     "SourceStorage",
     "Subscription",
     "SubscriptionAction",

@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
+    from orxtra.dispatch._delivery import SourcePrincipalResolver
     from orxtra.dispatch._pg_backend import PgDispatchBackend
     from orxtra.protocols import ActionExecutor, FlushScheduler
 
@@ -71,6 +72,8 @@ class DispatchWorker:
         pool: asyncpg.Pool,
         cursor_name: str,
         events_channel: str,
+        system_principal_id: UUID,
+        source_principal_resolver: SourcePrincipalResolver,
         poll_interval: float = DEFAULT_POLL_INTERVAL,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ) -> None:
@@ -80,6 +83,11 @@ class DispatchWorker:
         self._pool = pool
         self._cursor_name = cursor_name
         self._events_channel = events_channel
+        # The system principal, injected by services (dispatch never imports
+        # identity). Used to attribute the worker's own re-fired events.
+        self._system_principal_id = system_principal_id
+        # Resolves a subscription filter's source slugs to source-principal ids.
+        self._resolve_source_principals = source_principal_resolver
         self._poll_interval = poll_interval
         self._batch_size = batch_size
         self._stop_event = asyncio.Event()
@@ -202,14 +210,17 @@ class DispatchWorker:
                 break
             event_id: UUID = event["id"]
             event_type: str = event["event_type"]
-            source: str | None = event.get("source")
+            principal_id: UUID | None = event.get("principal_id")
             raw_data = event.get("data")
             data: dict[str, Any] | None = None
             if raw_data is not None:
                 data = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
 
             for sub in subscriptions:
-                if not match_subscription(event_type, source, data, sub.filter):
+                if not await match_subscription(
+                    event_type, principal_id, data, sub.filter,
+                    self._resolve_source_principals,
+                ):
                     continue
 
                 actions = await self._backend.list_actions(sub.id)
@@ -225,7 +236,9 @@ class DispatchWorker:
                     try:
                         event_payload: dict[str, object] = {
                             "event_type": event_type,
-                            "source": source or "",
+                            "principal_id": (
+                                str(principal_id) if principal_id else ""
+                            ),
                             "data": data or {},
                             "event_id": str(event_id),
                         }
@@ -264,9 +277,13 @@ class DispatchWorker:
             from orxtra.trace import TraceWriter
 
             writer = TraceWriter(self._pool)
+            # Attribute the worker's re-fired event to the system principal.
+            # Subscription-owner attribution (crediting the event to the
+            # subscription that triggered the re-fire) arrives with ownership
+            # in the next phase; until then the worker itself is the actor.
             await writer.write_event(
                 None, event_type, data or {},
-                source="dispatch-worker",
+                principal_id=self._system_principal_id,
             )
 
         return _callback

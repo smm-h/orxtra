@@ -84,12 +84,15 @@ class MockTraceWriter:
         run_id: uuid.UUID,
         new_status: str,
         reason: str | None = None,
+        *,
+        principal_id: uuid.UUID,
     ) -> None:
         self._record(
             "transition_run",
             run_id=run_id,
             new_status=new_status,
             reason=reason,
+            principal_id=principal_id,
         )
         self._run_statuses[run_id] = new_status
 
@@ -118,12 +121,15 @@ class MockTraceWriter:
         task_id: uuid.UUID,
         new_status: str,
         reason: str | None = None,
+        *,
+        principal_id: uuid.UUID,
     ) -> None:
         self._record(
             "transition_task",
             task_id=task_id,
             new_status=new_status,
             reason=reason,
+            principal_id=principal_id,
         )
         self._task_statuses[task_id] = new_status
 
@@ -188,7 +194,8 @@ class MockTraceWriter:
         event_type: str,
         data: dict[str, Any],
         task_id: uuid.UUID | None = None,
-        source: str = "internal",
+        *,
+        principal_id: uuid.UUID,
         idempotency_key: str | None = None,
     ) -> tuple[uuid.UUID, bool]:
         event_id = uuid6.uuid7()
@@ -197,6 +204,7 @@ class MockTraceWriter:
             run_id=run_id,
             event_type=event_type,
             data=data,
+            principal_id=principal_id,
             idempotency_key=idempotency_key,
         )
         return event_id, True

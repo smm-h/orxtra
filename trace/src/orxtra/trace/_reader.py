@@ -458,7 +458,7 @@ async def read_event(
     Returns the event as a dict, or None if not found.
     """
     row: asyncpg.Record | None = await pool.fetchrow(
-        "SELECT id, run_id, task_id, event_type, source, data, created_at"
+        "SELECT id, run_id, task_id, event_type, principal_id, data, created_at"
         " FROM events WHERE id = $1",
         event_id,
     )
@@ -471,7 +471,7 @@ async def replay(
     pool: asyncpg.Pool,
     *,
     event_types: list[str] | None = None,
-    source: str | None = None,
+    principal_id: UUID | None = None,
     since_id: UUID | None = None,
     limit: int = 1000,
 ) -> list[dict[str, Any]]:
@@ -488,9 +488,9 @@ async def replay(
         params.append(event_types)
         idx += 1
 
-    if source is not None:
-        conditions.append(f"source = ${idx}")
-        params.append(source)
+    if principal_id is not None:
+        conditions.append(f"principal_id = ${idx}")
+        params.append(principal_id)
         idx += 1
 
     if since_id is not None:
@@ -501,7 +501,7 @@ async def replay(
     where = " AND ".join(conditions) if conditions else "TRUE"
     params.append(limit)
     query = (
-        "SELECT id, run_id, task_id, event_type, source, data, created_at"  # noqa: S608
+        "SELECT id, run_id, task_id, event_type, principal_id, data, created_at"  # noqa: S608
         f" FROM events WHERE {where}"
         f" ORDER BY id LIMIT ${idx}"
     )

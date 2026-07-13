@@ -71,7 +71,7 @@ def register_dispatch_commands(app: strictcli.App) -> None:
                     print(str(exc), file=sys.stderr)
                     sys.exit(1)
 
-                worker = create_dispatch_worker(
+                worker = await create_dispatch_worker(
                     pool,
                     cursor_name=cursor,
                     poll_interval=poll_interval,

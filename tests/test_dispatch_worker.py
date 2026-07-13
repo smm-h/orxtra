@@ -65,18 +65,35 @@ def dispatch_test_handler(events: list[dict[str, object]]) -> None:
     _script_invocations.extend(events)
 
 
+async def _seed_system_principal(pool: Any) -> UUID:
+    """Idempotently seed the system principal and return its id.
+
+    Events FK into principals (NOT NULL), so a valid actor must exist before
+    any event insert. Returns the same id on repeated calls.
+    """
+    async with pool.acquire() as conn:
+        pid: UUID = await conn.fetchval(
+            "INSERT INTO principals (kind, external_ref, display_name)"
+            " VALUES ('system', '00000000-0000-0000-0000-000000000000', 'system')"
+            " ON CONFLICT (kind, external_ref)"
+            " DO UPDATE SET display_name = principals.display_name"
+            " RETURNING id",
+        )
+    return pid
+
+
 async def _fire_event(
     pool: Any,
     event_type: str,
     data: dict[str, Any] | None = None,
-    source: str = "test",
     run_id: UUID | None = None,
     idempotency_key: str | None = None,
 ) -> tuple[UUID, bool]:
-    """Fire an event into the trace store."""
+    """Fire an event into the trace store, attributed to the system principal."""
+    principal_id = await _seed_system_principal(pool)
     writer = TraceWriter(pool)
     return await writer.write_event(
-        run_id, event_type, data or {}, source=source,
+        run_id, event_type, data or {}, principal_id=principal_id,
         idempotency_key=idempotency_key,
     )
 
@@ -128,6 +145,11 @@ async def _create_subscription_with_script_action(
     return sub.id, action.id
 
 
+async def _noop_source_resolver(_slugs: Any) -> set[UUID]:
+    """These tests filter by event_type only; no source slug resolves."""
+    return set()
+
+
 def _make_worker(
     pool: Any,
     backend: PgDispatchBackend,
@@ -135,7 +157,12 @@ def _make_worker(
     cursor_name: str = "test-cursor",
     poll_interval: float = 0.1,
 ) -> DispatchWorker:
-    """Build a DispatchWorker with test-friendly settings."""
+    """Build a DispatchWorker with test-friendly settings.
+
+    The system principal id is a bare sentinel: these tests use Script/Log
+    actions (never EventAction), so the worker never re-fires an event and the
+    id is never written.
+    """
     return DispatchWorker(
         backend=backend,
         action_executor=action_executor or TrackingActionExecutor(),
@@ -143,6 +170,8 @@ def _make_worker(
         pool=pool,
         cursor_name=cursor_name,
         events_channel=EVENTS_CHANNEL,
+        system_principal_id=uuid7(),
+        source_principal_resolver=_noop_source_resolver,
         poll_interval=poll_interval,
         batch_size=100,
     )
@@ -386,7 +415,9 @@ class TestServiceFactory:
         self, pg_pool: Any,
     ) -> None:
         """create_dispatch_worker returns a DispatchWorker that can run/stop."""
-        worker = create_dispatch_worker(
+        # The factory resolves the system principal from the DB; seed it first.
+        await _seed_system_principal(pg_pool)
+        worker = await create_dispatch_worker(
             pg_pool,
             cursor_name="factory-test",
             poll_interval=0.1,

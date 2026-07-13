@@ -238,7 +238,11 @@ async def start_run(
     # the run's own descriptive data (intent, config), so a run principal is
     # a bare identity anchor, not a duplicate label.
     run_id = uuid6.uuid7()
-    await principal_storage.mint_principal(KIND_RUN, run_id, None)
+    # Mint-first: the run's principal must exist before the runs row that FKs
+    # into it (created_by), and before any event attributed to the run. If
+    # create_run fails after this mint, the orphaned run principal is harmless
+    # -- nothing references it, it is never swept, and it can be deleted safely.
+    run_principal = await principal_storage.mint_principal(KIND_RUN, run_id, None)
     await writer.create_run(
         intent,
         _serialize_config(config),
@@ -247,7 +251,9 @@ async def start_run(
         created_by=caller_principal.id,
     )
     try:
-        await writer.transition_run(run_id, "running")
+        await writer.transition_run(
+            run_id, "running", principal_id=run_principal.id,
+        )
         agents = load_agents(config.agents_dir)
         categories = load_categories(config.categories_path)
         if transport_registry is not None:
@@ -302,6 +308,7 @@ async def start_run(
             agents=agents,
             categories=categories,
             run_id=run_id,
+            run_principal_id=run_principal.id,
             read_root=config.read_root,
             pool=pool,
             backend=backend,
@@ -320,9 +327,13 @@ async def start_run(
             config.knowledge_dir, writer, run_id,
         )
         await scheduler.execute_workflow(workflow_config)
-        await writer.transition_run(run_id, "completed")
+        await writer.transition_run(
+            run_id, "completed", principal_id=run_principal.id,
+        )
     except Exception:
-        await writer.transition_run(run_id, "failed")
+        await writer.transition_run(
+            run_id, "failed", principal_id=run_principal.id,
+        )
         raise
     return run_id
 
@@ -366,16 +377,36 @@ async def list_runs(pool: asyncpg.Pool) -> list[RunSummary]:
     return await _list_runs(pool)
 
 
+async def _resolve_run_principal_id(pool: asyncpg.Pool, run_id: UUID) -> UUID:
+    """Resolve the run's own principal id for transition attribution.
+
+    Run control operations (abort/pause/resume) emit a run_transition event
+    attributed to the run principal. It was minted at run birth; a missing one
+    is a hard error (an invariant violation), never a silent fallback.
+    """
+    from orxtra.identity import PgPrincipalStorage
+
+    storage = PgPrincipalStorage(pool)
+    principal = await storage.get_principal_by_ref(KIND_RUN, run_id)
+    if principal is None:
+        msg = f"run principal missing for run {run_id}"
+        raise RuntimeError(msg)
+    return principal.id
+
+
 async def abort_run(pool: asyncpg.Pool, run_id: UUID) -> None:
     writer = TraceWriter(pool)
-    await writer.transition_run(run_id, "aborted")
+    principal_id = await _resolve_run_principal_id(pool, run_id)
+    await writer.transition_run(run_id, "aborted", principal_id=principal_id)
 
 
 async def pause_run(pool: asyncpg.Pool, run_id: UUID) -> None:
     writer = TraceWriter(pool)
-    await writer.transition_run(run_id, "paused")
+    principal_id = await _resolve_run_principal_id(pool, run_id)
+    await writer.transition_run(run_id, "paused", principal_id=principal_id)
 
 
 async def resume_run(pool: asyncpg.Pool, run_id: UUID) -> None:
     writer = TraceWriter(pool)
-    await writer.transition_run(run_id, "running")
+    principal_id = await _resolve_run_principal_id(pool, run_id)
+    await writer.transition_run(run_id, "running", principal_id=principal_id)

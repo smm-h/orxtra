@@ -85,6 +85,24 @@ async def execute_service_action(
 
     event_callback: EventFireCallback | None = None
     if pool is not None:
+        from orxtra.identity import PgPrincipalStorage
+        from orxtra.protocols import KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF
+
+        # A dispatch-fired event has no human caller: attribute it to the
+        # singleton system principal. Resolve it ONCE here (hard error if
+        # unseeded -- matches resolve_caller_principal's contract).
+        storage = PgPrincipalStorage(pool)
+        system_principal = await storage.get_principal_by_ref(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF,
+        )
+        if system_principal is None:
+            msg = (
+                "System principal not seeded -- run 'orxtra db init' to seed "
+                "the singleton system principal before firing dispatch events."
+            )
+            raise RuntimeError(msg)
+
+        resolved_system = system_principal
 
         async def _fire_event(
             event_type: str,
@@ -92,7 +110,10 @@ async def execute_service_action(
         ) -> None:
             from orxtra.services._events import fire_event
 
-            await fire_event(pool, None, event_type, data)
+            await fire_event(
+                pool, resolved_system,
+                run_id=None, event_name=event_type, payload=data,
+            )
 
         event_callback = _fire_event
 

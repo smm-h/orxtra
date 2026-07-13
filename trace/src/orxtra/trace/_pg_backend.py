@@ -53,8 +53,11 @@ class PgBackend:
 
     async def transition_task(
         self, task_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None:
-        await self._writer.transition_task(task_id, new_status, reason)
+        await self._writer.transition_task(
+            task_id, new_status, reason, principal_id=principal_id,
+        )
 
     async def create_task_attempt(self, task_id: UUID, attempt: int) -> UUID:
         return await self._writer.create_task_attempt(task_id, attempt)
@@ -135,11 +138,13 @@ class PgBackend:
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
-        source: str = "internal",
+        *,
+        principal_id: UUID,
         idempotency_key: str | None = None,
     ) -> tuple[UUID, bool]:
         return await self._writer.write_event(
-            run_id, event_type, data, task_id, source, idempotency_key,
+            run_id, event_type, data, task_id,
+            principal_id=principal_id, idempotency_key=idempotency_key,
         )
 
     async def write_transcript_entry(
@@ -173,8 +178,11 @@ class PgBackend:
 
     async def transition_run(
         self, run_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None:
-        await self._writer.transition_run(run_id, new_status, reason)
+        await self._writer.transition_run(
+            run_id, new_status, reason, principal_id=principal_id,
+        )
 
     async def write_coherence_summary(self, run_id: UUID, summary: str) -> None:
         await self._writer.write_coherence_summary(run_id, summary)
@@ -420,14 +428,14 @@ class PgBackend:
         self,
         *,
         event_types: list[str] | None = None,
-        source: str | None = None,
+        principal_id: UUID | None = None,
         since_id: UUID | None = None,
         limit: int = 1000,
     ) -> list[dict[str, Any]]:
         return await _reader.replay(
             self._pool,
             event_types=event_types,
-            source=source,
+            principal_id=principal_id,
             since_id=since_id,
             limit=limit,
         )

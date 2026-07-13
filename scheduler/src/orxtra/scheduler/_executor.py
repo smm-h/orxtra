@@ -8,6 +8,7 @@ import logging
 import time
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
 from orxtra.dispatch import TransientEventDelivery
 from orxtra.notepad import NotepadEntry
@@ -48,7 +49,6 @@ from orxtra.write_safety import StaleWriteTracker, WriteQueue
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from pathlib import Path
-    from uuid import UUID
 
     import asyncpg
     from orxtra.agent import Agent
@@ -65,6 +65,11 @@ if TYPE_CHECKING:
     from orxtra.transport import Transport
 
 _logger = logging.getLogger("orxtra.scheduler")
+
+# The system-principal sentinel (all-zeros) used as the default run principal
+# when a Scheduler is constructed without one (tests). Production passes the
+# run's own minted principal via services.start_run.
+_SYSTEM_PRINCIPAL_SENTINEL = UUID(int=0)
 
 _ACTIVE_STATES = frozenset({
     TaskState.ACTIVE,
@@ -131,12 +136,15 @@ class Scheduler(
         run_id: UUID,
         read_root: Path,
         *,
+        run_principal_id: UUID = _SYSTEM_PRINCIPAL_SENTINEL,
         pool: asyncpg.Pool | None = None,
         backend: StorageBackend | None = None,
         overseer_interface: OverseerInterface | None = None,
         model_context_limit: int = 200_000,
         handoff_checker: Callable[[Any, int], Awaitable[bool]] | None = None,
-        handoff_performer: Callable[[Any, Any, UUID], Awaitable[Any]] | None = None,
+        handoff_performer: (
+            Callable[[Any, Any, UUID, UUID], Awaitable[Any]] | None
+        ) = None,
         budget_exhaustion_policy: BudgetExhaustionPolicy = (
             BudgetExhaustionPolicy.UNLIMITED
         ),
@@ -171,6 +179,12 @@ class Scheduler(
         self._agents = agents
         self._categories = categories
         self._run_id = run_id
+        # The run's own principal id -- every scheduler-emitted event and task/
+        # run transition is attributed to it. Defaults to the system-principal
+        # sentinel (UUID(int=0)) so tests can construct a Scheduler without a
+        # minted run principal; production (services.start_run) always passes
+        # the real run principal minted at run birth.
+        self._run_principal_id = run_principal_id
         self._read_root = read_root
         self._overseer_interface = overseer_interface
         self._model_context_limit = model_context_limit
@@ -847,6 +861,7 @@ class Scheduler(
                 self._file_lock_registry.release(task_id)
                 await self._trace_writer.transition_task(
                     task_id, TaskState.CANCELLED.value,
+                    principal_id=self._run_principal_id,
                 )
         await self._stop_services()
 
@@ -856,12 +871,14 @@ class Scheduler(
             atask.cancel()
         await self._trace_writer.transition_run(
             self._run_id, "paused",
+            principal_id=self._run_principal_id,
         )
 
     async def resume(self) -> None:
         self._paused.set()
         await self._trace_writer.transition_run(
             self._run_id, "running",
+            principal_id=self._run_principal_id,
         )
 
     @property
@@ -903,6 +920,7 @@ class Scheduler(
                 _logger,
                 trace_writer=self._trace_writer,
                 run_id=self._run_id,
+                principal_id=self._run_principal_id,
             )
 
     async def _send_overseer_event(
@@ -942,6 +960,7 @@ class Scheduler(
                     _logger,
                     trace_writer=self._trace_writer,
                     run_id=self._run_id,
+                    principal_id=self._run_principal_id,
                 )
             await self._dispatch_to_overseer_sinks(event)
             return
@@ -1082,6 +1101,7 @@ class Scheduler(
                 session,
                 self._trace_writer,
                 self._run_id,
+                self._run_principal_id,
             )
             adapter.update_session(new_session)  # type: ignore[attr-defined]
 

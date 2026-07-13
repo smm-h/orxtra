@@ -556,7 +556,7 @@ END $$;""", "credential_type"),
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     run_id uuid,
     task_id uuid,
-    source text NOT NULL DEFAULT 'internal',
+    principal_id uuid NOT NULL,
     event_type text NOT NULL,
     data jsonb NOT NULL DEFAULT '{}',
     idempotency_key text,
@@ -566,7 +566,7 @@ END $$;""", "credential_type"),
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     run_id uuid,
     task_id uuid,
-    source text NOT NULL DEFAULT 'internal',
+    principal_id uuid NOT NULL,
     event_type text NOT NULL,
     data jsonb NOT NULL DEFAULT '{}',
     idempotency_key text,
@@ -864,6 +864,16 @@ BEGIN
     ALTER TABLE public.task_iterations ADD CONSTRAINT fk_task_iterations_task FOREIGN KEY (task_id) REFERENCES public.tasks (id) ON DELETE CASCADE;
   END IF;
 END $$;""", "fk_task_iterations_task"),
+            DDLOp("ALTER TABLE public.events ADD CONSTRAINT fk_events_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_events_principal'
+    AND conrelid = 'public.events'::regclass
+  ) THEN
+    ALTER TABLE public.events ADD CONSTRAINT fk_events_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk_events_principal"),
             DDLOp("ALTER TABLE public.events ADD CONSTRAINT fk_events_run FOREIGN KEY (run_id) REFERENCES public.runs (id) ON DELETE RESTRICT;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1335,8 +1345,8 @@ END $$;""", "chk_dispatch_completions_status_valid"),
             DDLOp("CREATE INDEX idx_events_created_at_brin ON public.events USING brin (created_at);", "CREATE INDEX IF NOT EXISTS idx_events_created_at_brin ON public.events USING brin (created_at);", "idx_events_created_at_brin"),
             DDLOp("CREATE INDEX idx_events_data_gin ON public.events USING gin (data);", "CREATE INDEX IF NOT EXISTS idx_events_data_gin ON public.events USING gin (data);", "idx_events_data_gin"),
             DDLOp("CREATE UNIQUE INDEX idx_events_idempotency_key ON public.events (idempotency_key) WHERE idempotency_key IS NOT NULL;", "CREATE UNIQUE INDEX IF NOT EXISTS idx_events_idempotency_key ON public.events (idempotency_key) WHERE idempotency_key IS NOT NULL;", "idx_events_idempotency_key"),
+            DDLOp("CREATE INDEX idx_events_principal_created ON public.events (principal_id, created_at DESC);", "CREATE INDEX IF NOT EXISTS idx_events_principal_created ON public.events (principal_id, created_at DESC);", "idx_events_principal_created"),
             DDLOp("CREATE INDEX idx_events_run_created ON public.events (run_id, created_at DESC);", "CREATE INDEX IF NOT EXISTS idx_events_run_created ON public.events (run_id, created_at DESC);", "idx_events_run_created"),
-            DDLOp("CREATE INDEX idx_events_source_created ON public.events (source, created_at DESC);", "CREATE INDEX IF NOT EXISTS idx_events_source_created ON public.events (source, created_at DESC);", "idx_events_source_created"),
             DDLOp("CREATE INDEX idx_events_task_id ON public.events (task_id);", "CREATE INDEX IF NOT EXISTS idx_events_task_id ON public.events (task_id);", "idx_events_task_id"),
             DDLOp("CREATE INDEX idx_events_type_created ON public.events (event_type, created_at DESC);", "CREATE INDEX IF NOT EXISTS idx_events_type_created ON public.events (event_type, created_at DESC);", "idx_events_type_created"),
             DDLOp("CREATE INDEX idx_overseer_workflow_status_workflow_id ON public.overseer_workflow_status (workflow_id);", "CREATE INDEX IF NOT EXISTS idx_overseer_workflow_status_workflow_id ON public.overseer_workflow_status (workflow_id);", "idx_overseer_workflow_status_workflow_id"),
@@ -1448,7 +1458,7 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.task_iterations.iteration_index IS 'Zero-based iteration index';", None, "column.task_iterations.iteration_index"),
             DDLOp("COMMENT ON COLUMN public.task_iterations.item_value IS 'The item being iterated over';", None, "column.task_iterations.item_value"),
             DDLOp("COMMENT ON TABLE public.events IS 'Append-only audit log. Immutability enforced by trigger.';", None, "table.events"),
-            DDLOp("COMMENT ON COLUMN public.events.source IS 'Event source: internal (scheduler/trace) or external (MCP/CLI)';", None, "column.events.source"),
+            DDLOp("COMMENT ON COLUMN public.events.principal_id IS 'The acting principal that produced this event. Every event has an actor: run events attribute to the run principal, external events to the source principal, dispatch-worker and internal events to the system principal.';", None, "column.events.principal_id"),
             DDLOp("COMMENT ON COLUMN public.events.event_type IS 'e.g. run.started, task.status_changed, inbox.item_answered';", None, "column.events.event_type"),
             DDLOp("COMMENT ON COLUMN public.events.data IS 'Event-specific payload';", None, "column.events.data"),
             DDLOp("COMMENT ON COLUMN public.events.idempotency_key IS 'Caller-supplied dedup key; partial unique index prevents duplicate storage and dispatch';", None, "column.events.idempotency_key"),
@@ -1486,7 +1496,7 @@ BEGIN
     PERFORM pg_notify('orxtra_events', json_build_object(
         'event_id', NEW.id,
         'run_id', NEW.run_id,
-        'source', NEW.source,
+        'principal_id', NEW.principal_id::text,
         'event_type', NEW.event_type
     )::text);
     RETURN NEW;
@@ -1500,7 +1510,7 @@ BEGIN
     PERFORM pg_notify('orxtra_events', json_build_object(
         'event_id', NEW.id,
         'run_id', NEW.run_id,
-        'source', NEW.source,
+        'principal_id', NEW.principal_id::text,
         'event_type', NEW.event_type
     )::text);
     RETURN NEW;

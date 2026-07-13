@@ -96,7 +96,8 @@ class MockTraceWriter:
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
-        source: str = "internal",
+        *,
+        principal_id: UUID,
         idempotency_key: str | None = None,
     ) -> tuple[UUID, bool]:
         event_id = uuid6.uuid7()
@@ -105,7 +106,7 @@ class MockTraceWriter:
             "run_id": run_id,
             "event_type": event_type,
             "data": data,
-            "source": source,
+            "principal_id": principal_id,
         })
         return event_id, True
 
@@ -119,18 +120,26 @@ class TestTraceSink:
         return uuid6.uuid7()
 
     @pytest.fixture
+    def run_principal_id(self) -> UUID:
+        return uuid6.uuid7()
+
+    @pytest.fixture
     def writer(self) -> MockTraceWriter:
         return MockTraceWriter()
 
     @pytest.fixture
-    def sink(self, writer: MockTraceWriter, run_id: UUID) -> TraceSink:
+    def sink(
+        self, writer: MockTraceWriter, run_id: UUID, run_principal_id: UUID,
+    ) -> TraceSink:
         return TraceSink(
             trace_writer=writer,  # type: ignore[arg-type]
             run_id=run_id,
+            run_principal_id=run_principal_id,
         )
 
     async def test_run_started(
         self, sink: TraceSink, writer: MockTraceWriter, run_id: UUID,
+        run_principal_id: UUID,
     ) -> None:
         event = RunStarted(
             intent="deploy app",
@@ -142,7 +151,7 @@ class TestTraceSink:
         written = writer.events[0]
         assert written["run_id"] == run_id
         assert written["event_type"] == "run_started"
-        assert written["source"] == "overseer"
+        assert written["principal_id"] == run_principal_id
         assert written["data"]["intent"] == "deploy app"
         assert written["data"]["config_snapshot"] == {"name": "test_workflow"}
 
@@ -185,6 +194,7 @@ class TestTraceSink:
 
     async def test_budget_threshold_crossed(
         self, sink: TraceSink, writer: MockTraceWriter,
+        run_principal_id: UUID,
     ) -> None:
         wf_id = uuid6.uuid7()
         event = BudgetThresholdCrossed(
@@ -198,7 +208,7 @@ class TestTraceSink:
         assert len(writer.events) == 1
         written = writer.events[0]
         assert written["event_type"] == "budget_threshold_crossed"
-        assert written["source"] == "overseer"
+        assert written["principal_id"] == run_principal_id
 
     async def test_budget_exhausted(
         self, sink: TraceSink, writer: MockTraceWriter,

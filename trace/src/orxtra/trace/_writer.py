@@ -76,7 +76,8 @@ class TraceWriter:
         return run_id
 
     async def transition_run(
-        self, run_id: UUID, new_status: str, reason: str | None = None
+        self, run_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None:
         event_id = uuid6.uuid7()
         async with self._pool.acquire() as conn, conn.transaction():
@@ -103,12 +104,13 @@ class TraceWriter:
                 "reason": reason,
             }
             await conn.execute(
-                "INSERT INTO events (id, run_id, task_id, source, event_type, data)"
+                "INSERT INTO events"
+                " (id, run_id, task_id, principal_id, event_type, data)"
                 " VALUES ($1, $2, $3, $4, $5, $6)",
                 event_id,
                 run_id,
                 None,
-                "internal",
+                principal_id,
                 "run_transition",
                 json.dumps(event_data),
             )
@@ -139,7 +141,8 @@ class TraceWriter:
         return task_id
 
     async def transition_task(
-        self, task_id: UUID, new_status: str, reason: str | None = None
+        self, task_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None:
         event_id = uuid6.uuid7()
         async with self._pool.acquire() as conn, conn.transaction():
@@ -165,12 +168,13 @@ class TraceWriter:
                 "reason": reason,
             }
             await conn.execute(
-                "INSERT INTO events (id, run_id, task_id, source, event_type, data)"
+                "INSERT INTO events"
+                " (id, run_id, task_id, principal_id, event_type, data)"
                 " VALUES ($1, $2, $3, $4, $5, $6)",
                 event_id,
                 run_id,
                 task_id,
-                "internal",
+                principal_id,
                 "task_transition",
                 json.dumps(event_data),
             )
@@ -284,49 +288,60 @@ class TraceWriter:
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
-        source: str = "internal",
+        *,
+        principal_id: UUID,
         idempotency_key: str | None = None,
     ) -> tuple[UUID, bool]:
         """Insert an event. Returns ``(event_id, inserted)``.
 
-        When *idempotency_key* is provided the INSERT uses
-        ``ON CONFLICT (idempotency_key) DO NOTHING`` so duplicate keys
-        are silently deduplicated; *inserted* is ``False`` in that case.
+        *principal_id* is the acting principal that produced this event --
+        every event has an actor. When *idempotency_key* is provided the INSERT
+        uses ``ON CONFLICT (idempotency_key) DO NOTHING`` so duplicate keys are
+        silently deduplicated; *inserted* is ``False`` in that case and the
+        existing row's id is fetched and returned (matching InMemoryBackend's
+        ``(existing_id, False)`` contract).
         """
         event_id = uuid6.uuid7()
         async with self._pool.acquire() as conn, conn.transaction():
             if idempotency_key is not None:
-                status = await conn.execute(
+                returned = await conn.fetchval(
                     "INSERT INTO events"
-                    " (id, run_id, task_id, source, event_type, data,"
+                    " (id, run_id, task_id, principal_id, event_type, data,"
                     "  idempotency_key)"
                     " VALUES ($1, $2, $3, $4, $5, $6, $7)"
                     " ON CONFLICT (idempotency_key)"
                     " WHERE idempotency_key IS NOT NULL"
-                    " DO NOTHING",
+                    " DO NOTHING"
+                    " RETURNING id",
                     event_id,
                     run_id,
                     task_id,
-                    source,
+                    principal_id,
                     event_type,
                     json.dumps(data),
                     idempotency_key,
                 )
-                inserted = status != "INSERT 0 0"
-            else:
-                await conn.execute(
-                    "INSERT INTO events"
-                    " (id, run_id, task_id, source, event_type, data)"
-                    " VALUES ($1, $2, $3, $4, $5, $6)",
-                    event_id,
-                    run_id,
-                    task_id,
-                    source,
-                    event_type,
-                    json.dumps(data),
+                if returned is not None:
+                    return event_id, True
+                # Conflict: the key already stored an event. Return the
+                # EXISTING row's id (never a freshly generated, unpersisted one).
+                existing: UUID = await conn.fetchval(
+                    "SELECT id FROM events WHERE idempotency_key = $1",
+                    idempotency_key,
                 )
-                inserted = True
-        return event_id, inserted
+                return existing, False
+            await conn.execute(
+                "INSERT INTO events"
+                " (id, run_id, task_id, principal_id, event_type, data)"
+                " VALUES ($1, $2, $3, $4, $5, $6)",
+                event_id,
+                run_id,
+                task_id,
+                principal_id,
+                event_type,
+                json.dumps(data),
+            )
+        return event_id, True
 
     async def write_transcript_entry(
         self,

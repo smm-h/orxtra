@@ -34,6 +34,7 @@ class TaskStorage(Protocol):
 
     async def transition_task(
         self, task_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None: ...
 
     async def create_task_attempt(self, task_id: UUID, attempt: int) -> UUID: ...
@@ -101,7 +102,8 @@ class EventStorage(Protocol):
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
-        source: str = "internal",
+        *,
+        principal_id: UUID,
         idempotency_key: str | None = None,
     ) -> tuple[UUID, bool]: ...
 
@@ -133,6 +135,7 @@ class RunStorage(Protocol):
 
     async def transition_run(
         self, run_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None: ...
 
     async def write_coherence_summary(self, run_id: UUID, summary: str) -> None: ...
@@ -340,7 +343,7 @@ class StorageReader(Protocol):
         self,
         *,
         event_types: list[str] | None = None,
-        source: str | None = None,
+        principal_id: UUID | None = None,
         since_id: UUID | None = None,
         limit: int = 1000,
     ) -> list[dict[str, Any]]: ...

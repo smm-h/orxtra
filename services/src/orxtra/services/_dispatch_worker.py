@@ -10,15 +10,52 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from orxtra.dispatch import DispatchWorker, PgDispatchBackend
+from orxtra.identity import PgPrincipalStorage
+from orxtra.protocols import (
+    KIND_SOURCE,
+    KIND_SYSTEM,
+    SYSTEM_PRINCIPAL_EXTERNAL_REF,
+)
 from orxtra.services._actions import ServicesActionExecutor
 from orxtra.services._flush import AsyncioFlushScheduler
 from orxtra.trace import EVENTS_CHANNEL
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from uuid import UUID
+
     import asyncpg
+    from orxtra.dispatch import SourcePrincipalResolver
 
 
-def create_dispatch_worker(
+def _make_source_principal_resolver(
+    backend: PgDispatchBackend,
+    principal_storage: PgPrincipalStorage,
+) -> SourcePrincipalResolver:
+    """Build a resolver: source slugs -> source-principal ids.
+
+    Each slug is looked up as a source; the source's principal (minted at
+    source birth as KIND_SOURCE/external_ref=source.id) supplies the id.
+    Slugs with no source, or sources without a principal, contribute nothing.
+    """
+
+    async def _resolve(slugs: Sequence[str]) -> set[UUID]:
+        result: set[UUID] = set()
+        for slug in slugs:
+            source = await backend.get_source_by_slug(slug)
+            if source is None:
+                continue
+            principal = await principal_storage.get_principal_by_ref(
+                KIND_SOURCE, source.id,
+            )
+            if principal is not None:
+                result.add(principal.id)
+        return result
+
+    return _resolve
+
+
+async def create_dispatch_worker(
     pool: asyncpg.Pool,
     *,
     cursor_name: str = "main",
@@ -40,6 +77,19 @@ def create_dispatch_worker(
     action_executor = ServicesActionExecutor(pool, intent_prefix="dispatch")
     flush_scheduler = AsyncioFlushScheduler()
 
+    principal_storage = PgPrincipalStorage(pool)
+    system_principal = await principal_storage.get_principal_by_ref(
+        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF,
+    )
+    if system_principal is None:
+        msg = (
+            "System principal not seeded -- run 'orxtra db init' to seed "
+            "the singleton system principal before starting the worker."
+        )
+        raise RuntimeError(msg)
+
+    resolver = _make_source_principal_resolver(backend, principal_storage)
+
     return DispatchWorker(
         backend=backend,
         action_executor=action_executor,
@@ -47,6 +97,8 @@ def create_dispatch_worker(
         pool=pool,
         cursor_name=cursor_name,
         events_channel=EVENTS_CHANNEL,
+        system_principal_id=system_principal.id,
+        source_principal_resolver=resolver,
         poll_interval=poll_interval,
         batch_size=batch_size,
     )

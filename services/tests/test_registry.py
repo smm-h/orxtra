@@ -220,7 +220,7 @@ EXPECTED_INJECTS: dict[str, frozenset[str]] = {
     "search_transcript": frozenset({"pool"}),
     "query_events": frozenset({"pool"}),
     "get_notepad": frozenset({"pool"}),
-    "fire_event": frozenset({"pool"}),
+    "fire_event": frozenset({"pool", "caller_principal"}),
     "show_config": frozenset({"pool"}),
     "show_pricing": frozenset(),
     "validate_agent": frozenset(),

@@ -50,10 +50,12 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.PRECHECKING
         await self._trace_writer.transition_task(
             task_id, TaskState.PRECHECKING.value,
+            principal_id=self._run_principal_id,
         )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
+            principal_id=self._run_principal_id,
         )
 
         await self._trace_writer.write_event(
@@ -64,6 +66,7 @@ class TaskDispatchMixin(SchedulerBase):
                 "task_name": task.name,
             },
             task_id=task_id,
+            principal_id=self._run_principal_id,
         )
 
         # Send to Overseer (or headless fallback)
@@ -86,6 +89,7 @@ class TaskDispatchMixin(SchedulerBase):
         self._complete_task(task_id, task.name, None)
         await self._trace_writer.transition_task(
             task_id, TaskState.COMPLETED.value,
+            principal_id=self._run_principal_id,
         )
         return TaskResult(
             output=None,
@@ -117,10 +121,12 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.PRECHECKING
         await self._trace_writer.transition_task(
             task_id, TaskState.PRECHECKING.value,
+            principal_id=self._run_principal_id,
         )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
+            principal_id=self._run_principal_id,
         )
 
         parts = task.callable.split(":")
@@ -181,6 +187,7 @@ class TaskDispatchMixin(SchedulerBase):
         )
         await self._trace_writer.transition_task(
             task_id, TaskState.COMPLETED.value,
+            principal_id=self._run_principal_id,
         )
         return result
 
@@ -197,6 +204,7 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.PRECHECKING
         await self._trace_writer.transition_task(
             task_id, TaskState.PRECHECKING.value,
+            principal_id=self._run_principal_id,
         )
         precheck_results = await self._run_prechecks(
             task, task_id,
@@ -210,6 +218,7 @@ class TaskDispatchMixin(SchedulerBase):
             await self._trace_writer.transition_task(
                 task_id,
                 TaskState.PRECHECK_FAILED.value,
+                principal_id=self._run_principal_id,
             )
             return TaskResult(
                 output=None,
@@ -220,6 +229,7 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
+            principal_id=self._run_principal_id,
         )
 
         # Check if any subtask has dependencies
@@ -275,6 +285,7 @@ class TaskDispatchMixin(SchedulerBase):
         )
         await self._trace_writer.transition_task(
             task_id, TaskState.POSTCHECKING.value,
+            principal_id=self._run_principal_id,
         )
         postcheck_results = await self._run_postchecks(
             task, task_id,
@@ -288,6 +299,7 @@ class TaskDispatchMixin(SchedulerBase):
             await self._trace_writer.transition_task(
                 task_id,
                 TaskState.POSTCHECK_FAILED.value,
+                principal_id=self._run_principal_id,
             )
             return TaskResult(
                 output=None,
@@ -298,6 +310,7 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.COMPLETED
         await self._trace_writer.transition_task(
             task_id, TaskState.COMPLETED.value,
+            principal_id=self._run_principal_id,
         )
         return TaskResult(
             output=None,
@@ -317,10 +330,12 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.PRECHECKING
         await self._trace_writer.transition_task(
             task_id, TaskState.PRECHECKING.value,
+            principal_id=self._run_principal_id,
         )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
+            principal_id=self._run_principal_id,
         )
 
         seconds = (
@@ -334,6 +349,7 @@ class TaskDispatchMixin(SchedulerBase):
             self._task_states[task_id] = TaskState.COMPLETED
             await self._trace_writer.transition_task(
                 task_id, TaskState.COMPLETED.value,
+                principal_id=self._run_principal_id,
             )
             return TaskResult(
                 output=str(payload),
@@ -349,6 +365,7 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.CANCELLED
         await self._trace_writer.transition_task(
             task_id, TaskState.CANCELLED.value,
+            principal_id=self._run_principal_id,
         )
         return TaskResult(
             output=None,
@@ -389,10 +406,12 @@ class TaskDispatchMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.PRECHECKING
         await self._trace_writer.transition_task(
             task_id, TaskState.PRECHECKING.value,
+            principal_id=self._run_principal_id,
         )
         self._task_states[task_id] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_id, TaskState.ACTIVE.value,
+            principal_id=self._run_principal_id,
         )
 
         semaphore = asyncio.Semaphore(task.max_concurrency)
@@ -478,6 +497,7 @@ class TaskDispatchMixin(SchedulerBase):
             await self._trace_writer.transition_task(
                 task_id,
                 TaskState.POSTCHECK_FAILED.value,
+                principal_id=self._run_principal_id,
             )
         else:
             self._complete_task(
@@ -489,6 +509,7 @@ class TaskDispatchMixin(SchedulerBase):
             )
             await self._trace_writer.transition_task(
                 task_id, TaskState.COMPLETED.value,
+                principal_id=self._run_principal_id,
             )
 
         outputs = [

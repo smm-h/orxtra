@@ -118,12 +118,14 @@ async def lifespan(
         # Build incoming webhook router if authenticator is configured.
         incoming_router = None
         if authenticator is not None:
+            from orxtra.identity import PgPrincipalStorage
             from orxtra.incoming import create_incoming_router
 
             incoming_router = create_incoming_router(
                 pool=pool,
                 dispatch_backend=dispatch_backend,
                 authenticator=authenticator,
+                principal_storage=PgPrincipalStorage(pool),
             )
             log.info("Incoming webhook receiver mounted at /incoming")
 

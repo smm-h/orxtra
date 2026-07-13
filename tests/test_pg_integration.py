@@ -50,7 +50,7 @@ async def _create_run(writer: TraceWriter, pool: asyncpg.Pool) -> uuid6.UUID:
         KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
     )
     run_id = uuid6.uuid7()
-    await storage.mint_principal(KIND_RUN, run_id, None)
+    run_principal = await storage.mint_principal(KIND_RUN, run_id, None)
     await writer.create_run(
         intent="test intent",
         config={"key": "value"},
@@ -58,8 +58,18 @@ async def _create_run(writer: TraceWriter, pool: asyncpg.Pool) -> uuid6.UUID:
         run_id=run_id,
         created_by=creator.id,
     )
-    await writer.transition_run(run_id, "running")
+    await writer.transition_run(
+        run_id, "running", principal_id=run_principal.id,
+    )
     return run_id
+
+
+async def _run_pid(pool: asyncpg.Pool, run_id: uuid6.UUID) -> uuid6.UUID:
+    """Resolve a run's own principal id (minted at run birth) for attribution."""
+    storage = PgPrincipalStorage(pool)
+    principal = await storage.get_principal_by_ref(KIND_RUN, run_id)
+    assert principal is not None
+    return principal.id
 
 
 async def _create_task(
@@ -132,10 +142,10 @@ class TestTraceWriter:
         task_id = await _create_task(writer, run_id)
 
         # Valid: created -> prechecking -> active -> postchecking -> completed
-        await writer.transition_task(task_id, "prechecking")
-        await writer.transition_task(task_id, "active")
-        await writer.transition_task(task_id, "postchecking")
-        await writer.transition_task(task_id, "completed")
+        await writer.transition_task(task_id, "prechecking", principal_id=await _run_pid(pg_pool, run_id))
+        await writer.transition_task(task_id, "active", principal_id=await _run_pid(pg_pool, run_id))
+        await writer.transition_task(task_id, "postchecking", principal_id=await _run_pid(pg_pool, run_id))
+        await writer.transition_task(task_id, "completed", principal_id=await _run_pid(pg_pool, run_id))
 
         # Verify persisted state
         row = await pg_pool.fetchrow(
@@ -154,7 +164,7 @@ class TestTraceWriter:
 
         # created -> active is not valid (must go through prechecking)
         with pytest.raises(InvalidTransitionError):
-            await writer.transition_task(task_id, "active")
+            await writer.transition_task(task_id, "active", principal_id=await _run_pid(pg_pool, run_id))
 
     async def test_terminal_state_transition_raises(
         self, pg_pool: asyncpg.Pool
@@ -165,13 +175,13 @@ class TestTraceWriter:
         task_id = await _create_task(writer, run_id)
 
         # Walk to completed (terminal)
-        await writer.transition_task(task_id, "prechecking")
-        await writer.transition_task(task_id, "active")
-        await writer.transition_task(task_id, "postchecking")
-        await writer.transition_task(task_id, "completed")
+        await writer.transition_task(task_id, "prechecking", principal_id=await _run_pid(pg_pool, run_id))
+        await writer.transition_task(task_id, "active", principal_id=await _run_pid(pg_pool, run_id))
+        await writer.transition_task(task_id, "postchecking", principal_id=await _run_pid(pg_pool, run_id))
+        await writer.transition_task(task_id, "completed", principal_id=await _run_pid(pg_pool, run_id))
 
         with pytest.raises(InvalidTransitionError):
-            await writer.transition_task(task_id, "active")
+            await writer.transition_task(task_id, "active", principal_id=await _run_pid(pg_pool, run_id))
 
     async def test_write_event_persists(
         self, pg_pool: asyncpg.Pool
@@ -184,6 +194,7 @@ class TestTraceWriter:
             run_id=run_id,
             event_type="test_event",
             data={"foo": "bar"},
+            principal_id=await _run_pid(pg_pool, run_id),
         )
         assert inserted is True
 
@@ -193,6 +204,50 @@ class TestTraceWriter:
         assert row is not None
         assert row["event_type"] == "test_event"
         assert json.loads(row["data"]) == {"foo": "bar"}
+
+    async def test_write_event_idempotency_returns_existing_id(
+        self, pg_pool: asyncpg.Pool
+    ) -> None:
+        """On idempotency-key conflict, the EXISTING row id is returned.
+
+        Cross-backend parity with InMemoryBackend's ``(existing_id, False)``:
+        the second write must NOT return a freshly generated, never-persisted
+        uuid -- it returns the id of the event that actually stored the key.
+        """
+        writer = TraceWriter(pg_pool)
+        run_id = await _create_run(writer, pg_pool)
+        pid = await _run_pid(pg_pool, run_id)
+
+        id1, inserted1 = await writer.write_event(
+            run_id=run_id,
+            event_type="dedup_event",
+            data={"n": 1},
+            principal_id=pid,
+            idempotency_key="pg-dedup-key",
+        )
+        assert inserted1 is True
+
+        id2, inserted2 = await writer.write_event(
+            run_id=run_id,
+            event_type="dedup_event",
+            data={"n": 2},
+            principal_id=pid,
+            idempotency_key="pg-dedup-key",
+        )
+        assert inserted2 is False
+        # The returned id is the EXISTING persisted row, not a fresh uuid.
+        assert id2 == id1
+        stored = await pg_pool.fetchrow(
+            "SELECT id FROM events WHERE id = $1", id2,
+        )
+        assert stored is not None, "returned id must reference a persisted row"
+
+        # Only one event was stored for the key; the duplicate never inserted.
+        count = await pg_pool.fetchval(
+            "SELECT count(*) FROM events WHERE idempotency_key = $1",
+            "pg-dedup-key",
+        )
+        assert count == 1
 
 
 # -- Run identity at birth (E2E: start_run mints + attributes) ----------------
@@ -415,6 +470,7 @@ class TestListenNotify:
                 run_id=run_id,
                 event_type="notify_test",
                 data={"trigger": True},
+                principal_id=await _run_pid(pg_pool, run_id),
             )
 
             # Give PG a moment to deliver the notification
@@ -424,6 +480,11 @@ class TestListenNotify:
             payload = notifications[-1]
             assert payload["event_type"] == "notify_test"
             assert payload["run_id"] == str(run_id)
+            # The NOTIFY payload carries principal_id (cast to text), not source.
+            assert "source" not in payload
+            assert payload["principal_id"] == str(
+                await _run_pid(pg_pool, run_id),
+            )
         finally:
             await listen_conn.remove_listener("orxtra_events", _on_notify)
             await pg_pool.release(listen_conn)

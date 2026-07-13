@@ -72,10 +72,21 @@ class StubPool:
         pass
 
 
+# System principal id used for the worker's own re-fired events.
+_SYSTEM_PID = uuid7()
+# A source principal used in event/routing tests.
+_SOURCE_PID = uuid7()
+
+
+async def _resolve_sources(slugs: Any) -> set[Any]:
+    """Test resolver: the slug 'test-source' maps to the source principal."""
+    return {_SOURCE_PID for s in slugs if s == "test-source"}
+
+
 def _make_event(
     event_type: str,
     data: dict[str, Any] | None = None,
-    source: str = "test",
+    principal_id: Any = None,
     idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     """Create an event dict matching the poll_events_since format."""
@@ -84,7 +95,7 @@ def _make_event(
         "run_id": None,
         "task_id": None,
         "event_type": event_type,
-        "source": source,
+        "principal_id": principal_id if principal_id is not None else _SYSTEM_PID,
         "data": data or {},
         "idempotency_key": idempotency_key,
         "created_at": datetime.now(tz=UTC),
@@ -104,6 +115,8 @@ def _make_worker(
         pool=StubPool(),  # type: ignore[arg-type]
         cursor_name=cursor_name,
         events_channel="test_channel",
+        system_principal_id=_SYSTEM_PID,
+        source_principal_resolver=_resolve_sources,
         poll_interval=poll_interval,
         batch_size=100,
     )

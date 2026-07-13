@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import json
 import threading
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -29,6 +30,14 @@ def mock_writer() -> AsyncMock:
     return writer
 
 
+# A stand-in caller principal: fire_event only reads ``.id`` off it.
+_CALLER_PRINCIPAL_ID = uuid4()
+
+
+def _caller_principal() -> object:
+    return SimpleNamespace(id=_CALLER_PRINCIPAL_ID)
+
+
 # ── fire_event tests ──
 
 
@@ -41,12 +50,15 @@ async def test_fire_event_basic(
     mock_writer = mock_writer_cls.return_value
     mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
-    event_id, inserted = await fire_event(mock_pool, sample_run_id, "task_started")
+    event_id, inserted = await fire_event(
+        mock_pool, _caller_principal(),
+        run_id=sample_run_id, event_name="task_started",
+    )
 
     mock_writer_cls.assert_called_once_with(mock_pool)
     mock_writer.write_event.assert_awaited_once_with(
         sample_run_id, "task_started", {},
-        source="internal", idempotency_key=None,
+        principal_id=_CALLER_PRINCIPAL_ID, idempotency_key=None,
     )
     assert event_id == expected_id
     assert inserted is True
@@ -63,13 +75,14 @@ async def test_fire_event_with_payload(
     payload = {"task_id": "abc", "status": "done"}
 
     event_id, inserted = await fire_event(
-        mock_pool, sample_run_id, "task_completed", payload=payload
+        mock_pool, _caller_principal(),
+        run_id=sample_run_id, event_name="task_completed", payload=payload,
     )
 
     mock_writer_cls.assert_called_once_with(mock_pool)
     mock_writer.write_event.assert_awaited_once_with(
         sample_run_id, "task_completed", payload,
-        source="internal", idempotency_key=None,
+        principal_id=_CALLER_PRINCIPAL_ID, idempotency_key=None,
     )
     assert event_id == expected_id
     assert inserted is True
@@ -83,12 +96,15 @@ async def test_fire_event_none_payload(
     mock_writer = mock_writer_cls.return_value
     mock_writer.write_event = AsyncMock(return_value=(uuid4(), True))
 
-    await fire_event(mock_pool, sample_run_id, "ping", payload=None)
+    await fire_event(
+        mock_pool, _caller_principal(),
+        run_id=sample_run_id, event_name="ping", payload=None,
+    )
 
     mock_writer_cls.assert_called_once_with(mock_pool)
     mock_writer.write_event.assert_awaited_once_with(
         sample_run_id, "ping", {},
-        source="internal", idempotency_key=None,
+        principal_id=_CALLER_PRINCIPAL_ID, idempotency_key=None,
     )
 
 
@@ -106,25 +122,31 @@ async def test_fire_event_propagates_write_error(
     )
 
     with pytest.raises(asyncpg.ForeignKeyViolationError):
-        await fire_event(mock_pool, sample_run_id, "task_started")
+        await fire_event(
+            mock_pool, _caller_principal(),
+            run_id=sample_run_id, event_name="task_started",
+        )
 
 
 @pytest.mark.asyncio
 @patch("orxtra.services._events.TraceWriter")
-async def test_fire_event_with_source(
+async def test_fire_event_attributes_to_caller_principal(
     mock_writer_cls: AsyncMock, mock_pool: AsyncMock, sample_run_id: UUID
 ) -> None:
+    """The event is attributed to the caller principal's id (source is gone)."""
     expected_id = uuid4()
     mock_writer = mock_writer_cls.return_value
     mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
+    other_principal_id = uuid4()
     event_id, inserted = await fire_event(
-        mock_pool, sample_run_id, "task_started", source="agent"
+        mock_pool, SimpleNamespace(id=other_principal_id),
+        run_id=sample_run_id, event_name="task_started",
     )
 
     mock_writer.write_event.assert_awaited_once_with(
         sample_run_id, "task_started", {},
-        source="agent", idempotency_key=None,
+        principal_id=other_principal_id, idempotency_key=None,
     )
     assert event_id == expected_id
     assert inserted is True
@@ -141,13 +163,15 @@ async def test_fire_event_with_idempotency_key(
     mock_writer.write_event = AsyncMock(return_value=(expected_id, True))
 
     event_id, inserted = await fire_event(
-        mock_pool, sample_run_id, "webhook_event",
+        mock_pool, _caller_principal(),
+        run_id=sample_run_id, event_name="webhook_event",
         idempotency_key="github-delivery-abc123",
     )
 
     mock_writer.write_event.assert_awaited_once_with(
         sample_run_id, "webhook_event", {},
-        source="internal", idempotency_key="github-delivery-abc123",
+        principal_id=_CALLER_PRINCIPAL_ID,
+        idempotency_key="github-delivery-abc123",
     )
     assert event_id == expected_id
     assert inserted is True
@@ -164,7 +188,8 @@ async def test_fire_event_idempotency_dedup(
     mock_writer.write_event = AsyncMock(return_value=(expected_id, False))
 
     event_id, inserted = await fire_event(
-        mock_pool, sample_run_id, "webhook_event",
+        mock_pool, _caller_principal(),
+        run_id=sample_run_id, event_name="webhook_event",
         idempotency_key="github-delivery-dup",
     )
 
@@ -185,14 +210,17 @@ def test_fire_blocking_calls_fire_event(sample_run_id: UUID) -> None:
 
         from orxtra.services._events import fire_blocking
 
-        event_id, inserted = fire_blocking(AsyncMock(), sample_run_id, "test_event")
+        event_id, inserted = fire_blocking(
+            AsyncMock(), _caller_principal(),
+            run_id=sample_run_id, event_name="test_event",
+        )
 
     assert event_id == expected_id
     assert inserted is True
 
 
-def test_fire_blocking_with_source(sample_run_id: UUID) -> None:
-    """fire_blocking passes source parameter through to fire_event."""
+def test_fire_blocking_attributes_to_caller_principal(sample_run_id: UUID) -> None:
+    """fire_blocking forwards the caller principal to fire_event."""
     expected_id = uuid4()
 
     with patch("orxtra.services._events.TraceWriter") as mock_writer_cls:
@@ -201,10 +229,16 @@ def test_fire_blocking_with_source(sample_run_id: UUID) -> None:
 
         from orxtra.services._events import fire_blocking
 
+        other_principal_id = uuid4()
         event_id, inserted = fire_blocking(
-            AsyncMock(), sample_run_id, "test_event", source="agent"
+            AsyncMock(), SimpleNamespace(id=other_principal_id),
+            run_id=sample_run_id, event_name="test_event",
         )
 
+    mock_writer.write_event.assert_awaited_once_with(
+        sample_run_id, "test_event", {},
+        principal_id=other_principal_id, idempotency_key=None,
+    )
     assert event_id == expected_id
     assert inserted is True
 
@@ -223,7 +257,10 @@ def test_fire_blocking_from_different_thread(sample_run_id: UUID) -> None:
 
             from orxtra.services._events import fire_blocking
 
-            event_id, inserted = fire_blocking(AsyncMock(), sample_run_id, "test_event")
+            event_id, inserted = fire_blocking(
+                AsyncMock(), _caller_principal(),
+                run_id=sample_run_id, event_name="test_event",
+            )
 
         assert event_id == expected_id
         assert inserted is True
@@ -243,7 +280,10 @@ def test_fire_blocking_from_loop_thread_raises(sample_run_id: UUID) -> None:
 
             from orxtra.services._events import fire_blocking
 
-            fire_blocking(AsyncMock(), sample_run_id, "test_event")
+            fire_blocking(
+                AsyncMock(), _caller_principal(),
+                run_id=sample_run_id, event_name="test_event",
+            )
 
     with pytest.raises(RuntimeError, match="run_sync\\(\\) called from the event loop thread"):
         asyncio.run(_inner())

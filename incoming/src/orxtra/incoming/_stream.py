@@ -3,7 +3,7 @@
 Hand-built catch-up pattern per the decision record:
 1. Accept the SSE connection
 2. Check for Last-Event-ID header (client's last-seen event ID)
-3. If present: query replay(since_id=last_event_id, source=slug)
+3. If present: query replay(since_id=last_event_id, principal_id=source_principal)
 4. Subscribe to LISTEN/NOTIFY on EVENTS_CHANNEL
 5. Send catch-up events first
 6. Stream live events, deduplicating by event ID
@@ -23,6 +23,7 @@ from uuid import UUID
 
 from fastware import StreamResponse, TextResponse
 from orxtra.auth import AuthenticationError
+from orxtra.protocols import KIND_SOURCE
 from orxtra.trace import EVENTS_CHANNEL, read_event, replay
 
 if TYPE_CHECKING:
@@ -30,7 +31,12 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxtra.auth import Authenticator
-    from orxtra.protocols import DispatchBackend, EventBus, Source
+    from orxtra.protocols import (
+        DispatchBackend,
+        EventBus,
+        PrincipalStorage,
+        Source,
+    )
 
 log = logging.getLogger(__name__)
 
@@ -67,6 +73,7 @@ async def stream_handler(
     pool: asyncpg.Pool[Any],
     dispatch_backend: DispatchBackend,
     authenticator: Authenticator,
+    principal_storage: PrincipalStorage,
     event_bus: EventBus,
 ) -> StreamResponse | TextResponse:
     """GET /events/{slug}/stream -- SSE stream with catch-up."""
@@ -99,14 +106,20 @@ async def stream_handler(
         presented = presented[7:]
 
     try:
-        # Phase 4 will attribute streamed access to this AuthContext; for
-        # now we capture (not discard) the verification result and hold it
-        # in hand at the stream call site below.
+        # The AuthContext identifies the presenting consumer (logged below).
+        # The stream is scoped to the SOURCE principal's events, resolved below.
         auth_context = await authenticator.verify_by_credential_id(
             credential_id, presented,
         )
     except AuthenticationError:
         return TextResponse("Authentication failed", status=401)
+
+    # -- Resolve the source's principal to scope the stream --
+    source_principal = await principal_storage.get_principal_by_ref(
+        KIND_SOURCE, source.id,
+    )
+    if source_principal is None:
+        return TextResponse("Source principal missing", status=500)
 
     # -- Parse Last-Event-ID --
     last_event_id_raw = request.header("last-event-id")
@@ -131,7 +144,7 @@ async def stream_handler(
     generator = _sse_generator(
         pool=pool,
         event_bus=event_bus,
-        slug=slug,
+        source_principal_id=source_principal.id,
         last_event_id=last_event_id,
     )
 
@@ -177,7 +190,7 @@ async def _sse_generator(
     *,
     pool: asyncpg.Pool[Any],
     event_bus: EventBus,
-    slug: str,
+    source_principal_id: UUID,
     last_event_id: UUID | None,
 ) -> AsyncGenerator[str, None]:
     """Async generator implementing the hand-built catch-up pattern.
@@ -189,13 +202,14 @@ async def _sse_generator(
     4. Stream live events, deduplicating against already-sent IDs.
     """
     live_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+    source_principal_str = str(source_principal_id)
 
     async def _on_notify(payload: str) -> None:
         try:
             parsed: dict[str, Any] = json.loads(payload)
         except (json.JSONDecodeError, ValueError):
             return
-        if parsed.get("source") != slug:
+        if parsed.get("principal_id") != source_principal_str:
             return
         await live_queue.put(parsed)
 
@@ -206,7 +220,9 @@ async def _sse_generator(
         # Step 2+3: Replay catch-up events and track IDs.
         seen_ids: set[str] = set()
         if last_event_id is not None:
-            for event in await replay(pool, source=slug, since_id=last_event_id):
+            for event in await replay(
+                pool, principal_id=source_principal_id, since_id=last_event_id,
+            ):
                 seen_ids.add(str(event["id"]))
                 yield _format_sse_event(event)
 

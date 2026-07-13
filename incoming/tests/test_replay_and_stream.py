@@ -47,12 +47,16 @@ from orxtra.trace import EVENTS_CHANNEL, InMemoryEventBus
 
 SLUG = "test-source"
 BEARER_TOKEN = "test-bearer-token-replay"
+# The source's principal id. The stub principal storage resolves the source
+# (id 00...10) to a principal whose id equals the source id, so this is both.
+SOURCE_PRINCIPAL_ID = UUID("00000000-0000-0000-0000-000000000010")
+OTHER_PRINCIPAL_ID = UUID("00000000-0000-0000-0000-0000000000ff")
 
 
 def _make_event(
     event_id: UUID | None = None,
     event_type: str = "test.event",
-    source: str = SLUG,
+    principal_id: UUID = SOURCE_PRINCIPAL_ID,
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create an event dict matching the replay() return format."""
@@ -63,10 +67,27 @@ def _make_event(
         "run_id": None,
         "task_id": None,
         "event_type": event_type,
-        "source": source,
+        "principal_id": principal_id,
         "data": data or {"seq": str(event_id)},
         "created_at": datetime.now(tz=UTC),
     }
+
+
+class _StubPrincipalStorage:
+    """Resolves every source ref to a principal whose id equals the ref."""
+
+    async def get_principal_by_ref(
+        self, kind: str, external_ref: UUID,
+    ) -> Any:
+        from orxtra.protocols import Principal
+
+        return Principal(
+            id=external_ref,
+            kind=kind,
+            external_ref=external_ref,
+            display_name=None,
+            created_at=datetime.now(tz=UTC),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +215,7 @@ def _make_app(
         pool=mock_pool,
         dispatch_backend=dispatch_backend,
         authenticator=authenticator,
+        principal_storage=_StubPrincipalStorage(),  # type: ignore[arg-type]
         event_bus=event_bus,
     )
     root = Router()
@@ -300,7 +322,7 @@ class TestReplayRespectsSinceCursor:
             mock_replay.assert_called_once()
             call_kwargs = mock_replay.call_args[1]
             assert call_kwargs["since_id"] == cursor_id
-            assert call_kwargs["source"] == SLUG
+            assert call_kwargs["principal_id"] == SOURCE_PRINCIPAL_ID
 
     async def test_invalid_since_returns_400(
         self,
@@ -601,7 +623,7 @@ class TestSSEGeneratorNoLoss:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=None,
             )
 
@@ -621,7 +643,7 @@ class TestSSEGeneratorNoLoss:
             for eid in event_ids:
                 payload = json.dumps({
                     "event_id": str(eid),
-                    "source": SLUG,
+                    "principal_id": str(SOURCE_PRINCIPAL_ID),
                     "event_type": "test.event",
                 })
                 await event_bus.publish(EVENTS_CHANNEL, payload)
@@ -661,7 +683,7 @@ class TestSSEGeneratorLastEventIDResume:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=last_seen_id,
             )
 
@@ -671,7 +693,7 @@ class TestSSEGeneratorLastEventIDResume:
         mock_replay.assert_called_once()
         call_kwargs = mock_replay.call_args[1]
         assert call_kwargs["since_id"] == last_seen_id
-        assert call_kwargs["source"] == SLUG
+        assert call_kwargs["principal_id"] == SOURCE_PRINCIPAL_ID
 
         # Verify exactly the missed events arrived.
         assert len(collected) == 2
@@ -711,7 +733,7 @@ class TestSSEGeneratorLastEventIDResume:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=last_seen_id,
             )
 
@@ -727,7 +749,7 @@ class TestSSEGeneratorLastEventIDResume:
             # Publish a live event after catch-up.
             payload = json.dumps({
                 "event_id": str(live_id),
-                "source": SLUG,
+                "principal_id": str(SOURCE_PRINCIPAL_ID),
                 "event_type": "test.event",
             })
             await event_bus.publish(EVENTS_CHANNEL, payload)
@@ -777,7 +799,7 @@ class TestSSEGeneratorDeduplication:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=uuid6.uuid7(),
             )
 
@@ -794,7 +816,7 @@ class TestSSEGeneratorDeduplication:
             for eid in [overlap_id, unique_live_id]:
                 payload = json.dumps({
                     "event_id": str(eid),
-                    "source": SLUG,
+                    "principal_id": str(SOURCE_PRINCIPAL_ID),
                     "event_type": "test.event",
                 })
                 await event_bus.publish(EVENTS_CHANNEL, payload)
@@ -821,7 +843,7 @@ class TestSSEGeneratorSourceFilter:
         our_event_id = uuid6.uuid7()
         other_event_id = uuid6.uuid7()
 
-        our_event = _make_event(our_event_id, source=SLUG)
+        our_event = _make_event(our_event_id, principal_id=SOURCE_PRINCIPAL_ID)
 
         mock_pool = AsyncMock()
 
@@ -839,7 +861,7 @@ class TestSSEGeneratorSourceFilter:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=None,
             )
 
@@ -855,7 +877,7 @@ class TestSSEGeneratorSourceFilter:
             # Publish from another source -- should be filtered.
             other_payload = json.dumps({
                 "event_id": str(other_event_id),
-                "source": "other-source",
+                "principal_id": str(OTHER_PRINCIPAL_ID),
                 "event_type": "test.event",
             })
             await event_bus.publish(EVENTS_CHANNEL, other_payload)
@@ -863,7 +885,7 @@ class TestSSEGeneratorSourceFilter:
             # Publish from our source.
             our_payload = json.dumps({
                 "event_id": str(our_event_id),
-                "source": SLUG,
+                "principal_id": str(SOURCE_PRINCIPAL_ID),
                 "event_type": "test.event",
             })
             await event_bus.publish(EVENTS_CHANNEL, our_payload)
@@ -945,7 +967,7 @@ class TestSSEGeneratorFetchOnNotify:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=None,
             )
 
@@ -961,7 +983,7 @@ class TestSSEGeneratorFetchOnNotify:
             # NOTIFY payload has event_id but no data.
             payload = json.dumps({
                 "event_id": str(event_id),
-                "source": SLUG,
+                "principal_id": str(SOURCE_PRINCIPAL_ID),
                 "event_type": "webhook.received",
             })
             await event_bus.publish(EVENTS_CHANNEL, payload)
@@ -996,7 +1018,7 @@ class TestSSEGeneratorHeartbeat:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=None,
             )
 
@@ -1042,7 +1064,7 @@ class TestSSEGeneratorCleanup:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=None,
             )
 
@@ -1090,7 +1112,7 @@ class TestSSEGeneratorCleanup:
             gen = _sse_generator(
                 pool=mock_pool,
                 event_bus=event_bus,
-                slug=SLUG,
+                source_principal_id=SOURCE_PRINCIPAL_ID,
                 last_event_id=None,
             )
 
@@ -1106,7 +1128,7 @@ class TestSSEGeneratorCleanup:
 
             payload = json.dumps({
                 "event_id": str(event_id),
-                "source": SLUG,
+                "principal_id": str(SOURCE_PRINCIPAL_ID),
                 "event_type": "test.event",
             })
             await event_bus.publish(EVENTS_CHANNEL, payload)
@@ -1188,6 +1210,7 @@ class TestStreamAuthContextCaptured:
                 pool=mock_pool,
                 dispatch_backend=dispatch_backend,
                 authenticator=authenticator,
+                principal_storage=_StubPrincipalStorage(),  # type: ignore[arg-type]
                 event_bus=event_bus,
             )
 

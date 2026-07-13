@@ -222,6 +222,27 @@ async def source_no_mapping(
     return source
 
 
+class _StubPrincipalStorage:
+    """Resolves every source ref to a principal whose id equals the source id.
+
+    Lets the receiver attribute events without a real DB; tests can assert the
+    fired event's caller principal id equals the source's id.
+    """
+
+    async def get_principal_by_ref(
+        self, kind: str, external_ref: UUID,
+    ) -> Any:
+        from orxtra.protocols import Principal
+
+        return Principal(
+            id=external_ref,
+            kind=kind,
+            external_ref=external_ref,
+            display_name=None,
+            created_at=datetime.now(tz=UTC),
+        )
+
+
 def _make_app(
     dispatch_backend: InMemoryDispatchBackend,
     authenticator: Authenticator,
@@ -234,6 +255,7 @@ def _make_app(
         pool=mock_pool,
         dispatch_backend=dispatch_backend,
         authenticator=authenticator,
+        principal_storage=_StubPrincipalStorage(),  # type: ignore[arg-type]
         max_body_bytes=max_body_bytes,
     )
     root = Router()
@@ -284,11 +306,15 @@ class TestGitHubStyleHmacPayload:
             # Verify fire_event was called with correct args.
             mock_fire.assert_called_once()
             call_args = mock_fire.call_args
-            assert call_args[0][1] is None  # run_id
-            assert call_args[0][2] == "push"  # event_type
-            assert call_args[0][3] == {"action": "opened"}  # data
-            assert call_args[1]["source"] == SLUG
-            assert call_args[1]["idempotency_key"] == "delivery-123"
+            # fire_event(pool, source_principal, *, run_id, event_name, ...)
+            # The event is attributed to the source principal (id == source id).
+            assert call_args.args[1].id == UUID(
+                "00000000-0000-0000-0000-000000000001",
+            )
+            assert call_args.kwargs["run_id"] is None
+            assert call_args.kwargs["event_name"] == "push"
+            assert call_args.kwargs["payload"] == {"action": "opened"}
+            assert call_args.kwargs["idempotency_key"] == "delivery-123"
 
 
 class TestWrongSignature:
@@ -441,7 +467,7 @@ class TestIdempotencyKey:
 
             assert resp.status_code == 202
             mock_fire.assert_called_once()
-            assert mock_fire.call_args[1]["idempotency_key"] == "unique-delivery-id-456"
+            assert mock_fire.call_args.kwargs["idempotency_key"] == "unique-delivery-id-456"
 
     async def test_no_idempotency_header_passes_none(
         self,
@@ -473,7 +499,7 @@ class TestIdempotencyKey:
 
             assert resp.status_code == 202
             mock_fire.assert_called_once()
-            assert mock_fire.call_args[1]["idempotency_key"] is None
+            assert mock_fire.call_args.kwargs["idempotency_key"] is None
 
 
 class TestBearerAuth:
@@ -505,7 +531,7 @@ class TestBearerAuth:
 
             assert resp.status_code == 202
             mock_fire.assert_called_once()
-            assert mock_fire.call_args[0][2] == "payment_intent.succeeded"
+            assert mock_fire.call_args.kwargs["event_name"] == "payment_intent.succeeded"
 
     async def test_wrong_bearer_returns_401(
         self,
@@ -559,7 +585,7 @@ class TestEventTypeExtraction:
                 )
 
             assert resp.status_code == 202
-            assert mock_fire.call_args[0][2] == "pull_request"
+            assert mock_fire.call_args.kwargs["event_name"] == "pull_request"
 
     async def test_event_type_from_json_field(
         self,
@@ -586,7 +612,7 @@ class TestEventTypeExtraction:
                 )
 
             assert resp.status_code == 202
-            assert mock_fire.call_args[0][2] == "invoice.paid"
+            assert mock_fire.call_args.kwargs["event_name"] == "invoice.paid"
 
     async def test_event_type_constant(
         self,
@@ -635,7 +661,7 @@ class TestEventTypeExtraction:
                 )
 
             assert resp.status_code == 202
-            assert mock_fire.call_args[0][2] == "webhook.received"
+            assert mock_fire.call_args.kwargs["event_name"] == "webhook.received"
 
     async def test_missing_event_type_header_returns_400(
         self,
@@ -735,15 +761,15 @@ class TestInvalidJsonBody:
         assert resp.status_code == 400
 
 
-class TestAuthContextCaptured:
-    """The verified AuthContext is captured and held at the fire site.
+class TestSourcePrincipalAttribution:
+    """The fired event is attributed to the SOURCE principal.
 
-    Phase 2.6: the receiver no longer discards the verification result. A
-    spy authenticator returns a sentinel AuthContext; the handler must hold
-    it through to the fire_event call site (surfaced via the receive log).
+    Phase 4: the presenting consumer's AuthContext still identifies the caller
+    for logging, but the event's actor is the source's own principal -- the
+    durable identity of the endpoint that emitted it, not the consumer.
     """
 
-    async def test_verified_context_held_at_fire_site(
+    async def test_event_attributed_to_source_principal(
         self,
         dispatch_backend: InMemoryDispatchBackend,
         authenticator: Authenticator,
@@ -776,7 +802,7 @@ class TestAuthContextCaptured:
                     UUID("99999999-9999-9999-9999-999999999999"),
                     True,
                 ),
-            ),
+            ) as spy_fire,
             caplog.at_level(logging.INFO, logger="orxtra.incoming._receiver"),
         ):
             async with AsyncTestClient(app) as client:
@@ -792,7 +818,13 @@ class TestAuthContextCaptured:
 
         assert resp.status_code == 202
         spy_verify.assert_awaited_once()
-        # The sentinel identity reached the fire site: held, not discarded.
+        # REAL attribution: the fired event's caller principal is the source's
+        # own principal (id == source id), NOT the presenting consumer.
+        caller_principal = spy_fire.call_args.args[1]
+        assert caller_principal.id == source_with_hmac.id
+        assert caller_principal.id != sentinel.consumer_id
+        # The consumer identity is still captured for logging (superseded for
+        # attribution, but not discarded).
         assert str(sentinel.consumer_id) in caplog.text
 
 

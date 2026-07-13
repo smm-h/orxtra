@@ -17,9 +17,23 @@ from orxtra.protocols import (
 from uuid6 import uuid7
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, Sequence
     from uuid import UUID
 
 logger = logging.getLogger(__name__)
+
+# Resolves a list of source slugs (a subscription filter's authoring interface)
+# to the set of source-principal UUIDs those slugs designate. Injected from the
+# services layer so dispatch stays protocol-only (no identity import). Events
+# carry principal_id; subscriptions filter by slug; this callback bridges them.
+type SourcePrincipalResolver = Callable[
+    ["Sequence[str]"], "Awaitable[set[UUID]]",
+]
+
+
+async def _empty_source_resolver(_slugs: Sequence[str]) -> set[UUID]:
+    """Default resolver: no slug maps to any principal (no source routing)."""
+    return set()
 
 
 class TransientEventDelivery:
@@ -66,17 +80,22 @@ class TransientEventDelivery:
             return None
 
 
-def match_subscription(
+async def match_subscription(
     event_type: str,
-    source: str | None,
+    principal_id: UUID | None,
     data: dict[str, Any] | None,  # noqa: ARG001 -- reserved for jsonb predicates
     filter_predicate: FilterPredicate,
+    resolve_source_principals: SourcePrincipalResolver,
 ) -> bool:
     """Evaluate whether an event matches a subscription's filter.
 
     Filter semantics:
     - ``event_types``: if set, event_type must be in the list.
-    - ``sources``: if set, source must be in the list.
+    - ``sources``: if set (a list of source slugs), the event's
+      ``principal_id`` must be one of the source principals those slugs
+      resolve to. Slugs are the authoring interface; principals are the runtime
+      identity. The injected ``resolve_source_principals`` callback bridges the
+      two so dispatch never touches identity storage directly.
     - ``data_predicates``: reserved for future jsonb matching; ignored now.
     - All None fields are treated as wildcards (match everything).
     """
@@ -86,10 +105,10 @@ def match_subscription(
     ):
         return False
     # data_predicates: reserved, not evaluated yet.
-    return not (
-        filter_predicate.sources is not None
-        and (source is None or source not in filter_predicate.sources)
-    )
+    if filter_predicate.sources is None:
+        return True
+    allowed = await resolve_source_principals(filter_predicate.sources)
+    return principal_id is not None and principal_id in allowed
 
 
 class DualPhaseEventDelivery:
@@ -112,12 +131,22 @@ class DualPhaseEventDelivery:
         backend: DispatchBackend | None = None,
         workflow_executor: ActionExecutor | None = None,
         flush_scheduler: FlushScheduler | None = None,
+        source_principal_resolver: SourcePrincipalResolver | None = None,
         max_concurrent: int = 10,
     ) -> None:
         self._transient = TransientEventDelivery()
         self._backend = backend
         self._workflow_executor = workflow_executor
         self._flush_scheduler = flush_scheduler
+        # Resolves subscription filter slugs to source-principal ids for Phase 2
+        # matching. When absent (transient-only / no source routing), no source
+        # slug resolves to a principal, so source-filtered subscriptions never
+        # match -- the same as having no matching source.
+        self._resolver: SourcePrincipalResolver = (
+            source_principal_resolver
+            if source_principal_resolver is not None
+            else _empty_source_resolver
+        )
         self._max_concurrent = max_concurrent
 
     async def fire(
@@ -133,8 +162,10 @@ class DualPhaseEventDelivery:
         Phase 1: resolve transient futures.
         Phase 2: dispatch persistent subscription actions (if backend present).
 
-        *event_id* is the trace-assigned event ID. When provided,
-        accumulator buffering uses it instead of fabricating a fresh one.
+        *source* is the fire-time source slug (authoring interface); Phase 2
+        resolves it to the event's source principal for matching. *event_id* is
+        the trace-assigned event ID. When provided, accumulator buffering uses
+        it instead of fabricating a fresh one.
         """
         # Phase 1: transient
         await self._transient.fire(event_name, payload)
@@ -176,18 +207,27 @@ class DualPhaseEventDelivery:
         assert self._backend is not None  # noqa: S101 -- guarded by caller
         subscriptions = await self._backend.list_subscriptions(enabled_only=True)
 
+        # Resolve the fire-time source slug to its source principal so matching
+        # compares principal ids uniformly with the persisted-event path.
+        event_principal_id: UUID | None = None
+        if source is not None:
+            resolved = await self._resolver([source])
+            event_principal_id = next(iter(resolved), None)
+
         event_data: dict[str, object] = {}
         if data is not None:
             event_data.update(data)
 
         event_payload: dict[str, object] = {
             "event_type": event_type,
-            "source": source or "",
+            "principal_id": str(event_principal_id) if event_principal_id else "",
             "data": event_data,
         }
 
         for sub in subscriptions:
-            if not match_subscription(event_type, source, data, sub.filter):
+            if not await match_subscription(
+                event_type, event_principal_id, data, sub.filter, self._resolver,
+            ):
                 continue
 
             actions = await self._backend.list_actions(sub.id)

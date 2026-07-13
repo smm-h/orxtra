@@ -129,11 +129,14 @@ async def test_execute_service_action_workflow(
     mock_start.assert_awaited_once()
 
 
+@patch("orxtra.identity.PgPrincipalStorage")
 @patch("orxtra.services._events.TraceWriter")
 async def test_execute_service_action_event(
     mock_writer_cls: AsyncMock,
+    mock_storage_cls: AsyncMock,
     mock_pool: AsyncMock,
 ) -> None:
+    system = _patch_storage(mock_storage_cls)
     mock_writer = mock_writer_cls.return_value
     mock_writer.write_event = AsyncMock(return_value=(uuid4(), True))
     action = EventAction(event_type="custom_event", data={"key": "val"})
@@ -142,7 +145,10 @@ async def test_execute_service_action_event(
         action, [], pool=mock_pool,
     )
 
+    # The re-fired event is attributed to the system principal.
     mock_writer.write_event.assert_awaited_once()
+    _args, kwargs = mock_writer.write_event.call_args
+    assert kwargs["principal_id"] == system.id
 
 
 async def test_execute_service_action_workflow_without_pool() -> None:

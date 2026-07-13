@@ -12,41 +12,51 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
-    from orxtra.protocols import EventBus
+    from orxtra.protocols import EventBus, Principal
 
 
 async def fire_event(
     pool: asyncpg.Pool,
+    caller_principal: Principal,
+    *,
     run_id: UUID | None,
     event_name: str,
     payload: dict[str, Any] | None = None,
-    source: str = "internal",
     idempotency_key: str | None = None,
 ) -> tuple[UUID, bool]:
-    """Fire an event into the trace store.
+    """Fire an event into the trace store, attributed to *caller_principal*.
 
-    Returns ``(event_id, inserted)``.  When *idempotency_key* is provided
-    and the key already exists, *inserted* is ``False`` and the event is
-    silently deduplicated.
+    Every event has an actor: the capability path injects the authenticated
+    caller's principal; direct callers (the webhook receiver, the dispatch
+    worker's re-fire) pass the source or system principal explicitly.
+
+    Returns ``(event_id, inserted)``.  When *idempotency_key* is provided and
+    the key already exists, *inserted* is ``False`` and the existing event's id
+    is returned.
     """
     writer = TraceWriter(pool)
     return await writer.write_event(
         run_id, event_name, payload or {},
-        source=source, idempotency_key=idempotency_key,
+        principal_id=caller_principal.id, idempotency_key=idempotency_key,
     )
 
 
 def fire_blocking(
     pool: asyncpg.Pool,
+    caller_principal: Principal,
+    *,
     run_id: UUID | None,
     event_name: str,
     payload: dict[str, Any] | None = None,
-    source: str = "internal",
     idempotency_key: str | None = None,
 ) -> tuple[UUID, bool]:
     """Synchronous wrapper around fire_event for non-async contexts."""
     return run_sync(
-        fire_event(pool, run_id, event_name, payload, source, idempotency_key),
+        fire_event(
+            pool, caller_principal,
+            run_id=run_id, event_name=event_name,
+            payload=payload, idempotency_key=idempotency_key,
+        ),
     )
 
 

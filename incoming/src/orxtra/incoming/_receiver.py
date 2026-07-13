@@ -15,6 +15,7 @@ from fastware import JSONResponse, Router, TextResponse
 from orxtra.auth import AuthenticationError
 from orxtra.incoming._replay import replay_handler
 from orxtra.incoming._stream import stream_handler
+from orxtra.protocols import KIND_SOURCE
 from orxtra.services import fire_event
 
 if TYPE_CHECKING:
@@ -22,7 +23,12 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxtra.auth import Authenticator
-    from orxtra.protocols import DispatchBackend, EventBus, Source
+    from orxtra.protocols import (
+        DispatchBackend,
+        EventBus,
+        PrincipalStorage,
+        Source,
+    )
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +41,7 @@ def create_incoming_router(
     pool: asyncpg.Pool[Any],
     dispatch_backend: DispatchBackend,
     authenticator: Authenticator,
+    principal_storage: PrincipalStorage,
     max_body_bytes: int = DEFAULT_MAX_BODY_BYTES,
     event_bus: EventBus | None = None,
 ) -> Router:
@@ -44,6 +51,8 @@ def create_incoming_router(
         pool: asyncpg pool for fire_event and trace queries.
         dispatch_backend: For source lookup by slug.
         authenticator: For credential verification (verify_by_credential_id).
+        principal_storage: Resolves a source's own principal (minted at source
+            birth) so external events are attributed to it.
         max_body_bytes: Maximum allowed request body size in bytes.
         event_bus: EventBus for SSE streaming (LISTEN/NOTIFY). When None,
             the SSE stream endpoint is not registered.
@@ -89,14 +98,28 @@ def create_incoming_router(
 
         # -- Verify credential --
         try:
-            # Phase 4 will attribute the fired event to this AuthContext;
-            # for now we capture (not discard) the verification result and
-            # hold it in hand at the fire_event call site below.
+            # The verified AuthContext identifies the presenting consumer (used
+            # for logging below). The fired event, however, is attributed to the
+            # SOURCE principal -- the durable identity of the endpoint that
+            # emitted it -- not the presenting consumer.
             auth_context = await authenticator.verify_by_credential_id(
                 credential_id, presented,
             )
         except AuthenticationError:
             return TextResponse("Authentication failed", status=401)
+
+        # -- Resolve the source's principal for event attribution --
+        source_principal = await principal_storage.get_principal_by_ref(
+            KIND_SOURCE, source.id,
+        )
+        if source_principal is None:
+            log.error(
+                "Source %s (id=%s) has no principal; cannot attribute event",
+                slug, source.id,
+            )
+            return TextResponse(
+                "Source principal missing", status=500,
+            )
 
         # -- Extract event_type from the payload --
         try:
@@ -113,13 +136,13 @@ def create_incoming_router(
         # -- Extract idempotency key --
         idempotency_key = _extract_idempotency_key(request, source_config)
 
-        # -- Fire event --
+        # -- Fire event, attributed to the source principal --
         event_id, inserted = await fire_event(
             pool,
-            None,  # run_id -- external events are not tied to a run
-            event_type,
-            data,
-            source=slug,
+            source_principal,
+            run_id=None,  # external events are not tied to a run
+            event_name=event_type,
+            payload=data,
             idempotency_key=idempotency_key,
         )
 
@@ -148,6 +171,7 @@ def create_incoming_router(
             pool=pool,
             dispatch_backend=dispatch_backend,
             authenticator=authenticator,
+            principal_storage=principal_storage,
         )
 
     router.add_route("GET", "/events/{slug}/replay", _replay_handler)
@@ -163,6 +187,7 @@ def create_incoming_router(
                 pool=pool,
                 dispatch_backend=dispatch_backend,
                 authenticator=authenticator,
+                principal_storage=principal_storage,
                 event_bus=event_bus,
             )
 

@@ -41,6 +41,7 @@ class LifecycleHandlersMixin(SchedulerBase):
         self._task_states[task_uuid] = TaskState.PRECHECKING
         await self._trace_writer.transition_task(
             task_uuid, TaskState.PRECHECKING.value,
+            principal_id=self._run_principal_id,
         )
 
         task = self._task_specs[task_uuid]
@@ -55,6 +56,7 @@ class LifecycleHandlersMixin(SchedulerBase):
             )
             await self._trace_writer.transition_task(
                 task_uuid, TaskState.PRECHECK_FAILED.value,
+                principal_id=self._run_principal_id,
             )
             failed = [
                 cr.message
@@ -68,6 +70,7 @@ class LifecycleHandlersMixin(SchedulerBase):
         self._task_states[task_uuid] = TaskState.ACTIVE
         await self._trace_writer.transition_task(
             task_uuid, TaskState.ACTIVE.value,
+            principal_id=self._run_principal_id,
         )
         self._active_tasks[session_id] = task_uuid
         return f"Task {task_id} is now active"
@@ -105,6 +108,7 @@ class LifecycleHandlersMixin(SchedulerBase):
         self._task_states[task_id] = TaskState.POSTCHECKING
         await self._trace_writer.transition_task(
             task_id, TaskState.POSTCHECKING.value,
+            principal_id=self._run_principal_id,
         )
 
         self._pending_end_task_message[task_id] = message
@@ -133,6 +137,7 @@ class LifecycleHandlersMixin(SchedulerBase):
                 await self._trace_writer.transition_task(
                     task_id,
                     TaskState.POSTCHECK_FAILED.value,
+                    principal_id=self._run_principal_id,
                 )
                 failed = [
                     cr.message
@@ -149,6 +154,7 @@ class LifecycleHandlersMixin(SchedulerBase):
             )
             await self._trace_writer.transition_task(
                 task_id, TaskState.COMPLETED.value,
+                principal_id=self._run_principal_id,
             )
             del self._active_tasks[session_id]
             if task.on_success is not None:
@@ -172,6 +178,7 @@ class LifecycleHandlersMixin(SchedulerBase):
         )
         await self._trace_writer.transition_task(
             task_id, TaskState.POSTCHECK_FAILED.value,
+            principal_id=self._run_principal_id,
         )
         failed = [
             cr.message

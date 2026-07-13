@@ -107,11 +107,23 @@ async def test_dispatch_get_run(
 @pytest.mark.asyncio
 @patch("orxtra.services._dispatcher.get_capability_fn")
 async def test_dispatch_fire_event(
-    mock_get_fn: MagicMock, context: DispatchContext, mock_pool: AsyncMock
+    mock_get_fn: MagicMock, mock_pool: AsyncMock
 ) -> None:
     mock_fn = AsyncMock(return_value=UUID("00000000-0000-0000-0000-000000000001"))
     mock_get_fn.return_value = mock_fn
     run_id = "12345678-1234-1234-1234-123456789abc"
+
+    # fire_event now injects pool and the derived caller_principal (resolved to
+    # the system principal for the default SYSTEM-tier operator context).
+    storage = InMemoryPrincipalStorage()
+    system = await storage.mint_principal(
+        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+    )
+    context = DispatchContext(
+        pool=mock_pool,
+        principal_storage=storage,
+        auth_context=make_auth_context(),
+    )
 
     result = await dispatch(
         context,
@@ -122,6 +134,7 @@ async def test_dispatch_fire_event(
     assert result is not None
     mock_fn.assert_awaited_once_with(
         mock_pool,
+        system,
         run_id=UUID(run_id),
         event_name="deploy",
         payload={"key": "val"},

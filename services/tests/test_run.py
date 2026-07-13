@@ -194,37 +194,55 @@ async def test_list_runs_delegates(
         mock_list.assert_called_once_with(mock_pool)
 
 
+_RUN_PRINCIPAL_ID = uuid4()
+
+
 @pytest.mark.asyncio
 async def test_abort_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
-    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls, patch(
+        "orxtra.services._run._resolve_run_principal_id",
+        AsyncMock(return_value=_RUN_PRINCIPAL_ID),
+    ):
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
         await abort_run(mock_pool, sample_run_id)
 
-        mock_writer.transition_run.assert_called_once_with(sample_run_id, "aborted")
+        mock_writer.transition_run.assert_called_once_with(
+            sample_run_id, "aborted", principal_id=_RUN_PRINCIPAL_ID,
+        )
 
 
 @pytest.mark.asyncio
 async def test_pause_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
-    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls, patch(
+        "orxtra.services._run._resolve_run_principal_id",
+        AsyncMock(return_value=_RUN_PRINCIPAL_ID),
+    ):
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
         await pause_run(mock_pool, sample_run_id)
 
-        mock_writer.transition_run.assert_called_once_with(sample_run_id, "paused")
+        mock_writer.transition_run.assert_called_once_with(
+            sample_run_id, "paused", principal_id=_RUN_PRINCIPAL_ID,
+        )
 
 
 @pytest.mark.asyncio
 async def test_resume_run(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
-    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls:
+    with patch("orxtra.services._run.TraceWriter") as mock_writer_cls, patch(
+        "orxtra.services._run._resolve_run_principal_id",
+        AsyncMock(return_value=_RUN_PRINCIPAL_ID),
+    ):
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
         await resume_run(mock_pool, sample_run_id)
 
-        mock_writer.transition_run.assert_called_once_with(sample_run_id, "running")
+        mock_writer.transition_run.assert_called_once_with(
+            sample_run_id, "running", principal_id=_RUN_PRINCIPAL_ID,
+        )
 
 
 def test_run_config_valid() -> None:
@@ -459,10 +477,12 @@ async def test_start_run_transitions_to_running(
 
         await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
-        # First transition_run call should be "running"
+        # First transition_run call should be "running", attributed to the
+        # run's own principal.
         calls = mock_writer.transition_run.call_args_list
         assert len(calls) >= 1
-        assert calls[0] == ((sample_run_id, "running"),)
+        assert calls[0].args == (sample_run_id, "running")
+        assert "principal_id" in calls[0].kwargs
 
 
 @pytest.mark.asyncio
@@ -488,7 +508,8 @@ async def test_start_run_transitions_to_completed(
         # Second transition_run call should be "completed"
         calls = mock_writer.transition_run.call_args_list
         assert len(calls) == 2
-        assert calls[1] == ((sample_run_id, "completed"),)
+        assert calls[1].args == (sample_run_id, "completed")
+        assert "principal_id" in calls[1].kwargs
 
 
 @pytest.mark.asyncio
@@ -516,8 +537,10 @@ async def test_start_run_transitions_to_failed_on_error(
         # Should transition to "running" then "failed"
         calls = mock_writer.transition_run.call_args_list
         assert len(calls) == 2
-        assert calls[0] == ((sample_run_id, "running"),)
-        assert calls[1] == ((sample_run_id, "failed"),)
+        assert calls[0].args == (sample_run_id, "running")
+        assert calls[1].args == (sample_run_id, "failed")
+        assert "principal_id" in calls[0].kwargs
+        assert "principal_id" in calls[1].kwargs
 
 
 @pytest.mark.asyncio

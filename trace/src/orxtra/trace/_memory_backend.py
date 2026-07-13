@@ -6,6 +6,7 @@ import time
 from datetime import UTC
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
 import uuid6
 from orxtra.trace._transitions import (
@@ -26,11 +27,23 @@ from orxtra.trace._types import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from datetime import datetime
-    from uuid import UUID
+
+
+# The system principal's sentinel id used for internally-generated events
+# (crash-recovery). Mirrors the all-zeros system-principal external_ref; the
+# in-memory backend performs no FK validation, so this is a bare stand-in.
+_SYSTEM_PRINCIPAL_SENTINEL = UUID(int=0)
 
 
 class InMemoryBackend:
-    """In-memory implementation of StorageBackend for tests and lightweight use."""
+    """In-memory implementation of StorageBackend for tests and lightweight use.
+
+    Parity boundary with the PG backend: this backend enforces NO foreign keys.
+    ``created_by`` (on runs) and ``principal_id`` (on events) are accepted and
+    stored verbatim without validating that a matching principal row exists --
+    the PG backend rejects unknown principals via FK RESTRICT, this one does
+    not. Tests that need FK behavior must use the PG backend.
+    """
 
     def __init__(self) -> None:
         # Runs: id -> row dict
@@ -99,6 +112,7 @@ class InMemoryBackend:
 
     async def transition_task(
         self, task_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None:
         task = self._tasks.get(task_id)
         if task is None:
@@ -119,7 +133,7 @@ class InMemoryBackend:
             "id": event_id,
             "run_id": run_id,
             "task_id": task_id,
-            "source": "internal",
+            "principal_id": principal_id,
             "event_type": "task_transition",
             "data": event_data,
             "created_at": _now(),
@@ -257,16 +271,18 @@ class InMemoryBackend:
         event_type: str,
         data: dict[str, Any],
         task_id: UUID | None = None,
-        source: str = "internal",
+        *,
+        principal_id: UUID,
         idempotency_key: str | None = None,
     ) -> tuple[UUID, bool]:
         """Insert an event. Returns ``(event_id, inserted)``.
 
-        Mirrors the PG backend's ``ON CONFLICT (idempotency_key) DO NOTHING``
-        semantics: when *idempotency_key* is provided and already seen, the
-        event is not inserted a second time and ``(existing_event_id, False)``
-        is returned. With no key, every call inserts and returns
-        ``(event_id, True)``.
+        *principal_id* is the acting principal; accepted unvalidated (no FK
+        enforcement -- see the class docstring's parity boundary). Mirrors the
+        PG backend's ``ON CONFLICT (idempotency_key) DO NOTHING`` semantics:
+        when *idempotency_key* is provided and already seen, the event is not
+        inserted a second time and ``(existing_event_id, False)`` is returned.
+        With no key, every call inserts and returns ``(event_id, True)``.
         """
         if idempotency_key is not None:
             existing = self._idempotency_index.get(idempotency_key)
@@ -277,7 +293,7 @@ class InMemoryBackend:
             "id": event_id,
             "run_id": run_id,
             "task_id": task_id,
-            "source": source,
+            "principal_id": principal_id,
             "event_type": event_type,
             "data": data,
             "idempotency_key": idempotency_key,
@@ -320,6 +336,11 @@ class InMemoryBackend:
         run_id: UUID,
         created_by: UUID,
     ) -> UUID:
+        if run_id in self._runs:
+            # PG raises a primary-key violation on a duplicate run id; the
+            # in-memory backend enforces the same uniqueness with a hard error.
+            msg = f"run {run_id} already exists"
+            raise ValueError(msg)
         now = _now()
         self._runs[run_id] = {
             "id": run_id,
@@ -342,6 +363,7 @@ class InMemoryBackend:
 
     async def transition_run(
         self, run_id: UUID, new_status: str, reason: str | None = None,
+        *, principal_id: UUID,
     ) -> None:
         run = self._runs.get(run_id)
         if run is None:
@@ -362,7 +384,7 @@ class InMemoryBackend:
             "id": event_id,
             "run_id": run_id,
             "task_id": None,
-            "source": "internal",
+            "principal_id": principal_id,
             "event_type": "run_transition",
             "data": event_data,
             "created_at": _now(),
@@ -940,7 +962,7 @@ class InMemoryBackend:
         self,
         *,
         event_types: list[str] | None = None,
-        source: str | None = None,
+        principal_id: UUID | None = None,
         since_id: UUID | None = None,
         limit: int = 1000,
     ) -> list[dict[str, Any]]:
@@ -948,7 +970,7 @@ class InMemoryBackend:
         for ev in self._events:
             if event_types is not None and ev["event_type"] not in event_types:
                 continue
-            if source is not None and ev["source"] != source:
+            if principal_id is not None and ev["principal_id"] != principal_id:
                 continue
             if since_id is not None and ev["id"] <= since_id:
                 continue
@@ -990,7 +1012,7 @@ class InMemoryBackend:
                     "id": uuid6.uuid7(),
                     "run_id": task["run_id"],
                     "task_id": task["id"],
-                    "source": "internal",
+                    "principal_id": _SYSTEM_PRINCIPAL_SENTINEL,
                     "event_type": "crash_recovery",
                     "data": {"action": "reclaim_interrupted"},
                     "created_at": _now(),
@@ -1026,7 +1048,7 @@ class InMemoryBackend:
                     "id": uuid6.uuid7(),
                     "run_id": run_id,
                     "task_id": None,
-                    "source": "internal",
+                    "principal_id": _SYSTEM_PRINCIPAL_SENTINEL,
                     "event_type": "crash_recovery",
                     "data": {"action": "clean_orphaned"},
                     "created_at": _now(),

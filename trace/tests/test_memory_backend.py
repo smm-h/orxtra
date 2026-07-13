@@ -176,12 +176,26 @@ class TestRunOperations:
         assert runs[0].status == "created"
 
     @pytest.mark.asyncio
+    async def test_create_run_duplicate_id_rejected(
+        self, backend: InMemoryBackend,
+    ) -> None:
+        """A duplicate run_id is a hard error (parity with PG's PK violation)."""
+        run_id = uuid6.uuid7()
+        await backend.create_run(
+            "first", {}, "max", run_id=run_id, created_by=_CREATED_BY,
+        )
+        with pytest.raises(ValueError, match="already exists"):
+            await backend.create_run(
+                "second", {}, "max", run_id=run_id, created_by=_CREATED_BY,
+            )
+
+    @pytest.mark.asyncio
     async def test_run_transitions(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
-        await backend.transition_run(run_id, "running")
+        await backend.transition_run(run_id, "running", principal_id=_CREATED_BY)
         runs = await backend.list_runs()
         assert runs[0].status == "running"
-        await backend.transition_run(run_id, "completed")
+        await backend.transition_run(run_id, "completed", principal_id=_CREATED_BY)
         runs = await backend.list_runs()
         assert runs[0].status == "completed"
         assert runs[0].finished_at is not None
@@ -190,15 +204,15 @@ class TestRunOperations:
     async def test_invalid_run_transition(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         with pytest.raises(InvalidTransitionError):
-            await backend.transition_run(run_id, "completed")
+            await backend.transition_run(run_id, "completed", principal_id=_CREATED_BY)
 
     @pytest.mark.asyncio
     async def test_run_terminal_state_transition(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
-        await backend.transition_run(run_id, "running")
-        await backend.transition_run(run_id, "completed")
+        await backend.transition_run(run_id, "running", principal_id=_CREATED_BY)
+        await backend.transition_run(run_id, "completed", principal_id=_CREATED_BY)
         with pytest.raises(InvalidTransitionError):
-            await backend.transition_run(run_id, "running")
+            await backend.transition_run(run_id, "running", principal_id=_CREATED_BY)
 
     @pytest.mark.asyncio
     async def test_read_run_report(self, backend: InMemoryBackend) -> None:
@@ -248,9 +262,9 @@ class TestTaskOperations:
     async def test_task_transitions(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
-        await backend.transition_task(task_id, "prechecking")
-        await backend.transition_task(task_id, "active")
-        await backend.transition_task(task_id, "completed")
+        await backend.transition_task(task_id, "prechecking", principal_id=_CREATED_BY)
+        await backend.transition_task(task_id, "active", principal_id=_CREATED_BY)
+        await backend.transition_task(task_id, "completed", principal_id=_CREATED_BY)
         tasks = await backend.list_tasks(run_id)
         assert tasks[0].status == "completed"
 
@@ -259,14 +273,14 @@ class TestTaskOperations:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         with pytest.raises(InvalidTransitionError):
-            await backend.transition_task(task_id, "completed")
+            await backend.transition_task(task_id, "completed", principal_id=_CREATED_BY)
 
     @pytest.mark.asyncio
     async def test_task_cancelled_from_any_state(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
-        await backend.transition_task(task_id, "prechecking")
-        await backend.transition_task(task_id, "cancelled")
+        await backend.transition_task(task_id, "prechecking", principal_id=_CREATED_BY)
+        await backend.transition_task(task_id, "cancelled", principal_id=_CREATED_BY)
         tasks = await backend.list_tasks(run_id)
         assert tasks[0].status == "cancelled"
 
@@ -276,11 +290,11 @@ class TestTaskOperations:
     ) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
-        await backend.transition_task(task_id, "prechecking")
-        await backend.transition_task(task_id, "active")
-        await backend.transition_task(task_id, "completed")
+        await backend.transition_task(task_id, "prechecking", principal_id=_CREATED_BY)
+        await backend.transition_task(task_id, "active", principal_id=_CREATED_BY)
+        await backend.transition_task(task_id, "completed", principal_id=_CREATED_BY)
         with pytest.raises(InvalidTransitionError):
-            await backend.transition_task(task_id, "active")
+            await backend.transition_task(task_id, "active", principal_id=_CREATED_BY)
 
 
 # ── Task attempt CRUD ──
@@ -410,8 +424,8 @@ class TestEventOperations:
     @pytest.mark.asyncio
     async def test_write_and_query_events(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
-        await backend.write_event(run_id, "custom", {"key": "val"})
-        await backend.write_event(run_id, "other", {"key2": "val2"})
+        await backend.write_event(run_id, "custom", {"key": "val"}, principal_id=_CREATED_BY)
+        await backend.write_event(run_id, "other", {"key2": "val2"}, principal_id=_CREATED_BY)
         all_events = await backend.query_events(run_id)
         assert len(all_events) >= 2
         custom_events = await backend.query_events(run_id, event_type="custom")
@@ -421,7 +435,7 @@ class TestEventOperations:
     async def test_query_events_with_limit(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         for i in range(10):
-            await backend.write_event(run_id, "test", {"i": i})
+            await backend.write_event(run_id, "test", {"i": i}, principal_id=_CREATED_BY)
         events = await backend.query_events(run_id, limit=3)
         assert len(events) == 3
 
@@ -434,9 +448,11 @@ class TestEventIdempotency:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         id1, inserted1 = await backend.write_event(
             run_id, "e", {"n": 1}, idempotency_key="dup-key",
+            principal_id=_CREATED_BY,
         )
         id2, inserted2 = await backend.write_event(
             run_id, "e", {"n": 2}, idempotency_key="dup-key",
+            principal_id=_CREATED_BY,
         )
         assert inserted1 is True
         assert inserted2 is False
@@ -451,9 +467,11 @@ class TestEventIdempotency:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         id1, inserted1 = await backend.write_event(
             run_id, "e", {"n": 1}, idempotency_key="key-a",
+            principal_id=_CREATED_BY,
         )
         id2, inserted2 = await backend.write_event(
             run_id, "e", {"n": 2}, idempotency_key="key-b",
+            principal_id=_CREATED_BY,
         )
         assert inserted1 is True
         assert inserted2 is True
@@ -464,8 +482,8 @@ class TestEventIdempotency:
     @pytest.mark.asyncio
     async def test_none_key_always_inserts(self, backend: InMemoryBackend) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
-        id1, inserted1 = await backend.write_event(run_id, "e", {"n": 1})
-        id2, inserted2 = await backend.write_event(run_id, "e", {"n": 2})
+        id1, inserted1 = await backend.write_event(run_id, "e", {"n": 1}, principal_id=_CREATED_BY)
+        id2, inserted2 = await backend.write_event(run_id, "e", {"n": 2}, principal_id=_CREATED_BY)
         assert inserted1 is True
         assert inserted2 is True
         assert id1 != id2
@@ -819,8 +837,8 @@ class TestRunControl:
         self, backend: InMemoryBackend,
     ) -> None:
         run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
-        await backend.transition_run(run_id, "running")
-        await backend.transition_run(run_id, "paused")
+        await backend.transition_run(run_id, "running", principal_id=_CREATED_BY)
+        await backend.transition_run(run_id, "paused", principal_id=_CREATED_BY)
         signals: list[tuple[Any, str]] = []
 
         async def cb(rid: Any, status: str) -> None:
@@ -841,7 +859,7 @@ class TestRunControl:
             signals.append((rid, status))
 
         await backend.subscribe_run_control(run_id, cb)
-        await backend.transition_run(run_id, "running")
+        await backend.transition_run(run_id, "running", principal_id=_CREATED_BY)
         assert len(signals) == 1
         assert signals[0][1] == "running"
 
@@ -855,7 +873,7 @@ class TestRunControl:
 
         await backend.subscribe_run_control(run_id, cb)
         await backend.unsubscribe_run_control(run_id)
-        await backend.transition_run(run_id, "running")
+        await backend.transition_run(run_id, "running", principal_id=_CREATED_BY)
         assert len(signals) == 0
 
 

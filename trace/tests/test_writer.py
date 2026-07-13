@@ -23,6 +23,8 @@ SESSION_ID = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
 PARENT_TASK_ID = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 INBOX_ITEM_ID = UUID("ffffffff-ffff-ffff-ffff-ffffffffffff")
 WORKFLOW_ID = UUID("11111111-1111-1111-1111-111111111111")
+PRINCIPAL_ID = UUID("99999999-9999-9999-9999-999999999999")
+EXISTING_EVENT_ID = UUID("88888888-8888-8888-8888-888888888888")
 
 
 class TestCreateRun:
@@ -60,7 +62,7 @@ class TestTransitionRun:
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
-            await writer.transition_run(RUN_ID, "running")
+            await writer.transition_run(RUN_ID, "running", principal_id=PRINCIPAL_ID)
 
         calls = mock_pool.conn.executed
         # fetchrow (SELECT), execute (UPDATE), execute (INSERT event)
@@ -81,7 +83,7 @@ class TestTransitionRun:
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ), pytest.raises(InvalidTransitionError):
-            await writer.transition_run(RUN_ID, "completed")
+            await writer.transition_run(RUN_ID, "completed", principal_id=PRINCIPAL_ID)
 
     async def test_transition_run_not_found(
         self, writer: TraceWriter, mock_pool: MockPool,
@@ -92,7 +94,7 @@ class TestTransitionRun:
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ), pytest.raises(ValueError, match="not found"):
-            await writer.transition_run(RUN_ID, "running")
+            await writer.transition_run(RUN_ID, "running", principal_id=PRINCIPAL_ID)
 
 
 class TestCreateTask:
@@ -168,7 +170,7 @@ class TestTransitionTask:
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ):
-            await writer.transition_task(TASK_ID, "prechecking")
+            await writer.transition_task(TASK_ID, "prechecking", principal_id=PRINCIPAL_ID)
 
         calls = mock_pool.conn.executed
         assert len(calls) == 3
@@ -187,7 +189,7 @@ class TestTransitionTask:
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
         ), pytest.raises(InvalidTransitionError):
-            await writer.transition_task(TASK_ID, "completed")
+            await writer.transition_task(TASK_ID, "completed", principal_id=PRINCIPAL_ID)
 
 
 class TestTaskAttempt:
@@ -286,6 +288,7 @@ class TestWriteEvent:
         ):
             event_id, inserted = await writer.write_event(
                 RUN_ID, "test_event", {"key": "value"},
+                principal_id=PRINCIPAL_ID,
             )
 
         assert event_id == TEST_UUID
@@ -294,7 +297,7 @@ class TestWriteEvent:
         assert "insert into events" in sql.lower()
         assert args == (
             TEST_UUID, RUN_ID, None,
-            "internal",
+            PRINCIPAL_ID,
             "test_event", json.dumps({"key": "value"}),
         )
 
@@ -308,6 +311,7 @@ class TestWriteEvent:
             event_id, inserted = await writer.write_event(
                 RUN_ID, "test_event", {"key": "value"},
                 task_id=TASK_ID,
+                principal_id=PRINCIPAL_ID,
             )
 
         assert event_id == TEST_UUID
@@ -316,13 +320,15 @@ class TestWriteEvent:
         assert "insert into events" in sql.lower()
         assert args == (
             TEST_UUID, RUN_ID, TASK_ID,
-            "internal",
+            PRINCIPAL_ID,
             "test_event", json.dumps({"key": "value"}),
         )
 
     async def test_write_event_with_idempotency_key(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
+        # The INSERT ... RETURNING id yields the new event id on success.
+        mock_pool.conn.queue_fetchval(TEST_UUID)
         with patch(
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
@@ -330,15 +336,17 @@ class TestWriteEvent:
             event_id, inserted = await writer.write_event(
                 RUN_ID, "test_event", {"key": "value"},
                 idempotency_key="dedup-key-1",
+                principal_id=PRINCIPAL_ID,
             )
 
         assert event_id == TEST_UUID
         assert inserted is True
         sql, args = mock_pool.conn.executed[0]
         assert "on conflict (idempotency_key)" in sql.lower()
+        assert "returning id" in sql.lower()
         assert args == (
             TEST_UUID, RUN_ID, None,
-            "internal",
+            PRINCIPAL_ID,
             "test_event", json.dumps({"key": "value"}),
             "dedup-key-1",
         )
@@ -346,8 +354,12 @@ class TestWriteEvent:
     async def test_write_event_idempotency_dedup(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
-        """When ON CONFLICT fires (INSERT 0), inserted is False."""
-        mock_pool.conn.queue_execute("INSERT 0 0")
+        """On ON CONFLICT (no row returned), the EXISTING row's id is fetched
+        and returned with inserted=False -- never a fresh, unpersisted id."""
+        # First fetchval: INSERT ... RETURNING id yields None (conflict).
+        mock_pool.conn.queue_fetchval(None)
+        # Second fetchval: SELECT id WHERE idempotency_key yields the stored id.
+        mock_pool.conn.queue_fetchval(EXISTING_EVENT_ID)
         with patch(
             "orxtra.trace._writer.uuid6.uuid7",
             return_value=TEST_UUID,
@@ -355,10 +367,15 @@ class TestWriteEvent:
             event_id, inserted = await writer.write_event(
                 RUN_ID, "test_event", {"key": "value"},
                 idempotency_key="dedup-key-dup",
+                principal_id=PRINCIPAL_ID,
             )
 
-        assert event_id == TEST_UUID
+        assert event_id == EXISTING_EVENT_ID
         assert inserted is False
+        # The SELECT for the existing id was issued.
+        assert "select id from events where idempotency_key" in (
+            mock_pool.conn.executed[-1][0].lower()
+        )
 
 
 class TestTranscript:
