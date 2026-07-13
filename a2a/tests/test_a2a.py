@@ -2,20 +2,31 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 import pytest
 
 if TYPE_CHECKING:
     from pathlib import Path
+from a2a.server.context import ServerCallContext
 from a2a.types.a2a_pb2 import (
     TASK_STATE_CANCELED,
     TASK_STATE_COMPLETED,
     TASK_STATE_FAILED,
     TASK_STATE_SUBMITTED,
     TASK_STATE_WORKING,
+    GetTaskRequest,
+    Message,
+    Part,
+    SendMessageRequest,
 )
 from orxtra.a2a._agent_card import build_agent_card
+from orxtra.a2a._server import (
+    OrxtraRequestHandler,
+    _OrxtraServerCallContextBuilder,
+)
 from orxtra.a2a._skills import (
     _EXCLUDED_NAMESPACES,
     SkillRegistry,
@@ -24,8 +35,10 @@ from orxtra.a2a._state_bridge import (
     TaskStateBridge,
     TranslationResult,
 )
-from orxtra.protocols import Capability, TaskState
+from orxtra.protocols import AuthContext, Capability, TaskState, TrustTier
+from orxtra.services import DispatchContext
 from pydantic import BaseModel
+from starlette.requests import Request
 
 
 class _EmptyParams(BaseModel):
@@ -356,3 +369,126 @@ class TestTaskStateBridge:
             assert member in _MAP, (
                 f"TaskState.{member.name} not in _MAP"
             )
+
+
+# -- Per-request identity tests (2.4) --
+
+
+_SENTINEL_AUTH = AuthContext(
+    id=UUID("11111111-1111-1111-1111-111111111111"),
+    consumer_id=UUID("22222222-2222-2222-2222-222222222222"),
+    scopes=frozenset({"runs:read", "runs:manage"}),
+    trust_tier=TrustTier.VERIFIED,
+    authenticated_via="bearer",
+    issued_at=datetime(2026, 1, 1, tzinfo=UTC),
+    expires_at=None,
+)
+
+
+class _Recorder:
+    """Captures the DispatchContext handed to each dispatch call."""
+
+    def __init__(self) -> None:
+        self.contexts: list[DispatchContext] = []
+
+    async def dispatch(
+        self,
+        context: DispatchContext,
+        capability_name: str,
+        params: dict[str, object],
+    ) -> None:
+        self.contexts.append(context)
+
+
+def _build_call_context(
+    auth_context: AuthContext | None,
+) -> ServerCallContext:
+    """Run a request scope through the real builder to get a ServerCallContext.
+
+    When ``auth_context`` is None the scope carries an empty ``state`` (the
+    open-mode shape), so the builder must resolve the absent key to None.
+    """
+    state: dict[str, object] = {}
+    if auth_context is not None:
+        state["auth_context"] = auth_context
+    scope = {"type": "http", "headers": [], "state": state}
+    request = Request(scope)
+    return _OrxtraServerCallContextBuilder().build(request)
+
+
+@pytest.fixture
+def handler(skill_registry: SkillRegistry) -> OrxtraRequestHandler:
+    return OrxtraRequestHandler(
+        dispatch_context=DispatchContext(),
+        skill_registry=skill_registry,
+    )
+
+
+class TestPerRequestIdentity:
+    def test_builder_surfaces_auth_context_from_scope(self) -> None:
+        context = _build_call_context(_SENTINEL_AUTH)
+        assert context.state["auth_context"] is _SENTINEL_AUTH
+
+    def test_builder_resolves_absent_key_to_none(self) -> None:
+        context = _build_call_context(None)
+        assert context.state["auth_context"] is None
+
+    def test_builder_preserves_default_state(self) -> None:
+        """The subclass keeps what the default builder provides (headers)."""
+        context = _build_call_context(_SENTINEL_AUTH)
+        assert "headers" in context.state
+
+    async def test_message_send_threads_auth_context(
+        self,
+        handler: OrxtraRequestHandler,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        recorder = _Recorder()
+        monkeypatch.setattr(
+            "orxtra.services.dispatch", recorder.dispatch,
+        )
+        params = SendMessageRequest(
+            message=Message(
+                message_id="m1",
+                parts=[Part(text="config.toml")],
+            ),
+        )
+        await handler.on_message_send(
+            params, _build_call_context(_SENTINEL_AUTH),
+        )
+        assert recorder.contexts[0].auth_context is _SENTINEL_AUTH
+
+    async def test_read_handler_threads_auth_context(
+        self,
+        handler: OrxtraRequestHandler,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        recorder = _Recorder()
+        monkeypatch.setattr(
+            "orxtra.services.dispatch", recorder.dispatch,
+        )
+        await handler.on_get_task(
+            GetTaskRequest(id="run-1"),
+            _build_call_context(_SENTINEL_AUTH),
+        )
+        assert recorder.contexts[0].auth_context is _SENTINEL_AUTH
+
+    async def test_absent_auth_context_yields_none(
+        self,
+        handler: OrxtraRequestHandler,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        recorder = _Recorder()
+        monkeypatch.setattr(
+            "orxtra.services.dispatch", recorder.dispatch,
+        )
+        await handler.on_message_send(
+            SendMessageRequest(
+                message=Message(
+                    message_id="m2",
+                    parts=[Part(text="config.toml")],
+                ),
+            ),
+            _build_call_context(None),
+        )
+        assert recorder.contexts[0].auth_context is None
