@@ -590,6 +590,121 @@ async def test_tool_call_insufficient_scope_surfaces_error(
     assert "runs:read" in str(exc_info.value)
 
 
+# ------------------------------------------------------------------
+# 4.7 -- Served tool input schemas
+#
+# Regression coverage for the bug where FastMCP registered handlers as
+# ``async def handler(ctx, **kwargs)`` and therefore derived a broken input
+# schema (a single required ``kwargs`` object) instead of the capability's real
+# parameter schema. These tests assert on what FastMCP SERVES via list_tools
+# and on end-to-end call_tool argument flow -- neither of which the legacy
+# get_tool_definitions() projection ever exercised, which is how the bug
+# shipped.
+# ------------------------------------------------------------------
+
+
+def _schema_core(schema: dict[str, Any]) -> dict[str, Any]:
+    """Reduce a JSON schema to its comparable core.
+
+    The top-level ``title`` (the pydantic model name) is the only benign
+    envelope difference between the served schema and the params_model schema:
+    the served model is a distinct dynamically-created model, so its name
+    differs. Everything clients rely on -- ``properties`` (names, types,
+    formats, defaults, descriptions), the ``required`` set, ``$defs`` for
+    nested models, and ``additionalProperties`` -- must match exactly.
+    """
+    return {
+        "properties": schema.get("properties", {}),
+        "required": sorted(schema.get("required", [])),
+        "defs": schema.get("$defs"),
+        "additionalProperties": schema.get("additionalProperties"),
+    }
+
+
+async def test_served_tool_schema_matches_params_model(server: MCPServer) -> None:
+    """Each tool's SERVED input schema equals its capability's params_model.
+
+    Primary bug reproduction: against the broken handler, every served schema
+    is ``{properties: {kwargs: {...}}, required: [kwargs]}`` instead of the
+    capability's real parameter schema.
+    """
+    tools = await server.fastmcp.list_tools()
+    caps = {c.name: c for c in _mcp_capabilities()}
+    assert tools  # sanity: tools are registered
+    for tool in tools:
+        cap = caps[tool.name]
+        served = _schema_core(tool.inputSchema)
+        expected = _schema_core(cap.params_model.model_json_schema())
+        assert served == expected, (
+            f"{tool.name}: served schema does not match params_model.\n"
+            f"served={served}\nexpected={expected}"
+        )
+
+
+@patch("orxtra.mcp._server.dispatch", new_callable=AsyncMock)
+async def test_tool_call_named_args_reach_dispatch(
+    mock_dispatch: AsyncMock,
+    server: MCPServer,
+) -> None:
+    """A call_tool with real named arguments flows them to dispatch verbatim.
+
+    Against the broken handler the served schema requires a single ``kwargs``
+    object, so proper named params fail validation before dispatch is reached.
+    """
+    mock_dispatch.return_value = None
+    sentinel = _make_auth_context()
+    run_id = str(uuid4())
+    with _request_scope(auth_context=sentinel):
+        await server.fastmcp.call_tool("get_run", {"run_id": run_id})
+    mock_dispatch.assert_awaited_once()
+    dispatched_context, cap_name, raw_args = mock_dispatch.call_args[0]
+    assert cap_name == "get_run"
+    assert raw_args == {"run_id": run_id}
+    assert dispatched_context.auth_context is sentinel
+
+
+@patch("orxtra.mcp._server.dispatch", new_callable=AsyncMock)
+async def test_tool_call_multi_arg_reaches_dispatch(
+    mock_dispatch: AsyncMock,
+    server: MCPServer,
+) -> None:
+    """A multi-parameter tool receives each named argument with its value."""
+    mock_dispatch.return_value = None
+    sentinel = _make_auth_context()
+    with _request_scope(auth_context=sentinel):
+        await server.fastmcp.call_tool(
+            "start_run",
+            {"config_path": "/tmp/run.toml", "intent": "do the thing"},
+        )
+    mock_dispatch.assert_awaited_once()
+    _, cap_name, raw_args = mock_dispatch.call_args[0]
+    assert cap_name == "start_run"
+    assert raw_args == {"config_path": "/tmp/run.toml", "intent": "do the thing"}
+
+
+@patch("orxtra.mcp._server.dispatch", new_callable=AsyncMock)
+async def test_tool_call_rejects_unknown_arguments(
+    mock_dispatch: AsyncMock,
+    server: MCPServer,
+) -> None:
+    """Unknown arguments are rejected (params models are strict, extra=forbid).
+
+    The rejection happens at the FastMCP boundary -- an unknown arg is never
+    silently dropped and dispatch does not run.
+    """
+    from mcp.server.fastmcp.exceptions import ToolError
+
+    mock_dispatch.return_value = None
+    sentinel = _make_auth_context()
+    run_id = str(uuid4())
+    with _request_scope(auth_context=sentinel), pytest.raises(ToolError):
+        await server.fastmcp.call_tool(
+            "get_run",
+            {"run_id": run_id, "bogus": 1},
+        )
+    mock_dispatch.assert_not_awaited()
+
+
 async def test_context_param_excluded_from_tool_schema(server: MCPServer) -> None:
     """The injected Context parameter never appears in a tool's input schema."""
     tools = await server.fastmcp.list_tools()
