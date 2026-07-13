@@ -181,6 +181,94 @@ _MIGRATION_SQL = [
     # 19. Index on runs.created_by.
     """CREATE INDEX IF NOT EXISTS idx_runs_created_by
        ON runs (created_by)""",
+
+    # 20. Mint a source principal per existing source (kind=source,
+    # external_ref=source id, display_name=slug -- the source's own principal
+    # carries the slug as its label).
+    """INSERT INTO principals (kind, external_ref, display_name)
+       SELECT 'source', s.id, s.slug FROM sources s
+       ON CONFLICT (kind, external_ref) DO NOTHING""",
+
+    # 21. New column: sources.created_by (nullable first so existing rows
+    # survive).
+    """ALTER TABLE sources ADD COLUMN IF NOT EXISTS created_by uuid""",
+
+    # 22. Backfill ALL existing sources to the system principal (the original
+    # creator is unknowable for historical rows).
+    """UPDATE sources SET created_by = (
+           SELECT id FROM principals
+           WHERE kind = 'system'
+           AND external_ref = '00000000-0000-0000-0000-000000000000'
+       ) WHERE created_by IS NULL""",
+
+    # 23. Enforce NOT NULL now that every source row is backfilled.
+    """ALTER TABLE sources ALTER COLUMN created_by SET NOT NULL""",
+
+    # 24. FK sources.created_by -> principals.id ON DELETE RESTRICT.
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_sources_created_by'
+        AND conrelid = 'sources'::regclass
+      ) THEN
+        ALTER TABLE sources ADD CONSTRAINT fk_sources_created_by
+            FOREIGN KEY (created_by) REFERENCES principals (id)
+            ON DELETE RESTRICT;
+      END IF;
+    END $$;""",
+
+    # 25. Index on sources.created_by.
+    """CREATE INDEX IF NOT EXISTS idx_sources_created_by
+       ON sources (created_by)""",
+
+    # 26. Mint a consumer principal per existing consumer (kind=consumer,
+    # external_ref=consumer id, display_name=name -- each consumer is backed
+    # by its OWN identity row, not the system principal).
+    """INSERT INTO principals (kind, external_ref, display_name)
+       SELECT 'consumer', c.id, c.name FROM consumers c
+       ON CONFLICT (kind, external_ref) DO NOTHING""",
+
+    # 27. New column: consumers.principal_id (nullable first so existing rows
+    # survive).
+    """ALTER TABLE consumers ADD COLUMN IF NOT EXISTS principal_id uuid""",
+
+    # 28. Backfill each consumer to ITS OWN principal (the one minted in 26),
+    # matched by external_ref = consumer id.
+    """UPDATE consumers c SET principal_id = (
+           SELECT p.id FROM principals p
+           WHERE p.kind = 'consumer' AND p.external_ref = c.id
+       ) WHERE c.principal_id IS NULL""",
+
+    # 29. Enforce NOT NULL now that every consumer is backfilled.
+    """ALTER TABLE consumers ALTER COLUMN principal_id SET NOT NULL""",
+
+    # 30. FK consumers.principal_id -> principals.id ON DELETE RESTRICT.
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_consumers_principal'
+        AND conrelid = 'consumers'::regclass
+      ) THEN
+        ALTER TABLE consumers ADD CONSTRAINT fk_consumers_principal
+            FOREIGN KEY (principal_id) REFERENCES principals (id)
+            ON DELETE RESTRICT;
+      END IF;
+    END $$;""",
+
+    # 31. UNIQUE (principal_id): a consumer has exactly one identity row.
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'uq_consumers_principal_id'
+        AND conrelid = 'consumers'::regclass
+      ) THEN
+        ALTER TABLE consumers ADD CONSTRAINT uq_consumers_principal_id
+            UNIQUE (principal_id);
+      END IF;
+    END $$;""",
 ]
 
 
@@ -342,6 +430,18 @@ async def test_migration_from_v080_baseline(
         sources_col_names = [c["column_name"] for c in sources_cols]
         assert "config" not in sources_col_names, (
             "config should not exist in baseline sources"
+        )
+        assert "created_by" not in sources_col_names, (
+            "created_by should not exist in baseline sources"
+        )
+
+        consumers_cols = await conn.fetch(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'consumers' ORDER BY ordinal_position",
+        )
+        consumers_col_names = [c["column_name"] for c in consumers_cols]
+        assert "principal_id" not in consumers_col_names, (
+            "principal_id should not exist in baseline consumers"
         )
 
         creds_cols = await conn.fetch(
@@ -660,6 +760,120 @@ async def test_migration_from_v080_baseline(
             await conn.execute(
                 "DELETE FROM principals WHERE id = $1",
                 system_principal_id,
+            )
+
+        # 4j: a source principal was minted for the pre-existing source, and
+        # sources.created_by was backfilled to the system principal.
+        source_principal = await conn.fetchrow(
+            "SELECT id, display_name FROM principals "
+            "WHERE kind = 'source' AND external_ref = $1",
+            source_id,
+        )
+        assert source_principal is not None, (
+            "each pre-existing source should get a source principal"
+        )
+        assert source_principal["display_name"] == "test-source", (
+            "source principals carry the source slug as display_name"
+        )
+
+        migrated_source = await conn.fetchrow(
+            "SELECT created_by FROM sources WHERE id = $1", source_id,
+        )
+        assert migrated_source is not None
+        assert migrated_source["created_by"] == system_principal_id, (
+            "historical sources must be backfilled to the system principal"
+        )
+
+        source_created_by_col = await conn.fetchrow(
+            "SELECT is_nullable FROM information_schema.columns "
+            "WHERE table_name = 'sources' AND column_name = 'created_by'",
+        )
+        assert source_created_by_col is not None
+        assert source_created_by_col["is_nullable"] == "NO", (
+            "sources.created_by must be NOT NULL after migration"
+        )
+
+        # NOT NULL is enforced: a source without created_by is rejected.
+        with pytest.raises(Exception, match="created_by"):
+            await conn.execute(
+                """INSERT INTO sources (slug, name)
+                   VALUES ('no-creator', 'No Creator')""",
+            )
+
+        # FK RESTRICT is enforced on sources.created_by. Deleting the system
+        # principal would trip runs' FK first (it too references system), so
+        # isolate sources' FK with a dedicated creator principal + source.
+        src_creator = await conn.fetchrow(
+            "INSERT INTO principals (kind, external_ref, display_name) "
+            "VALUES ('source', gen_random_uuid(), 'fk-src-creator') "
+            "RETURNING id",
+        )
+        assert src_creator is not None
+        await conn.execute(
+            "INSERT INTO sources (slug, name, created_by) VALUES ($1, $2, $3)",
+            "fk-src", "FK Src", src_creator["id"],
+        )
+        with pytest.raises(Exception, match="fk_sources_created_by"):
+            await conn.execute(
+                "DELETE FROM principals WHERE id = $1",
+                src_creator["id"],
+            )
+
+        # 4k: a consumer principal was minted for the pre-existing consumer,
+        # backfilled to ITS OWN principal (not the system principal).
+        consumer_principal = await conn.fetchrow(
+            "SELECT id, display_name FROM principals "
+            "WHERE kind = 'consumer' AND external_ref = $1",
+            consumer_id,
+        )
+        assert consumer_principal is not None, (
+            "each pre-existing consumer should get its own consumer principal"
+        )
+        assert consumer_principal["display_name"] == "test-consumer", (
+            "consumer principals carry the consumer name as display_name"
+        )
+        assert consumer_principal["id"] != system_principal_id, (
+            "a consumer must be backfilled to its OWN principal, not system"
+        )
+
+        migrated_consumer = await conn.fetchrow(
+            "SELECT principal_id FROM consumers WHERE id = $1", consumer_id,
+        )
+        assert migrated_consumer is not None
+        assert migrated_consumer["principal_id"] == consumer_principal["id"], (
+            "each consumer must point at its own minted principal"
+        )
+
+        consumer_principal_col = await conn.fetchrow(
+            "SELECT is_nullable FROM information_schema.columns "
+            "WHERE table_name = 'consumers' AND column_name = 'principal_id'",
+        )
+        assert consumer_principal_col is not None
+        assert consumer_principal_col["is_nullable"] == "NO", (
+            "consumers.principal_id must be NOT NULL after migration"
+        )
+
+        # NOT NULL is enforced: a consumer without principal_id is rejected.
+        with pytest.raises(Exception, match="principal_id"):
+            await conn.execute(
+                """INSERT INTO consumers (name, trust_tier)
+                   VALUES ('no principal', 'identified')""",
+            )
+
+        # UNIQUE (principal_id) is enforced: a second consumer cannot reuse a
+        # principal already claimed by another consumer.
+        with pytest.raises(Exception, match="uq_consumers_principal_id"):
+            await conn.execute(
+                """INSERT INTO consumers (name, trust_tier, principal_id)
+                   VALUES ('dup principal', 'identified', $1)""",
+                consumer_principal["id"],
+            )
+
+        # FK RESTRICT is enforced on consumers.principal_id.
+        with pytest.raises(Exception, match="fk_consumers_principal"):
+            await conn.execute(
+                "DELETE FROM principals WHERE id = $1",
+                consumer_principal["id"],
             )
 
     finally:
