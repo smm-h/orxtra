@@ -155,6 +155,22 @@ async def test_dispatch_subscribe_with_backend(mock_get_fn: MagicMock) -> None:
 
 
 @pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_pure_capability_ignores_pool(
+    mock_get_fn: MagicMock, context: DispatchContext
+) -> None:
+    """A capability declaring no injects receives neither pool nor backend,
+    even when the context provides them -- routing is declaration-driven."""
+    mock_fn = AsyncMock(return_value={"model": {}})
+    mock_get_fn.return_value = mock_fn
+
+    result = await dispatch(context, "show_pricing", {})
+
+    assert result == {"model": {}}
+    mock_fn.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
 async def test_dispatch_pool_required_error() -> None:
     ctx = DispatchContext()  # no pool
     with pytest.raises(ValueError, match="requires a database pool"):
