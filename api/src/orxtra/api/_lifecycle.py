@@ -34,6 +34,13 @@ class ServerConfig:
     agent_url: str | None = None
     authenticator: Authenticator | None = None
     secrets_env: dict[str, str] | None = None
+    principal_kinds: tuple[str, ...] = ()
+    """App-declared principal kinds registered in addition to the built-ins.
+
+    An empty tuple (the default) means built-in kinds only. Apps that mint
+    their own principal kinds (e.g. ``"user"``) declare them here so the
+    service-layer ``KindRegistry`` accepts them.
+    """
 
 
 @asynccontextmanager
@@ -68,7 +75,7 @@ async def lifespan(
         await verify_schema(pool)
 
         # Seed the singleton system principal (idempotent via mint).
-        from orxtra.identity import PgPrincipalStorage
+        from orxtra.identity import KindRegistry, PgPrincipalStorage
         from orxtra.protocols import KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF
 
         principal_storage = PgPrincipalStorage(pool)
@@ -77,8 +84,15 @@ async def lifespan(
         )
         log.info("System principal seeded")
 
+        kind_registry = KindRegistry(server_config.principal_kinds)
+
         dispatch_backend = PgDispatchBackend(pool)
-        ctx = DispatchContext(pool=pool, dispatch_backend=dispatch_backend)
+        ctx = DispatchContext(
+            pool=pool,
+            dispatch_backend=dispatch_backend,
+            principal_storage=principal_storage,
+            kind_registry=kind_registry,
+        )
 
         # Build skill registry and agent card.
         capabilities = get_capabilities()

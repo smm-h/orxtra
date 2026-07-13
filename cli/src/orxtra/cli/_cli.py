@@ -8,6 +8,7 @@ from typing import Any, NoReturn
 import asyncpg
 import strictcli
 from orxtra.cli._formatters import format_output
+from orxtra.identity import KindRegistry, PgPrincipalStorage
 from orxtra.services import DispatchContext, dispatch, verify_schema
 
 # -- Helpers --
@@ -38,7 +39,11 @@ def _dispatch_and_print(
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(pool=pool)
+            ctx = DispatchContext(
+                pool=pool,
+                principal_storage=PgPrincipalStorage(pool),
+                kind_registry=KindRegistry(()),
+            )
             result = await dispatch(ctx, capability, args)
             _print(result, fmt)
         finally:
@@ -59,7 +64,11 @@ def _dispatch_quiet(
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(pool=pool)
+            ctx = DispatchContext(
+                pool=pool,
+                principal_storage=PgPrincipalStorage(pool),
+                kind_registry=KindRegistry(()),
+            )
             await dispatch(ctx, capability, args)
             if not quiet:
                 print(success_msg)
@@ -126,7 +135,11 @@ def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> No
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(pool=pool)
+            ctx = DispatchContext(
+                pool=pool,
+                principal_storage=PgPrincipalStorage(pool),
+                kind_registry=KindRegistry(()),
+            )
             run_id = await dispatch(ctx, "start_run", {
                 "config_path": config,
                 "intent": intent,
@@ -152,7 +165,11 @@ def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> Non
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(pool=pool)
+            ctx = DispatchContext(
+                pool=pool,
+                principal_storage=PgPrincipalStorage(pool),
+                kind_registry=KindRegistry(()),
+            )
             result = await dispatch(ctx, "get_run", {"run_id": run_id})
             if result is None:
                 _die(f"run {run_id} not found")
@@ -328,7 +345,11 @@ def cmd_event_fire(
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(pool=pool)
+            ctx = DispatchContext(
+                pool=pool,
+                principal_storage=PgPrincipalStorage(pool),
+                kind_registry=KindRegistry(()),
+            )
             event_id, _inserted = await dispatch(ctx, "fire_event", {
                 "run_id": run_id,
                 "event_name": event_name,
@@ -409,7 +430,11 @@ def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> 
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(pool=pool)
+            ctx = DispatchContext(
+                pool=pool,
+                principal_storage=PgPrincipalStorage(pool),
+                kind_registry=KindRegistry(()),
+            )
             result = await dispatch(ctx, "show_config", {"run_id": run_id})
             if result is None:
                 _die(f"run {run_id} not found")

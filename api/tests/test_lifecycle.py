@@ -13,6 +13,17 @@ from orxtra.api._lifecycle import ServerConfig, _build_authenticator, lifespan
 from orxtra.services import SchemaError
 
 
+def _storage_mock() -> MagicMock:
+    """Build a PgPrincipalStorage stand-in with an awaitable mint_principal.
+
+    The lifespan seeds the system principal via ``mint_principal``; the mock
+    avoids a real DB round-trip against the mock pool.
+    """
+    storage = MagicMock()
+    storage.mint_principal = AsyncMock()
+    return storage
+
+
 async def test_lifespan_calls_verify_schema() -> None:
     """Lifespan calls verify_schema after creating the pool."""
     config = ServerConfig(db_url="postgresql://test:test@localhost/test", port=8080)
@@ -29,9 +40,48 @@ async def test_lifespan_calls_verify_schema() -> None:
         patch("orxtra.a2a.SkillRegistry"),
         patch("orxtra.a2a.build_agent_card"),
         patch("orxtra.services.get_capabilities", return_value=[]),
+        patch("orxtra.identity.PgPrincipalStorage", return_value=_storage_mock()),
     ):
         async with lifespan(config):
             mock_verify.assert_awaited_once_with(mock_pool)
+
+
+async def test_lifespan_wires_principal_storage_and_kind_registry() -> None:
+    """The DispatchContext carries the principal_storage and kind_registry."""
+    from orxtra.identity import KindRegistry
+
+    storage = _storage_mock()
+    config = ServerConfig(
+        db_url="postgresql://test:test@localhost/test",
+        port=8080,
+        principal_kinds=("user",),
+    )
+
+    mock_pool = AsyncMock()
+    mock_pool.close = AsyncMock()
+
+    with (
+        patch("asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool),
+        patch("orxtra.services.verify_schema", new_callable=AsyncMock),
+        patch("orxtra.a2a.SkillRegistry"),
+        patch("orxtra.a2a.build_agent_card"),
+        patch("orxtra.services.get_capabilities", return_value=[]),
+        patch("orxtra.identity.PgPrincipalStorage", return_value=storage),
+    ):
+        async with lifespan(config) as compositor_config:
+            ctx = compositor_config.dispatch_context
+            assert ctx.principal_storage is storage
+            assert isinstance(ctx.kind_registry, KindRegistry)
+            # App-declared kind flows into the registry.
+            assert "user" in ctx.kind_registry.kinds
+
+
+def test_principal_kinds_defaults_to_empty_tuple() -> None:
+    config = ServerConfig(
+        db_url="postgresql://test:test@localhost/test",
+        port=8080,
+    )
+    assert config.principal_kinds == ()
 
 
 async def test_lifespan_propagates_schema_error() -> None:
@@ -150,6 +200,9 @@ class TestLifespanSecretsEnvWiring:
                 return_value=mock_authenticator,
             ) as mock_build,
             patch("orxtra.incoming.create_incoming_router") as mock_create_router,
+            patch(
+                "orxtra.identity.PgPrincipalStorage", return_value=_storage_mock()
+            ),
         ):
             async with lifespan(config) as compositor_config:
                 mock_build.assert_called_once_with(mock_pool, secrets_env)
@@ -179,6 +232,9 @@ class TestLifespanSecretsEnvWiring:
             patch("orxtra.a2a.SkillRegistry"),
             patch("orxtra.a2a.build_agent_card"),
             patch("orxtra.services.get_capabilities", return_value=[]),
+            patch(
+                "orxtra.identity.PgPrincipalStorage", return_value=_storage_mock()
+            ),
         ):
             async with lifespan(config) as compositor_config:
                 assert compositor_config.authenticator is None
@@ -215,6 +271,9 @@ class TestLifespanSecretsEnvWiring:
             patch(
                 "orxtra.api._lifecycle._build_authenticator",
             ) as mock_build,
+            patch(
+                "orxtra.identity.PgPrincipalStorage", return_value=_storage_mock()
+            ),
         ):
             async with lifespan(config) as compositor_config:
                 assert compositor_config.authenticator is explicit_auth

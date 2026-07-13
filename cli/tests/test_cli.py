@@ -6,6 +6,11 @@ from unittest.mock import MagicMock
 # Mock heavy dependencies before importing _cli.
 _MOCK_MODS = [
     "asyncpg",
+    # _cli imports PgPrincipalStorage/KindRegistry from orxtra.identity;
+    # mock the package so its _backend submodule is not imported fresh while
+    # asyncpg is mocked here (which would permanently bind _backend.asyncpg
+    # to a MagicMock and poison identity's FK-translation tests downstream).
+    "orxtra.identity",
     "orxtra.services",
     "orxtra.services._run",
     "orxtra.services._inbox",
