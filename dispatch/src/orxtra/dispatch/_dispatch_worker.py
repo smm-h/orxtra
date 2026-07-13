@@ -16,7 +16,7 @@ import asyncio
 import contextlib
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from orxtra.dispatch._action_executor import execute_action
@@ -41,6 +41,11 @@ DEFAULT_POLL_INTERVAL: float = 5.0
 
 # Maximum events per polling batch.
 DEFAULT_BATCH_SIZE: int = 100
+
+# Minimum interval between inbox expiry sweep ticks. The sweep fires at most
+# this often, decoupled from event throughput (the poll loop may run thousands
+# of times/second under load without triggering redundant sweeps).
+_EXPIRY_SWEEP_INTERVAL = timedelta(minutes=1)
 
 
 class DispatchWorker:
@@ -91,6 +96,8 @@ class DispatchWorker:
         self._batch_size = batch_size
         self._stop_event = asyncio.Event()
         self._wake_event = asyncio.Event()
+        # Track last inbox expiry sweep to enforce _EXPIRY_SWEEP_INTERVAL.
+        self._last_expiry_sweep = datetime.min.replace(tzinfo=UTC)
         self._listen_conn: (
             asyncpg.pool.PoolConnectionProxy[asyncpg.Record] | None
         ) = None
@@ -109,6 +116,7 @@ class DispatchWorker:
         try:
             while not self._stop_event.is_set():
                 processed = await self._poll_and_process()
+                await self._maybe_sweep_expired_inbox()
                 if processed > 0:
                     # More events may be waiting; loop immediately.
                     continue
@@ -254,6 +262,29 @@ class DispatchWorker:
             processed += 1
 
         return processed
+
+    async def _maybe_sweep_expired_inbox(self) -> None:
+        """Expire pending inbox items with past deadlines, at most once per interval.
+
+        The min-interval guard ensures this does not fire per-batch under load
+        (the loop continues immediately when events are available).
+        """
+        now = datetime.now(tz=UTC)
+        if now - self._last_expiry_sweep < _EXPIRY_SWEEP_INTERVAL:
+            return
+        self._last_expiry_sweep = now
+        try:
+            from orxtra.trace import TraceWriter
+
+            writer = TraceWriter(self._pool)
+            expired = await writer.expire_due_inbox_items(now)
+            if expired > 0:
+                logger.info("Inbox expiry sweep: expired %d item(s)", expired)
+        except Exception:  # noqa: BLE001 -- sweep failure must not crash the worker
+            logger.debug(
+                "Inbox expiry sweep failed (expected on stub/test pools)",
+                exc_info=True,
+            )
 
     async def _execute_action_immediate(
         self,

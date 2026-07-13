@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -476,3 +476,52 @@ class TestAccumulatorCountThreshold:
         # Simulate the scheduler firing the callback.
         await scheduled[0][1]()
         assert len(flush_calls) == 1
+
+
+class TestInboxExpirySweep:
+    """The worker periodically sweeps expired inbox items."""
+
+    async def test_sweep_does_not_crash_worker(self) -> None:
+        """The sweep fails gracefully on stub pools (no real DB)."""
+        backend = InMemoryDispatchBackend()
+        _add_subscription_with_log(backend, event_types=["sweep.test"])
+        backend.inject_event(_make_event("sweep.test"))
+
+        worker = _make_worker(backend)
+        # Force the sweep to fire immediately by setting last_sweep to epoch.
+        assert worker._last_expiry_sweep.year == 1  # epoch
+
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.3)
+        await worker.stop()
+        await run_task
+
+        # The worker processed the event despite the sweep failure.
+        cursor = await backend.get_cursor_position("test")
+        assert cursor is not None
+
+    async def test_sweep_interval_guard(self) -> None:
+        """The sweep fires at most once per _EXPIRY_SWEEP_INTERVAL."""
+        from orxtra.dispatch._dispatch_worker import _EXPIRY_SWEEP_INTERVAL
+
+        backend = InMemoryDispatchBackend()
+        worker = _make_worker(backend)
+
+        # First call: last_sweep is epoch, so it fires.
+        initial_sweep = worker._last_expiry_sweep
+        await worker._maybe_sweep_expired_inbox()
+        # last_sweep should have been updated.
+        assert worker._last_expiry_sweep > initial_sweep
+
+        # Second call immediately after: should NOT update (within interval).
+        sweep_after_first = worker._last_expiry_sweep
+        await worker._maybe_sweep_expired_inbox()
+        assert worker._last_expiry_sweep == sweep_after_first
+
+        # Simulate time passing by backdating last_sweep.
+        worker._last_expiry_sweep = (
+            datetime.now(tz=UTC) - _EXPIRY_SWEEP_INTERVAL - timedelta(seconds=1)
+        )
+        old_sweep = worker._last_expiry_sweep
+        await worker._maybe_sweep_expired_inbox()
+        assert worker._last_expiry_sweep > old_sweep
