@@ -9,12 +9,12 @@ import pytest
 from pydantic import BaseModel
 
 from orxtra.protocols import (
+    AuthContext,
     Capability,
     CardContributor,
     CreateSurface,
     DeleteSurface,
     EventSink,
-    Principal,
     SurfaceGenerator,
     SurfaceSpec,
     TrustTier,
@@ -76,15 +76,15 @@ class TestTrustTier:
         assert TrustTier.SYSTEM == "system"
 
 
-# -- Principal --
+# -- AuthContext --
 
 
-class TestPrincipal:
+class TestAuthContext:
     def test_construction_all_fields(self) -> None:
         now = datetime.now(tz=UTC)
         uid = uuid4()
         cid = uuid4()
-        p = Principal(
+        p = AuthContext(
             id=uid,
             consumer_id=cid,
             scopes=frozenset({"read", "write"}),
@@ -104,7 +104,7 @@ class TestPrincipal:
     def test_construction_with_expiry(self) -> None:
         now = datetime.now(tz=UTC)
         later = datetime(2030, 1, 1, tzinfo=UTC)
-        p = Principal(
+        p = AuthContext(
             id=uuid4(),
             consumer_id=uuid4(),
             scopes=frozenset(),
@@ -115,8 +115,24 @@ class TestPrincipal:
         )
         assert p.expires_at == later
 
+    def test_construction_system_tier_none_consumer(self) -> None:
+        # consumer_id is None only for system-tier contexts, which have
+        # no backing consumer record.
+        now = datetime.now(tz=UTC)
+        p = AuthContext(
+            id=uuid4(),
+            consumer_id=None,
+            scopes=frozenset({"events:read"}),
+            trust_tier=TrustTier.SYSTEM,
+            authenticated_via="system",
+            issued_at=now,
+            expires_at=None,
+        )
+        assert p.consumer_id is None
+        assert p.trust_tier == TrustTier.SYSTEM
+
     def test_frozen(self) -> None:
-        p = Principal(
+        p = AuthContext(
             id=uuid4(),
             consumer_id=uuid4(),
             scopes=frozenset(),

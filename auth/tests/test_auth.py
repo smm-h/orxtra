@@ -22,9 +22,9 @@ from orxtra.protocols import (
     SCOPE_EVENTS_WRITE,
     SCOPE_SOURCES_MANAGE,
     SCOPE_SUBSCRIPTIONS_MANAGE,
+    AuthContext,
     KeyedMacProvider,
     MacOutcome,
-    Principal,
     TrustTier,
 )
 from orxtra.secrets import EnvMacProvider, SecretRegistry
@@ -172,12 +172,12 @@ async def test_authenticate_correct_key(
         consumer_id, "api_key", "valid-key-123",
     )
 
-    principal = await authenticator.authenticate("valid-key-123")
-    assert isinstance(principal, Principal)
-    assert principal.consumer_id == consumer_id
-    assert principal.trust_tier == TrustTier.IDENTIFIED
-    assert "read" in principal.scopes
-    assert principal.authenticated_via == "api_key"
+    auth_context = await authenticator.authenticate("valid-key-123")
+    assert isinstance(auth_context, AuthContext)
+    assert auth_context.consumer_id == consumer_id
+    assert auth_context.trust_tier == TrustTier.IDENTIFIED
+    assert "read" in auth_context.scopes
+    assert auth_context.authenticated_via == "api_key"
 
 
 # ---------------------------------------------------------------------------
@@ -281,9 +281,9 @@ async def test_authorize_allowed_scope(
         consumer_id, "bearer", "token-abc",
     )
 
-    principal = await authenticator.authenticate("token-abc")
+    auth_context = await authenticator.authenticate("token-abc")
     # Should not raise
-    authorizer.authorize(principal, "write")
+    authorizer.authorize(auth_context, "write")
 
 
 # ---------------------------------------------------------------------------
@@ -304,9 +304,9 @@ async def test_authorize_disallowed_scope(
         consumer_id, "api_key", "reader-key",
     )
 
-    principal = await authenticator.authenticate("reader-key")
+    auth_context = await authenticator.authenticate("reader-key")
     with pytest.raises(AuthorizationError, match="lacks required scope"):
-        authorizer.authorize(principal, "admin")
+        authorizer.authorize(auth_context, "admin")
 
 
 # ---------------------------------------------------------------------------
@@ -319,7 +319,7 @@ async def test_scope_vocabulary(
     backend: InMemoryAuthBackend,
     authorizer: Authorizer,
 ) -> None:
-    """Principal with specific scopes from the vocabulary is correctly gated."""
+    """Auth context with specific scopes from the vocabulary is correctly gated."""
     verifiers = {
         "api_key": HashCredentialVerifier("api_key", backend),
     }
@@ -332,17 +332,17 @@ async def test_scope_vocabulary(
     )
     await backend.create_credential(consumer_id, "api_key", "scoped-key")
 
-    principal = await authenticator.authenticate("scoped-key")
+    auth_context = await authenticator.authenticate("scoped-key")
 
     # Allowed scopes pass.
-    authorizer.authorize(principal, SCOPE_EVENTS_READ)
-    authorizer.authorize(principal, SCOPE_EVENTS_WRITE)
+    authorizer.authorize(auth_context, SCOPE_EVENTS_READ)
+    authorizer.authorize(auth_context, SCOPE_EVENTS_WRITE)
 
     # Missing scopes fail.
     with pytest.raises(AuthorizationError):
-        authorizer.authorize(principal, SCOPE_SOURCES_MANAGE)
+        authorizer.authorize(auth_context, SCOPE_SOURCES_MANAGE)
     with pytest.raises(AuthorizationError):
-        authorizer.authorize(principal, SCOPE_SUBSCRIPTIONS_MANAGE)
+        authorizer.authorize(auth_context, SCOPE_SUBSCRIPTIONS_MANAGE)
 
 
 def test_all_scopes_constant() -> None:
@@ -389,11 +389,11 @@ async def _echo_app(
     receive: object,
     send: object,
 ) -> None:
-    """Simple ASGI app that returns 200 with principal info."""
-    principal = scope.get("state", {}).get("principal")
+    """Simple ASGI app that returns 200 with auth context info."""
+    auth_context = scope.get("state", {}).get("auth_context")
     body = json.dumps({
-        "authenticated": principal is not None,
-        "consumer_id": str(principal.consumer_id) if principal else None,
+        "authenticated": auth_context is not None,
+        "consumer_id": str(auth_context.consumer_id) if auth_context else None,
     }).encode()
 
     await send({  # type: ignore[operator]
@@ -728,11 +728,11 @@ async def test_hmac_verifier_end_to_end() -> None:
 
     # Present credential as "identifier:signature:message".
     raw = f"{identifier}:{signature}:{message}"
-    principal = await authenticator.authenticate(raw)
+    auth_context = await authenticator.authenticate(raw)
 
-    assert principal.consumer_id == consumer_id
-    assert principal.authenticated_via == "hmac"
-    assert SCOPE_EVENTS_WRITE in principal.scopes
+    assert auth_context.consumer_id == consumer_id
+    assert auth_context.authenticated_via == "hmac"
+    assert SCOPE_EVENTS_WRITE in auth_context.scopes
 
     # Audit event was emitted.
     assert len(sink.events) == 1
@@ -793,13 +793,13 @@ async def test_hmac_verifier_no_secret_ref() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Scope-lacking principal denied
+# Scope-lacking auth context denied
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_scope_lacking_principal_denied() -> None:
-    """A principal without the required scope is denied by the Authorizer."""
+async def test_scope_lacking_auth_context_denied() -> None:
+    """An auth context without the required scope is denied by the Authorizer."""
     backend = InMemoryAuthBackend()
     consumer_id = await backend.create_consumer(
         "limited-user",
@@ -812,11 +812,11 @@ async def test_scope_lacking_principal_denied() -> None:
     authenticator = Authenticator(backend, verifiers)
     authorizer = Authorizer()
 
-    principal = await authenticator.authenticate("limited-key")
-    authorizer.authorize(principal, SCOPE_EVENTS_READ)  # passes
+    auth_context = await authenticator.authenticate("limited-key")
+    authorizer.authorize(auth_context, SCOPE_EVENTS_READ)  # passes
 
     with pytest.raises(AuthorizationError, match="lacks required scope"):
-        authorizer.authorize(principal, SCOPE_EVENTS_WRITE)
+        authorizer.authorize(auth_context, SCOPE_EVENTS_WRITE)
 
     with pytest.raises(AuthorizationError, match="lacks required scope"):
-        authorizer.authorize(principal, SCOPE_SOURCES_MANAGE)
+        authorizer.authorize(auth_context, SCOPE_SOURCES_MANAGE)

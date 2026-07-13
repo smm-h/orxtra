@@ -6,4 +6,4 @@ class AuthenticationError(Exception):
 
 
 class AuthorizationError(Exception):
-    """Raised when an authenticated principal lacks a required scope."""
+    """Raised when an authenticated auth context lacks a required scope."""
