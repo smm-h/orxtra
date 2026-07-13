@@ -25,6 +25,10 @@ EXPECTED_TOOL_NAMES: set[str] = {
     "fire_event",
     "show_config",
     "show_pricing",
+    "create_principal",
+    "get_principal",
+    "list_principals",
+    "delete_principal",
 }
 
 VALIDATION_TOOL_NAMES: set[str] = {
@@ -51,7 +55,7 @@ def test_each_tool_has_required_keys() -> None:
 
 def test_tool_count_matches_spec() -> None:
     tools = get_tool_definitions()
-    assert len(tools) == 20
+    assert len(tools) == 24
 
 
 def test_no_validation_tools_present() -> None:

@@ -59,7 +59,7 @@ async def test_fastmcp_tools_registered(server: MCPServer) -> None:
 async def test_fastmcp_tool_count(server: MCPServer) -> None:
     """FastMCP has the same number of tools as the legacy get_tool_definitions."""
     tools = await server.fastmcp.list_tools()
-    assert len(tools) == 20
+    assert len(tools) == 24
 
 
 async def test_fastmcp_tool_descriptions(server: MCPServer) -> None:

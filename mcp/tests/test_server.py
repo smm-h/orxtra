@@ -66,7 +66,7 @@ async def test_tools_list_returns_all_tools(server: MCPServer) -> None:
     resp = await server.handle_request(_rpc("tools/list"))
     result = resp["result"]
     assert "tools" in result
-    assert len(result["tools"]) == 20
+    assert len(result["tools"]) == 24
     assert resp["jsonrpc"] == "2.0"
     assert "error" not in resp
 

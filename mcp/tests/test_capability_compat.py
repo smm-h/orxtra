@@ -96,6 +96,10 @@ _MCP_CAPABILITY_NAMES: set[str] = {
     "fire_event",
     "show_config",
     "show_pricing",
+    "create_principal",
+    "get_principal",
+    "list_principals",
+    "delete_principal",
 }
 
 
