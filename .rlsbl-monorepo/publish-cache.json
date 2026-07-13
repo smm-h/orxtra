@@ -1,8 +1,8 @@
 {
-  ".": "b527d20fbbe419567206a8f86051bb63870eb33b6fc283e870278483daf95eed",
+  ".": "03333762744b4ba5ef0fdd49c38b4753d1fe6ff7266969c5ae734f136d48365a",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "write-safety": null,
+  "write-safety": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "transport": null,
   "agent": null,
   "tool": null,
