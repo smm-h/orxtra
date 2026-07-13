@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
@@ -11,8 +12,8 @@ from ag_ui.core import (
     EventType,
 )
 from ag_ui.encoder import EventEncoder
-from fastware import Router, TextResponse
-from fastware.sse import Broadcaster
+from fastware import Router, StreamResponse, TextResponse
+from orxtra.agui._registry import _BroadcasterRegistry
 from orxtra.agui._sinks import AGUIOverseerSink, AGUITransportSink
 from orxtra.agui._translator import AGUITranslator
 from orxtra.identity import resolve_caller_principal
@@ -21,7 +22,7 @@ from orxtra.services import get_run
 
 if TYPE_CHECKING:
     import asyncpg
-    from fastware import Request, StreamResponse
+    from fastware import Request
     from orxtra.protocols import AuthContext, PrincipalStorage
 
 log = logging.getLogger(__name__)
@@ -29,10 +30,10 @@ log = logging.getLogger(__name__)
 # All AG-UI event type values that the broadcaster may emit.
 _AG_UI_EVENT_TYPES: list[str] = [member.value for member in EventType]
 
-
-def _create_broadcaster() -> Broadcaster:
-    """Create a Broadcaster pre-registered with all AG-UI event types."""
-    return Broadcaster(strict=False, heartbeat_interval=15.0)
+# Run statuses that indicate the run will never produce more events.
+_RUN_TERMINAL_STATUSES: frozenset[str] = frozenset({
+    "completed", "failed", "aborted",
+})
 
 
 async def _check_run_access(
@@ -96,16 +97,31 @@ async def _check_run_access(
     return None
 
 
+async def _read_run_status(
+    pool: asyncpg.Pool,
+    run_id: UUID,
+) -> str | None:
+    """Read just the run status -- cheap single-column query.
+
+    Returns None when the run does not exist (the caller has already been
+    access-checked, so this is a benign race).
+    """
+    return await pool.fetchval(  # type: ignore[no-any-return]
+        "SELECT status FROM runs WHERE id = $1", run_id,
+    )
+
+
 def create_agui_router(
     *,
     pool: asyncpg.Pool | None,
     principal_storage: PrincipalStorage | None,
     subscribe_run: Any = None,
-) -> tuple[Router, Broadcaster]:
+) -> tuple[Router, _BroadcasterRegistry]:
     """Create a Router with an SSE route for AG-UI event streaming.
 
-    Returns (router, broadcaster) so the caller can wire the broadcaster
-    into the active run's event delivery.
+    Returns (router, registry) so the caller can wire per-run broadcasters
+    into active run event delivery. Use ``registry.get_or_create(run_id)``
+    to obtain the broadcaster for a given run.
 
     ``pool`` and ``principal_storage`` back the per-run access check: the
     caller's principal is resolved against ``principal_storage`` and the run's
@@ -118,7 +134,7 @@ def create_agui_router(
     overseer_sink) to register sinks for the active run, and once wired it must
     deliver through the per-run channel only.
     """
-    broadcaster = _create_broadcaster()
+    registry = _BroadcasterRegistry()
     encoder = EventEncoder()
 
     router = Router()
@@ -152,6 +168,14 @@ def create_agui_router(
         if denied is not None:
             return denied
 
+        try:
+            run_uuid = UUID(run_id)
+        except ValueError:
+            return TextResponse("run_id must be a valid UUID", status=400)
+
+        # -- Per-run channel --
+        run_broadcaster = registry.subscribe(run_uuid)
+
         translator = AGUITranslator(
             thread_id=thread_id,
             run_id=run_id,
@@ -162,7 +186,7 @@ def create_agui_router(
             encoded = encoder.encode(event)
             # Broadcaster.broadcast expects (event_type, data).
             # We use the encoded SSE string directly as data.
-            broadcaster.broadcast("message", encoded)
+            run_broadcaster.broadcast("message", encoded)
 
         transport_sink = AGUITransportSink(translator, push_event)
         overseer_sink = AGUIOverseerSink(translator, push_event)
@@ -175,8 +199,41 @@ def create_agui_router(
             run_id,
             thread_id,
         )
-        return await broadcaster.stream(request)
+
+        # Wrap the broadcaster's SSE stream to add registry cleanup on
+        # disconnect and terminal marking.
+        sse_response = await run_broadcaster.stream(request)
+
+        async def _wrapped_generator() -> AsyncGenerator[str, None]:
+            try:
+                async for chunk in sse_response.generator:
+                    yield chunk
+            finally:
+                # -- Cleanup on SSE disconnect --
+                # Check run status to decide whether the channel is terminal.
+                if pool is not None:
+                    try:
+                        status = await _read_run_status(pool, run_uuid)
+                        if status is not None and status in _RUN_TERMINAL_STATUSES:
+                            registry.mark_terminal(run_uuid)
+                    except Exception:  # noqa: BLE001
+                        log.debug(
+                            "failed to read run status for terminal check "
+                            "(run %s); skipping",
+                            run_uuid,
+                            exc_info=True,
+                        )
+                registry.unsubscribe(run_uuid)
+                log.info(
+                    "AG-UI SSE client disconnected for run_id=%s", run_id,
+                )
+
+        return StreamResponse(
+            _wrapped_generator(),
+            content_type=sse_response.content_type,
+            headers=sse_response.headers,
+        )
 
     router.add_route("GET", "/events", events_handler)
 
-    return router, broadcaster
+    return router, registry

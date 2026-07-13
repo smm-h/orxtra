@@ -164,7 +164,7 @@ def _build_app(
     principal_storage: InMemoryPrincipalStorage,
     auth_context: AuthContext | None,
 ) -> Any:
-    router, _broadcaster = create_agui_router(
+    router, _registry = create_agui_router(
         pool=object(),
         principal_storage=principal_storage,
     )
