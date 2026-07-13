@@ -29,6 +29,7 @@ from orxtra.services._identity import (
     delete_principal,
     get_principal,
     list_principals,
+    sweep_orphaned_run_principals,
 )
 from orxtra.services._inbox import (
     get_inbox_item,
@@ -127,6 +128,7 @@ __all__ = [
     "start_run",
     "start_run_from_file",
     "subscribe",
+    "sweep_orphaned_run_principals",
     "sync_ask",
     "unsubscribe",
     "validate_agent",

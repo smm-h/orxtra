@@ -241,7 +241,7 @@ async def start_run(
     # Mint-first: the run's principal must exist before the runs row that FKs
     # into it (created_by), and before any event attributed to the run. If
     # create_run fails after this mint, the orphaned run principal is harmless
-    # -- nothing references it, it is never swept, and it can be deleted safely.
+    # -- nothing references it, swept by recovery (age-guarded).
     run_principal = await principal_storage.mint_principal(KIND_RUN, run_id, None)
     await writer.create_run(
         intent,
@@ -250,6 +250,12 @@ async def start_run(
         run_id=run_id,
         created_by=caller_principal.id,
     )
+    # Sweep orphaned run principals from prior crashed runs. Placed after
+    # create_run so OUR principal already has its matching runs row and is
+    # safe from the sweep. The age guard (5 min) makes this doubly safe.
+    from orxtra.services._identity import sweep_orphaned_run_principals
+
+    await sweep_orphaned_run_principals(principal_storage)
     try:
         await writer.transition_run(
             run_id, "running", principal_id=run_principal.id,

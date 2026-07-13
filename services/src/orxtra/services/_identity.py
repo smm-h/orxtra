@@ -8,6 +8,7 @@ string kind and deletes any row; the enforcement point lives here.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from orxtra.protocols import KIND_SYSTEM
@@ -91,3 +92,26 @@ async def delete_principal(
         )
         raise ValueError(msg)
     await principal_storage.delete_principal(principal_id)
+
+
+# -- Recovery -----------------------------------------------------------------
+
+# Conservative window for the orphan-principal sweep. A concurrent start_run
+# mints the run principal first, then inserts the runs row. Five minutes is
+# far longer than any plausible gap between the two statements -- anything
+# older than this without a matching runs row is a crash orphan.
+_ORPHAN_SWEEP_AGE = timedelta(minutes=5)
+
+
+async def sweep_orphaned_run_principals(
+    principal_storage: PrincipalStorage,
+) -> int:
+    """Sweep kind=run principals with no matching ``runs`` row.
+
+    Delegates to storage with a conservative age guard to avoid racing
+    with a concurrent ``start_run`` that has minted the principal but
+    not yet created the runs row.
+    """
+    return await principal_storage.sweep_orphaned_run_principals(
+        _ORPHAN_SWEEP_AGE,
+    )
