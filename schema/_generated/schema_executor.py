@@ -4,29 +4,36 @@ from __future__ import annotations
 
 from collections import namedtuple
 from dataclasses import dataclass, field
-from typing import Final, Protocol, Sequence, runtime_checkable
+from types import TracebackType
+from typing import Any, Final, Protocol, Sequence, runtime_checkable
 
 from .extensions import STATEMENTS as _ext_stmts
 from .types import STATEMENTS as _types_stmts
 from .tables_trace import STATEMENTS as _tables_trace_stmts
 from .tables_dispatch import STATEMENTS as _tables_dispatch_stmts
 from .tables_auth import STATEMENTS as _tables_auth_stmts
+from .tables_identity import STATEMENTS as _tables_identity_stmts
 from .post_tables import STATEMENTS as _post_stmts
 
-_ALL_STMTS = _ext_stmts + _types_stmts + _tables_trace_stmts + _tables_dispatch_stmts + _tables_auth_stmts + _post_stmts
+_ALL_STMTS = _ext_stmts + _types_stmts + _tables_trace_stmts + _tables_dispatch_stmts + _tables_auth_stmts + _tables_identity_stmts + _post_stmts
 
 
 @runtime_checkable
 class AsyncConnection(Protocol):
     async def execute(self, query: str) -> None: ...
-    async def fetch(self, query: str) -> list[dict]: ...
+    async def fetch(self, query: str) -> list[dict[str, Any]]: ...
     async def transaction(self) -> AsyncTransaction: ...
 
 
 @runtime_checkable
 class AsyncTransaction(Protocol):
     async def __aenter__(self) -> AsyncTransaction: ...
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None: ...
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None: ...
     async def execute(self, query: str) -> None: ...
 
 
@@ -241,6 +248,21 @@ END $$;""", "credential_type"),
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_consumers PRIMARY KEY (id)
 );""", "consumers"),
+            DDLOp("""CREATE TABLE public.principals (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    kind text NOT NULL,
+    external_ref uuid NOT NULL,
+    display_name text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_principals PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.principals (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    kind text NOT NULL,
+    external_ref uuid NOT NULL,
+    display_name text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_principals PRIMARY KEY (id)
+);""", "principals"),
             DDLOp("""CREATE TABLE public.tasks (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     run_id uuid NOT NULL,
@@ -942,6 +964,16 @@ BEGIN
     ALTER TABLE public.sources ADD CONSTRAINT uq_sources_slug UNIQUE (slug);
   END IF;
 END $$;""", "uq_sources_slug"),
+            DDLOp("ALTER TABLE public.principals ADD CONSTRAINT uq_principals_kind_external_ref UNIQUE (kind, external_ref);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_principals_kind_external_ref'
+    AND conrelid = 'public.principals'::regclass
+  ) THEN
+    ALTER TABLE public.principals ADD CONSTRAINT uq_principals_kind_external_ref UNIQUE (kind, external_ref);
+  END IF;
+END $$;""", "uq_principals_kind_external_ref"),
             DDLOp("ALTER TABLE public.knowledge_hashes ADD CONSTRAINT uq_knowledge_hashes_run_path UNIQUE (run_id, path);", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1304,6 +1336,10 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.consumers.name IS 'Human-readable consumer name';", None, "column.consumers.name"),
             DDLOp("COMMENT ON COLUMN public.consumers.scope_grants IS 'JSON array of granted scope strings';", None, "column.consumers.scope_grants"),
             DDLOp("COMMENT ON COLUMN public.consumers.disabled_at IS 'Non-null means the consumer is disabled';", None, "column.consumers.disabled_at"),
+            DDLOp("COMMENT ON TABLE public.principals IS 'Actors that can own or perform actions. FK target for other modules; never a user-profile store.';", None, "table.principals"),
+            DDLOp("COMMENT ON COLUMN public.principals.kind IS 'Actor kind, registered at composition time; built-ins are run/consumer/source/system. Validation lives at the service layer -- storage accepts any string.';", None, "column.principals.kind"),
+            DDLOp("COMMENT ON COLUMN public.principals.external_ref IS 'The actor''s id in its kind''s namespace; for the singleton system principal this is the all-zeros sentinel.';", None, "column.principals.external_ref"),
+            DDLOp("COMMENT ON COLUMN public.principals.display_name IS 'Optional human-readable label for the actor';", None, "column.principals.display_name"),
             DDLOp("COMMENT ON TABLE public.tasks IS 'Recursive task hierarchy within a run. Replaces the old workflows + steps tables.';", None, "table.tasks"),
             DDLOp("COMMENT ON COLUMN public.tasks.parent_task_id IS 'Parent task for nested task hierarchies';", None, "column.tasks.parent_task_id"),
             DDLOp("COMMENT ON COLUMN public.tasks.config IS 'Task configuration';", None, "column.tasks.config"),
