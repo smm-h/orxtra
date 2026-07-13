@@ -167,19 +167,19 @@ def _check_member(
     undeclared = sorted(actual_imports - declared_set)
     unused = sorted(declared_set - actual_imports)
 
-    for imp in undeclared:
-        errors.append(
-            f"{member}: UNDECLARED -- imports orxtra.{imp} at runtime "
-            f"but orxtra-{imp.replace('_', '-')} is not in "
-            f"[project].dependencies"
-        )
+    errors.extend(
+        f"{member}: UNDECLARED -- imports orxtra.{imp} at runtime "
+        f"but orxtra-{imp.replace('_', '-')} is not in "
+        f"[project].dependencies"
+        for imp in undeclared
+    )
 
-    for dep in unused:
-        warnings.append(
-            f"{member}: UNUSED -- orxtra-{dep.replace('_', '-')} is in "
-            f"[project].dependencies but orxtra.{dep} is never imported "
-            f"at runtime in src/"
-        )
+    warnings.extend(
+        f"{member}: UNUSED -- orxtra-{dep.replace('_', '-')} is in "
+        f"[project].dependencies but orxtra.{dep} is never imported "
+        f"at runtime in src/"
+        for dep in unused
+    )
 
     return errors, warnings
 
