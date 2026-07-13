@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 from orxtra.protocols import EventBus
+from orxtra.trace._memory_backend import InMemoryBackend
 from orxtra.trace._pg_backend import PgBackend
 from orxtra.trace._pg_event_bus import PgEventBus
+from orxtra.trace._writer import TraceWriter
 from orxtra.trace._protocols import (
     EventStorage,
     InboxStorage,
@@ -151,6 +153,79 @@ class TestProtocolMethodSignatures:
         assert not mismatches, (
             f"Signature mismatches in {protocol.__name__}:\n"
             + "\n".join(mismatches)
+        )
+
+
+def _normalize_signature(
+    func: object,
+) -> tuple[list[tuple[str, object, object, object]], object]:
+    """Return a comparable form of a callable's signature.
+
+    Excludes ``self`` and captures each parameter's name, kind,
+    annotation (string form under ``from __future__ import annotations``),
+    and default, plus the return annotation. Two callables with an
+    identical normalized signature have byte-for-byte identical public
+    signatures.
+    """
+    sig = inspect.signature(func)  # type: ignore[arg-type]
+    params: list[tuple[str, object, object, object]] = []
+    for name, param in sig.parameters.items():
+        if name == "self":
+            continue
+        annotation = (
+            param.annotation
+            if param.annotation is not inspect.Parameter.empty
+            else None
+        )
+        params.append((param.name, param.kind, annotation, param.default))
+    return params, sig.return_annotation
+
+
+# The surfaces that MUST keep write_event / create_run in lockstep with the
+# protocol. A later phase adds parameters to these methods and relies on this
+# guard to fail loudly if any surface drifts from the others.
+_PARITY_SURFACES: dict[str, type] = {
+    "TraceWriter": TraceWriter,
+    "PgBackend": PgBackend,
+    "InMemoryBackend": InMemoryBackend,
+}
+
+# method name -> protocol that declares it
+_PARITY_METHODS: list[tuple[str, type]] = [
+    ("write_event", EventStorage),
+    ("create_run", RunStorage),
+]
+
+
+class TestSignatureParity:
+    """Pin write_event / create_run signatures across every surface.
+
+    If someone adds (or removes/renames/re-annotates) a parameter on one
+    implementation but not the protocol -- or vice versa -- this fails.
+    That is the entire point: it protects a later phase that extends these
+    signatures and needs every surface to move together.
+    """
+
+    @pytest.mark.parametrize(
+        "surface_name", list(_PARITY_SURFACES), ids=lambda s: s,
+    )
+    @pytest.mark.parametrize(
+        ("method_name", "protocol"),
+        _PARITY_METHODS,
+        ids=[m[0] for m in _PARITY_METHODS],
+    )
+    def test_matches_protocol(
+        self, surface_name: str, method_name: str, protocol: type,
+    ) -> None:
+        proto_method = getattr(protocol, method_name)
+        impl_method = getattr(_PARITY_SURFACES[surface_name], method_name)
+        proto_norm = _normalize_signature(proto_method)
+        impl_norm = _normalize_signature(impl_method)
+        assert impl_norm == proto_norm, (
+            f"{surface_name}.{method_name} signature drifted from "
+            f"{protocol.__name__}.{method_name}:\n"
+            f"  protocol: {proto_norm}\n"
+            f"  {surface_name}: {impl_norm}"
         )
 
 

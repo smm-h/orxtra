@@ -421,6 +421,53 @@ class TestEventOperations:
         assert len(events) == 3
 
 
+class TestEventIdempotency:
+    """In-memory dedup semantics must mirror the PG ON CONFLICT behavior."""
+
+    @pytest.mark.asyncio
+    async def test_same_key_dedups(self, backend: InMemoryBackend) -> None:
+        run_id = await backend.create_run("test", {}, "max")
+        id1, inserted1 = await backend.write_event(
+            run_id, "e", {"n": 1}, idempotency_key="dup-key",
+        )
+        id2, inserted2 = await backend.write_event(
+            run_id, "e", {"n": 2}, idempotency_key="dup-key",
+        )
+        assert inserted1 is True
+        assert inserted2 is False
+        assert id1 == id2
+        # Only the first event is stored; the duplicate never inserts.
+        events = await backend.query_events(run_id, event_type="e")
+        assert len(events) == 1
+        assert events[0]["data"] == {"n": 1}
+
+    @pytest.mark.asyncio
+    async def test_distinct_keys_insert(self, backend: InMemoryBackend) -> None:
+        run_id = await backend.create_run("test", {}, "max")
+        id1, inserted1 = await backend.write_event(
+            run_id, "e", {"n": 1}, idempotency_key="key-a",
+        )
+        id2, inserted2 = await backend.write_event(
+            run_id, "e", {"n": 2}, idempotency_key="key-b",
+        )
+        assert inserted1 is True
+        assert inserted2 is True
+        assert id1 != id2
+        events = await backend.query_events(run_id, event_type="e")
+        assert len(events) == 2
+
+    @pytest.mark.asyncio
+    async def test_none_key_always_inserts(self, backend: InMemoryBackend) -> None:
+        run_id = await backend.create_run("test", {}, "max")
+        id1, inserted1 = await backend.write_event(run_id, "e", {"n": 1})
+        id2, inserted2 = await backend.write_event(run_id, "e", {"n": 2})
+        assert inserted1 is True
+        assert inserted2 is True
+        assert id1 != id2
+        events = await backend.query_events(run_id, event_type="e")
+        assert len(events) == 2
+
+
 # ── Transcript CRUD ──
 
 
