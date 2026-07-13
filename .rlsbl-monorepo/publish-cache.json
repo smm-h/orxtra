@@ -1,10 +1,10 @@
 {
-  ".": "e3401a8806b3a8f1a0d6cd047e36c5fe41c51c7a037ac7ac0e25c3214dfed3b0",
+  ".": "83a2f2e683257965f6f617baebcca3adf0f29efe46b48ea3abe710a06c7d5a7b",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "write-safety": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "transport": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "agent": null,
+  "agent": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "tool": null,
   "verify": null,
   "trace": null,
