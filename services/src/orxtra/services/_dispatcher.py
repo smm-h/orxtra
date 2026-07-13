@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
+from orxtra.auth import Authorizer
 from orxtra.identity import resolve_caller_principal
 from orxtra.protocols import FilterPredicate
 from orxtra.services._registry import get_capability, get_capability_fn
@@ -71,6 +72,10 @@ _INJECT_LABELS: dict[str, str] = {
     "principal_storage": "a principal storage backend",
     "kind_registry": "a principal kind registry",
 }
+
+# The Authorizer is stateless -- a single module-level instance enforces every
+# dispatch. This is the Authorizer's first production wiring.
+_AUTHORIZER = Authorizer()
 
 
 async def _resolve_caller_principal_arg(
@@ -148,20 +153,37 @@ async def dispatch(
     """Dispatch a capability call.
 
     1. Looks up the capability by name
-    2. Validates raw_args via the capability's params_model
-    3. Resolves the infrastructure dependencies the capability declares
+    2. Enforces authorization: the context must carry an ``auth_context`` whose
+       scopes include the capability's ``required_scope``
+    3. Validates raw_args via the capability's params_model
+    4. Resolves the infrastructure dependencies the capability declares
        (``cap.injects``) from the DispatchContext
-    4. Calls the service function (declared infra first, positionally, then
+    5. Calls the service function (declared infra first, positionally, then
        the validated kwargs) and returns the result
 
-    Raises ValueError if the capability is unknown or a declared dependency
-    is missing from the context.
+    Raises ValueError if the capability is unknown, the context lacks an
+    ``auth_context``, or a declared dependency is missing from the context.
+    Raises orxtra.auth.AuthorizationError if the auth context lacks the
+    capability's required scope.
     Raises pydantic.ValidationError if raw_args fail validation.
     """
     cap = get_capability(capability_name)
     if cap is None:
         msg = f"Unknown capability: {capability_name!r}"
         raise ValueError(msg)
+
+    # Authorization is enforced here, at the single dispatch choke point, before
+    # any params validation or dependency injection. An absent auth context is a
+    # hard error: dispatch requires an authenticated caller.
+    if context.auth_context is None:
+        msg = (
+            f"Capability {cap.name!r} requires an authenticated context to "
+            f"dispatch. An API served without an authenticator cannot dispatch "
+            f"capabilities -- configure an authenticator; local operations use "
+            f"the CLI."
+        )
+        raise ValueError(msg)
+    _AUTHORIZER.authorize(context.auth_context, cap.required_scope)
 
     # Validate and parse args through the params model
     validated = cap.params_model(**raw_args)
