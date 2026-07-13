@@ -2,13 +2,65 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 
 import pytest
+from orxtra.auth import AuthorizationError
+from orxtra.identity import InMemoryPrincipalStorage
+from orxtra.protocols import (
+    KIND_SYSTEM,
+    SCOPE_RUNS_READ,
+    SYSTEM_PRINCIPAL_EXTERNAL_REF,
+    AuthContext,
+    Capability,
+    TrustTier,
+)
 from orxtra.services._dispatcher import DispatchContext, dispatch
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
+
+_DEFAULT_CONSUMER_ID = UUID(int=2)
+
+
+def _auth_context(
+    scopes: frozenset[str],
+    *,
+    trust_tier: TrustTier = TrustTier.IDENTIFIED,
+    consumer_id: UUID | None = _DEFAULT_CONSUMER_ID,
+) -> AuthContext:
+    """Build an ephemeral AuthContext for dispatcher tests."""
+    return AuthContext(
+        id=UUID(int=1),
+        consumer_id=consumer_id,
+        scopes=scopes,
+        trust_tier=trust_tier,
+        authenticated_via="test",
+        issued_at=datetime.now(UTC),
+        expires_at=None,
+    )
+
+
+class _NoParams(BaseModel):
+    """Empty params model for a synthetic caller_principal-declaring capability."""
+
+
+# A synthetic capability that declares only the derived ``caller_principal``
+# inject token. No real capability declares it yet, so -- following the way
+# these tests simulate capabilities -- we patch get_capability to return this
+# probe and exercise the resolution mechanics directly.
+_CALLER_PRINCIPAL_CAP = Capability(
+    name="_caller_principal_probe",
+    namespace="test",
+    description="probe",
+    params_model=_NoParams,
+    result_model=None,
+    tags=frozenset(),
+    category="test",
+    required_scope=SCOPE_RUNS_READ,
+    injects=frozenset({"caller_principal"}),
+)
 
 
 @pytest.fixture
@@ -294,3 +346,140 @@ async def test_dispatch_query_events_optional_params(
     assert call_kwargs["event_type"] is None
     assert call_kwargs["since"] is None
     assert call_kwargs["limit"] == 100
+
+
+# -- caller_principal inject token resolution --
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_resolves_caller_principal(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock
+) -> None:
+    """A capability declaring ``caller_principal`` receives the resolved,
+    persisted Principal as its final positional argument."""
+    mock_get_cap.return_value = _CALLER_PRINCIPAL_CAP
+    mock_fn = AsyncMock(return_value="ok")
+    mock_get_fn.return_value = mock_fn
+
+    storage = InMemoryPrincipalStorage()
+    system = await storage.mint_principal(
+        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system"
+    )
+    ctx = DispatchContext(
+        principal_storage=storage,
+        auth_context=_auth_context(
+            frozenset({SCOPE_RUNS_READ}),
+            trust_tier=TrustTier.SYSTEM,
+            consumer_id=None,
+        ),
+    )
+
+    result = await dispatch(ctx, "_caller_principal_probe", {})
+
+    assert result == "ok"
+    # The resolved persisted Principal is passed positionally (and, being the
+    # only declared inject, is the sole positional argument).
+    mock_fn.assert_awaited_once_with(system)
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_caller_principal_requires_auth_context(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock
+) -> None:
+    mock_get_cap.return_value = _CALLER_PRINCIPAL_CAP
+    mock_get_fn.return_value = AsyncMock()
+    ctx = DispatchContext(principal_storage=InMemoryPrincipalStorage())
+
+    with pytest.raises(ValueError, match="requires an authenticated caller context"):
+        await dispatch(ctx, "_caller_principal_probe", {})
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_caller_principal_requires_principal_storage(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock
+) -> None:
+    mock_get_cap.return_value = _CALLER_PRINCIPAL_CAP
+    mock_get_fn.return_value = AsyncMock()
+    ctx = DispatchContext(
+        auth_context=_auth_context(
+            frozenset({SCOPE_RUNS_READ}),
+            trust_tier=TrustTier.SYSTEM,
+            consumer_id=None,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="requires a principal storage backend"):
+        await dispatch(ctx, "_caller_principal_probe", {})
+
+
+# -- Enforcement contracts (Phase 2.1a groundwork; NO enforcement yet) --
+#
+# The two xfail tests below describe the POST-enforcement world. The later
+# subphase that wires the Authorizer into dispatch() flips them from xfail to
+# passing. They are non-strict xfail so that, once enforcement lands and they
+# start passing (xpass), the suite stays green without a forced failure.
+# test_dispatch_scoped_capability_with_correct_scope_succeeds already passes
+# today (no enforcement = everything passes) and must survive the flip
+# unchanged.
+
+
+@pytest.mark.xfail(
+    reason="Enforcement wired in a later 2.1 subphase; no scope check yet.",
+    strict=False,
+)
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_scoped_capability_without_auth_context_raises(
+    mock_get_fn: MagicMock,
+) -> None:
+    mock_get_fn.return_value = AsyncMock(return_value=[])
+    ctx = DispatchContext(pool=AsyncMock(), auth_context=None)
+
+    with pytest.raises(ValueError, match="auth"):
+        await dispatch(ctx, "list_runs", {})
+
+
+@pytest.mark.xfail(
+    reason="Enforcement wired in a later 2.1 subphase; no scope check yet.",
+    strict=False,
+)
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_scoped_capability_missing_scope_raises(
+    mock_get_fn: MagicMock,
+) -> None:
+    mock_get_fn.return_value = AsyncMock(return_value=[])
+    # list_runs requires SCOPE_RUNS_READ; this context lacks it.
+    ctx = DispatchContext(
+        pool=AsyncMock(),
+        auth_context=_auth_context(frozenset()),
+    )
+
+    with pytest.raises(AuthorizationError):
+        await dispatch(ctx, "list_runs", {})
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_scoped_capability_with_correct_scope_succeeds(
+    mock_get_fn: MagicMock,
+) -> None:
+    """A correctly-scoped context dispatches successfully. Passes today (no
+    enforcement) and must keep passing once enforcement lands."""
+    mock_fn = AsyncMock(return_value=[])
+    mock_get_fn.return_value = mock_fn
+    ctx = DispatchContext(
+        pool=AsyncMock(),
+        auth_context=_auth_context(frozenset({SCOPE_RUNS_READ})),
+    )
+
+    result = await dispatch(ctx, "list_runs", {})
+
+    assert result == []
+    mock_fn.assert_awaited_once()

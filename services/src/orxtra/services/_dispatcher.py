@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
+from orxtra.identity import resolve_caller_principal
 from orxtra.protocols import FilterPredicate
 from orxtra.services._registry import get_capability, get_capability_fn
 
@@ -20,9 +21,11 @@ if TYPE_CHECKING:
     import asyncpg
     from orxtra.identity import KindRegistry
     from orxtra.protocols import (
+        AuthContext,
         Capability,
         DispatchBackend,
         EventBus,
+        Principal,
         PrincipalStorage,
     )
 
@@ -36,17 +39,31 @@ class DispatchContext:
     event_bus: EventBus | None = None
     principal_storage: PrincipalStorage | None = None
     kind_registry: KindRegistry | None = None
+    auth_context: AuthContext | None = None
+    """The authenticated caller's ephemeral context.
+
+    Interfaces populate it per request from the verified credential;
+    enforcement and attribution consume it. Left ``None`` for unauthenticated
+    or internal dispatch paths.
+    """
 
 
 # Canonical order in which declared inject tokens are passed positionally to
 # the service function, plus the human-readable label used in error messages.
 # Every token in Capability.VALID_INJECT_TOKENS must appear here, or dispatch
 # will hard-error on a capability that declares it (no silent drop).
+#
+# ``caller_principal`` is the sole derived token: it has no matching context
+# field. It is resolved last, so the persisted ``Principal`` is passed as the
+# final positional injection argument (after pool, dispatch_backend,
+# principal_storage, and kind_registry, whichever the capability declares).
+_CALLER_PRINCIPAL_INJECT = "caller_principal"
 _INJECT_ORDER: tuple[str, ...] = (
     "pool",
     "dispatch_backend",
     "principal_storage",
     "kind_registry",
+    _CALLER_PRINCIPAL_INJECT,
 )
 _INJECT_LABELS: dict[str, str] = {
     "pool": "a database pool",
@@ -56,7 +73,33 @@ _INJECT_LABELS: dict[str, str] = {
 }
 
 
-def _resolve_injections(
+async def _resolve_caller_principal_arg(
+    context: DispatchContext,
+    cap: Capability,
+) -> Principal:
+    """Resolve the ``caller_principal`` inject token to a persisted principal.
+
+    Requires BOTH ``context.auth_context`` and ``context.principal_storage``;
+    either missing is a hard error naming the capability and the missing
+    dependency, matching the standard inject-resolution error shape. Resolution
+    delegates to ``orxtra.identity.resolve_caller_principal``.
+    """
+    if context.auth_context is None:
+        msg = f"Capability {cap.name!r} requires an authenticated caller context"
+        raise ValueError(msg)
+    if context.principal_storage is None:
+        msg = (
+            f"Capability {cap.name!r} requires "
+            f"{_INJECT_LABELS['principal_storage']}"
+        )
+        raise ValueError(msg)
+    return await resolve_caller_principal(
+        context.auth_context,
+        context.principal_storage,
+    )
+
+
+async def _resolve_injections(
     context: DispatchContext,
     cap: Capability,
 ) -> list[Any]:
@@ -65,13 +108,19 @@ def _resolve_injections(
     Walks the canonical inject order, and for each token the capability
     declares, reads the matching field off the context. A declared token whose
     context field is None is a hard error naming the capability and the missing
-    dependency -- never a silent None pass-through. A declared token the
-    dispatcher does not know how to route is also a hard error.
+    dependency -- never a silent None pass-through. The derived
+    ``caller_principal`` token is resolved from the auth context and principal
+    storage instead of a single context field. A declared token the dispatcher
+    does not know how to route is also a hard error.
     """
     args: list[Any] = []
     handled: set[str] = set()
     for token in _INJECT_ORDER:
         if token not in cap.injects:
+            continue
+        if token == _CALLER_PRINCIPAL_INJECT:
+            args.append(await _resolve_caller_principal_arg(context, cap))
+            handled.add(token)
             continue
         value = getattr(context, token)
         if value is None:
@@ -120,7 +169,7 @@ async def dispatch(
 
     fn = get_capability_fn(capability_name)
 
-    infra_args = _resolve_injections(context, cap)
+    infra_args = await _resolve_injections(context, cap)
     return await fn(*infra_args, **kwargs)
 
 
