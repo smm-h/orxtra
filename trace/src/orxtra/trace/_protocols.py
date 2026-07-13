@@ -233,6 +233,10 @@ class InboxStorage(Protocol):
         self, item_id: UUID, *, resolved_by: UUID,
     ) -> None: ...
 
+    async def expire_due_inbox_items(
+        self, now: datetime,
+    ) -> int: ...
+
 
 @runtime_checkable
 class NotepadStorage(Protocol):

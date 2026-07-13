@@ -677,6 +677,132 @@ class TestInboxOperations:
         assert len(answered) == 1
 
 
+# ── Bulk inbox expiry ──
+
+
+class TestExpireDueInboxItems:
+    @pytest.mark.asyncio
+    async def test_expires_pending_past_deadline(
+        self, backend: InMemoryBackend,
+    ) -> None:
+        """Pending item with past deadline is expired by bulk sweep."""
+        from datetime import UTC, datetime, timedelta
+
+        run_id = await backend.create_run(
+            "test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY,
+        )
+        past = datetime.now(UTC) - timedelta(hours=1)
+        item_id = await backend.create_inbox_item(
+            run_id, "choice", "q?", [], None, None, None, deadline=past,
+        )
+        now = datetime.now(UTC)
+        count = await backend.expire_due_inbox_items(now)
+        assert count == 1
+        item = await backend.read_inbox_item(item_id)
+        assert item is not None
+        assert item.status == "expired"
+        assert item.resolved_by is not None
+
+    @pytest.mark.asyncio
+    async def test_no_deadline_untouched(
+        self, backend: InMemoryBackend,
+    ) -> None:
+        """Pending item with no deadline is NOT expired."""
+        from datetime import UTC, datetime
+
+        run_id = await backend.create_run(
+            "test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY,
+        )
+        item_id = await backend.create_inbox_item(
+            run_id, "choice", "q?", [], None, None, None,
+        )
+        count = await backend.expire_due_inbox_items(datetime.now(UTC))
+        assert count == 0
+        item = await backend.read_inbox_item(item_id)
+        assert item is not None
+        assert item.status == "pending"
+
+    @pytest.mark.asyncio
+    async def test_future_deadline_untouched(
+        self, backend: InMemoryBackend,
+    ) -> None:
+        """Pending item with future deadline is NOT expired."""
+        from datetime import UTC, datetime, timedelta
+
+        run_id = await backend.create_run(
+            "test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY,
+        )
+        future = datetime.now(UTC) + timedelta(hours=1)
+        item_id = await backend.create_inbox_item(
+            run_id, "choice", "q?", [], None, None, None, deadline=future,
+        )
+        count = await backend.expire_due_inbox_items(datetime.now(UTC))
+        assert count == 0
+        item = await backend.read_inbox_item(item_id)
+        assert item is not None
+        assert item.status == "pending"
+
+    @pytest.mark.asyncio
+    async def test_already_answered_untouched(
+        self, backend: InMemoryBackend,
+    ) -> None:
+        """Already-answered item with past deadline is NOT expired."""
+        from datetime import UTC, datetime, timedelta
+
+        run_id = await backend.create_run(
+            "test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY,
+        )
+        past = datetime.now(UTC) - timedelta(hours=1)
+        item_id = await backend.create_inbox_item(
+            run_id, "choice", "q?", [], None, None, None, deadline=past,
+        )
+        await backend.answer_inbox_item(item_id, "yes", resolved_by=_CREATED_BY)
+        count = await backend.expire_due_inbox_items(datetime.now(UTC))
+        assert count == 0
+        item = await backend.read_inbox_item(item_id)
+        assert item is not None
+        assert item.status == "answered"
+
+    @pytest.mark.asyncio
+    async def test_mixed_items(
+        self, backend: InMemoryBackend,
+    ) -> None:
+        """Only pending items with past deadlines are expired."""
+        from datetime import UTC, datetime, timedelta
+
+        run_id = await backend.create_run(
+            "test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY,
+        )
+        now = datetime.now(UTC)
+        past = now - timedelta(hours=1)
+        future = now + timedelta(hours=1)
+
+        # Pending + past deadline -> should expire
+        await backend.create_inbox_item(
+            run_id, "choice", "q1", [], None, None, None, deadline=past,
+        )
+        # Pending + no deadline -> untouched
+        await backend.create_inbox_item(
+            run_id, "choice", "q2", [], None, None, None,
+        )
+        # Pending + future deadline -> untouched
+        await backend.create_inbox_item(
+            run_id, "choice", "q3", [], None, None, None, deadline=future,
+        )
+        # Answered + past deadline -> untouched
+        item4 = await backend.create_inbox_item(
+            run_id, "choice", "q4", [], None, None, None, deadline=past,
+        )
+        await backend.answer_inbox_item(item4, "yes", resolved_by=_CREATED_BY)
+
+        count = await backend.expire_due_inbox_items(now)
+        assert count == 1
+        pending = await backend.read_inbox(run_id, status="pending")
+        assert len(pending) == 2
+        expired = await backend.read_inbox(run_id, status="expired")
+        assert len(expired) == 1
+
+
 # ── Overseer storage ──
 
 

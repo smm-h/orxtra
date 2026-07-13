@@ -201,6 +201,8 @@ _PARITY_METHODS: list[tuple[str, type]] = [
     ("skip_inbox_item", InboxStorage),
     ("reject_inbox_item", InboxStorage),
     ("expire_inbox_item", InboxStorage),
+    # Bulk expiry: all three surfaces must agree on the signature.
+    ("expire_due_inbox_items", InboxStorage),
 ]
 
 
@@ -313,7 +315,7 @@ class TestProtocolMethodCounts:
 
     def test_inbox_storage_count(self) -> None:
         methods = _get_protocol_method_names(InboxStorage)
-        assert len(methods) == 5, f"InboxStorage methods: {sorted(methods)}"
+        assert len(methods) == 6, f"InboxStorage methods: {sorted(methods)}"
 
     def test_notepad_storage_count(self) -> None:
         methods = _get_protocol_method_names(NotepadStorage)
@@ -343,7 +345,7 @@ class TestProtocolMethodCounts:
         """StorageBackend combines all sub-protocols."""
         methods = _get_protocol_method_names(StorageBackend)
         # Sum of all sub-protocol methods (no overlap expected)
-        expected = 8 + 2 + 3 + 2 + 6 + 5 + 1 + 24 + 4 + 3 + 2  # = 60
+        expected = 8 + 2 + 3 + 2 + 6 + 6 + 1 + 24 + 4 + 3 + 2  # = 61
         assert len(methods) == expected, (
             f"StorageBackend has {len(methods)} methods, expected {expected}. "
             f"Methods: {sorted(methods)}"

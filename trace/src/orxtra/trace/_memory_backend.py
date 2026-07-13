@@ -622,6 +622,22 @@ class InMemoryBackend:
         item["status"] = "expired"
         item["resolved_by"] = resolved_by
 
+    async def expire_due_inbox_items(
+        self, now: datetime,
+    ) -> int:
+        """Expire all pending inbox items whose deadline has passed."""
+        count = 0
+        for item in self._inbox_items.values():
+            if (
+                item["status"] == "pending"
+                and item["deadline"] is not None
+                and item["deadline"] < now
+            ):
+                item["status"] = "expired"
+                item["resolved_by"] = _INMEMORY_SYSTEM_PRINCIPAL_ID
+                count += 1
+        return count
+
     # ── NotepadStorage ──
 
     async def write_notepad_entry(

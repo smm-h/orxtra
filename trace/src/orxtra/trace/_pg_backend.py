@@ -298,6 +298,11 @@ class PgBackend:
     ) -> None:
         await self._writer.expire_inbox_item(item_id, resolved_by=resolved_by)
 
+    async def expire_due_inbox_items(
+        self, now: datetime,
+    ) -> int:
+        return await self._writer.expire_due_inbox_items(now)
+
     # -- NotepadStorage --
 
     async def write_notepad_entry(

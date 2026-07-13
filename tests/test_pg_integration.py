@@ -440,6 +440,60 @@ class TestCreateSourceIdentity:
             )
 
 
+# -- Inbox bulk expiry ---------------------------------------------------------
+
+
+class TestExpireDueInboxItemsPg:
+    """Verify expire_due_inbox_items against a real PG database."""
+
+    async def test_bulk_expiry_round_trip(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        """expire_due_inbox_items expires pending items with past deadlines."""
+        from datetime import UTC, datetime, timedelta
+
+        from orxtra.trace import read_inbox
+
+        writer = TraceWriter(pg_pool)
+        run_id = await _create_run(writer, pg_pool)
+        now = datetime.now(UTC)
+        past = now - timedelta(hours=1)
+        future = now + timedelta(hours=1)
+
+        # Pending + past deadline -> should expire
+        await writer.create_inbox_item(
+            run_id, "choice", "q1", [], None, None, None,
+            tags=[], deadline=past,
+        )
+        # Pending + no deadline -> untouched
+        await writer.create_inbox_item(
+            run_id, "choice", "q2", [], None, None, None, tags=[],
+        )
+        # Pending + future deadline -> untouched
+        await writer.create_inbox_item(
+            run_id, "choice", "q3", [], None, None, None,
+            tags=[], deadline=future,
+        )
+        # Answered + past deadline -> untouched
+        item4 = await writer.create_inbox_item(
+            run_id, "choice", "q4", [], None, None, None,
+            tags=[], deadline=past,
+        )
+        pid = await _run_pid(pg_pool, run_id)
+        await writer.answer_inbox_item(item4, "yes", resolved_by=pid)
+
+        count = await writer.expire_due_inbox_items(now)
+        assert count == 1
+
+        items = await read_inbox(pg_pool, run_id, status="expired")
+        assert len(items) == 1
+        assert items[0].question == "q1"
+        assert items[0].resolved_by is not None
+
+        pending = await read_inbox(pg_pool, run_id, status="pending")
+        assert len(pending) == 2
+
+
 # -- LISTEN/NOTIFY ------------------------------------------------------------
 
 

@@ -521,6 +521,44 @@ class TraceWriter:
                 )
                 raise InvalidTransitionError(msg)
 
+    async def expire_due_inbox_items(
+        self, now: datetime,
+    ) -> int:
+        """Expire all pending inbox items whose deadline has passed.
+
+        Resolves the system principal from the principals table (same
+        pattern as ``_recovery._resolve_system_principal_id``) and
+        attributes the bulk expiry to it. Returns the count of expired items.
+        """
+        from uuid import UUID as _UUID
+        _system_external_ref = _UUID(int=0)
+        async with self._pool.acquire() as conn, conn.transaction():
+            system_pid: _UUID | None = await conn.fetchval(
+                "SELECT id FROM principals"
+                " WHERE kind = 'system' AND external_ref = $1",
+                _system_external_ref,
+            )
+            if system_pid is None:
+                msg = (
+                    "System principal not seeded -- run 'orxtra db init'"
+                    " to seed the singleton system principal before"
+                    " inbox expiry."
+                )
+                raise RuntimeError(msg)
+            rows = await conn.fetch(
+                "UPDATE inbox_items"
+                " SET status = 'expired',"
+                " resolved_by = $1,"
+                " answered_at = now()"
+                " WHERE status = 'pending'"
+                " AND deadline IS NOT NULL"
+                " AND deadline < $2"
+                " RETURNING id",
+                system_pid,
+                now,
+            )
+        return len(rows)
+
     async def write_context_diff(
         self, attempt_id: UUID, pre_refinement: str, refinement_diff: str
     ) -> None:
