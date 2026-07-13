@@ -153,6 +153,14 @@ async def create_source(
             raise ValueError(msg)
         # Cross-module read of auth's credentials table: permitted (reads only;
         # the single-writer rule bars writes to another module's tables).
+        #
+        # Advisory check-then-use: this EXISTS runs in its own transaction,
+        # separate from the source INSERT below, and sources.credential_id has
+        # no enforcing FK (single-writer bars a cross-schema FK). A credential
+        # deleted between this check and the insert leaves a dangling soft
+        # reference -- permitted by design, since credentials legitimately
+        # rotate and may outlive the sources that named them. This closes the
+        # honor-system gap for the common case; it is not a race-free guarantee.
         async with pool.acquire() as conn, conn.transaction():
             exists = await conn.fetchval(
                 "SELECT EXISTS(SELECT 1 FROM credentials WHERE id = $1)",
