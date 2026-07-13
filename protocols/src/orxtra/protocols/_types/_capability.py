@@ -14,6 +14,7 @@ VALID_INJECT_TOKENS: frozenset[str] = frozenset({
     "dispatch_backend",
     "principal_storage",
     "kind_registry",
+    "caller_principal",
 })
 
 
@@ -35,8 +36,12 @@ class Capability:
     """The infrastructure dependencies the dispatcher passes to the service function.
 
     Valid tokens today: ``"pool"``, ``"dispatch_backend"``,
-    ``"principal_storage"``, ``"kind_registry"`` (see
-    ``VALID_INJECT_TOKENS``). An empty frozenset means a pure function that
+    ``"principal_storage"``, ``"kind_registry"``, ``"caller_principal"`` (see
+    ``VALID_INJECT_TOKENS``). Most tokens map to a concrete field on the
+    DispatchContext; ``"caller_principal"`` is a derived token -- the
+    dispatcher resolves the authenticated caller's ``AuthContext`` to its
+    persisted ``Principal`` (requiring both the auth context and principal
+    storage) and passes that. An empty frozenset means a pure function that
     receives only validated params. The token vocabulary will grow later.
     """
 

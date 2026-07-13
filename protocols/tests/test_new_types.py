@@ -301,6 +301,7 @@ class TestCapability:
             "dispatch_backend",
             "principal_storage",
             "kind_registry",
+            "caller_principal",
         }) == VALID_INJECT_TOKENS
 
     def test_unknown_inject_token_rejected(self) -> None:
