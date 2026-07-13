@@ -22,6 +22,7 @@ _mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
 _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
 MockTraceWriter = _mod.MockTraceWriter
 MockTransport = _mod.MockTransport
+TEST_RUN_PRINCIPAL_ID = _mod.TEST_RUN_PRINCIPAL_ID
 
 
 class RecordingSink:
@@ -48,6 +49,7 @@ def _make_scheduler(
     trace_writer = MockTraceWriter()
     transport = MockTransport()
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={"test": transport},
         agents={},

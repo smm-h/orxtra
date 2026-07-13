@@ -29,6 +29,7 @@ from orxtra.scheduler._tool_registry import (
 )
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_categories,
@@ -70,6 +71,7 @@ def _make_scheduler(
     trace = MockTraceWriter()
     transport = MockTransport(auto_execute_tools=True)
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},  # type: ignore[dict-item]
         agents={agent.name: agent},

@@ -450,6 +450,7 @@ class TestSchedulerRefreshIntegration:
         )
 
         scheduler = Scheduler(
+            run_principal_id=_mod.TEST_RUN_PRINCIPAL_ID,
             trace_writer=mock_trace_writer_cls(),  # type: ignore[arg-type]
             transport_registry={
                 "anthropic": mock_transport_cls(
@@ -533,6 +534,7 @@ class TestSchedulerRefreshIntegration:
         )
 
         scheduler = Scheduler(
+            run_principal_id=_mod.TEST_RUN_PRINCIPAL_ID,
             trace_writer=mock_trace_writer_cls(),  # type: ignore[arg-type]
             transport_registry={
                 "anthropic": mock_transport_cls(
@@ -592,6 +594,7 @@ class TestSchedulerRefreshIntegration:
         )
 
         scheduler = Scheduler(
+            run_principal_id=_mod.TEST_RUN_PRINCIPAL_ID,
             trace_writer=mock_trace_writer_cls(),  # type: ignore[arg-type]
             transport_registry={
                 "anthropic": mock_transport_cls(

@@ -12,6 +12,7 @@ from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result, StepFinish, StreamDelta, ToolUse
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     make_categories,
 )
@@ -122,6 +123,7 @@ def _make_scheduler(
 ) -> Scheduler:
     trace = MockTraceWriter()
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace,
         transport_registry={"anthropic": transport},
         agents={"test-agent": _make_agent()},
@@ -214,6 +216,7 @@ class TestOrchestratorIgnoresDeltas:
         transport = OrchestratorStreamTransport()
         trace = MockTraceWriter()
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace,
             transport_registry={"anthropic": transport},
             agents={"test-agent": _make_agent()},

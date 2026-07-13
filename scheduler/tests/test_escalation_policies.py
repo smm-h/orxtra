@@ -16,6 +16,7 @@ from orxtra.scheduler._types import (
 )
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -90,6 +91,7 @@ def _make_mixed_scheduler(
     bad_transport = MockTransport()
     good_transport = MockTransport(auto_execute_tools=True)
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={
             "google": bad_transport,
@@ -291,6 +293,7 @@ async def test_parent_escalation_delivers_message(
     mock_overseer = MockOverseerInterface()
     bad_transport = MockTransport()
     scheduler = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": bad_transport},
         agents={"test-agent": make_agent()},
@@ -486,6 +489,7 @@ async def test_create_workflow_wires_params(
     description, and goals to the trace layer and task spec."""
     transport = MockTransport(auto_execute_tools=True)
     scheduler = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},
         agents={"test-agent": make_agent()},

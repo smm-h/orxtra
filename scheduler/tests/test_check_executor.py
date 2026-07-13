@@ -18,6 +18,7 @@ from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result, StepFinish
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -166,6 +167,7 @@ class TestRunConsult:
         )
 
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
             transport_registry={"anthropic": MockTransport(auto_execute_tools=True)},  # type: ignore[dict-item]
             agents={"special-agent": agent},
@@ -185,6 +187,7 @@ class TestRunConsult:
     async def test_missing_provider_raises(self, tmp_path: Path) -> None:
         """run_consult raises ValueError when the provider is not registered."""
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
             transport_registry={},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -405,6 +408,7 @@ class TestCheckExecutorIntegration:
                 )
 
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
             transport_registry={
                 "anthropic": VerdictTransport(),

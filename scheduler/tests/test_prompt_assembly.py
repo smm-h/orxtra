@@ -25,6 +25,7 @@ from orxtra.protocols import TaskSpec
 from orxtra.scheduler._prompt_providers import _render_notepad
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -39,6 +40,7 @@ def _make_scheduler(
     from orxtra.scheduler._executor import Scheduler
 
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=MockTraceWriter(),  # type: ignore[arg-type]
         transport_registry={
             "anthropic": MockTransport(auto_execute_tools=True),

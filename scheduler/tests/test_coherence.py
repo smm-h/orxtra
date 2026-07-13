@@ -14,6 +14,7 @@ from orxtra.scheduler._executor import Scheduler
 from orxtra.transport import Result
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -134,6 +135,7 @@ def _make_scheduler(
     categories = make_categories()
     run_id = uuid6.uuid7()
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=tw,  # type: ignore[arg-type]
         transport_registry={
             "anthropic": transport,  # type: ignore[dict-item]

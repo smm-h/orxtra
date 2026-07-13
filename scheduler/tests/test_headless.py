@@ -26,7 +26,13 @@ from orxtra.scheduler._validator import validate_task_tree
 if TYPE_CHECKING:
     import uuid
 
-from .conftest import MockTraceWriter, MockTransport, make_agent, make_categories
+from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
+    MockTraceWriter,
+    MockTransport,
+    make_agent,
+    make_categories,
+)
 
 
 def _make_headless_scheduler(
@@ -41,6 +47,7 @@ def _make_headless_scheduler(
 ) -> Scheduler:
     """Create a headless Scheduler (no overseer_interface)."""
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={
             "anthropic": transport,
@@ -284,6 +291,7 @@ class TestSchedulerRequiresAutonomyLevel:
         transport = MockTransport()
         with pytest.raises(TypeError):
             Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace,  # type: ignore[arg-type]
                 transport_registry={"anthropic": transport},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},

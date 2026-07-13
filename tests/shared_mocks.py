@@ -21,6 +21,12 @@ if TYPE_CHECKING:
     from decimal import Decimal
 
 
+# The canonical run-principal id for tests. Scheduler.run_principal_id is a
+# required constructor arg (no sentinel default), so every test construction
+# supplies this single shared value rather than inventing an ad-hoc id.
+TEST_RUN_PRINCIPAL_ID = UUID("a11ce0de-0000-4000-8000-000000000001")
+
+
 def make_auth_context(
     scopes: frozenset[str] = ALL_SCOPES,
     *,

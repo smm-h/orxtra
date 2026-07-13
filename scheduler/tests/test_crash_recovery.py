@@ -9,6 +9,8 @@ from orxtra.scheduler._executor import Scheduler
 from orxtra.scheduler._types import WorkflowConfig
 from orxtra.trace import RunLockError
 
+from .conftest import TEST_RUN_PRINCIPAL_ID
+
 if TYPE_CHECKING:
     import uuid
     from pathlib import Path
@@ -49,6 +51,7 @@ def _make_scheduler(
     pool: object | None = None,
 ) -> Scheduler:
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},  # type: ignore[dict-item]
         agents=agents,

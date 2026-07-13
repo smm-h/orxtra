@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from orxtra.transport import TransportEvent
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -237,6 +238,7 @@ class TestAgentToolCallPath:
             task = _simple_task()
             config = _simple_workflow(tasks=[task])
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": transport},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -375,6 +377,7 @@ class TestAgentToolCallPath:
                 dependencies={},
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -857,6 +860,7 @@ class TestRetry:
                 dependencies={},
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -971,6 +975,7 @@ class TestRetry:
                 dependencies={},
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -1079,6 +1084,7 @@ class TestRetry:
                 retry_inject_failure=False,
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -1135,6 +1141,7 @@ class TestTaskTimeout:
             dependencies={},
         )
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"anthropic": SlowTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -1277,6 +1284,7 @@ class TestAccumulateCostError:
         # Use a category that maps to a model NOT in
         # the pricing table.
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"mock-provider": FailTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -1354,6 +1362,7 @@ class TestForEach:
         )
 
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"anthropic": transport},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -1445,6 +1454,7 @@ class TestForEach:
         )
 
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"anthropic": FailingTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -1535,6 +1545,7 @@ class TestForEach:
             max_concurrency=1,
         )
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"anthropic": FailSecondTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -1628,6 +1639,7 @@ class TestForEach:
         )
 
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"anthropic": TrackedTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -1744,6 +1756,7 @@ class TestTaskOutputPropagation:
             dependencies={"b": ["a"]},
         )
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"anthropic": CapturingTransport()},  # type: ignore[dict-item]
             agents={"test-agent": make_agent()},
@@ -1884,6 +1897,7 @@ class TestOnSuccessCallback:
                 dependencies={},
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={
                     "anthropic": MockTransport(auto_execute_tools=True),
@@ -2023,6 +2037,7 @@ class TestPreRetryCallback:
                 dependencies={},
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -2149,6 +2164,7 @@ class TestPreRetryCallback:
                 ),
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": RetryTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -2280,6 +2296,7 @@ class TestRetryResume:
                 dependencies={},
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": TrackingTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},
@@ -2405,6 +2422,7 @@ class TestRetryInjectFailure:
                 dependencies={},
             )
             sched = Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace_writer,  # type: ignore[arg-type]
                 transport_registry={"anthropic": CapturingTransport()},  # type: ignore[dict-item]
                 agents={"test-agent": make_agent()},

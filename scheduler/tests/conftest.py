@@ -25,6 +25,7 @@ _mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
 _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
 MockTraceWriter = _mod.MockTraceWriter
 MockTransport = _mod.MockTransport
+TEST_RUN_PRINCIPAL_ID = _mod.TEST_RUN_PRINCIPAL_ID
 
 
 def make_agent(
@@ -85,6 +86,7 @@ def scheduler(
         categories=categories,
         run_id=run_id,
         read_root=tmp_path,
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         autonomy_level="max",
     )
 
@@ -108,6 +110,7 @@ def make_scheduler(
             "categories": categories,
             "run_id": run_id,
             "read_root": tmp_path,
+            "run_principal_id": TEST_RUN_PRINCIPAL_ID,
             "autonomy_level": "max",
         }
         defaults.update(kwargs)

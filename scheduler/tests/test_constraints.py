@@ -9,6 +9,7 @@ from orxtra.protocols import ConstraintKind
 from orxtra.scheduler._executor import Scheduler
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -26,6 +27,7 @@ def _make_scheduler(
     read_root: Path,
 ) -> Scheduler:
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={
             "anthropic": transport,
@@ -221,6 +223,7 @@ async def test_no_removed_exports_detects_removal(
     transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace,
         transport_registry={"anthropic": transport},
         agents={"test-agent": make_agent()},
@@ -264,6 +267,7 @@ async def test_no_removed_exports_passes_when_unchanged(
     transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace,
         transport_registry={"anthropic": transport},
         agents={"test-agent": make_agent()},
@@ -298,6 +302,7 @@ async def test_no_changed_signatures_detects_change(
     transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace,
         transport_registry={"anthropic": transport},
         agents={"test-agent": make_agent()},
@@ -335,6 +340,7 @@ async def test_no_changed_signatures_passes_when_unchanged(
     transport = MockTransport(auto_execute_tools=True)
     run_id = uuid6.uuid7()
     sched = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace,
         transport_registry={"anthropic": transport},
         agents={"test-agent": make_agent()},

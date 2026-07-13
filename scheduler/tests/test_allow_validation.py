@@ -466,6 +466,7 @@ class TestSchedulerConstructionValidation:
         from orxtra.scheduler._executor import Scheduler
 
         from .conftest import (
+            TEST_RUN_PRINCIPAL_ID,
             MockTraceWriter,
             MockTransport,
             make_categories,
@@ -480,6 +481,7 @@ class TestSchedulerConstructionValidation:
             match=r"Agent 'coder' references unknown tool 'raed'",
         ):
             Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace,  # type: ignore[arg-type]
                 transport_registry={"anthropic": transport},  # type: ignore[dict-item]
                 agents={"coder": agent},
@@ -497,6 +499,7 @@ class TestSchedulerConstructionValidation:
         from orxtra.scheduler._executor import Scheduler
 
         from .conftest import (
+            TEST_RUN_PRINCIPAL_ID,
             MockTraceWriter,
             MockTransport,
             make_categories,
@@ -511,6 +514,7 @@ class TestSchedulerConstructionValidation:
             match=r"Agent 'coder' references unknown tag 'mutatin'",
         ):
             Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace,  # type: ignore[arg-type]
                 transport_registry={"anthropic": transport},  # type: ignore[dict-item]
                 agents={"coder": agent},
@@ -528,6 +532,7 @@ class TestSchedulerConstructionValidation:
         from orxtra.scheduler._executor import Scheduler
 
         from .conftest import (
+            TEST_RUN_PRINCIPAL_ID,
             MockTraceWriter,
             MockTransport,
             make_categories,
@@ -547,6 +552,7 @@ class TestSchedulerConstructionValidation:
 
         # Should not raise.
         Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace,  # type: ignore[arg-type]
             transport_registry={"anthropic": transport},  # type: ignore[dict-item]
             agents={"coder": agent},
@@ -565,6 +571,7 @@ class TestSchedulerConstructionValidation:
         from orxtra.scheduler._executor import Scheduler
 
         from .conftest import (
+            TEST_RUN_PRINCIPAL_ID,
             MockTraceWriter,
             MockTransport,
             make_categories,
@@ -589,6 +596,7 @@ class TestSchedulerConstructionValidation:
             ),
         ):
             Scheduler(
+                run_principal_id=TEST_RUN_PRINCIPAL_ID,
                 trace_writer=trace,  # type: ignore[arg-type]
                 transport_registry={"anthropic": transport},  # type: ignore[dict-item]
                 agents={"coder": agent},

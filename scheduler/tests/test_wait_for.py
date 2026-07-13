@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     import uuid
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -53,6 +54,7 @@ def _make_scheduler(
 ) -> Scheduler:
     """Create a headless scheduler with explicit event_delivery."""
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={"anthropic": transport},
         agents={"test-agent": make_agent()},

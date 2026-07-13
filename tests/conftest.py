@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from orxtra.transport import TransportEvent
 
 
-from tests.shared_mocks import MockTraceWriter
+from tests.shared_mocks import TEST_RUN_PRINCIPAL_ID, MockTraceWriter
 
 # pytest_plugins lives in the workspace-root conftest.py -- pytest 8+
 # forbids defining it in non-top-level conftests.
@@ -440,6 +440,7 @@ def make_scheduler(
     if read_root is None:
         read_root = Path(tempfile.mkdtemp())
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},  # type: ignore[dict-item]
         agents=agents,

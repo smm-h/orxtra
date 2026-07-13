@@ -16,6 +16,7 @@ from orxtra.scheduler._executor import Scheduler
 from orxtra.secrets import SecretRegistry
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -44,6 +45,7 @@ def _make_scheduler(
     secret_registry: SecretRegistry | None = None,
 ) -> Scheduler:
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},  # type: ignore[dict-item]
         agents={"test-agent": make_agent()},

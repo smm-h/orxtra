@@ -12,6 +12,8 @@ from orxtra.protocols import TaskResult, TaskSpec
 from orxtra.scheduler import Scheduler, WorkflowConfig
 from orxtra.trace import InMemoryBackend, InMemoryEventBus
 
+from tests.shared_mocks import TEST_RUN_PRINCIPAL_ID
+
 # InMemoryBackend does not enforce the principals FK; a shared stand-in id
 # suffices for the creating actor in these fixtures.
 _CREATED_BY = uuid6.uuid7()
@@ -66,6 +68,7 @@ class TestInMemoryWorkflow:
 
         # Create scheduler with the in-memory backend
         scheduler = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=backend,
             transport_registry={},
             agents={},
@@ -114,6 +117,7 @@ class TestInMemoryWorkflow:
         )
 
         scheduler = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=backend,
             transport_registry={},
             agents={},
@@ -155,6 +159,7 @@ class TestInMemoryWorkflow:
         )
 
         scheduler = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=backend,
             transport_registry={},
             agents={},
@@ -191,6 +196,7 @@ class TestInMemoryWorkflow:
         )
 
         scheduler = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=backend,
             transport_registry={},
             agents={},
@@ -228,6 +234,7 @@ class TestInMemoryWorkflow:
         )
 
         scheduler = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=backend,
             transport_registry={},
             agents={},

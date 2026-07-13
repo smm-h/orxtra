@@ -36,6 +36,7 @@ from orxtra.scheduler._types import WorkflowConfig
 from orxtra.transport import Result, StepFinish, ToolUse
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -76,6 +77,7 @@ def _make_scheduler(
     categories: dict[str, str] | None = None,
 ) -> Scheduler:
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,  # type: ignore[arg-type]
         transport_registry={"anthropic": transport},  # type: ignore[dict-item]
         agents=agents or {"test-agent": make_agent()},

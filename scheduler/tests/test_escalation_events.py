@@ -8,6 +8,7 @@ from orxtra.protocols import TaskSpec
 from orxtra.scheduler._executor import Scheduler
 
 from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
     MockTraceWriter,
     MockTransport,
     make_agent,
@@ -57,6 +58,7 @@ def _make_scheduler(
     overseer: MockOverseerInterface | None = None,
 ) -> Scheduler:
     return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={
             "anthropic": transport,
@@ -98,6 +100,7 @@ async def test_escalated_task_sends_event(
     # so the agent session ends without completing
     bad_transport = MockTransport()
     scheduler = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={
             "anthropic": bad_transport,
@@ -139,6 +142,7 @@ async def test_escalation_payload_content(
     mock_overseer = MockOverseerInterface()
     bad_transport = MockTransport()
     scheduler = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={
             "anthropic": bad_transport,
@@ -178,6 +182,7 @@ async def test_no_overseer_escalation_noop(
     """No Overseer: escalation uses headless fallback."""
     bad_transport = MockTransport()
     scheduler = Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
         trace_writer=trace_writer,
         transport_registry={
             "anthropic": bad_transport,

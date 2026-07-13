@@ -9,7 +9,13 @@ import pytest
 import uuid6
 from orxtra.scheduler._executor import Scheduler
 
-from .conftest import MockTraceWriter, MockTransport, make_agent, make_categories
+from .conftest import (
+    TEST_RUN_PRINCIPAL_ID,
+    MockTraceWriter,
+    MockTransport,
+    make_agent,
+    make_categories,
+)
 
 if TYPE_CHECKING:
     import uuid
@@ -175,6 +181,7 @@ class TestCheckAgentContext:
         transport = MockTransport(auto_execute_tools=False)
         agents = {"test-agent": make_agent()}
         sched = Scheduler(
+            run_principal_id=TEST_RUN_PRINCIPAL_ID,
             trace_writer=trace_writer,  # type: ignore[arg-type]
             transport_registry={"anthropic": transport},  # type: ignore[dict-item]
             agents=agents,

@@ -66,11 +66,6 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger("orxtra.scheduler")
 
-# The system-principal sentinel (all-zeros) used as the default run principal
-# when a Scheduler is constructed without one (tests). Production passes the
-# run's own minted principal via services.start_run.
-_SYSTEM_PRINCIPAL_SENTINEL = UUID(int=0)
-
 _ACTIVE_STATES = frozenset({
     TaskState.ACTIVE,
     TaskState.PRECHECKING,
@@ -136,7 +131,7 @@ class Scheduler(
         run_id: UUID,
         read_root: Path,
         *,
-        run_principal_id: UUID = _SYSTEM_PRINCIPAL_SENTINEL,
+        run_principal_id: UUID,
         pool: asyncpg.Pool | None = None,
         backend: StorageBackend | None = None,
         overseer_interface: OverseerInterface | None = None,
@@ -180,10 +175,11 @@ class Scheduler(
         self._categories = categories
         self._run_id = run_id
         # The run's own principal id -- every scheduler-emitted event and task/
-        # run transition is attributed to it. Defaults to the system-principal
-        # sentinel (UUID(int=0)) so tests can construct a Scheduler without a
-        # minted run principal; production (services.start_run) always passes
-        # the real run principal minted at run birth.
+        # run transition is attributed to it. Required: production
+        # (services.start_run) passes the real run principal minted at run
+        # birth, and tests pass a dedicated test run-principal id. There is no
+        # default -- a missing run principal would silently mis-attribute every
+        # event to the system-principal sentinel, so the caller must choose.
         self._run_principal_id = run_principal_id
         self._read_root = read_root
         self._overseer_interface = overseer_interface
