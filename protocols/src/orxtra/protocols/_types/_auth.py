@@ -99,6 +99,8 @@ SCOPE_SOURCES_READ = "sources:read"
 SCOPE_SOURCES_MANAGE = "sources:manage"
 SCOPE_SUBSCRIPTIONS_READ = "subscriptions:read"
 SCOPE_SUBSCRIPTIONS_MANAGE = "subscriptions:manage"
+SCOPE_PRINCIPALS_READ = "principals:read"
+SCOPE_PRINCIPALS_MANAGE = "principals:manage"
 
 ALL_SCOPES: frozenset[str] = frozenset({
     SCOPE_RUNS_READ,
@@ -114,4 +116,6 @@ ALL_SCOPES: frozenset[str] = frozenset({
     SCOPE_SOURCES_MANAGE,
     SCOPE_SUBSCRIPTIONS_READ,
     SCOPE_SUBSCRIPTIONS_MANAGE,
+    SCOPE_PRINCIPALS_READ,
+    SCOPE_PRINCIPALS_MANAGE,
 })
