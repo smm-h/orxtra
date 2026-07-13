@@ -82,6 +82,7 @@ releasable = "orxtra"
 [[projects]]
 path = "trace"
 description = "PG schema owner (events, task results, transcripts, inbox, state machines)"
+depends_on = ["protocols"]
 library = true
 releasable = "orxtra"
 
@@ -137,7 +138,7 @@ releasable = "orxtra"
 [[projects]]
 path = "dispatch"
 description = "Event delivery: subscriptions, action dispatch, accumulator flush"
-depends_on = ["protocols"]
+depends_on = ["protocols", "trace"]
 library = true
 releasable = "orxtra"
 
@@ -154,7 +155,7 @@ releasable = "orxtra"
 [[projects]]
 path = "services"
 description = "Shared business logic for all frontends"
-depends_on = ["agent", "auth", "dispatch", "identity", "protocols", "scheduler", "session", "overseer", "trace"]
+depends_on = ["agent", "auth", "dispatch", "identity", "overseer", "protocols", "scheduler", "secrets", "session", "tool", "trace", "transport"]
 releasable = "orxtra"
 
 # --- Interface layer ---
@@ -162,25 +163,25 @@ releasable = "orxtra"
 [[projects]]
 path = "cli"
 description = "strictcli CLI frontend (agents are the primary users)"
-depends_on = ["services", "trace", "api"]
+depends_on = ["api", "identity", "protocols", "services", "worker"]
 releasable = "orxtra"
 
 [[projects]]
 path = "mcp"
 description = "MCP server (human interface via dashboard/AI client)"
-depends_on = ["services"]
+depends_on = ["protocols", "services"]
 releasable = "orxtra"
 
 [[projects]]
 path = "a2a"
 description = "A2A (Agent-to-Agent) protocol server"
-depends_on = ["services"]
+depends_on = ["protocols", "services"]
 releasable = "orxtra"
 
 [[projects]]
 path = "agui"
 description = "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots."
-depends_on = ["identity", "services"]
+depends_on = ["identity", "protocols", "services", "transport"]
 releasable = "orxtra"
 
 [[projects]]
@@ -193,13 +194,13 @@ releasable = "orxtra"
 [[projects]]
 path = "incoming"
 description = "Webhook receiver, event replay, and SSE stream. External event ingestion for the event bus."
-depends_on = ["protocols", "services", "auth", "trace"]
+depends_on = ["auth", "dispatch", "protocols", "secrets", "services", "trace"]
 releasable = "orxtra"
 
 [[projects]]
 path = "api"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
-depends_on = ["mcp", "a2a", "agui", "services", "auth", "incoming"]
+depends_on = ["a2a", "agui", "auth", "dispatch", "identity", "incoming", "mcp", "protocols", "secrets", "services"]
 releasable = "orxtra"
 
 # --- Infrastructure ---

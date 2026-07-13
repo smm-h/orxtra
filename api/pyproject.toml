@@ -5,16 +5,19 @@ license = "BUSL-1.1"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
 requires-python = ">=3.12"
 dependencies = [
+    "asyncpg",
     "fastware>=0.5.0",
-    "orxtra-auth",
-    "orxtra-identity",
-    "orxtra-dispatch",
-    "orxtra-mcp",
+    "strictcli",
     "orxtra-a2a",
     "orxtra-agui",
-    "orxtra-services",
+    "orxtra-auth",
+    "orxtra-dispatch",
+    "orxtra-identity",
     "orxtra-incoming",
-    "asyncpg",
+    "orxtra-mcp",
+    "orxtra-protocols",
+    "orxtra-secrets",
+    "orxtra-services",
 ]
 keywords = ["rlsbl"]
 
@@ -33,11 +36,13 @@ build-backend = "hatchling.build"
 packages = ["src/orxtra"]
 
 [tool.uv.sources]
-orxtra-auth = { workspace = true }
-orxtra-identity = { workspace = true }
-orxtra-dispatch = { workspace = true }
-orxtra-mcp = { workspace = true }
 orxtra-a2a = { workspace = true }
 orxtra-agui = { workspace = true }
-orxtra-services = { workspace = true }
+orxtra-auth = { workspace = true }
+orxtra-dispatch = { workspace = true }
+orxtra-identity = { workspace = true }
 orxtra-incoming = { workspace = true }
+orxtra-mcp = { workspace = true }
+orxtra-protocols = { workspace = true }
+orxtra-secrets = { workspace = true }
+orxtra-services = { workspace = true }

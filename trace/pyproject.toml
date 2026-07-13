@@ -8,6 +8,7 @@ dependencies = [
     "pydantic>=2",
     "asyncpg",
     "uuid6",
+    "orxtra-protocols",
 ]
 keywords = ["rlsbl"]
 
@@ -17,3 +18,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/orxtra"]
+
+[tool.uv.sources]
+orxtra-protocols = { workspace = true }

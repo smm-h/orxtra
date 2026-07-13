@@ -5,7 +5,6 @@ license = "BUSL-1.1"
 description = "Verification runner. Ordered callable chains, structured verdicts, severity-gated blocking."
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2",
     "orxtra-protocols",
 ]
 keywords = ["rlsbl"]

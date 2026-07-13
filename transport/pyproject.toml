@@ -5,7 +5,6 @@ license = "BUSL-1.1"
 description = "Typed LLM client via Provider protocol. Raw httpx, streaming events, tool-call loop, auto-retry."
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2",
     "httpx",
     "uuid6",
     "orxtra-protocols",

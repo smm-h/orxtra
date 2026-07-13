@@ -7,14 +7,17 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "asyncpg",
+    "uuid6",
     "orxtra-agent",
     "orxtra-auth",
     "orxtra-dispatch",
     "orxtra-identity",
+    "orxtra-overseer",
     "orxtra-protocols",
     "orxtra-scheduler",
+    "orxtra-secrets",
     "orxtra-session",
-    "orxtra-overseer",
+    "orxtra-tool",
     "orxtra-trace",
     "orxtra-transport",
 ]
@@ -32,9 +35,11 @@ orxtra-agent = { workspace = true }
 orxtra-auth = { workspace = true }
 orxtra-dispatch = { workspace = true }
 orxtra-identity = { workspace = true }
+orxtra-overseer = { workspace = true }
 orxtra-protocols = { workspace = true }
 orxtra-scheduler = { workspace = true }
+orxtra-secrets = { workspace = true }
 orxtra-session = { workspace = true }
-orxtra-overseer = { workspace = true }
+orxtra-tool = { workspace = true }
 orxtra-trace = { workspace = true }
 orxtra-transport = { workspace = true }

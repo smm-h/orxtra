@@ -5,10 +5,10 @@ license = "BUSL-1.1"
 description = "Event delivery: subscriptions, action dispatch, accumulator flush."
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2",
     "asyncpg",
-    "orxtra-protocols",
     "uuid6",
+    "orxtra-protocols",
+    "orxtra-trace",
 ]
 keywords = ["rlsbl"]
 
@@ -28,3 +28,4 @@ packages = ["src/orxtra"]
 
 [tool.uv.sources]
 orxtra-protocols = { workspace = true }
+orxtra-trace = { workspace = true }

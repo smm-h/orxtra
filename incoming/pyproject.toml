@@ -16,7 +16,7 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [dependency-groups]
-dev = ["pytest>=9.1.0", "pytest-asyncio>=1.4.0"]
+dev = ["pytest>=9.1.0", "pytest-asyncio>=1.4.0", "uuid6"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

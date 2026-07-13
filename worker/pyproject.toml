@@ -5,14 +5,15 @@ license = "BUSL-1.1"
 description = "Brain-worker protocol: remote tool execution over WebSocket."
 requires-python = ">=3.12"
 dependencies = [
-    "orxtra-protocols",
-    "orxtra-tool",
-    "orxtra-write-safety",
-    "orxtra-auth",
-    "orxtra-secrets",
     "fastware>=0.5.0",
     "pydantic>=2",
+    "strictcli",
     "websockets",
+    "orxtra-auth",
+    "orxtra-protocols",
+    "orxtra-secrets",
+    "orxtra-tool",
+    "orxtra-write-safety",
 ]
 keywords = ["rlsbl"]
 

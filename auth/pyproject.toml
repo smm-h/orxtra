@@ -5,8 +5,9 @@ license = "BUSL-1.1"
 description = "Authentication and authorization. Consumer registry, credential hashing, ASGI middleware."
 requires-python = ">=3.12"
 dependencies = [
-    "orxtra-protocols",
     "asyncpg",
+    "uuid6",
+    "orxtra-protocols",
 ]
 keywords = ["rlsbl"]
 
