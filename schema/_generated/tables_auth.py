@@ -9,6 +9,7 @@ DDLStmt = namedtuple("DDLStmt", ["sql", "idempotent_sql", "kind", "name", "table
 STATEMENTS: Final[list[DDLStmt]] = [
     DDLStmt("""CREATE TABLE public.consumers (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    principal_id uuid NOT NULL,
     name text NOT NULL,
     trust_tier public.trust_tier NOT NULL,
     scope_grants jsonb NOT NULL DEFAULT '[]',
@@ -17,6 +18,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     CONSTRAINT pk_consumers PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.consumers (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    principal_id uuid NOT NULL,
     name text NOT NULL,
     trust_tier public.trust_tier NOT NULL,
     scope_grants jsonb NOT NULL DEFAULT '[]',
@@ -45,6 +47,16 @@ STATEMENTS: Final[list[DDLStmt]] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_credentials PRIMARY KEY (id)
 );""", "table", "credentials", "credentials", 4, True),
+    DDLStmt("ALTER TABLE public.consumers ADD CONSTRAINT fk_consumers_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_consumers_principal'
+    AND conrelid = 'public.consumers'::regclass
+  ) THEN
+    ALTER TABLE public.consumers ADD CONSTRAINT fk_consumers_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk", "fk_consumers_principal", "consumers", 6, True),
     DDLStmt("ALTER TABLE public.credentials ADD CONSTRAINT fk_credentials_consumer FOREIGN KEY (consumer_id) REFERENCES public.consumers (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -55,6 +67,16 @@ BEGIN
     ALTER TABLE public.credentials ADD CONSTRAINT fk_credentials_consumer FOREIGN KEY (consumer_id) REFERENCES public.consumers (id) ON DELETE CASCADE;
   END IF;
 END $$;""", "fk", "fk_credentials_consumer", "credentials", 6, True),
+    DDLStmt("ALTER TABLE public.consumers ADD CONSTRAINT uq_consumers_principal_id UNIQUE (principal_id);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_consumers_principal_id'
+    AND conrelid = 'public.consumers'::regclass
+  ) THEN
+    ALTER TABLE public.consumers ADD CONSTRAINT uq_consumers_principal_id UNIQUE (principal_id);
+  END IF;
+END $$;""", "unique", "uq_consumers_principal_id", "consumers", 7, True),
     DDLStmt("ALTER TABLE public.consumers ADD CONSTRAINT chk_consumers_name_not_empty CHECK (name <> '');", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -75,11 +97,13 @@ BEGIN
     ALTER TABLE public.credentials ADD CONSTRAINT chk_credentials_hash_not_empty CHECK (credential_hash <> '' AND algorithm <> '');
   END IF;
 END $$;""", "check", "chk_credentials_hash_not_empty", "credentials", 8, True),
+    DDLStmt("CREATE INDEX idx_consumers_principal_id ON public.consumers (principal_id);", "CREATE INDEX IF NOT EXISTS idx_consumers_principal_id ON public.consumers (principal_id);", "index", "idx_consumers_principal_id", "consumers", 9, True),
     DDLStmt("CREATE INDEX idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "CREATE INDEX IF NOT EXISTS idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "index", "idx_consumers_scope_grants_gin", "consumers", 9, True),
     DDLStmt("CREATE INDEX idx_credentials_consumer_id ON public.credentials (consumer_id);", "CREATE INDEX IF NOT EXISTS idx_credentials_consumer_id ON public.credentials (consumer_id);", "index", "idx_credentials_consumer_id", "credentials", 9, True),
     DDLStmt("CREATE INDEX idx_credentials_hash ON public.credentials (credential_hash);", "CREATE INDEX IF NOT EXISTS idx_credentials_hash ON public.credentials (credential_hash);", "index", "idx_credentials_hash", "credentials", 9, True),
     DDLStmt("CREATE INDEX idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "CREATE INDEX IF NOT EXISTS idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "index", "idx_credentials_metadata_gin", "credentials", 9, True),
     DDLStmt("COMMENT ON TABLE public.consumers IS 'API consumers with trust tiers and scope grants.';", None, "comment", "table.consumers", "consumers", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.consumers.principal_id IS 'The consumer''s own identity row (kind=''consumer'', external_ref=consumer id). Historical rows are backfilled to a minted per-consumer principal.';", None, "comment", "column.consumers.principal_id", "consumers", 10, True),
     DDLStmt("COMMENT ON COLUMN public.consumers.name IS 'Human-readable consumer name';", None, "comment", "column.consumers.name", "consumers", 10, True),
     DDLStmt("COMMENT ON COLUMN public.consumers.scope_grants IS 'JSON array of granted scope strings';", None, "comment", "column.consumers.scope_grants", "consumers", 10, True),
     DDLStmt("COMMENT ON COLUMN public.consumers.disabled_at IS 'Non-null means the consumer is disabled';", None, "comment", "column.consumers.disabled_at", "consumers", 10, True),

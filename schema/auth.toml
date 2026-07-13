@@ -3,7 +3,7 @@
 # Consumers are API clients; credentials link to consumers for authentication.
 
 [meta]
-version = 1
+version = 2
 schema = "public"
 extensions = ["pg_uuidv7"]
 
@@ -31,6 +31,10 @@ comment = "API consumers with trust tiers and scope grants."
 [tables.consumers.columns.id]
 type = "id"
 
+[tables.consumers.columns.principal_id]
+type = "ref"
+comment = "The consumer's own identity row (kind='consumer', external_ref=consumer id). Historical rows are backfilled to a minted per-consumer principal."
+
 [tables.consumers.columns.name]
 type = "str"
 comment = "Human-readable consumer name"
@@ -56,6 +60,18 @@ expr = "name <> ''"
 [tables.consumers.indexes.idx_consumers_scope_grants_gin]
 columns = ["scope_grants"]
 method = "gin"
+
+# Cross-file FK: consumers.principal_id -> identity's principals table. pgdesign
+# resolves this in its ALTER phase (topo sort merges all schema/ files). A
+# consumer has exactly one identity row, so the column is UNIQUE.
+[tables.consumers.fks.fk_consumers_principal]
+columns = ["principal_id"]
+ref_table = "principals"
+ref_columns = ["id"]
+on_delete = "RESTRICT"
+
+[tables.consumers.unique.uq_consumers_principal_id]
+columns = ["principal_id"]
 
 # ---------------------------------------------------------------------------
 # Tables: Credentials

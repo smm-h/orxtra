@@ -7,7 +7,7 @@
 # when generating from the schema/ directory (topo sort merges all files).
 
 [meta]
-version = 1
+version = 2
 schema = "public"
 
 # ---------------------------------------------------------------------------
@@ -36,6 +36,10 @@ comment = "FK to auth.credentials for source authentication"
 type = "jsonb_nullable"
 comment = "Per-source mapping config (event_type extraction, field mapping)"
 
+[tables.sources.columns.created_by]
+type = "ref"
+comment = "The creating actor's principal. Historical rows are backfilled to the system principal (the original creator is unknowable)."
+
 [tables.sources.columns.created_at]
 type = "timestamp"
 
@@ -48,6 +52,18 @@ method = "gin"
 
 [tables.sources.unique.uq_sources_slug]
 columns = ["slug"]
+
+# Cross-file FK: sources.created_by -> identity's principals table. pgdesign
+# resolves this in its ALTER phase (topo sort merges all schema/ files), the
+# same way runs.created_by references identity's principals table.
+[tables.sources.fks.fk_sources_created_by]
+columns = ["created_by"]
+ref_table = "principals"
+ref_columns = ["id"]
+on_delete = "RESTRICT"
+
+[tables.sources.indexes.idx_sources_created_by]
+columns = ["created_by"]
 
 # ---------------------------------------------------------------------------
 # Tables: Subscriptions

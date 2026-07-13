@@ -13,6 +13,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     name text NOT NULL,
     credential_id uuid,
     config jsonb,
+    created_by uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_sources PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.sources (
@@ -21,6 +22,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     name text NOT NULL,
     credential_id uuid,
     config jsonb,
+    created_by uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_sources PRIMARY KEY (id)
 );""", "table", "sources", "sources", 4, True),
@@ -103,6 +105,16 @@ STATEMENTS: Final[list[DDLStmt]] = [
     completed_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_dispatch_completions PRIMARY KEY (id)
 );""", "table", "dispatch_completions", "dispatch_completions", 4, True),
+    DDLStmt("ALTER TABLE public.sources ADD CONSTRAINT fk_sources_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_sources_created_by'
+    AND conrelid = 'public.sources'::regclass
+  ) THEN
+    ALTER TABLE public.sources ADD CONSTRAINT fk_sources_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk", "fk_sources_created_by", "sources", 6, True),
     DDLStmt("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_run FOREIGN KEY (owner_run_id) REFERENCES public.runs (id) ON DELETE SET NULL;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -284,6 +296,7 @@ BEGIN
   END IF;
 END $$;""", "check", "chk_dispatch_completions_status_valid", "dispatch_completions", 8, True),
     DDLStmt("CREATE INDEX idx_sources_config_gin ON public.sources USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_sources_config_gin ON public.sources USING gin (config);", "index", "idx_sources_config_gin", "sources", 9, True),
+    DDLStmt("CREATE INDEX idx_sources_created_by ON public.sources (created_by);", "CREATE INDEX IF NOT EXISTS idx_sources_created_by ON public.sources (created_by);", "index", "idx_sources_created_by", "sources", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "CREATE INDEX IF NOT EXISTS idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "index", "idx_subscriptions_active", "subscriptions", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "index", "idx_subscriptions_filter_expr_gin", "subscriptions", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "index", "idx_subscriptions_owner_run_id", "subscriptions", 9, True),
@@ -300,6 +313,7 @@ END $$;""", "check", "chk_dispatch_completions_status_valid", "dispatch_completi
     DDLStmt("COMMENT ON COLUMN public.sources.name IS 'Human-readable source name';", None, "comment", "column.sources.name", "sources", 10, True),
     DDLStmt("COMMENT ON COLUMN public.sources.credential_id IS 'FK to auth.credentials for source authentication';", None, "comment", "column.sources.credential_id", "sources", 10, True),
     DDLStmt("COMMENT ON COLUMN public.sources.config IS 'Per-source mapping config (event_type extraction, field mapping)';", None, "comment", "column.sources.config", "sources", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.sources.created_by IS 'The creating actor''s principal. Historical rows are backfilled to the system principal (the original creator is unknowable).';", None, "comment", "column.sources.created_by", "sources", 10, True),
     DDLStmt("COMMENT ON TABLE public.subscriptions IS 'Event subscriptions. A subscription matches events via filter_expr and routes them to actions.';", None, "comment", "table.subscriptions", "subscriptions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscriptions.source_id IS 'Optional source filter (null = match all sources)';", None, "comment", "column.subscriptions.source_id", "subscriptions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscriptions.filter_expr IS 'FilterPredicate serialized as JSON';", None, "comment", "column.subscriptions.filter_expr", "subscriptions", 10, True),

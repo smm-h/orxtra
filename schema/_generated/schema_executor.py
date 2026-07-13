@@ -9,13 +9,13 @@ from typing import Any, Final, Protocol, Sequence, runtime_checkable
 
 from .extensions import STATEMENTS as _ext_stmts
 from .types import STATEMENTS as _types_stmts
-from .tables_dispatch import STATEMENTS as _tables_dispatch_stmts
-from .tables_auth import STATEMENTS as _tables_auth_stmts
 from .tables_identity import STATEMENTS as _tables_identity_stmts
 from .tables_trace import STATEMENTS as _tables_trace_stmts
+from .tables_dispatch import STATEMENTS as _tables_dispatch_stmts
+from .tables_auth import STATEMENTS as _tables_auth_stmts
 from .post_tables import STATEMENTS as _post_stmts
 
-_ALL_STMTS = _ext_stmts + _types_stmts + _tables_dispatch_stmts + _tables_auth_stmts + _tables_identity_stmts + _tables_trace_stmts + _post_stmts
+_ALL_STMTS = _ext_stmts + _types_stmts + _tables_identity_stmts + _tables_trace_stmts + _tables_dispatch_stmts + _tables_auth_stmts + _post_stmts
 
 
 @runtime_checkable
@@ -181,40 +181,6 @@ END $$;""", "credential_type"),
         kind="tables",
         transactional=True,
         ops=[
-            DDLOp("""CREATE TABLE public.sources (
-    id uuid NOT NULL DEFAULT uuid_generate_v7(),
-    slug text NOT NULL,
-    name text NOT NULL,
-    credential_id uuid,
-    config jsonb,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_sources PRIMARY KEY (id)
-);""", """CREATE TABLE IF NOT EXISTS public.sources (
-    id uuid NOT NULL DEFAULT uuid_generate_v7(),
-    slug text NOT NULL,
-    name text NOT NULL,
-    credential_id uuid,
-    config jsonb,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_sources PRIMARY KEY (id)
-);""", "sources"),
-            DDLOp("""CREATE TABLE public.consumers (
-    id uuid NOT NULL DEFAULT uuid_generate_v7(),
-    name text NOT NULL,
-    trust_tier public.trust_tier NOT NULL,
-    scope_grants jsonb NOT NULL DEFAULT '[]',
-    disabled_at timestamptz,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_consumers PRIMARY KEY (id)
-);""", """CREATE TABLE IF NOT EXISTS public.consumers (
-    id uuid NOT NULL DEFAULT uuid_generate_v7(),
-    name text NOT NULL,
-    trust_tier public.trust_tier NOT NULL,
-    scope_grants jsonb NOT NULL DEFAULT '[]',
-    disabled_at timestamptz,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_consumers PRIMARY KEY (id)
-);""", "consumers"),
             DDLOp("""CREATE TABLE public.principals (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     kind text NOT NULL,
@@ -230,27 +196,6 @@ END $$;""", "credential_type"),
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_principals PRIMARY KEY (id)
 );""", "principals"),
-            DDLOp("""CREATE TABLE public.credentials (
-    id uuid NOT NULL DEFAULT uuid_generate_v7(),
-    consumer_id uuid NOT NULL,
-    credential_type public.credential_type NOT NULL,
-    credential_hash text NOT NULL,
-    algorithm text NOT NULL DEFAULT 'sha256',
-    metadata jsonb NOT NULL DEFAULT '{}',
-    secret_ref text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_credentials PRIMARY KEY (id)
-);""", """CREATE TABLE IF NOT EXISTS public.credentials (
-    id uuid NOT NULL DEFAULT uuid_generate_v7(),
-    consumer_id uuid NOT NULL,
-    credential_type public.credential_type NOT NULL,
-    credential_hash text NOT NULL,
-    algorithm text NOT NULL DEFAULT 'sha256',
-    metadata jsonb NOT NULL DEFAULT '{}',
-    secret_ref text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_credentials PRIMARY KEY (id)
-);""", "credentials"),
             DDLOp("""CREATE TABLE public.runs (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     intent text NOT NULL,
@@ -286,6 +231,44 @@ END $$;""", "credential_type"),
     coherence_summary text,
     CONSTRAINT pk_runs PRIMARY KEY (id)
 );""", "runs"),
+            DDLOp("""CREATE TABLE public.sources (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    slug text NOT NULL,
+    name text NOT NULL,
+    credential_id uuid,
+    config jsonb,
+    created_by uuid NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_sources PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.sources (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    slug text NOT NULL,
+    name text NOT NULL,
+    credential_id uuid,
+    config jsonb,
+    created_by uuid NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_sources PRIMARY KEY (id)
+);""", "sources"),
+            DDLOp("""CREATE TABLE public.consumers (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    principal_id uuid NOT NULL,
+    name text NOT NULL,
+    trust_tier public.trust_tier NOT NULL,
+    scope_grants jsonb NOT NULL DEFAULT '[]',
+    disabled_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_consumers PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.consumers (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    principal_id uuid NOT NULL,
+    name text NOT NULL,
+    trust_tier public.trust_tier NOT NULL,
+    scope_grants jsonb NOT NULL DEFAULT '[]',
+    disabled_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_consumers PRIMARY KEY (id)
+);""", "consumers"),
             DDLOp("""CREATE TABLE public.tasks (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     run_id uuid NOT NULL,
@@ -484,6 +467,27 @@ END $$;""", "credential_type"),
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_subscriptions PRIMARY KEY (id)
 );""", "subscriptions"),
+            DDLOp("""CREATE TABLE public.credentials (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    consumer_id uuid NOT NULL,
+    credential_type public.credential_type NOT NULL,
+    credential_hash text NOT NULL,
+    algorithm text NOT NULL DEFAULT 'sha256',
+    metadata jsonb NOT NULL DEFAULT '{}',
+    secret_ref text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_credentials PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.credentials (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    consumer_id uuid NOT NULL,
+    credential_type public.credential_type NOT NULL,
+    credential_hash text NOT NULL,
+    algorithm text NOT NULL DEFAULT 'sha256',
+    metadata jsonb NOT NULL DEFAULT '{}',
+    secret_ref text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_credentials PRIMARY KEY (id)
+);""", "credentials"),
             DDLOp("""CREATE TABLE public.task_attempts (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     task_id uuid NOT NULL,
@@ -680,16 +684,6 @@ END $$;""", "credential_type"),
         kind="foreign_keys",
         transactional=True,
         ops=[
-            DDLOp("ALTER TABLE public.credentials ADD CONSTRAINT fk_credentials_consumer FOREIGN KEY (consumer_id) REFERENCES public.consumers (id) ON DELETE CASCADE;", """DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'fk_credentials_consumer'
-    AND conrelid = 'public.credentials'::regclass
-  ) THEN
-    ALTER TABLE public.credentials ADD CONSTRAINT fk_credentials_consumer FOREIGN KEY (consumer_id) REFERENCES public.consumers (id) ON DELETE CASCADE;
-  END IF;
-END $$;""", "fk_credentials_consumer"),
             DDLOp("ALTER TABLE public.runs ADD CONSTRAINT fk_runs_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -700,6 +694,26 @@ BEGIN
     ALTER TABLE public.runs ADD CONSTRAINT fk_runs_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;
   END IF;
 END $$;""", "fk_runs_created_by"),
+            DDLOp("ALTER TABLE public.sources ADD CONSTRAINT fk_sources_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_sources_created_by'
+    AND conrelid = 'public.sources'::regclass
+  ) THEN
+    ALTER TABLE public.sources ADD CONSTRAINT fk_sources_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk_sources_created_by"),
+            DDLOp("ALTER TABLE public.consumers ADD CONSTRAINT fk_consumers_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_consumers_principal'
+    AND conrelid = 'public.consumers'::regclass
+  ) THEN
+    ALTER TABLE public.consumers ADD CONSTRAINT fk_consumers_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk_consumers_principal"),
             DDLOp("ALTER TABLE public.tasks ADD CONSTRAINT fk_tasks_parent FOREIGN KEY (parent_task_id) REFERENCES public.tasks (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -820,6 +834,16 @@ BEGIN
     ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_source FOREIGN KEY (source_id) REFERENCES public.sources (id) ON DELETE SET NULL;
   END IF;
 END $$;""", "fk_subscriptions_source"),
+            DDLOp("ALTER TABLE public.credentials ADD CONSTRAINT fk_credentials_consumer FOREIGN KEY (consumer_id) REFERENCES public.consumers (id) ON DELETE CASCADE;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_credentials_consumer'
+    AND conrelid = 'public.credentials'::regclass
+  ) THEN
+    ALTER TABLE public.credentials ADD CONSTRAINT fk_credentials_consumer FOREIGN KEY (consumer_id) REFERENCES public.consumers (id) ON DELETE CASCADE;
+  END IF;
+END $$;""", "fk_credentials_consumer"),
             DDLOp("ALTER TABLE public.task_attempts ADD CONSTRAINT fk_task_attempts_task FOREIGN KEY (task_id) REFERENCES public.tasks (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -966,16 +990,6 @@ END $$;""", "fk_dispatch_completions_event"),
         kind="unique_constraints",
         transactional=True,
         ops=[
-            DDLOp("ALTER TABLE public.sources ADD CONSTRAINT uq_sources_slug UNIQUE (slug);", """DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'uq_sources_slug'
-    AND conrelid = 'public.sources'::regclass
-  ) THEN
-    ALTER TABLE public.sources ADD CONSTRAINT uq_sources_slug UNIQUE (slug);
-  END IF;
-END $$;""", "uq_sources_slug"),
             DDLOp("ALTER TABLE public.principals ADD CONSTRAINT uq_principals_kind_external_ref UNIQUE (kind, external_ref);", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -986,6 +1000,26 @@ BEGIN
     ALTER TABLE public.principals ADD CONSTRAINT uq_principals_kind_external_ref UNIQUE (kind, external_ref);
   END IF;
 END $$;""", "uq_principals_kind_external_ref"),
+            DDLOp("ALTER TABLE public.sources ADD CONSTRAINT uq_sources_slug UNIQUE (slug);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_sources_slug'
+    AND conrelid = 'public.sources'::regclass
+  ) THEN
+    ALTER TABLE public.sources ADD CONSTRAINT uq_sources_slug UNIQUE (slug);
+  END IF;
+END $$;""", "uq_sources_slug"),
+            DDLOp("ALTER TABLE public.consumers ADD CONSTRAINT uq_consumers_principal_id UNIQUE (principal_id);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'uq_consumers_principal_id'
+    AND conrelid = 'public.consumers'::regclass
+  ) THEN
+    ALTER TABLE public.consumers ADD CONSTRAINT uq_consumers_principal_id UNIQUE (principal_id);
+  END IF;
+END $$;""", "uq_consumers_principal_id"),
             DDLOp("ALTER TABLE public.knowledge_hashes ADD CONSTRAINT uq_knowledge_hashes_run_path UNIQUE (run_id, path);", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1052,6 +1086,16 @@ END $$;""", "uq_dispatch_completions_event_action"),
         kind="check_constraints",
         transactional=True,
         ops=[
+            DDLOp("ALTER TABLE public.runs ADD CONSTRAINT chk_runs_counters_non_negative CHECK (total_input_tokens >= 0 AND total_output_tokens >= 0 AND total_reasoning_tokens >= 0 AND total_cache_read_tokens >= 0 AND total_cache_write_tokens >= 0 AND total_cost_usd >= 0);", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_runs_counters_non_negative'
+    AND conrelid = 'public.runs'::regclass
+  ) THEN
+    ALTER TABLE public.runs ADD CONSTRAINT chk_runs_counters_non_negative CHECK (total_input_tokens >= 0 AND total_output_tokens >= 0 AND total_reasoning_tokens >= 0 AND total_cache_read_tokens >= 0 AND total_cache_write_tokens >= 0 AND total_cost_usd >= 0);
+  END IF;
+END $$;""", "chk_runs_counters_non_negative"),
             DDLOp("ALTER TABLE public.sources ADD CONSTRAINT chk_sources_slug_not_empty CHECK (slug <> '' AND name <> '');", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1072,26 +1116,6 @@ BEGIN
     ALTER TABLE public.consumers ADD CONSTRAINT chk_consumers_name_not_empty CHECK (name <> '');
   END IF;
 END $$;""", "chk_consumers_name_not_empty"),
-            DDLOp("ALTER TABLE public.credentials ADD CONSTRAINT chk_credentials_hash_not_empty CHECK (credential_hash <> '' AND algorithm <> '');", """DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'chk_credentials_hash_not_empty'
-    AND conrelid = 'public.credentials'::regclass
-  ) THEN
-    ALTER TABLE public.credentials ADD CONSTRAINT chk_credentials_hash_not_empty CHECK (credential_hash <> '' AND algorithm <> '');
-  END IF;
-END $$;""", "chk_credentials_hash_not_empty"),
-            DDLOp("ALTER TABLE public.runs ADD CONSTRAINT chk_runs_counters_non_negative CHECK (total_input_tokens >= 0 AND total_output_tokens >= 0 AND total_reasoning_tokens >= 0 AND total_cache_read_tokens >= 0 AND total_cache_write_tokens >= 0 AND total_cost_usd >= 0);", """DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'chk_runs_counters_non_negative'
-    AND conrelid = 'public.runs'::regclass
-  ) THEN
-    ALTER TABLE public.runs ADD CONSTRAINT chk_runs_counters_non_negative CHECK (total_input_tokens >= 0 AND total_output_tokens >= 0 AND total_reasoning_tokens >= 0 AND total_cache_read_tokens >= 0 AND total_cache_write_tokens >= 0 AND total_cost_usd >= 0);
-  END IF;
-END $$;""", "chk_runs_counters_non_negative"),
             DDLOp("ALTER TABLE public.tasks ADD CONSTRAINT chk_tasks_name_not_empty CHECK (name <> '');", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1162,6 +1186,16 @@ BEGIN
     ALTER TABLE public.subscriptions ADD CONSTRAINT chk_subscriptions_storage_valid CHECK (storage IN ('persistent', 'transient'));
   END IF;
 END $$;""", "chk_subscriptions_storage_valid"),
+            DDLOp("ALTER TABLE public.credentials ADD CONSTRAINT chk_credentials_hash_not_empty CHECK (credential_hash <> '' AND algorithm <> '');", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_credentials_hash_not_empty'
+    AND conrelid = 'public.credentials'::regclass
+  ) THEN
+    ALTER TABLE public.credentials ADD CONSTRAINT chk_credentials_hash_not_empty CHECK (credential_hash <> '' AND algorithm <> '');
+  END IF;
+END $$;""", "chk_credentials_hash_not_empty"),
             DDLOp("ALTER TABLE public.task_attempts ADD CONSTRAINT chk_task_attempts_counters_non_negative CHECK (attempt >= 1 AND input_tokens >= 0 AND output_tokens >= 0 AND reasoning_tokens >= 0 AND cache_read_tokens >= 0 AND cache_write_tokens >= 0 AND cost_usd >= 0);", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1258,13 +1292,12 @@ END $$;""", "chk_dispatch_completions_status_valid"),
         kind="indexes",
         transactional=True,
         ops=[
-            DDLOp("CREATE INDEX idx_sources_config_gin ON public.sources USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_sources_config_gin ON public.sources USING gin (config);", "idx_sources_config_gin"),
-            DDLOp("CREATE INDEX idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "CREATE INDEX IF NOT EXISTS idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "idx_consumers_scope_grants_gin"),
-            DDLOp("CREATE INDEX idx_credentials_consumer_id ON public.credentials (consumer_id);", "CREATE INDEX IF NOT EXISTS idx_credentials_consumer_id ON public.credentials (consumer_id);", "idx_credentials_consumer_id"),
-            DDLOp("CREATE INDEX idx_credentials_hash ON public.credentials (credential_hash);", "CREATE INDEX IF NOT EXISTS idx_credentials_hash ON public.credentials (credential_hash);", "idx_credentials_hash"),
-            DDLOp("CREATE INDEX idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "CREATE INDEX IF NOT EXISTS idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "idx_credentials_metadata_gin"),
             DDLOp("CREATE INDEX idx_runs_config_snapshot_gin ON public.runs USING gin (config_snapshot);", "CREATE INDEX IF NOT EXISTS idx_runs_config_snapshot_gin ON public.runs USING gin (config_snapshot);", "idx_runs_config_snapshot_gin"),
             DDLOp("CREATE INDEX idx_runs_created_by ON public.runs (created_by);", "CREATE INDEX IF NOT EXISTS idx_runs_created_by ON public.runs (created_by);", "idx_runs_created_by"),
+            DDLOp("CREATE INDEX idx_sources_config_gin ON public.sources USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_sources_config_gin ON public.sources USING gin (config);", "idx_sources_config_gin"),
+            DDLOp("CREATE INDEX idx_sources_created_by ON public.sources (created_by);", "CREATE INDEX IF NOT EXISTS idx_sources_created_by ON public.sources (created_by);", "idx_sources_created_by"),
+            DDLOp("CREATE INDEX idx_consumers_principal_id ON public.consumers (principal_id);", "CREATE INDEX IF NOT EXISTS idx_consumers_principal_id ON public.consumers (principal_id);", "idx_consumers_principal_id"),
+            DDLOp("CREATE INDEX idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "CREATE INDEX IF NOT EXISTS idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "idx_consumers_scope_grants_gin"),
             DDLOp("CREATE INDEX idx_tasks_config_gin ON public.tasks USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_tasks_config_gin ON public.tasks USING gin (config);", "idx_tasks_config_gin"),
             DDLOp("CREATE INDEX idx_tasks_parent_id ON public.tasks (parent_task_id);", "CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks (parent_task_id);", "idx_tasks_parent_id"),
             DDLOp("CREATE INDEX idx_tasks_run_id ON public.tasks (run_id);", "CREATE INDEX IF NOT EXISTS idx_tasks_run_id ON public.tasks (run_id);", "idx_tasks_run_id"),
@@ -1289,6 +1322,9 @@ END $$;""", "chk_dispatch_completions_status_valid"),
             DDLOp("CREATE INDEX idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "CREATE INDEX IF NOT EXISTS idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "idx_subscriptions_active"),
             DDLOp("CREATE INDEX idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "idx_subscriptions_filter_expr_gin"),
             DDLOp("CREATE INDEX idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "idx_subscriptions_owner_run_id"),
+            DDLOp("CREATE INDEX idx_credentials_consumer_id ON public.credentials (consumer_id);", "CREATE INDEX IF NOT EXISTS idx_credentials_consumer_id ON public.credentials (consumer_id);", "idx_credentials_consumer_id"),
+            DDLOp("CREATE INDEX idx_credentials_hash ON public.credentials (credential_hash);", "CREATE INDEX IF NOT EXISTS idx_credentials_hash ON public.credentials (credential_hash);", "idx_credentials_hash"),
+            DDLOp("CREATE INDEX idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "CREATE INDEX IF NOT EXISTS idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "idx_credentials_metadata_gin"),
             DDLOp("CREATE INDEX idx_task_attempts_check_result_gin ON public.task_attempts USING gin (check_result);", "CREATE INDEX IF NOT EXISTS idx_task_attempts_check_result_gin ON public.task_attempts USING gin (check_result);", "idx_task_attempts_check_result_gin"),
             DDLOp("CREATE INDEX idx_task_attempts_structured_output_gin ON public.task_attempts USING gin (structured_output);", "CREATE INDEX IF NOT EXISTS idx_task_attempts_structured_output_gin ON public.task_attempts USING gin (structured_output);", "idx_task_attempts_structured_output_gin"),
             DDLOp("CREATE INDEX idx_task_attempts_task_id ON public.task_attempts (task_id);", "CREATE INDEX IF NOT EXISTS idx_task_attempts_task_id ON public.task_attempts (task_id);", "idx_task_attempts_task_id"),
@@ -1335,30 +1371,27 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
         kind="comments",
         transactional=True,
         ops=[
-            DDLOp("COMMENT ON TABLE public.sources IS 'Registry of event sources (webhook endpoints, polled APIs, internal emitters).';", None, "table.sources"),
-            DDLOp("COMMENT ON COLUMN public.sources.slug IS 'URL-safe unique identifier';", None, "column.sources.slug"),
-            DDLOp("COMMENT ON COLUMN public.sources.name IS 'Human-readable source name';", None, "column.sources.name"),
-            DDLOp("COMMENT ON COLUMN public.sources.credential_id IS 'FK to auth.credentials for source authentication';", None, "column.sources.credential_id"),
-            DDLOp("COMMENT ON COLUMN public.sources.config IS 'Per-source mapping config (event_type extraction, field mapping)';", None, "column.sources.config"),
-            DDLOp("COMMENT ON TABLE public.consumers IS 'API consumers with trust tiers and scope grants.';", None, "table.consumers"),
-            DDLOp("COMMENT ON COLUMN public.consumers.name IS 'Human-readable consumer name';", None, "column.consumers.name"),
-            DDLOp("COMMENT ON COLUMN public.consumers.scope_grants IS 'JSON array of granted scope strings';", None, "column.consumers.scope_grants"),
-            DDLOp("COMMENT ON COLUMN public.consumers.disabled_at IS 'Non-null means the consumer is disabled';", None, "column.consumers.disabled_at"),
             DDLOp("COMMENT ON TABLE public.principals IS 'Actors that can own or perform actions. FK target for other modules; never a user-profile store.';", None, "table.principals"),
             DDLOp("COMMENT ON COLUMN public.principals.kind IS 'Actor kind, registered at composition time; built-ins are run/consumer/source/system. Validation lives at the service layer -- storage accepts any string.';", None, "column.principals.kind"),
             DDLOp("COMMENT ON COLUMN public.principals.external_ref IS 'The actor''s id in its kind''s namespace; for the singleton system principal this is the all-zeros sentinel.';", None, "column.principals.external_ref"),
             DDLOp("COMMENT ON COLUMN public.principals.display_name IS 'Optional human-readable label for the actor';", None, "column.principals.display_name"),
-            DDLOp("COMMENT ON TABLE public.credentials IS 'Hashed credentials linked to consumers.';", None, "table.credentials"),
-            DDLOp("COMMENT ON COLUMN public.credentials.credential_hash IS 'SHA-256 hash of the raw credential value';", None, "column.credentials.credential_hash"),
-            DDLOp("COMMENT ON COLUMN public.credentials.algorithm IS 'Hash algorithm used';", None, "column.credentials.algorithm"),
-            DDLOp("COMMENT ON COLUMN public.credentials.metadata IS 'Additional credential metadata';", None, "column.credentials.metadata"),
-            DDLOp("COMMENT ON COLUMN public.credentials.secret_ref IS 'Reference to a secret in the SecretRegistry for HMAC verification (not smuggled through metadata)';", None, "column.credentials.secret_ref"),
             DDLOp("COMMENT ON TABLE public.runs IS 'Top-level run records. One run per intent execution.';", None, "table.runs"),
             DDLOp("COMMENT ON COLUMN public.runs.intent IS 'The user''s original intent';", None, "column.runs.intent"),
             DDLOp("COMMENT ON COLUMN public.runs.config_snapshot IS 'Fully resolved configuration: categories, budgets, tool registry names, agent definitions';", None, "column.runs.config_snapshot"),
             DDLOp("COMMENT ON COLUMN public.runs.created_by IS 'The creating actor''s principal. Historical rows are backfilled to the system principal (the original creator is unknowable).';", None, "column.runs.created_by"),
             DDLOp("COMMENT ON COLUMN public.runs.total_cost_usd IS 'Best-effort USD from orxtra internal pricing table';", None, "column.runs.total_cost_usd"),
             DDLOp("COMMENT ON COLUMN public.runs.coherence_summary IS 'Overseer end-of-run assessment of intent fulfillment';", None, "column.runs.coherence_summary"),
+            DDLOp("COMMENT ON TABLE public.sources IS 'Registry of event sources (webhook endpoints, polled APIs, internal emitters).';", None, "table.sources"),
+            DDLOp("COMMENT ON COLUMN public.sources.slug IS 'URL-safe unique identifier';", None, "column.sources.slug"),
+            DDLOp("COMMENT ON COLUMN public.sources.name IS 'Human-readable source name';", None, "column.sources.name"),
+            DDLOp("COMMENT ON COLUMN public.sources.credential_id IS 'FK to auth.credentials for source authentication';", None, "column.sources.credential_id"),
+            DDLOp("COMMENT ON COLUMN public.sources.config IS 'Per-source mapping config (event_type extraction, field mapping)';", None, "column.sources.config"),
+            DDLOp("COMMENT ON COLUMN public.sources.created_by IS 'The creating actor''s principal. Historical rows are backfilled to the system principal (the original creator is unknowable).';", None, "column.sources.created_by"),
+            DDLOp("COMMENT ON TABLE public.consumers IS 'API consumers with trust tiers and scope grants.';", None, "table.consumers"),
+            DDLOp("COMMENT ON COLUMN public.consumers.principal_id IS 'The consumer''s own identity row (kind=''consumer'', external_ref=consumer id). Historical rows are backfilled to a minted per-consumer principal.';", None, "column.consumers.principal_id"),
+            DDLOp("COMMENT ON COLUMN public.consumers.name IS 'Human-readable consumer name';", None, "column.consumers.name"),
+            DDLOp("COMMENT ON COLUMN public.consumers.scope_grants IS 'JSON array of granted scope strings';", None, "column.consumers.scope_grants"),
+            DDLOp("COMMENT ON COLUMN public.consumers.disabled_at IS 'Non-null means the consumer is disabled';", None, "column.consumers.disabled_at"),
             DDLOp("COMMENT ON TABLE public.tasks IS 'Recursive task hierarchy within a run. Replaces the old workflows + steps tables.';", None, "table.tasks"),
             DDLOp("COMMENT ON COLUMN public.tasks.parent_task_id IS 'Parent task for nested task hierarchies';", None, "column.tasks.parent_task_id"),
             DDLOp("COMMENT ON COLUMN public.tasks.config IS 'Task configuration';", None, "column.tasks.config"),
@@ -1399,6 +1432,11 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.subscriptions.filter_expr IS 'FilterPredicate serialized as JSON';", None, "column.subscriptions.filter_expr"),
             DDLOp("COMMENT ON COLUMN public.subscriptions.storage IS 'Storage mode: persistent or transient';", None, "column.subscriptions.storage"),
             DDLOp("COMMENT ON COLUMN public.subscriptions.owner_run_id IS 'Run that owns this subscription (null = global)';", None, "column.subscriptions.owner_run_id"),
+            DDLOp("COMMENT ON TABLE public.credentials IS 'Hashed credentials linked to consumers.';", None, "table.credentials"),
+            DDLOp("COMMENT ON COLUMN public.credentials.credential_hash IS 'SHA-256 hash of the raw credential value';", None, "column.credentials.credential_hash"),
+            DDLOp("COMMENT ON COLUMN public.credentials.algorithm IS 'Hash algorithm used';", None, "column.credentials.algorithm"),
+            DDLOp("COMMENT ON COLUMN public.credentials.metadata IS 'Additional credential metadata';", None, "column.credentials.metadata"),
+            DDLOp("COMMENT ON COLUMN public.credentials.secret_ref IS 'Reference to a secret in the SecretRegistry for HMAC verification (not smuggled through metadata)';", None, "column.credentials.secret_ref"),
             DDLOp("COMMENT ON TABLE public.task_attempts IS 'Per-attempt results for tasks. Retries create new rows, never overwrite.';", None, "table.task_attempts"),
             DDLOp("COMMENT ON COLUMN public.task_attempts.attempt IS 'Attempt number';", None, "column.task_attempts.attempt"),
             DDLOp("COMMENT ON COLUMN public.task_attempts.agent_output IS 'Full text output from the agent (never truncated)';", None, "column.task_attempts.agent_output"),
