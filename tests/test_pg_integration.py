@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -192,6 +193,113 @@ class TestTraceWriter:
         assert row is not None
         assert row["event_type"] == "test_event"
         assert json.loads(row["data"]) == {"foo": "bar"}
+
+
+# -- Run identity at birth (E2E: start_run mints + attributes) ----------------
+
+
+class TestStartRunIdentity:
+    """The run identity vertical, end to end against a real database.
+
+    Mirrors the CLI ``run start`` path: a SYSTEM-tier operator context resolves
+    to the seeded system principal, ``start_run`` generates the run id, mints the
+    run's own principal, and persists the run attributed to the caller. The
+    scheduler and definition loaders are stubbed so the test exercises only the
+    identity/persistence seam, not workflow execution.
+    """
+
+    async def test_start_run_mints_run_principal_and_attributes_creator(
+        self, pg_pool: asyncpg.Pool, tmp_path: Path,
+    ) -> None:
+        from datetime import UTC, datetime
+        from decimal import Decimal
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from orxtra.identity import PgPrincipalStorage, resolve_caller_principal
+        from orxtra.protocols import (
+            ALL_SCOPES,
+            KIND_RUN,
+            KIND_SYSTEM,
+            SYSTEM_PRINCIPAL_EXTERNAL_REF,
+            AuthContext,
+            TrustTier,
+        )
+        from orxtra.services import RunConfig, start_run
+
+        # Seed the singleton system principal (as db init / api lifespan do).
+        storage = PgPrincipalStorage(pg_pool)
+        system_principal = await storage.mint_principal(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+        )
+
+        # A SYSTEM-tier operator context resolves to the system principal --
+        # exactly what the CLI operator does on every dispatch.
+        operator_ctx = AuthContext(
+            id=uuid6.uuid7(),
+            consumer_id=None,
+            scopes=ALL_SCOPES,
+            trust_tier=TrustTier.SYSTEM,
+            authenticated_via="test-operator",
+            issued_at=datetime.now(UTC),
+            expires_at=None,
+        )
+        caller_principal = await resolve_caller_principal(operator_ctx, storage)
+        assert caller_principal.id == system_principal.id
+
+        config = RunConfig(
+            workflow_path=tmp_path / "workflow.toml",
+            agents_dir=tmp_path / "agents",
+            knowledge_dir=tmp_path / "knowledge",
+            categories_path=tmp_path / "cats.toml",
+            read_root=tmp_path,
+            db_url="postgres://localhost/test",
+            provider_configs={},
+            budget=Decimal("1.00"),
+            autonomy_level="medium",
+        )
+
+        # Stub the definition loaders and scheduler so start_run reaches only
+        # the mint + create_run + transition seam.
+        with (
+            patch("orxtra.services._run.load_agents", return_value={}),
+            patch("orxtra.services._run.load_categories", return_value={}),
+            patch("orxtra.services._run.load_workflow", return_value=MagicMock()),
+            patch(
+                "orxtra.services._run.load_knowledge_files",
+                new_callable=AsyncMock,
+            ),
+            patch("orxtra.services._run.Scheduler") as mock_sched_cls,
+        ):
+            mock_sched = AsyncMock()
+            mock_sched.execute_workflow = AsyncMock()
+            mock_sched_cls.return_value = mock_sched
+
+            run_id = await start_run(
+                pg_pool,
+                storage,
+                caller_principal,
+                "e2e identity intent",
+                config,
+            )
+
+        # The persisted run is attributed to the system principal.
+        run_row = await pg_pool.fetchrow(
+            "SELECT created_by FROM runs WHERE id = $1", run_id,
+        )
+        assert run_row is not None
+        assert run_row["created_by"] == system_principal.id
+
+        # A run principal was minted, sharing the run's id as its external_ref.
+        run_principal = await storage.get_principal_by_ref(KIND_RUN, run_id)
+        assert run_principal is not None
+        assert run_principal.kind == KIND_RUN
+        assert run_principal.external_ref == run_id
+        assert run_principal.display_name is None
+
+        # read_run_report surfaces the creating actor.
+        report = await read_run_report(pg_pool, run_id)
+        assert report is not None
+        assert report.created_by == system_principal.id
 
 
 # -- LISTEN/NOTIFY ------------------------------------------------------------
