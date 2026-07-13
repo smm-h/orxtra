@@ -30,7 +30,10 @@ class Capability:
     required_scope: str
     """The scope an authenticated caller must hold to invoke this capability.
 
-    Enforcement arrives in a later phase; today this is a pure declaration.
+    Enforced live at the single dispatch choke point: the dispatcher
+    scope-checks every call against the caller's ``AuthContext`` and rejects
+    any whose scopes lack this value -- or whose ``AuthContext`` is absent
+    entirely.
     """
     injects: frozenset[str]
     """The infrastructure dependencies the dispatcher passes to the service function.

@@ -17,7 +17,7 @@ class KindRegistry:
 
     The registry is only the mechanism for kind validation. The enforcement
     POINT -- where ``validate`` is actually called before a principal is
-    minted -- lives in the service layer (a later phase).
+    minted -- lives in the service layer (``orxtra.services._identity``).
     """
 
     def __init__(self, app_kinds: Iterable[str]) -> None:
