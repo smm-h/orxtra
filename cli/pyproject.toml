@@ -15,6 +15,9 @@ dependencies = [
 ]
 keywords = ["rlsbl"]
 
+[dependency-groups]
+dev = ["pytest>=9.1.0"]
+
 [project.scripts]
 orxtra = "orxtra.cli._cli:main"
 

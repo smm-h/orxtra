@@ -9,6 +9,9 @@ dependencies = [
 ]
 keywords = ["rlsbl"]
 
+[dependency-groups]
+dev = ["pytest>=9.1.0"]
+
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib"
 
