@@ -107,9 +107,12 @@ async def list_subscriptions(
     backend: DispatchBackend,
     *,
     enabled_only: bool = True,
+    principal_id: UUID | None = None,
 ) -> list[Subscription]:
-    """List subscriptions, optionally filtering to enabled only."""
-    return await backend.list_subscriptions(enabled_only=enabled_only)
+    """List subscriptions, optionally filtering to enabled-only and by owner."""
+    return await backend.list_subscriptions(
+        enabled_only=enabled_only, principal_id=principal_id,
+    )
 
 
 # -- Source CRUD --

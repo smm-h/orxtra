@@ -225,6 +225,11 @@ class ListSubscriptionsParams(BaseModel):
     enabled_only: bool = Field(
         default=True, description="Only show enabled subscriptions."
     )
+    principal_id: str | None = Field(
+        default=None,
+        description="Only show subscriptions owned by this principal.",
+        json_schema_extra={"format": "uuid"},
+    )
 
 
 class CreateSourceParams(BaseModel):

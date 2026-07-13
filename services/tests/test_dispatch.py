@@ -245,6 +245,37 @@ async def test_list_subscriptions_includes_disabled(
     assert len(all_subs) == 1
 
 
+@pytest.mark.asyncio
+async def test_list_subscriptions_filters_by_owner(
+    backend: InMemoryDispatchBackend,
+    caller: Principal,
+    sample_filter: FilterPredicate,
+) -> None:
+    # A second owner: subscriptions are attributed to the calling principal.
+    other = Principal(
+        id=uuid7(),
+        kind=KIND_CONSUMER,
+        external_ref=uuid7(),
+        display_name="other-caller",
+        created_at=datetime.now(tz=UTC),
+    )
+    await subscribe(backend, caller, sample_filter, [{"action": {"message": "a"}}])
+    await subscribe(backend, caller, sample_filter, [{"action": {"message": "b"}}])
+    await subscribe(backend, other, sample_filter, [{"action": {"message": "c"}}])
+
+    mine = await list_subscriptions(backend, principal_id=caller.id)
+    assert len(mine) == 2
+    assert all(s.principal_id == caller.id for s in mine)
+
+    theirs = await list_subscriptions(backend, principal_id=other.id)
+    assert len(theirs) == 1
+    assert theirs[0].principal_id == other.id
+
+    # No owner filter returns everyone's subscriptions.
+    everyone = await list_subscriptions(backend)
+    assert len(everyone) == 3
+
+
 # -- create_source --
 
 

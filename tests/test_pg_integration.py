@@ -649,3 +649,92 @@ class TestAuthTables:
                 "SELECT count(*) FROM credentials WHERE id = $1", cred_id
             )
             assert remaining == 0
+
+
+# -- Subscription owner-filter parity -----------------------------------------
+
+
+class TestListSubscriptionsOwnerParity:
+    """The PG and in-memory backends filter subscriptions identically.
+
+    Owner filtering (principal_id) and enabled_only must produce the same
+    result set on both backends for an identical corpus of subscriptions.
+    """
+
+    async def test_owner_filter_parity(self, pg_pool: asyncpg.Pool) -> None:
+        from orxtra.dispatch import (
+            FilterPredicate,
+            InMemoryDispatchBackend,
+            PgDispatchBackend,
+        )
+        from orxtra.identity import PgPrincipalStorage
+        from orxtra.protocols import KIND_CONSUMER, Subscription
+
+        storage = PgPrincipalStorage(pg_pool)
+        # Two distinct owning principals (PG enforces the FK; the in-memory
+        # backend does not, but reuses the same ids so results are comparable).
+        owner_a = await storage.mint_principal(
+            KIND_CONSUMER, uuid6.uuid7(), "owner-a",
+        )
+        owner_b = await storage.mint_principal(
+            KIND_CONSUMER, uuid6.uuid7(), "owner-b",
+        )
+
+        # Corpus: A owns two (one disabled), B owns one (enabled).
+        corpus = [
+            Subscription(
+                id=uuid6.uuid7(), filter=FilterPredicate(),
+                enabled=True, principal_id=owner_a.id,
+            ),
+            Subscription(
+                id=uuid6.uuid7(), filter=FilterPredicate(),
+                enabled=False, principal_id=owner_a.id,
+            ),
+            Subscription(
+                id=uuid6.uuid7(), filter=FilterPredicate(),
+                enabled=True, principal_id=owner_b.id,
+            ),
+        ]
+
+        pg_backend = PgDispatchBackend(pg_pool)
+        mem_backend = InMemoryDispatchBackend()
+        for sub in corpus:
+            await pg_backend.create_subscription(sub)
+            await mem_backend.create_subscription(sub)
+
+        async def _ids(
+            backend: Any, *, enabled_only: bool, principal_id: Any,
+        ) -> set[Any]:
+            subs = await backend.list_subscriptions(
+                enabled_only=enabled_only, principal_id=principal_id,
+            )
+            return {s.id for s in subs}
+
+        # Matrix of filters -- every combination must agree across backends.
+        for enabled_only in (True, False):
+            for principal_id in (None, owner_a.id, owner_b.id):
+                pg_ids = await _ids(
+                    pg_backend,
+                    enabled_only=enabled_only,
+                    principal_id=principal_id,
+                )
+                mem_ids = await _ids(
+                    mem_backend,
+                    enabled_only=enabled_only,
+                    principal_id=principal_id,
+                )
+                assert pg_ids == mem_ids, (
+                    f"backend divergence for enabled_only={enabled_only}, "
+                    f"principal_id={principal_id}: pg={pg_ids} mem={mem_ids}"
+                )
+
+        # Spot-check the expected shape via one backend.
+        assert len(await _ids(
+            pg_backend, enabled_only=False, principal_id=owner_a.id,
+        )) == 2
+        assert len(await _ids(
+            pg_backend, enabled_only=True, principal_id=owner_a.id,
+        )) == 1
+        assert len(await _ids(
+            pg_backend, enabled_only=True, principal_id=owner_b.id,
+        )) == 1

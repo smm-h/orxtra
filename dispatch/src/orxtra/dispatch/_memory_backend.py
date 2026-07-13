@@ -59,11 +59,13 @@ class InMemoryDispatchBackend:
         return self._subscriptions.get(sub_id)
 
     async def list_subscriptions(
-        self, *, enabled_only: bool = True,
+        self, *, enabled_only: bool = True, principal_id: UUID | None = None,
     ) -> list[Subscription]:
         subs = list(self._subscriptions.values())
         if enabled_only:
             subs = [s for s in subs if s.enabled]
+        if principal_id is not None:
+            subs = [s for s in subs if s.principal_id == principal_id]
         return subs
 
     async def update_subscription(

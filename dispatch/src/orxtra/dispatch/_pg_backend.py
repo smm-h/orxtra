@@ -148,24 +148,25 @@ class PgDispatchBackend:
         return _row_to_subscription(row)
 
     async def list_subscriptions(
-        self, *, enabled_only: bool = True,
+        self, *, enabled_only: bool = True, principal_id: UUID | None = None,
     ) -> list[Subscription]:
+        clauses: list[str] = []
+        args: list[object] = []
         if enabled_only:
-            sql = (
-                "SELECT id, filter_expr, enabled, storage,"
-                " principal_id, created_at"
-                " FROM subscriptions WHERE enabled = true"
-                " ORDER BY created_at"
-            )
-        else:
-            sql = (
-                "SELECT id, filter_expr, enabled, storage,"
-                " principal_id, created_at"
-                " FROM subscriptions"
-                " ORDER BY created_at"
-            )
+            clauses.append("enabled = true")
+        if principal_id is not None:
+            args.append(principal_id)
+            clauses.append(f"principal_id = ${len(args)}")
+        # Only static column names and positional placeholders ($n) are
+        # interpolated into `where`; the principal_id value is bound via `args`.
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = (
+            "SELECT id, filter_expr, enabled, storage, principal_id, created_at"  # noqa: S608
+            f" FROM subscriptions{where}"
+            " ORDER BY created_at"
+        )
         async with self._pool.acquire() as conn, conn.transaction():
-            rows = await conn.fetch(sql)
+            rows = await conn.fetch(sql, *args)
         return [_row_to_subscription(r) for r in rows]
 
     async def update_subscription(
