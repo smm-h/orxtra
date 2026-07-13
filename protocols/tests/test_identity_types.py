@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -149,6 +149,11 @@ class _StubPrincipalStorage:
 
     async def delete_principal(self, principal_id: UUID) -> None:
         return None
+
+    async def sweep_orphaned_run_principals(
+        self, older_than: timedelta,
+    ) -> int:
+        return 0
 
 
 class TestPrincipalStorage:
