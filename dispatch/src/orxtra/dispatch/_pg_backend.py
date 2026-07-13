@@ -67,13 +67,14 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO sources"
-                " (id, slug, name, credential_id, config)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                " (id, slug, name, credential_id, config, created_by)"
+                " VALUES ($1, $2, $3, $4, $5, $6)",
                 source.id,
                 source.slug,
                 source.name,
                 source.credential_id,
                 config_json,
+                source.created_by,
             )
         return source.id
 
@@ -81,7 +82,7 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "SELECT id, slug, name, credential_id,"
-                " config, created_at"
+                " config, created_by, created_at"
                 " FROM sources WHERE id = $1",
                 source_id,
             )
@@ -93,7 +94,7 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "SELECT id, slug, name, credential_id,"
-                " config, created_at"
+                " config, created_by, created_at"
                 " FROM sources WHERE slug = $1",
                 slug,
             )
@@ -105,7 +106,7 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             rows = await conn.fetch(
                 "SELECT id, slug, name, credential_id,"
-                " config, created_at"
+                " config, created_by, created_at"
                 " FROM sources ORDER BY created_at",
             )
         return [_row_to_source(r) for r in rows]
@@ -401,6 +402,7 @@ def _row_to_source(row: asyncpg.Record) -> Source:
         name=row["name"],
         credential_id=row["credential_id"],
         config=config,
+        created_by=row["created_by"],
         created_at=row["created_at"],
     )
 

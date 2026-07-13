@@ -147,11 +147,13 @@ def _source(
     source_id: UUID | None = None,
     slug: str = "github",
     name: str = "GitHub Webhooks",
+    created_by: UUID | None = None,
 ) -> Source:
     return Source(
         id=source_id or uuid7(),
         slug=slug,
         name=name,
+        created_by=created_by or uuid7(),
         created_at=NOW,
     )
 
@@ -304,17 +306,21 @@ class TestSourceStorage:
         self, pg_backend: PgDispatchBackend, mock_pool: MockPool,
     ) -> None:
         cred_id = uuid7()
+        created_by = uuid7()
         src = Source(
             id=uuid7(),
             slug="stripe",
             name="Stripe",
             credential_id=cred_id,
+            created_by=created_by,
             created_at=NOW,
         )
         await pg_backend.create_source(src)
 
         _, args = mock_pool.conn.executed[0]
         assert args[3] == cred_id
+        # created_by is the 6th positional INSERT arg.
+        assert args[5] == created_by
 
     async def test_get_source_found(
         self, pg_backend: PgDispatchBackend, mock_pool: MockPool,
@@ -326,6 +332,7 @@ class TestSourceStorage:
             "name": "GitHub",
             "credential_id": None,
             "config": None,
+            "created_by": uuid7(),
             "created_at": NOW,
         })
         result = await pg_backend.get_source(source_id)
@@ -354,6 +361,7 @@ class TestSourceStorage:
             "name": "Stripe",
             "credential_id": None,
             "config": None,
+            "created_by": uuid7(),
             "created_at": NOW,
         })
         result = await pg_backend.get_source_by_slug("stripe")
@@ -372,12 +380,14 @@ class TestSourceStorage:
                 "id": uuid7(), "slug": "a", "name": "A",
                 "credential_id": None,
                 "config": None,
+                "created_by": uuid7(),
                 "created_at": NOW,
             },
             {
                 "id": uuid7(), "slug": "b", "name": "B",
                 "credential_id": None,
                 "config": None,
+                "created_by": uuid7(),
                 "created_at": NOW,
             },
         ])

@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from orxtra.protocols import (
+    KIND_SOURCE,
     Action,
     DispatchBackend,
     EventAction,
@@ -19,6 +20,9 @@ from uuid6 import uuid7
 
 if TYPE_CHECKING:
     from uuid import UUID
+
+    import asyncpg
+    from orxtra.protocols import Principal, PrincipalStorage
 
 
 def _resolve_action_from_dict(action_data: dict[str, Any]) -> Action:
@@ -108,21 +112,59 @@ async def list_subscriptions(
 
 
 async def create_source(
+    pool: asyncpg.Pool | None,
     backend: DispatchBackend,
+    principal_storage: PrincipalStorage,
+    caller_principal: Principal,
     slug: str,
     name: str,
     *,
     credential_id: UUID | None = None,
     config: dict[str, Any] | None = None,
 ) -> UUID:
-    """Create a new event source."""
+    """Create a new event source, minting the source's identity at birth.
+
+    Flow, mirroring the runs vertical:
+
+    1. If a ``credential_id`` is supplied, validate it exists against auth's
+       ``credentials`` table via ``pool`` -- an unknown id is a hard error. This
+       closes the honor-system gap where a source could reference a
+       non-existent credential. Reading auth's tables is legal: the
+       single-writer rule bars *writes* to another module's tables, not reads.
+    2. Generate the source id client-side so the source's principal can exist
+       before the row that FKs into it.
+    3. Mint the source principal (kind=source, external_ref=source id,
+       display_name=slug).
+    4. Persist the source attributed to the caller (``created_by``).
+    """
+    if credential_id is not None:
+        if pool is None:
+            msg = (
+                "create_source requires a database pool to validate "
+                f"credential_id {credential_id}"
+            )
+            raise ValueError(msg)
+        # Cross-module read of auth's credentials table: permitted (reads only;
+        # the single-writer rule bars writes to another module's tables).
+        async with pool.acquire() as conn, conn.transaction():
+            exists = await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM credentials WHERE id = $1)",
+                credential_id,
+            )
+        if not exists:
+            msg = f"Unknown credential_id {credential_id}: no such credential"
+            raise ValueError(msg)
+
+    source_id = uuid7()
+    await principal_storage.mint_principal(KIND_SOURCE, source_id, slug)
     now = datetime.now(tz=UTC)
     source = Source(
-        id=uuid7(),
+        id=source_id,
         slug=slug,
         name=name,
         credential_id=credential_id,
         config=config,
+        created_by=caller_principal.id,
         created_at=now,
     )
     return await backend.create_source(source)

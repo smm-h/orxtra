@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 from orxtra.dispatch import FilterPredicate, InMemoryDispatchBackend
+from orxtra.identity import InMemoryPrincipalStorage
+from orxtra.protocols import KIND_CONSUMER, KIND_SOURCE, Principal
 from orxtra.services._dispatch import (
     create_source,
     delete_source,
@@ -18,6 +22,23 @@ from uuid6 import uuid7
 @pytest.fixture
 def backend() -> InMemoryDispatchBackend:
     return InMemoryDispatchBackend()
+
+
+@pytest.fixture
+def storage() -> InMemoryPrincipalStorage:
+    return InMemoryPrincipalStorage()
+
+
+@pytest.fixture
+def caller() -> Principal:
+    """The caller principal whose id becomes each source's created_by."""
+    return Principal(
+        id=uuid7(),
+        kind=KIND_CONSUMER,
+        external_ref=uuid7(),
+        display_name="test-caller",
+        created_at=datetime.now(tz=UTC),
+    )
 
 
 @pytest.fixture
@@ -211,46 +232,65 @@ async def test_list_subscriptions_includes_disabled(
 
 
 @pytest.mark.asyncio
-async def test_create_source(backend: InMemoryDispatchBackend) -> None:
-    source_id = await create_source(backend, "github", "GitHub")
+async def test_create_source(
+    backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
+) -> None:
+    source_id = await create_source(None, backend, storage, caller, "github", "GitHub")
     source = await backend.get_source(source_id)
     assert source is not None
     assert source.slug == "github"
     assert source.name == "GitHub"
     assert source.credential_id is None
+    # The row is attributed to the caller.
+    assert source.created_by == caller.id
+    # The source's own principal was minted (kind=source, display_name=slug).
+    source_principal = await storage.get_principal_by_ref(KIND_SOURCE, source_id)
+    assert source_principal is not None
+    assert source_principal.display_name == "github"
 
 
 @pytest.mark.asyncio
-async def test_create_source_with_credential(
+async def test_create_source_credential_without_pool_raises(
     backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
 ) -> None:
-    cred_id = uuid7()
-    source_id = await create_source(
-        backend,
-        "webhook",
-        "Webhook",
-        credential_id=cred_id,
-    )
-    source = await backend.get_source(source_id)
-    assert source is not None
-    assert source.credential_id == cred_id
+    """A credential_id cannot be validated without a pool -- hard error."""
+    with pytest.raises(ValueError, match="requires a database pool"):
+        await create_source(
+            None,
+            backend,
+            storage,
+            caller,
+            "webhook",
+            "Webhook",
+            credential_id=uuid7(),
+        )
 
 
 @pytest.mark.asyncio
 async def test_create_source_duplicate_slug_raises(
     backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
 ) -> None:
-    await create_source(backend, "github", "GitHub")
+    await create_source(None, backend, storage, caller, "github", "GitHub")
     with pytest.raises(ValueError, match="already exists"):
-        await create_source(backend, "github", "GitHub 2")
+        await create_source(None, backend, storage, caller, "github", "GitHub 2")
 
 
 # -- get_source --
 
 
 @pytest.mark.asyncio
-async def test_get_source(backend: InMemoryDispatchBackend) -> None:
-    source_id = await create_source(backend, "gitlab", "GitLab")
+async def test_get_source(
+    backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
+) -> None:
+    source_id = await create_source(None, backend, storage, caller, "gitlab", "GitLab")
     source = await get_source(backend, source_id)
     assert source is not None
     assert source.slug == "gitlab"
@@ -274,9 +314,13 @@ async def test_list_sources_empty(backend: InMemoryDispatchBackend) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_sources(backend: InMemoryDispatchBackend) -> None:
-    await create_source(backend, "a", "A")
-    await create_source(backend, "b", "B")
+async def test_list_sources(
+    backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
+) -> None:
+    await create_source(None, backend, storage, caller, "a", "A")
+    await create_source(None, backend, storage, caller, "b", "B")
     result = await list_sources(backend)
     assert len(result) == 2
 
@@ -285,8 +329,12 @@ async def test_list_sources(backend: InMemoryDispatchBackend) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_source(backend: InMemoryDispatchBackend) -> None:
-    source_id = await create_source(backend, "temp", "Temp")
+async def test_delete_source(
+    backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
+) -> None:
+    source_id = await create_source(None, backend, storage, caller, "temp", "Temp")
     await delete_source(backend, source_id)
     result = await get_source(backend, source_id)
     assert result is None
@@ -306,10 +354,16 @@ async def test_delete_source_nonexistent_noop(
 
 
 @pytest.mark.asyncio
-async def test_create_source_with_config(backend: InMemoryDispatchBackend) -> None:
+async def test_create_source_with_config(
+    backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
+) -> None:
     """Source config is stored and retrievable."""
     cfg = {"event_type_path": "$.headers.X-Event-Type", "mapping": {"push": "git.push"}}
-    source_id = await create_source(backend, "gh", "GitHub", config=cfg)
+    source_id = await create_source(
+        None, backend, storage, caller, "gh", "GitHub", config=cfg,
+    )
     source = await backend.get_source(source_id)
     assert source is not None
     assert source.config == cfg
@@ -318,9 +372,11 @@ async def test_create_source_with_config(backend: InMemoryDispatchBackend) -> No
 @pytest.mark.asyncio
 async def test_create_source_config_none_by_default(
     backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
 ) -> None:
     """Config defaults to None when not provided."""
-    source_id = await create_source(backend, "plain", "Plain")
+    source_id = await create_source(None, backend, storage, caller, "plain", "Plain")
     source = await backend.get_source(source_id)
     assert source is not None
     assert source.config is None
@@ -330,8 +386,12 @@ async def test_create_source_config_none_by_default(
 
 
 @pytest.mark.asyncio
-async def test_get_source_by_slug(backend: InMemoryDispatchBackend) -> None:
-    await create_source(backend, "gitlab", "GitLab")
+async def test_get_source_by_slug(
+    backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
+) -> None:
+    await create_source(None, backend, storage, caller, "gitlab", "GitLab")
     source = await get_source_by_slug(backend, "gitlab")
     assert source is not None
     assert source.slug == "gitlab"
@@ -349,10 +409,12 @@ async def test_get_source_by_slug_not_found(
 @pytest.mark.asyncio
 async def test_get_source_by_slug_with_config(
     backend: InMemoryDispatchBackend,
+    storage: InMemoryPrincipalStorage,
+    caller: Principal,
 ) -> None:
     """get_source_by_slug preserves config."""
     cfg = {"event_type_field": "action"}
-    await create_source(backend, "webhook", "Webhook", config=cfg)
+    await create_source(None, backend, storage, caller, "webhook", "Webhook", config=cfg)
     source = await get_source_by_slug(backend, "webhook")
     assert source is not None
     assert source.config == cfg

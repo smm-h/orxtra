@@ -87,6 +87,17 @@ _INJECT_POOL_STORAGE_AND_CALLER: frozenset[str] = frozenset({
     "principal_storage",
     "caller_principal",
 })
+# create_source validates credential_id against auth's credentials table (needs
+# pool), persists via the dispatch backend, mints the source's principal (needs
+# principal_storage), and attributes the row to the caller (needs the derived
+# caller_principal). Injection order is deterministic (pool, dispatch_backend,
+# principal_storage, caller_principal), matching the create_source fn signature.
+_INJECT_SOURCE_CREATE: frozenset[str] = frozenset({
+    "pool",
+    "dispatch_backend",
+    "principal_storage",
+    "caller_principal",
+})
 _INJECT_NONE: frozenset[str] = frozenset()
 
 
@@ -394,7 +405,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="dispatch",
             required_scope=SCOPE_SOURCES_MANAGE,
-            injects=_INJECT_DISPATCH_BACKEND,
+            injects=_INJECT_SOURCE_CREATE,
         ),
         Capability(
             name="get_source",

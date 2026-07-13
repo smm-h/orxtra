@@ -14,7 +14,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastware import Router, create_app
@@ -112,6 +112,7 @@ async def source_with_hmac(
             "signature_header": "X-Hub-Signature-256",
             "idempotency_header": "X-GitHub-Delivery",
         },
+        created_by=uuid4(),
         created_at=now,
     )
     await dispatch_backend.create_source(source)
@@ -143,6 +144,7 @@ async def source_with_bearer(
             "event_type_source": "json_field",
             "event_type_field": "type",
         },
+        created_by=uuid4(),
         created_at=now,
     )
     await dispatch_backend.create_source(source)
@@ -164,6 +166,7 @@ async def source_no_credential(
             "event_type_source": "constant",
             "event_type_field": "generic.event",
         },
+        created_by=uuid4(),
         created_at=now,
     )
     await dispatch_backend.create_source(source)
@@ -192,6 +195,7 @@ async def source_no_mapping(
         name="Unmapped Source",
         credential_id=cred_id,
         config={},  # No event_type_source or event_type_field.
+        created_by=uuid4(),
         created_at=now,
     )
     await dispatch_backend.create_source(source)
@@ -587,6 +591,7 @@ class TestEventTypeExtraction:
                 "event_type_source": "constant",
                 "event_type_field": "webhook.received",
             },
+            created_by=uuid4(),
             created_at=now,
         )
         await dispatch_backend.create_source(source)
@@ -689,6 +694,7 @@ class TestInvalidJsonBody:
                 "event_type_source": "constant",
                 "event_type_field": "raw.event",
             },
+            created_by=uuid4(),
             created_at=now,
         )
         await dispatch_backend.create_source(source)

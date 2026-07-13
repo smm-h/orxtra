@@ -47,6 +47,10 @@ class Source(BaseModel):
     name: str
     credential_id: UUID | None = None
     config: dict[str, Any] | None = None
+    # The creating actor's principal. Set at creation from the caller's
+    # persisted principal; historical rows are backfilled to the system
+    # principal by the migration.
+    created_by: UUID
     created_at: datetime = Field(default_factory=_utcnow)
 
 

@@ -54,12 +54,14 @@ def _source(
     slug: str = "github",
     name: str = "GitHub",
     credential_id: UUID | None = None,
+    created_by: UUID | None = None,
 ) -> Source:
     return Source(
         id=source_id or uuid7(),
         slug=slug,
         name=name,
         credential_id=credential_id,
+        created_by=created_by or uuid7(),
         created_at=NOW,
     )
 

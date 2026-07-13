@@ -17,7 +17,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 import uuid6
@@ -137,6 +137,7 @@ async def source_with_bearer(
             "event_type_source": "constant",
             "event_type_field": "test.event",
         },
+        created_by=uuid4(),
         created_at=now,
     )
     await dispatch_backend.create_source(source)
@@ -155,6 +156,7 @@ async def source_no_credential(
         name="No Credential Source",
         credential_id=None,
         config={},
+        created_by=uuid4(),
         created_at=now,
     )
     await dispatch_backend.create_source(source)

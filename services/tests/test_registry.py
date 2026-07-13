@@ -229,7 +229,9 @@ EXPECTED_INJECTS: dict[str, frozenset[str]] = {
     "subscribe": frozenset({"dispatch_backend"}),
     "unsubscribe": frozenset({"dispatch_backend"}),
     "list_subscriptions": frozenset({"dispatch_backend"}),
-    "create_source": frozenset({"dispatch_backend"}),
+    "create_source": frozenset(
+        {"pool", "dispatch_backend", "principal_storage", "caller_principal"},
+    ),
     "get_source": frozenset({"dispatch_backend"}),
     "get_source_by_slug": frozenset({"dispatch_backend"}),
     "list_sources": frozenset({"dispatch_backend"}),
