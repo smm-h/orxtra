@@ -21,6 +21,7 @@ from a2a.types.a2a_pb2 import (
     Message,
     Part,
     SendMessageRequest,
+    Task,
 )
 from orxtra.a2a._agent_card import build_agent_card
 from orxtra.a2a._server import (
@@ -492,3 +493,38 @@ class TestPerRequestIdentity:
             _build_call_context(None),
         )
         assert recorder.contexts[0].auth_context is None
+
+    async def test_message_send_insufficient_scope_surfaces_error(
+        self,
+        handler: OrxtraRequestHandler,
+    ) -> None:
+        """Enforcement bites end-to-end: message/send whose identity lacks the
+        capability's required scope surfaces the authorization failure.
+
+        dispatch() is NOT monkeypatched -- the real Authorizer runs. The
+        message routes to start_run (requires runs:manage), but the request
+        identity carries no scopes, so dispatch raises AuthorizationError. The
+        default message/send path catches it and returns it as the task's
+        agent-message text, which is how the A2A layer surfaces the failure.
+        """
+        unscoped = AuthContext(
+            id=UUID("33333333-3333-3333-3333-333333333333"),
+            consumer_id=UUID("44444444-4444-4444-4444-444444444444"),
+            scopes=frozenset(),
+            trust_tier=TrustTier.VERIFIED,
+            authenticated_via="bearer",
+            issued_at=datetime(2026, 1, 1, tzinfo=UTC),
+            expires_at=None,
+        )
+        task = await handler.on_message_send(
+            SendMessageRequest(
+                message=Message(
+                    message_id="m3",
+                    parts=[Part(text="config.toml")],
+                ),
+            ),
+            _build_call_context(unscoped),
+        )
+        assert isinstance(task, Task)
+        surfaced = task.history[0].parts[0].text
+        assert "runs:manage" in surfaced

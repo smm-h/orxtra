@@ -562,6 +562,34 @@ async def test_static_resource_open_mode_none(
     assert calls[0][0][0].auth_context is None
 
 
+async def test_tool_call_insufficient_scope_surfaces_error(
+    server: MCPServer,
+) -> None:
+    """Enforcement bites end-to-end: a tool call whose request identity lacks
+    the capability's required scope fails through the MCP layer.
+
+    dispatch() is NOT patched here -- the real Authorizer runs. The request
+    carries an AuthContext with no scopes, so list_runs (requires runs:read)
+    raises AuthorizationError inside the handler, which FastMCP surfaces as a
+    ToolError.
+    """
+    from mcp.server.fastmcp.exceptions import ToolError
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    unscoped = AuthContext(
+        id=uuid4(),
+        consumer_id=uuid4(),
+        scopes=frozenset(),
+        trust_tier=TrustTier.VERIFIED,
+        authenticated_via="test",
+        issued_at=now,
+        expires_at=None,
+    )
+    with _request_scope(auth_context=unscoped), pytest.raises(ToolError) as exc_info:
+        await server.fastmcp.call_tool("list_runs", {"kwargs": {}})
+    assert "runs:read" in str(exc_info.value)
+
+
 async def test_context_param_excluded_from_tool_schema(server: MCPServer) -> None:
     """The injected Context parameter never appears in a tool's input schema."""
     tools = await server.fastmcp.list_tools()

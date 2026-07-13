@@ -545,3 +545,22 @@ def test_operator_auth_context_id_is_fresh_each_call() -> None:
         _cli_module._operator_auth_context().id
         != _cli_module._operator_auth_context().id
     )
+
+
+def test_operator_context_authorizes_every_capability() -> None:
+    """Enforcement never bites the CLI: the local operator's ALL_SCOPES context
+    authorizes every registered capability end-to-end.
+
+    Runs the real Authorizer (the same instance dispatch() uses) against the
+    real operator context for each capability's required_scope. Any capability
+    the operator could not invoke would raise AuthorizationError here.
+    """
+    from orxtra.auth import Authorizer
+    from orxtra.services import get_capabilities
+
+    authorizer = Authorizer()
+    operator = _cli_module._operator_auth_context()
+    for cap in get_capabilities():
+        # Raises AuthorizationError if the operator lacks the scope; the loop
+        # completing means every CLI-reachable capability is authorized.
+        authorizer.authorize(operator, cap.required_scope)
