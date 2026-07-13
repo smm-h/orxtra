@@ -64,7 +64,7 @@ def _serialize(obj: Any) -> Any:
         return str(obj)
     if isinstance(obj, BaseModel):
         return _serialize(obj.model_dump())
-    if isinstance(obj, list):
+    if isinstance(obj, (list, tuple)):
         return [_serialize(item) for item in obj]
     if isinstance(obj, dict):
         return {k: _serialize(v) for k, v in obj.items()}

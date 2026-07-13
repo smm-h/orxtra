@@ -67,3 +67,21 @@ def test_serialize_nested_dict() -> None:
 def test_serialize_empty_containers() -> None:
     assert _serialize([]) == []
     assert _serialize({}) == {}
+
+
+def test_serialize_tuple_recurses_and_is_json_safe() -> None:
+    """A tuple (e.g. fire_event's ``(event_id, inserted)`` return) is serialized
+    element-wise so ``json.dumps`` never chokes on a UUID inside a tuple.
+
+    Regression: ``_serialize`` previously fell through tuples untouched, so an
+    authenticated MCP ``fire_event`` returned an error while the event had
+    already been fired.
+    """
+    import json
+    from uuid import UUID
+
+    uid = UUID("12345678-1234-5678-1234-567812345678")
+    result = _serialize((uid, True))
+    assert result == ["12345678-1234-5678-1234-567812345678", True]
+    # The whole point: the serialized form is JSON-encodable.
+    assert json.loads(json.dumps(result)) == [str(uid), True]
