@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -13,7 +14,13 @@ from a2a.types.a2a_pb2 import (
 from fastware.testing import AsyncTestClient
 from orxtra.a2a._skills import SkillRegistry
 from orxtra.api._compositor import CompositorConfig, create_compositor
-from orxtra.auth import Authenticator, HashCredentialVerifier, InMemoryAuthBackend
+from orxtra.auth import (
+    Authenticator,
+    HashCredentialVerifier,
+    HmacCredentialVerifier,
+    InMemoryAuthBackend,
+)
+from orxtra.protocols import TrustTier
 from orxtra.services import DispatchContext
 
 # -- Fixtures --
@@ -59,6 +66,47 @@ def compositor_config(
 @pytest.fixture
 def app(compositor_config: CompositorConfig) -> Any:
     return create_compositor(compositor_config)
+
+
+@pytest.fixture
+def auth_backend() -> InMemoryAuthBackend:
+    return InMemoryAuthBackend()
+
+
+@pytest.fixture
+def authenticator(auth_backend: InMemoryAuthBackend) -> Authenticator:
+    verifiers: dict[str, HashCredentialVerifier | HmacCredentialVerifier] = {
+        "api_key": HashCredentialVerifier("api_key", auth_backend),
+        "bearer": HashCredentialVerifier("bearer", auth_backend),
+    }
+    return Authenticator(auth_backend, verifiers)
+
+
+@pytest.fixture
+def authed_app(
+    dispatch_context: DispatchContext,
+    agent_card: AgentCard,
+    skill_registry: SkillRegistry,
+    authenticator: Authenticator,
+) -> Any:
+    """A compositor app with the auth wall enabled on every sub-app."""
+    config = CompositorConfig(
+        dispatch_context=dispatch_context,
+        agent_card=agent_card,
+        skill_registry=skill_registry,
+        authenticator=authenticator,
+    )
+    return create_compositor(config)
+
+
+async def _issue_token(backend: InMemoryAuthBackend) -> str:
+    """Register a consumer with a bearer credential and return the raw token."""
+    token = "valid-compositor-token"
+    consumer_id = await backend.create_consumer(
+        "compositor-test-user", TrustTier.VERIFIED, ["api"],
+    )
+    await backend.create_credential(consumer_id, "bearer", token)
+    return token
 
 
 # -- Tests --
@@ -163,7 +211,7 @@ class TestAguiRoutes:
     ) -> None:
         """With an authenticator, unauthenticated requests get 401."""
         backend = InMemoryAuthBackend()
-        verifiers = {
+        verifiers: dict[str, HashCredentialVerifier | HmacCredentialVerifier] = {
             "api_key": HashCredentialVerifier("api_key", backend),
             "bearer": HashCredentialVerifier("bearer", backend),
         }
@@ -178,3 +226,151 @@ class TestAguiRoutes:
         async with AsyncTestClient(app) as client:
             resp = await client.get("/ag-ui/events")
             assert resp.status_code == 401
+
+    async def test_agui_events_with_auth_accepts_authenticated(
+        self,
+        authed_app: Any,
+        auth_backend: InMemoryAuthBackend,
+    ) -> None:
+        """With a valid credential, the AG-UI route is reached (not 401)."""
+        token = await _issue_token(auth_backend)
+        async with AsyncTestClient(authed_app) as client:
+            resp = await client.get(
+                "/ag-ui/events",
+                headers={"authorization": f"Bearer {token}"},
+            )
+            # Past the auth wall: the handler may 400 (missing run_id) or
+            # 500, but never 401/404.
+            assert resp.status_code not in (401, 404)
+
+
+class TestAuthWall:
+    """The auth wall wraps the MCP and A2A sub-apps, mirroring AG-UI."""
+
+    async def test_mcp_rejects_unauthenticated(self, authed_app: Any) -> None:
+        """Anonymous HTTP request to /mcp is blocked with 401."""
+        async with AsyncTestClient(authed_app) as client:
+            resp = await client.get("/mcp")
+            assert resp.status_code == 401
+
+    async def test_a2a_rejects_unauthenticated(self, authed_app: Any) -> None:
+        """Anonymous HTTP request to /a2a is blocked with 401."""
+        async with AsyncTestClient(authed_app) as client:
+            resp = await client.post(
+                "/a2a",
+                content=b'{"jsonrpc":"2.0","method":"message/send","id":1}',
+                headers={"content-type": "application/json"},
+            )
+            assert resp.status_code == 401
+
+    async def test_a2a_agent_card_rejects_unauthenticated(
+        self, authed_app: Any,
+    ) -> None:
+        """Even the A2A agent card route is behind the wall when authed."""
+        async with AsyncTestClient(authed_app) as client:
+            resp = await client.get("/a2a/.well-known/agent-card.json")
+            assert resp.status_code == 401
+
+    async def test_mcp_passes_authenticated_through(
+        self, authed_app: Any, auth_backend: InMemoryAuthBackend,
+    ) -> None:
+        """A valid credential passes the wall and reaches the MCP sub-app.
+
+        Past the wall, the MCP session manager raises RuntimeError because
+        its lifespan was not run by the test client (see TestMcpMount).
+        Either the RuntimeError or a non-401 response proves the request
+        cleared the auth wall and reached the sub-app.
+        """
+        token = await _issue_token(auth_backend)
+        async with AsyncTestClient(authed_app) as client:
+            try:
+                resp = await client.get(
+                    "/mcp", headers={"authorization": f"Bearer {token}"},
+                )
+                assert resp.status_code != 401
+            except RuntimeError as exc:
+                assert "Task group is not initialized" in str(exc)  # noqa: PT017
+
+    async def test_a2a_passes_authenticated_through(
+        self, authed_app: Any, auth_backend: InMemoryAuthBackend,
+    ) -> None:
+        """A valid credential passes the wall and reaches the A2A sub-app."""
+        token = await _issue_token(auth_backend)
+        async with AsyncTestClient(authed_app) as client:
+            resp = await client.get(
+                "/a2a/.well-known/agent-card.json",
+                headers={"authorization": f"Bearer {token}"},
+            )
+            assert resp.status_code not in (401, 404)
+
+    async def test_mcp_unauthenticated_when_no_authenticator(
+        self, app: Any,
+    ) -> None:
+        """With no authenticator, /mcp mounts raw (explicit open mode)."""
+        async with AsyncTestClient(app) as client:
+            try:
+                resp = await client.get("/mcp")
+                assert resp.status_code != 401
+            except RuntimeError as exc:
+                assert "Task group is not initialized" in str(exc)  # noqa: PT017
+
+    async def test_a2a_unauthenticated_when_no_authenticator(
+        self, app: Any,
+    ) -> None:
+        """With no authenticator, /a2a mounts raw (explicit open mode)."""
+        async with AsyncTestClient(app) as client:
+            resp = await client.get("/a2a/.well-known/agent-card.json")
+            assert resp.status_code == 200
+
+
+class TestWorkersWebSocket:
+    """The native /workers/connect WebSocket is unaffected by the auth wall.
+
+    The auth middleware wraps only the mounted sub-apps and passes non-HTTP
+    scopes through untouched. The /workers/connect handler is registered
+    directly on the root router, so it is never behind the wall. These tests
+    drive the ASGI app with a raw websocket scope (the HTTP test client does
+    not speak WebSocket).
+    """
+
+    @staticmethod
+    async def _connect(app: Any) -> list[dict[str, Any]]:
+        incoming: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        await incoming.put({"type": "websocket.connect"})
+        sent: list[dict[str, Any]] = []
+
+        async def receive() -> dict[str, Any]:
+            return await incoming.get()
+
+        async def send(message: dict[str, Any]) -> None:
+            sent.append(message)
+
+        scope = {
+            "type": "websocket",
+            "path": "/workers/connect",
+            "raw_path": b"/workers/connect",
+            "query_string": b"",
+            "headers": [],
+        }
+        await asyncio.wait_for(app(scope, receive, send), timeout=2.0)
+        return sent
+
+    async def test_workers_connect_open_no_authenticator(self, app: Any) -> None:
+        """Without an authenticator, the WebSocket accepts then closes."""
+        sent = await self._connect(app)
+        types = [m["type"] for m in sent]
+        assert "websocket.accept" in types
+        assert "websocket.close" in types
+
+    async def test_workers_connect_open_with_authenticator(
+        self, authed_app: Any,
+    ) -> None:
+        """With an authenticator configured, the WebSocket is still reachable.
+
+        No Authorization header is presented, yet the connection succeeds --
+        proof the auth wall does not gate the native WebSocket route.
+        """
+        sent = await self._connect(authed_app)
+        types = [m["type"] for m in sent]
+        assert "websocket.accept" in types
+        assert "websocket.close" in types
