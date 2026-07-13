@@ -128,6 +128,68 @@ async def test_db_verify_detects_missing_on_empty_db(
         await conn.close()
 
 
+async def test_db_init_seeds_system_principal(
+    pg_container: Any,
+) -> None:
+    """After schema creation, seeding mints the singleton system principal.
+
+    Mirrors the seeding wired into ``orxtra db init`` (cli/_db.py): schema
+    is created, then ``PgPrincipalStorage(pool).mint_principal`` seeds the
+    system principal. Asserts the row exists and is idempotent.
+    """
+    import asyncpg as _asyncpg
+    from _generated.schema_executor import (
+        execute,
+    )
+    from orxtra.identity import PgPrincipalStorage
+    from orxtra.protocols import KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF
+
+    url = pg_container.get_connection_url().replace(
+        "postgresql+psycopg2://", "postgresql://",
+    )
+    conn = await _asyncpg.connect(url)
+    try:
+        await conn.execute("DROP SCHEMA public CASCADE")
+        await conn.execute("CREATE SCHEMA public")
+
+        adapter = AsyncpgAdapter(conn)
+        result = await execute(
+            adapter,
+            idempotent=True,
+            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
+        )
+        assert not result.errors
+    finally:
+        await conn.close()
+
+    pool = await _asyncpg.create_pool(url)
+    try:
+        storage = PgPrincipalStorage(pool)
+        seeded = await storage.mint_principal(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+        )
+        assert seeded.kind == KIND_SYSTEM
+        assert seeded.external_ref == SYSTEM_PRINCIPAL_EXTERNAL_REF
+        assert seeded.display_name == "system"
+
+        # The row is present and resolvable by ref.
+        by_ref = await storage.get_principal_by_ref(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF,
+        )
+        assert by_ref is not None
+        assert by_ref.id == seeded.id
+
+        # Seeding again is idempotent -- same row, no duplicate.
+        again = await storage.mint_principal(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+        )
+        assert again.id == seeded.id
+        system_rows = await storage.list_principals(KIND_SYSTEM)
+        assert len(system_rows) == 1
+    finally:
+        await pool.close()
+
+
 async def test_db_verify_zero_missing_after_init(
     pg_container: Any,
 ) -> None:
