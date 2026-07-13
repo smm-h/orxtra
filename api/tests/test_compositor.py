@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from a2a.types.a2a_pb2 import (
@@ -102,8 +103,13 @@ def authed_app(
 async def _issue_token(backend: InMemoryAuthBackend) -> str:
     """Register a consumer with a bearer credential and return the raw token."""
     token = "valid-compositor-token"
+    # In-memory has no principals FK, so stand-in consumer/principal ids suffice.
     consumer_id = await backend.create_consumer(
-        "compositor-test-user", TrustTier.VERIFIED, ["api"],
+        "compositor-test-user",
+        TrustTier.VERIFIED,
+        ["api"],
+        consumer_id=uuid4(),
+        principal_id=uuid4(),
     )
     await backend.create_credential(consumer_id, "bearer", token)
     return token

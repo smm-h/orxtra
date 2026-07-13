@@ -7,9 +7,12 @@ from __future__ import annotations
 
 import hashlib
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from orxtra.auth import AuthBackend
-from orxtra.protocols import TrustTier
+from orxtra.identity import PgPrincipalStorage
+from orxtra.protocols import KIND_CONSUMER, TrustTier
+from uuid6 import uuid7
 
 from tests.pg_fixtures import skip_no_docker
 
@@ -19,6 +22,32 @@ if TYPE_CHECKING:
 pytestmark = skip_no_docker
 
 
+async def _mk_consumer(
+    backend: AuthBackend,
+    pool: asyncpg.Pool,
+    name: str,
+    trust_tier: TrustTier,
+    scope_grants: list[str],
+) -> UUID:
+    """Register a consumer via the mint-first flow against a real database.
+
+    consumers.principal_id FKs into principals (RESTRICT), so mint the
+    consumer's own principal (kind=consumer, external_ref=consumer id) first,
+    then persist the row carrying both ids. Auth never imports identity -- the
+    mint happens here, in the orchestrating test layer.
+    """
+    storage = PgPrincipalStorage(pool)
+    consumer_id = uuid7()
+    principal = await storage.mint_principal(KIND_CONSUMER, consumer_id, name)
+    return await backend.create_consumer(
+        name,
+        trust_tier,
+        scope_grants,
+        consumer_id=consumer_id,
+        principal_id=principal.id,
+    )
+
+
 class TestConsumerCRUD:
     """Consumer create, read, disable round-trips."""
 
@@ -26,7 +55,7 @@ class TestConsumerCRUD:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "roundtrip-consumer",
             TrustTier.VERIFIED,
             ["events:read", "events:write"],
@@ -45,7 +74,7 @@ class TestConsumerCRUD:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "disable-me", TrustTier.IDENTIFIED, ["read"],
         )
 
@@ -77,7 +106,7 @@ class TestCredentialCreation:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "bearer-consumer", TrustTier.VERIFIED, [],
         )
 
@@ -101,7 +130,7 @@ class TestCredentialCreation:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "api-key-consumer", TrustTier.IDENTIFIED, ["admin"],
         )
 
@@ -124,7 +153,7 @@ class TestHmacCredential:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "hmac-consumer", TrustTier.VERIFIED, [],
         )
 
@@ -153,7 +182,7 @@ class TestCascadeDelete:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "cascade-consumer", TrustTier.VERIFIED, [],
         )
         cred_id_1 = await backend.create_credential(
@@ -188,7 +217,7 @@ class TestGetCredentialsByConsumer:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "multi-cred-consumer", TrustTier.VERIFIED, [],
         )
 
@@ -216,7 +245,7 @@ class TestGetCredentialsByConsumer:
         self, pg_pool: asyncpg.Pool
     ) -> None:
         backend = AuthBackend(pg_pool)
-        consumer_id = await backend.create_consumer(
+        consumer_id = await _mk_consumer(backend, pg_pool,
             "no-creds-consumer", TrustTier.ANONYMOUS, [],
         )
 

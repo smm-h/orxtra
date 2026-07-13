@@ -522,13 +522,23 @@ class TestAuthTables:
     ) -> None:
         """Insert a consumer + credential and read them back."""
         async with pg_pool.acquire() as conn:
+            # consumers.principal_id FKs into principals (NOT NULL), so mint the
+            # consumer's own principal first, then reference it.
+            principal_id = await conn.fetchval(
+                """
+                INSERT INTO principals (kind, external_ref, display_name)
+                VALUES ('consumer', gen_random_uuid(), 'test-consumer')
+                RETURNING id
+                """,
+            )
             # Insert a consumer
             consumer_id = await conn.fetchval(
                 """
-                INSERT INTO consumers (name, trust_tier, scope_grants)
-                VALUES ($1, $2, $3::jsonb)
+                INSERT INTO consumers (principal_id, name, trust_tier, scope_grants)
+                VALUES ($1, $2, $3, $4::jsonb)
                 RETURNING id
                 """,
+                principal_id,
                 "test-consumer",
                 "verified",
                 '["events:read", "events:write"]',

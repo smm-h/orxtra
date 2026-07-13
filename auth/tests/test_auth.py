@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from uuid import UUID
 
 import pytest
 from orxtra.auth import (
@@ -39,6 +40,7 @@ from orxtra.protocols import (
     TrustTier,
 )
 from orxtra.secrets import EnvMacProvider, SecretRegistry
+from uuid6 import uuid7
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -84,11 +86,31 @@ class CollectingSink:
 # ---------------------------------------------------------------------------
 
 
+async def _mk_consumer(
+    backend: InMemoryAuthBackend,
+    name: str,
+    trust_tier: TrustTier,
+    scope_grants: list[str],
+) -> UUID:
+    """Register a consumer via the mint-first flow (throwaway ids for in-memory).
+
+    In-memory has no principals FK, so the consumer/principal ids are stand-ins;
+    the resolver-integrity flow is exercised separately in the identity tests.
+    """
+    return await backend.create_consumer(
+        name,
+        trust_tier,
+        scope_grants,
+        consumer_id=uuid7(),
+        principal_id=uuid7(),
+    )
+
+
 @pytest.mark.asyncio
 async def test_create_consumer_and_credential(
     backend: InMemoryAuthBackend,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "test-consumer", TrustTier.VERIFIED, ["read", "write"],
     )
     consumer = await backend.get_consumer(consumer_id)
@@ -122,7 +144,7 @@ async def test_create_consumer_and_credential(
 async def test_credential_stores_secret_ref(
     backend: InMemoryAuthBackend,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "hmac-consumer", TrustTier.VERIFIED, [],
     )
     cred_id = await backend.create_credential(
@@ -144,7 +166,7 @@ async def test_credential_stores_secret_ref(
 async def test_get_credentials_by_consumer(
     backend: InMemoryAuthBackend,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "multi-cred", TrustTier.VERIFIED, [],
     )
     await backend.create_credential(consumer_id, "api_key", "key1")
@@ -176,7 +198,7 @@ async def test_authenticate_correct_key(
     backend: InMemoryAuthBackend,
     authenticator: Authenticator,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "api-user", TrustTier.IDENTIFIED, ["read"],
     )
     await backend.create_credential(
@@ -201,7 +223,7 @@ async def test_authenticate_wrong_key(
     backend: InMemoryAuthBackend,
     authenticator: Authenticator,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "api-user", TrustTier.IDENTIFIED, ["read"],
     )
     await backend.create_credential(
@@ -242,7 +264,7 @@ async def test_audit_events_emitted_on_success(
     }
     authenticator = Authenticator(backend, verifiers, audit_sink=sink)
 
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "audit-user", TrustTier.VERIFIED, [],
     )
     await backend.create_credential(consumer_id, "api_key", "audit-key")
@@ -285,7 +307,7 @@ async def test_authorize_allowed_scope(
     authenticator: Authenticator,
     authorizer: Authorizer,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "writer", TrustTier.VERIFIED, ["read", "write"],
     )
     await backend.create_credential(
@@ -308,7 +330,7 @@ async def test_authorize_disallowed_scope(
     authenticator: Authenticator,
     authorizer: Authorizer,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "reader", TrustTier.IDENTIFIED, ["read"],
     )
     await backend.create_credential(
@@ -336,7 +358,7 @@ async def test_scope_vocabulary(
     }
     authenticator = Authenticator(backend, verifiers)
 
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "scoped-user",
         TrustTier.VERIFIED,
         [SCOPE_EVENTS_READ, SCOPE_EVENTS_WRITE],
@@ -387,7 +409,7 @@ async def test_authenticate_disabled_consumer(
     backend: InMemoryAuthBackend,
     authenticator: Authenticator,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "disabled-user", TrustTier.VERIFIED, ["read"],
     )
     await backend.create_credential(
@@ -484,7 +506,7 @@ async def test_middleware_valid_credential(
     backend: InMemoryAuthBackend,
     authenticator: Authenticator,
 ) -> None:
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "mw-user", TrustTier.VERIFIED, ["api"],
     )
     await backend.create_credential(
@@ -725,7 +747,7 @@ async def test_hmac_verifier_end_to_end() -> None:
     provider = EnvMacProvider(registry)
 
     backend = InMemoryAuthBackend()
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "hmac-consumer",
         TrustTier.VERIFIED,
         [SCOPE_EVENTS_WRITE],
@@ -770,7 +792,7 @@ async def test_hmac_verifier_wrong_signature() -> None:
     provider = EnvMacProvider(registry)
 
     backend = InMemoryAuthBackend()
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "hmac-consumer", TrustTier.VERIFIED, [],
     )
     identifier = "hmac-client"
@@ -795,7 +817,7 @@ async def test_hmac_verifier_no_secret_ref() -> None:
     provider = EnvMacProvider(registry)
 
     backend = InMemoryAuthBackend()
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "hmac-consumer", TrustTier.VERIFIED, [],
     )
     identifier = "hmac-client"
@@ -823,7 +845,7 @@ async def test_hmac_verifier_no_secret_ref() -> None:
 async def test_scope_lacking_auth_context_denied() -> None:
     """An auth context without the required scope is denied by the Authorizer."""
     backend = InMemoryAuthBackend()
-    consumer_id = await backend.create_consumer(
+    consumer_id = await _mk_consumer(backend,
         "limited-user",
         TrustTier.IDENTIFIED,
         [SCOPE_EVENTS_READ],

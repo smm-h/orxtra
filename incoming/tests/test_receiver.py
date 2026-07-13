@@ -60,6 +60,26 @@ def auth_backend() -> InMemoryAuthBackend:
     return InMemoryAuthBackend()
 
 
+async def _mk_consumer(
+    backend: InMemoryAuthBackend,
+    name: str,
+    trust_tier: TrustTier,
+    scope_grants: list[str],
+) -> UUID:
+    """Register a consumer via the mint-first flow (stand-in ids for in-memory).
+
+    In-memory has no principals FK, so the consumer/principal ids are stand-ins.
+    """
+    return await backend.create_consumer(
+        name,
+        trust_tier,
+        scope_grants,
+        consumer_id=uuid4(),
+        principal_id=uuid4(),
+    )
+
+
+
 @pytest.fixture
 def secret_registry() -> SecretRegistry:
     return SecretRegistry({"github_webhook_secret": WEBHOOK_SECRET})
@@ -90,7 +110,7 @@ async def source_with_hmac(
 ) -> Source:
     """Create a source with HMAC credential configured."""
     # Create consumer and credential.
-    consumer_id = await auth_backend.create_consumer(
+    consumer_id = await _mk_consumer(auth_backend,
         CONSUMER_NAME, TrustTier.IDENTIFIED, ["events:write"],
     )
     cred_id = await auth_backend.create_credential(
@@ -125,7 +145,7 @@ async def source_with_bearer(
     auth_backend: InMemoryAuthBackend,
 ) -> Source:
     """Create a source with bearer credential configured."""
-    consumer_id = await auth_backend.create_consumer(
+    consumer_id = await _mk_consumer(auth_backend,
         "bearer-source", TrustTier.IDENTIFIED, ["events:write"],
     )
     cred_id = await auth_backend.create_credential(
@@ -179,7 +199,7 @@ async def source_no_mapping(
     auth_backend: InMemoryAuthBackend,
 ) -> Source:
     """Create a source with credential but no event_type mapping config."""
-    consumer_id = await auth_backend.create_consumer(
+    consumer_id = await _mk_consumer(auth_backend,
         "no-mapping-consumer", TrustTier.IDENTIFIED, ["events:write"],
     )
     cred_id = await auth_backend.create_credential(
@@ -575,7 +595,7 @@ class TestEventTypeExtraction:
         auth_backend: InMemoryAuthBackend,
     ) -> None:
         """Source with event_type_source=constant uses the field value directly."""
-        consumer_id = await auth_backend.create_consumer(
+        consumer_id = await _mk_consumer(auth_backend,
             "constant-source", TrustTier.IDENTIFIED, ["events:write"],
         )
         cred_id = await auth_backend.create_credential(
@@ -678,7 +698,7 @@ class TestInvalidJsonBody:
         auth_backend: InMemoryAuthBackend,
     ) -> None:
         """Bearer-authenticated source with non-JSON body."""
-        consumer_id = await auth_backend.create_consumer(
+        consumer_id = await _mk_consumer(auth_backend,
             "raw-source", TrustTier.IDENTIFIED, ["events:write"],
         )
         cred_id = await auth_backend.create_credential(

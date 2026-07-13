@@ -40,6 +40,7 @@ class ConsumerRecord:
     """A consumer (API client) stored in the auth backend."""
 
     id: UUID
+    principal_id: UUID
     name: str
     trust_tier: TrustTier
     scope_grants: list[str]

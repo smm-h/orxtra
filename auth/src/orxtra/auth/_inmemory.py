@@ -30,11 +30,20 @@ class InMemoryAuthBackend:
         name: str,
         trust_tier: TrustTier,
         scope_grants: list[str],
+        *,
+        consumer_id: UUID,
+        principal_id: UUID,
     ) -> UUID:
-        consumer_id = uuid7()
+        """Persist a consumer with a caller-supplied id and principal.
+
+        Mirrors the PG backend: the caller mints the consumer's own principal
+        (kind=consumer, external_ref=consumer_id) first and passes both ids in.
+        In-memory has no FK, so the ids are stored without enforcement.
+        """
         now = datetime.now(tz=UTC)
         self._consumers[consumer_id] = ConsumerRecord(
             id=consumer_id,
+            principal_id=principal_id,
             name=name,
             trust_tier=trust_tier,
             scope_grants=scope_grants,
@@ -60,6 +69,7 @@ class InMemoryAuthBackend:
         now = datetime.now(tz=UTC)
         self._consumers[consumer_id] = ConsumerRecord(
             id=existing.id,
+            principal_id=existing.principal_id,
             name=existing.name,
             trust_tier=existing.trust_tier,
             scope_grants=existing.scope_grants,
@@ -133,6 +143,7 @@ class InMemoryAuthBackend:
         existing = self._consumers[consumer_id]
         self._consumers[consumer_id] = ConsumerRecord(
             id=existing.id,
+            principal_id=existing.principal_id,
             name=existing.name,
             trust_tier=existing.trust_tier,
             scope_grants=json.loads(json.dumps(scopes)),

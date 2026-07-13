@@ -284,6 +284,9 @@ class AuthStorage(Protocol):
         name: str,
         trust_tier: TrustTier,
         scope_grants: list[str],
+        *,
+        consumer_id: UUID,
+        principal_id: UUID,
     ) -> UUID: ...
 
     async def get_consumer(

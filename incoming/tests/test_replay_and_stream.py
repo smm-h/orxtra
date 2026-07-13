@@ -84,6 +84,26 @@ def auth_backend() -> InMemoryAuthBackend:
     return InMemoryAuthBackend()
 
 
+async def _mk_consumer(
+    backend: InMemoryAuthBackend,
+    name: str,
+    trust_tier: TrustTier,
+    scope_grants: list[str],
+) -> UUID:
+    """Register a consumer via the mint-first flow (stand-in ids for in-memory).
+
+    In-memory has no principals FK, so the consumer/principal ids are stand-ins.
+    """
+    return await backend.create_consumer(
+        name,
+        trust_tier,
+        scope_grants,
+        consumer_id=uuid4(),
+        principal_id=uuid4(),
+    )
+
+
+
 @pytest.fixture
 def secret_registry() -> SecretRegistry:
     return SecretRegistry({})
@@ -118,7 +138,7 @@ async def source_with_bearer(
     auth_backend: InMemoryAuthBackend,
 ) -> Source:
     """Create a source with bearer credential."""
-    consumer_id = await auth_backend.create_consumer(
+    consumer_id = await _mk_consumer(auth_backend,
         "replay-consumer", TrustTier.IDENTIFIED, ["events:read"],
     )
     cred_id = await auth_backend.create_credential(
