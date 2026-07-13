@@ -7,6 +7,8 @@ auth backend, and protocol-specific resources.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -183,28 +185,80 @@ def build_app(server_config: ServerConfig) -> Any:
     """
     compositor: Any = None
     lifespan_cm: Any = None
+    # Background task that runs the compositor's OWN ASGI lifespan. fastware
+    # (>= 0.5.0) forwards startup/shutdown from a composited app to its mounted
+    # sub-apps, and the MCP StreamableHTTP session manager only initializes its
+    # task group inside that lifespan. build_app builds infrastructure first
+    # (pool, dispatch context) via ``lifespan()`` -- the compositor cannot be
+    # constructed before that -- then drives the compositor's lifespan here so
+    # the mount task groups come up and stay open while requests are served.
+    compositor_lifespan_task: asyncio.Task[None] | None = None
 
     async def app(scope: dict[str, Any], receive: Any, send: Any) -> None:
-        nonlocal compositor, lifespan_cm
+        nonlocal compositor, lifespan_cm, compositor_lifespan_task
 
         if scope["type"] == "lifespan":
             message = await receive()
-            if message["type"] == "lifespan.startup":
-                try:
-                    lifespan_cm = lifespan(server_config)
-                    compositor_config = await lifespan_cm.__aenter__()
-                    compositor = create_compositor(compositor_config)
-                    await send({"type": "lifespan.startup.complete"})
-                except Exception:
-                    log.exception("Startup failed")
-                    await send({"type": "lifespan.startup.failed"})
-                    return
+            if message["type"] != "lifespan.startup":
+                return
 
-                # Wait for shutdown
-                message = await receive()
-                if message["type"] == "lifespan.shutdown":
-                    await lifespan_cm.__aexit__(None, None, None)
-                    await send({"type": "lifespan.shutdown.complete"})
+            # Queues bridging this driver to the compositor's ASGI lifespan.
+            to_compositor: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+            from_compositor: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+
+            async def _compositor_receive() -> dict[str, Any]:
+                return await to_compositor.get()
+
+            async def _compositor_send(msg: dict[str, Any]) -> None:
+                await from_compositor.put(msg)
+
+            try:
+                lifespan_cm = lifespan(server_config)
+                compositor_config = await lifespan_cm.__aenter__()
+                compositor = create_compositor(compositor_config)
+
+                # Drive the compositor's lifespan on a long-lived background
+                # task so fastware forwards startup to the mounted sub-apps
+                # (initializing the MCP session-manager task group) and keeps
+                # those task groups open for the server's lifetime.
+                compositor_lifespan_task = asyncio.create_task(
+                    compositor(
+                        {"type": "lifespan", "state": {}},
+                        _compositor_receive,
+                        _compositor_send,
+                    ),
+                )
+                await to_compositor.put({"type": "lifespan.startup"})
+                startup_msg = await from_compositor.get()
+            except Exception:
+                log.exception("Startup failed")
+                await send({"type": "lifespan.startup.failed"})
+                return
+
+            if startup_msg["type"] != "lifespan.startup.complete":
+                log.error(
+                    "Compositor lifespan startup failed: %s",
+                    startup_msg.get("message", ""),
+                )
+                await send({"type": "lifespan.startup.failed"})
+                return
+
+            await send({"type": "lifespan.startup.complete"})
+
+            # Wait for shutdown.
+            message = await receive()
+            if message["type"] == "lifespan.shutdown":
+                # Shut the compositor's mounts down first, then tear down the
+                # infrastructure lifespan (reverse of startup order).
+                await to_compositor.put({"type": "lifespan.shutdown"})
+                with contextlib.suppress(Exception):
+                    await asyncio.wait_for(from_compositor.get(), timeout=5)
+                if compositor_lifespan_task is not None:
+                    compositor_lifespan_task.cancel()
+                    with contextlib.suppress(Exception, asyncio.CancelledError):
+                        await compositor_lifespan_task
+                await lifespan_cm.__aexit__(None, None, None)
+                await send({"type": "lifespan.shutdown.complete"})
             return
 
         if compositor is None:

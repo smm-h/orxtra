@@ -23,11 +23,15 @@ Scenarios (one test each):
    gets 403, and a SYSTEM-tier operator streams any run.
 7. A CLI-as-system dispatch (operator context) lands attribution on the
    system principal.
-8. Carried gap: driving the composited MCP app's lifespan initializes the
-   StreamableHTTP session manager BEHIND the auth middleware, so an
-   authenticated MCP session handshake succeeds (the compositor unit tests
-   catch "Task group is not initialized" as a workaround; this proves the
-   real thing).
+8. MCP session-manager init behind the auth wall, proven at two layers:
+   (8a) driving the auth-wrapped MCP mount's lifespan DIRECTLY initializes the
+   StreamableHTTP session manager behind the auth middleware (version-
+   independent; guards the middleware seam), and (8b) driving build_app's FULL
+   composited lifespan initializes it THROUGH the compositor via fastware's
+   mount-lifespan forwarding (the real deployment path). In both an
+   authenticated handshake succeeds while an anonymous request is rejected 401.
+   The compositor unit tests catch "Task group is not initialized" as a
+   workaround; these prove the real thing.
 """
 
 from __future__ import annotations
@@ -46,6 +50,7 @@ import uuid6
 from fastware import create_app
 from fastware.testing import AsyncTestClient
 from mcp.client.streamable_http import streamable_http_client
+from orxtra.api._lifecycle import ServerConfig, build_app
 from orxtra.auth import (
     AuthBackend,
     Authenticator,
@@ -221,14 +226,21 @@ def _walled_mcp_app(
     return auth_middleware(mcp_app, authenticator)
 
 
-def _mcp_http_client(app: Any, token: str) -> httpx.AsyncClient:
+def _mcp_http_client(
+    app: Any, token: str, base_url: str = "http://testserver",
+) -> httpx.AsyncClient:
     """An httpx client that drives the in-process ASGI app with the bearer
     token attached, handed to the MCP streamable-HTTP client.
+
+    ``base_url`` defaults to the ``testserver`` host used by the direct-mount
+    tests (which disable DNS-rebinding protection). The full-compositor test
+    passes a ``localhost:<port>`` URL that FastMCP's default transport security
+    allowlists.
     """
     return httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         headers={"authorization": f"Bearer {token}"},
-        base_url="http://testserver",
+        base_url=base_url,
         timeout=30,
     )
 
@@ -660,21 +672,34 @@ async def test_cli_as_system_dispatch_attributes_system(
 
 
 # ---------------------------------------------------------------------------
-# 8. Carried gap: MCP lifespan-through-the-auth-wall session-manager init
+# 8. MCP session-manager init behind the auth wall
+#
+# Two complementary proofs of the same story at different layers:
+#   8a (this test) -- the MIDDLEWARE LAYER: drive the auth-wrapped MCP mount
+#      DIRECTLY (bypassing the compositor). Version-independent: it works even
+#      without fastware's mount-lifespan forwarding, so it isolates and guards
+#      the auth_middleware + MCP session-manager seam specifically.
+#   8b (next test) -- the REAL COMPOSITED PATH: drive build_app's full lifespan
+#      and let fastware (>= 0.5.0) forward it to the /mcp mount. This is the
+#      path a real deployment takes, newly possible now that fastware forwards
+#      lifespan to mounted sub-apps.
 # ---------------------------------------------------------------------------
 
 
 async def test_mcp_lifespan_initializes_session_manager_behind_auth_wall(
     pg_pool: asyncpg.Pool,
 ) -> None:
-    """Drive real lifespan startup of the composited MCP app and prove its
-    StreamableHTTP session manager initializes BEHIND the auth middleware.
+    """8a -- MIDDLEWARE LAYER. Drive the auth-wrapped MCP mount's lifespan
+    DIRECTLY (not through the compositor) and prove its StreamableHTTP session
+    manager initializes BEHIND the auth middleware.
 
     The compositor unit tests catch "Task group is not initialized" as a
     workaround because they never run the mounted app's lifespan. Here the
-    lifespan is driven for real: an authenticated MCP ``initialize`` handshake
-    succeeds (the session manager handled it), while an anonymous request is
-    still rejected by the wall.
+    mount's lifespan is driven for real: an authenticated MCP ``initialize``
+    handshake succeeds (the session manager handled it), while an anonymous
+    request is still rejected by the wall. This guards the middleware/session-
+    manager seam independently of fastware's mount-lifespan forwarding; the
+    full composited path is proven separately in test 8b.
     """
     await _seed_system(pg_pool)
     token = "carried-gap-token"
@@ -703,3 +728,64 @@ async def test_mcp_lifespan_initializes_session_manager_behind_auth_wall(
                 async with ClientSession(read, write) as session:
                     init_result = await session.initialize()
                     assert init_result.serverInfo.name == "orxtra-mcp"
+
+
+async def test_mcp_session_manager_initializes_through_full_compositor(
+    pg_pool: asyncpg.Pool,
+    pg_container: Any,
+) -> None:
+    """8b -- REAL COMPOSITED PATH. Drive ``build_app``'s FULL lifespan and prove
+    the MCP StreamableHTTP session manager initializes THROUGH the compositor.
+
+    Unlike 8a (which drives the mount directly), this exercises the whole
+    production stack: build_app -> orxtra infrastructure lifespan -> compositor
+    lifespan -> fastware (>= 0.5.0) mount-lifespan forwarding -> MCP session-
+    manager task-group init. An authenticated ``initialize`` handshake to
+    ``/mcp`` succeeds (proving the mount came up via forwarding), while an
+    anonymous request to ``/mcp`` is still rejected 401 by the wall.
+
+    The MCP mount uses FastMCP's default transport security, which allowlists
+    ``localhost:*``/``127.0.0.1:*`` hosts, so the in-process client speaks to a
+    ``localhost:<port>`` base URL rather than the ``testserver`` host that 8a
+    accepts by disabling DNS-rebinding protection.
+    """
+    consumer, _cid = await _register_consumer(
+        pg_pool, name="full-composited", tier=TrustTier.VERIFIED,
+        scopes=["events:read"], token=(token := "full-composited-token"),
+    )
+    db_url = pg_container.get_connection_url().replace(
+        "postgresql+psycopg2://", "postgresql://",
+    )
+    # build_app's lifespan seeds the system principal and verifies the schema
+    # (already applied by the pg_pool fixture) against this same database.
+    server_config = ServerConfig(
+        db_url=db_url,
+        port=8080,
+        authenticator=_bearer_authenticator(pg_pool),
+    )
+    app = build_app(server_config)
+
+    async with _LifespanRunner(app):
+        # Anonymous request to /mcp is rejected by the wall (never reaches the
+        # mounted MCP app's host validation).
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://localhost:8080",
+        ) as anon:
+            anon_resp = await anon.get("/mcp")
+            assert anon_resp.status_code == 401
+
+        # Authenticated handshake reaches -- and is served by -- the session
+        # manager mounted at /mcp, proving fastware forwarded the compositor's
+        # lifespan into the mount and its task group initialized.
+        client = _mcp_http_client(app, token, "http://localhost:8080")
+        async with client:  # noqa: SIM117
+            async with streamable_http_client(
+                "http://localhost:8080/mcp", http_client=client,
+            ) as (read, write, _get_session_id):
+                async with ClientSession(read, write) as session:
+                    init_result = await session.initialize()
+                    assert init_result.serverInfo.name == "orxtra-mcp"
+
+    # The consumer that performed the handshake is a real registered principal.
+    assert consumer.kind == KIND_CONSUMER
