@@ -13,7 +13,7 @@ order: 91
 
 Autonomous multi-agent AI workflows.
 
-Version: 0.10.0
+Version: 0.8.0
 
 ## Commands
 
