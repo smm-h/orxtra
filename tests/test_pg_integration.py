@@ -302,6 +302,89 @@ class TestStartRunIdentity:
         assert report.created_by == system_principal.id
 
 
+class TestCreateSourceIdentity:
+    """The source identity vertical, end to end through the dispatcher.
+
+    A SYSTEM-tier operator context resolves to the seeded system principal;
+    dispatching ``create_source`` mints the source's own principal (kind=source,
+    display_name=slug) and persists the source attributed to the caller. An
+    unknown ``credential_id`` is rejected at the dispatch choke point.
+    """
+
+    async def test_create_source_mints_principal_and_attributes_creator(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        from datetime import UTC, datetime
+        from uuid import uuid4
+
+        from orxtra.dispatch import PgDispatchBackend
+        from orxtra.identity import PgPrincipalStorage
+        from orxtra.protocols import (
+            ALL_SCOPES,
+            KIND_SOURCE,
+            SYSTEM_PRINCIPAL_EXTERNAL_REF,
+            AuthContext,
+            TrustTier,
+        )
+        from orxtra.services._dispatcher import DispatchContext, dispatch
+
+        storage = PgPrincipalStorage(pg_pool)
+        system_principal = await storage.mint_principal(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+        )
+
+        operator_ctx = AuthContext(
+            id=uuid6.uuid7(),
+            consumer_id=None,
+            scopes=ALL_SCOPES,
+            trust_tier=TrustTier.SYSTEM,
+            authenticated_via="test-operator",
+            issued_at=datetime.now(UTC),
+            expires_at=None,
+        )
+        context = DispatchContext(
+            pool=pg_pool,
+            dispatch_backend=PgDispatchBackend(pg_pool),
+            principal_storage=storage,
+            auth_context=operator_ctx,
+        )
+
+        source_id = await dispatch(
+            context,
+            "create_source",
+            {"slug": "gh-e2e", "name": "GitHub E2E"},
+        )
+
+        # The persisted source is attributed to the system principal.
+        source_row = await pg_pool.fetchrow(
+            "SELECT created_by FROM sources WHERE id = $1", source_id,
+        )
+        assert source_row is not None
+        assert source_row["created_by"] == system_principal.id
+
+        # A source principal was minted, sharing the source's id as external_ref
+        # and carrying the slug as its display_name.
+        source_principal = await storage.get_principal_by_ref(
+            KIND_SOURCE, source_id,
+        )
+        assert source_principal is not None
+        assert source_principal.kind == KIND_SOURCE
+        assert source_principal.external_ref == source_id
+        assert source_principal.display_name == "gh-e2e"
+
+        # An unknown credential_id is a hard error at dispatch time.
+        with pytest.raises(ValueError, match="Unknown credential_id"):
+            await dispatch(
+                context,
+                "create_source",
+                {
+                    "slug": "bad-cred",
+                    "name": "Bad Cred",
+                    "credential_id": str(uuid4()),
+                },
+            )
+
+
 # -- LISTEN/NOTIFY ------------------------------------------------------------
 
 
