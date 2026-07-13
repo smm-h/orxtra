@@ -10,6 +10,13 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import pytest
+import uuid6
+from orxtra.identity import PgPrincipalStorage
+from orxtra.protocols import (
+    KIND_RUN,
+    KIND_SYSTEM,
+    SYSTEM_PRINCIPAL_EXTERNAL_REF,
+)
 from orxtra.trace import (
     InvalidTransitionError,
     TraceWriter,
@@ -23,7 +30,6 @@ from tests.pg_fixtures import skip_no_docker
 
 if TYPE_CHECKING:
     import asyncpg
-    import uuid6
 
 pytestmark = skip_no_docker
 
@@ -31,12 +37,25 @@ pytestmark = skip_no_docker
 # -- Helpers ------------------------------------------------------------------
 
 
-async def _create_run(writer: TraceWriter) -> uuid6.UUID:
-    """Create a run and transition to running."""
-    run_id = await writer.create_run(
+async def _create_run(writer: TraceWriter, pool: asyncpg.Pool) -> uuid6.UUID:
+    """Create a run and transition to running.
+
+    runs.created_by FKs into principals, so seed the singleton system
+    principal (idempotent) as the creator and mint the run's own principal
+    before inserting the row.
+    """
+    storage = PgPrincipalStorage(pool)
+    creator = await storage.mint_principal(
+        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+    )
+    run_id = uuid6.uuid7()
+    await storage.mint_principal(KIND_RUN, run_id, None)
+    await writer.create_run(
         intent="test intent",
         config={"key": "value"},
         autonomy_level="full",
+        run_id=run_id,
+        created_by=creator.id,
     )
     await writer.transition_run(run_id, "running")
     return run_id
@@ -94,7 +113,7 @@ class TestTraceWriter:
     ) -> None:
         """create_run persists; read_run_report returns it."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
 
         report = await read_run_report(pg_pool, run_id)
         assert report is not None
@@ -108,7 +127,7 @@ class TestTraceWriter:
     ) -> None:
         """create_task + transition_task respects state machine."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
         task_id = await _create_task(writer, run_id)
 
         # Valid: created -> prechecking -> active -> postchecking -> completed
@@ -129,7 +148,7 @@ class TestTraceWriter:
     ) -> None:
         """Invalid task transition raises InvalidTransitionError."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
         task_id = await _create_task(writer, run_id)
 
         # created -> active is not valid (must go through prechecking)
@@ -141,7 +160,7 @@ class TestTraceWriter:
     ) -> None:
         """Cannot transition from a terminal state."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
         task_id = await _create_task(writer, run_id)
 
         # Walk to completed (terminal)
@@ -158,7 +177,7 @@ class TestTraceWriter:
     ) -> None:
         """write_event inserts into events table."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
 
         event_id, inserted = await writer.write_event(
             run_id=run_id,
@@ -186,7 +205,7 @@ class TestListenNotify:
     ) -> None:
         """Inserting an event fires LISTEN/NOTIFY on 'orxtra_events'."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
 
         notifications: list[dict[str, Any]] = []
 
@@ -228,7 +247,7 @@ class TestAdvisoryLocks:
     async def test_acquire_succeeds(self, pg_pool: asyncpg.Pool) -> None:
         """First acquire on a run_id succeeds."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
 
         await acquire_run_lock(pg_pool, run_id)
         await release_run_lock(pg_pool, run_id)
@@ -243,7 +262,7 @@ class TestAdvisoryLocks:
         different one.
         """
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
 
         from orxtra.trace import lock_key
 
@@ -282,7 +301,7 @@ class TestConstraints:
     ) -> None:
         """write_constraint + read_active_constraints round-trips."""
         writer = TraceWriter(pg_pool)
-        run_id = await _create_run(writer)
+        run_id = await _create_run(writer, pg_pool)
 
         c_id = await writer.write_constraint(
             run_id=run_id,

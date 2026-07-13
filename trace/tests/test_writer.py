@@ -29,13 +29,13 @@ class TestCreateRun:
     async def test_create_run(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
-        with patch(
-            "orxtra.trace._writer.uuid6.uuid7",
-            return_value=TEST_UUID,
-        ):
-            result = await writer.create_run(
-                "build app", {"key": "val"}, "full",
-            )
+        # run_id and created_by are supplied by the caller (the orchestrating
+        # layer mints the run principal before the row exists), so create_run
+        # no longer generates the id itself.
+        result = await writer.create_run(
+            "build app", {"key": "val"}, "full",
+            run_id=TEST_UUID, created_by=TEST_UUID_2,
+        )
 
         assert result == TEST_UUID
         assert len(mock_pool.conn.executed) == 1
@@ -46,6 +46,7 @@ class TestCreateRun:
             "build app",
             json.dumps({"key": "val"}),
             "full",
+            TEST_UUID_2,
         )
 
 

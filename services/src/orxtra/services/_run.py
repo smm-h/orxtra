@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import tomllib
+from collections.abc import Callable
 from decimal import Decimal
 from pathlib import Path
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlsplit, urlunsplit
 
+import uuid6
 from orxtra.agent import load_agents, load_categories
 from orxtra.overseer import load_knowledge_files
-from orxtra.protocols import BudgetExhaustionPolicy
+from orxtra.protocols import KIND_RUN, BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, ToolEntry, load_workflow
 from orxtra.secrets import create_secret_registry
 from orxtra.services._injection import (
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
+    from orxtra.protocols import Principal, PrincipalStorage
     from orxtra.secrets import SecretRegistry
 
 
@@ -211,6 +213,8 @@ def _load_custom_tools(
 
 async def start_run(
     pool: asyncpg.Pool | None,
+    principal_storage: PrincipalStorage,
+    caller_principal: Principal,
     intent: str,
     config: RunConfig,
     *,
@@ -228,8 +232,19 @@ async def start_run(
             msg = "Either pool or backend must be provided"
             raise ValueError(msg)
         writer = TraceWriter(pool)
-    run_id = await writer.create_run(
-        intent, _serialize_config(config), config.autonomy_level
+    # Generate the run id BEFORE minting so the run's principal can exist
+    # before the row that FKs into it. The run principal shares the run's id
+    # (as external_ref) and carries no display name -- the runs table holds
+    # the run's own descriptive data (intent, config), so a run principal is
+    # a bare identity anchor, not a duplicate label.
+    run_id = uuid6.uuid7()
+    await principal_storage.mint_principal(KIND_RUN, run_id, None)
+    await writer.create_run(
+        intent,
+        _serialize_config(config),
+        config.autonomy_level,
+        run_id=run_id,
+        created_by=caller_principal.id,
     )
     try:
         await writer.transition_run(run_id, "running")
@@ -313,7 +328,11 @@ async def start_run(
 
 
 async def start_run_from_file(
-    pool: asyncpg.Pool, intent: str, config_path: Path
+    pool: asyncpg.Pool,
+    principal_storage: PrincipalStorage,
+    caller_principal: Principal,
+    intent: str,
+    config_path: Path,
 ) -> UUID:
     if not config_path.is_file():  # noqa: ASYNC240
         msg = f"Config file not found: {config_path}"
@@ -334,7 +353,9 @@ async def start_run_from_file(
     if "budget" in raw and not isinstance(raw["budget"], Decimal):
         raw["budget"] = Decimal(str(raw["budget"]))
     config = RunConfig(**raw)
-    return await start_run(pool, intent, config)
+    return await start_run(
+        pool, principal_storage, caller_principal, intent, config,
+    )
 
 
 async def get_run(pool: asyncpg.Pool, run_id: UUID) -> RunReport | None:

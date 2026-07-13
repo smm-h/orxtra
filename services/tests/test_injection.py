@@ -27,6 +27,10 @@ from orxtra.services._injection import (
 )
 from orxtra.trace import InMemoryBackend
 
+# InMemoryBackend does not enforce the principals FK; a shared stand-in id
+# suffices for the creating actor in these fixtures.
+_CREATED_BY = uuid6.uuid7()
+
 
 class TestConstraintsRefresher:
     """Constraint refresh: write to trace, read via callback,
@@ -36,7 +40,7 @@ class TestConstraintsRefresher:
         """A constraint written to trace appears in the next
         attempt's assembled prompt via the refresh callback."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         # Write a constraint (simulates overseer add_constraint)
         await backend.write_constraint(
@@ -70,7 +74,7 @@ class TestConstraintsRefresher:
     async def test_multiple_constraints(self) -> None:
         """Multiple constraints all appear."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_constraint(
             run_id=run_id,
@@ -96,7 +100,7 @@ class TestConstraintsRefresher:
     async def test_empty_constraints(self) -> None:
         """No constraints yields empty list and no prompt section."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         refresher = build_constraints_refresher(backend)
         constraints = await refresher(run_id)
@@ -112,8 +116,8 @@ class TestConstraintsRefresher:
     async def test_constraint_isolation_by_run(self) -> None:
         """Constraints from one run don't leak into another."""
         backend = InMemoryBackend()
-        run_a = await backend.create_run("a", {}, "max")
-        run_b = await backend.create_run("b", {}, "max")
+        run_a = await backend.create_run("a", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
+        run_b = await backend.create_run("b", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_constraint(
             run_id=run_a,
@@ -136,7 +140,7 @@ class TestLessonsRefresher:
     async def test_fresh_lesson_in_prompt(self) -> None:
         """A lesson whose source file is unchanged appears as verified."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_lesson(
             run_id=run_id,
@@ -168,7 +172,7 @@ class TestLessonsRefresher:
     async def test_stale_lesson_labeled(self) -> None:
         """A lesson whose source file changed is labeled stale."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_lesson(
             run_id=run_id,
@@ -211,7 +215,7 @@ class TestLessonsRefresher:
     async def test_mixed_fresh_and_stale(self) -> None:
         """Fresh and stale lessons appear in their respective sections."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_lesson(
             run_id=run_id,
@@ -270,7 +274,7 @@ class TestLessonsRefresher:
     async def test_no_lessons_empty_prompt(self) -> None:
         """No matching lessons yields no prompt section."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         refresher = build_lessons_refresher(
             backend, Path("/repo"), ["nonexistent-tag"],
@@ -282,7 +286,7 @@ class TestLessonsRefresher:
         """datetime objects are normalized to isoformat strings
         for filter_stale_lessons compatibility."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_lesson(
             run_id=run_id,
@@ -325,7 +329,7 @@ class TestNotepadRefresher:
     async def test_notepad_appears_in_prompt(self) -> None:
         """Notepad entries written to trace appear in the prompt."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_notepad_entry(
             run_id=run_id,
@@ -352,7 +356,7 @@ class TestNotepadRefresher:
     async def test_multiple_notepad_types(self) -> None:
         """Multiple entry types render in their sections."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_notepad_entry(
             run_id=run_id,
@@ -392,7 +396,7 @@ class TestNotepadRefresher:
     async def test_empty_notepad(self) -> None:
         """No notepad entries yields no prompt section."""
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         refresher = build_notepad_refresher(backend)
         entries = await refresher(run_id)
@@ -425,7 +429,7 @@ class TestSchedulerRefreshIntegration:
         from orxtra.protocols import TaskSpec
 
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         # Write a constraint
         await backend.write_constraint(
@@ -508,7 +512,7 @@ class TestSchedulerRefreshIntegration:
         from orxtra.protocols import TaskSpec
 
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_notepad_entry(
             run_id=run_id,

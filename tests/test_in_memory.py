@@ -7,9 +7,14 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import uuid6
 from orxtra.protocols import TaskResult, TaskSpec
 from orxtra.scheduler import Scheduler, WorkflowConfig
 from orxtra.trace import InMemoryBackend, InMemoryEventBus
+
+# InMemoryBackend does not enforce the principals FK; a shared stand-in id
+# suffices for the creating actor in these fixtures.
+_CREATED_BY = uuid6.uuid7()
 
 
 # A simple callable that returns a TaskResult.
@@ -44,7 +49,7 @@ class TestInMemoryWorkflow:
     ) -> None:
         """A single callable task runs and completes with InMemoryBackend."""
         # Create the run
-        run_id = await backend.create_run("test intent", {}, "max")
+        run_id = await backend.create_run("test intent", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
 
         # Build a minimal workflow with a callable task
@@ -94,7 +99,7 @@ class TestInMemoryWorkflow:
         self, backend: InMemoryBackend,
     ) -> None:
         """Test the full run lifecycle: create -> running -> completed."""
-        run_id = await backend.create_run("full lifecycle", {}, "max")
+        run_id = await backend.create_run("full lifecycle", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
 
         task = TaskSpec(
@@ -135,7 +140,7 @@ class TestInMemoryWorkflow:
         self, backend: InMemoryBackend,
     ) -> None:
         """Multiple sequential callable tasks run in-memory."""
-        run_id = await backend.create_run("multi-task", {}, "max")
+        run_id = await backend.create_run("multi-task", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
 
         tasks = [
@@ -171,7 +176,7 @@ class TestInMemoryWorkflow:
         self, backend: InMemoryBackend,
     ) -> None:
         """Verify that task transition events are recorded in-memory."""
-        run_id = await backend.create_run("events-test", {}, "max")
+        run_id = await backend.create_run("events-test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
 
         task = TaskSpec(
@@ -208,7 +213,7 @@ class TestInMemoryWorkflow:
         self, backend: InMemoryBackend,
     ) -> None:
         """Crash recovery runs through the backend, not pool."""
-        run_id = await backend.create_run("recovery-test", {}, "max")
+        run_id = await backend.create_run("recovery-test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
 
         task = TaskSpec(

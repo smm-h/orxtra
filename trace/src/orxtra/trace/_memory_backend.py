@@ -312,15 +312,21 @@ class InMemoryBackend:
     # ── RunStorage ──
 
     async def create_run(
-        self, intent: str, config: dict[str, Any], autonomy_level: str,
+        self,
+        intent: str,
+        config: dict[str, Any],
+        autonomy_level: str,
+        *,
+        run_id: UUID,
+        created_by: UUID,
     ) -> UUID:
-        run_id = uuid6.uuid7()
         now = _now()
         self._runs[run_id] = {
             "id": run_id,
             "intent": intent,
             "config_snapshot": config,
             "autonomy_level": autonomy_level,
+            "created_by": created_by,
             "status": "created",
             "created_at": now,
             "finished_at": None,

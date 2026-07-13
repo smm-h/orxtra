@@ -203,7 +203,7 @@ EXPECTED_SCOPES: dict[str, str] = {
 # Documentation-as-test: the exact infrastructure each capability receives.
 # Must match the dispatcher's routing 1:1 (no behavior change this phase).
 EXPECTED_INJECTS: dict[str, frozenset[str]] = {
-    "start_run": frozenset({"pool"}),
+    "start_run": frozenset({"pool", "principal_storage", "caller_principal"}),
     "list_runs": frozenset({"pool"}),
     "get_run": frozenset({"pool"}),
     "abort_run": frozenset({"pool"}),

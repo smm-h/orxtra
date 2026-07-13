@@ -6,7 +6,7 @@
 # via deny-mutation triggers (pgdesign append_only = true).
 
 [meta]
-version = 19
+version = 20
 schema = "public"
 extensions = ["pg_uuidv7"]
 
@@ -148,6 +148,10 @@ type = "autonomy_level"
 type = "json"
 comment = "Fully resolved configuration: categories, budgets, tool registry names, agent definitions"
 
+[tables.runs.columns.created_by]
+type = "ref"
+comment = "The creating actor's principal. Historical rows are backfilled to the system principal (the original creator is unknowable)."
+
 [tables.runs.columns.created_at]
 type = "timestamp"
 
@@ -183,6 +187,18 @@ expr = "total_input_tokens >= 0 AND total_output_tokens >= 0 AND total_reasoning
 [tables.runs.indexes.idx_runs_config_snapshot_gin]
 columns = ["config_snapshot"]
 method = "gin"
+
+# Cross-file FK: runs.created_by -> identity's principals table. pgdesign
+# resolves this in its ALTER phase (topo sort merges all schema/ files), the
+# same way dispatch's subscriptions.owner_run_id references trace's runs.
+[tables.runs.fks.fk_runs_created_by]
+columns = ["created_by"]
+ref_table = "principals"
+ref_columns = ["id"]
+on_delete = "RESTRICT"
+
+[tables.runs.indexes.idx_runs_created_by]
+columns = ["created_by"]
 
 # ---------------------------------------------------------------------------
 

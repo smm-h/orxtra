@@ -78,6 +78,15 @@ _INJECT_PRINCIPAL_STORAGE_AND_KIND_REGISTRY: frozenset[str] = frozenset({
     "principal_storage",
     "kind_registry",
 })
+# start_run mints the run's principal (needs principal_storage) and attributes
+# the row to the caller (needs the derived caller_principal). Injection order is
+# deterministic (pool, principal_storage, caller_principal last), matching the
+# start_run service fn signature.
+_INJECT_POOL_STORAGE_AND_CALLER: frozenset[str] = frozenset({
+    "pool",
+    "principal_storage",
+    "caller_principal",
+})
 _INJECT_NONE: frozenset[str] = frozenset()
 
 
@@ -93,7 +102,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="run",
             required_scope=SCOPE_RUNS_MANAGE,
-            injects=_INJECT_POOL,
+            injects=_INJECT_POOL_STORAGE_AND_CALLER,
         ),
         Capability(
             name="list_runs",

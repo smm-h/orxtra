@@ -122,7 +122,13 @@ class RunStorage(Protocol):
     """Run lifecycle operations."""
 
     async def create_run(
-        self, intent: str, config: dict[str, Any], autonomy_level: str,
+        self,
+        intent: str,
+        config: dict[str, Any],
+        autonomy_level: str,
+        *,
+        run_id: UUID,
+        created_by: UUID,
     ) -> UUID: ...
 
     async def transition_run(

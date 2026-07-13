@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 from orxtra.protocols import (
+    KIND_SYSTEM,
+    SYSTEM_PRINCIPAL_EXTERNAL_REF,
     ActionExecutor,
     EventAction,
     LogAction,
+    Principal,
     WorkflowAction,
 )
 from orxtra.services._actions import (
@@ -21,6 +25,29 @@ def mock_pool() -> AsyncMock:
     return AsyncMock()
 
 
+def _system_principal() -> Principal:
+    return Principal(
+        id=uuid4(),
+        kind=KIND_SYSTEM,
+        external_ref=SYSTEM_PRINCIPAL_EXTERNAL_REF,
+        display_name="system",
+        created_at=datetime.now(UTC),
+    )
+
+
+def _patch_storage(mock_storage_cls: AsyncMock) -> Principal:
+    """Wire a mocked PgPrincipalStorage that resolves the system principal.
+
+    execute_workflow builds a PgPrincipalStorage from its pool and resolves the
+    system principal as the dispatch-triggered run's creator; the tests mock
+    that storage so no real pool is touched.
+    """
+    system = _system_principal()
+    storage = mock_storage_cls.return_value
+    storage.get_principal_by_ref = AsyncMock(return_value=system)
+    return system
+
+
 # -- ServicesActionExecutor --
 
 
@@ -29,12 +56,15 @@ async def test_satisfies_protocol(mock_pool: AsyncMock) -> None:
     assert isinstance(executor, ActionExecutor)
 
 
+@patch("orxtra.identity.PgPrincipalStorage")
 @patch("orxtra.services._run.start_run_from_file", new_callable=AsyncMock)
 async def test_execute_workflow_calls_start_run(
     mock_start: AsyncMock,
+    mock_storage_cls: AsyncMock,
     mock_pool: AsyncMock,
 ) -> None:
     mock_start.return_value = uuid4()
+    system = _patch_storage(mock_storage_cls)
     executor = ServicesActionExecutor(mock_pool, intent_prefix="test")
 
     await executor.execute_workflow(
@@ -45,23 +75,30 @@ async def test_execute_workflow_calls_start_run(
 
     mock_start.assert_awaited_once()
     call_args = mock_start.call_args
+    # Positional order is pool, principal_storage, caller_principal, then intent
+    # and path -- assert the pool and caller identity threaded through.
     assert call_args[0][0] is mock_pool
-    assert "test:" in call_args[0][1]
-    assert "workflow" in call_args[0][1]
+    assert call_args[0][2] is system
+    intent = call_args[0][3]
+    assert "test:" in intent
+    assert "workflow" in intent
 
 
+@patch("orxtra.identity.PgPrincipalStorage")
 @patch("orxtra.services._run.start_run_from_file", new_callable=AsyncMock)
 async def test_execute_workflow_intent_includes_event_count(
     mock_start: AsyncMock,
+    mock_storage_cls: AsyncMock,
     mock_pool: AsyncMock,
 ) -> None:
     mock_start.return_value = uuid4()
+    _patch_storage(mock_storage_cls)
     executor = ServicesActionExecutor(mock_pool)
 
     events = [{"type": "a"}, {"type": "b"}, {"type": "c"}]
     await executor.execute_workflow("/w.toml", {}, events)
 
-    intent = mock_start.call_args[0][1]
+    intent = mock_start.call_args[0][3]
     assert "3 events" in intent
 
 
@@ -74,12 +111,15 @@ async def test_execute_service_action_log() -> None:
     await execute_service_action(action, [{"data": "x"}])
 
 
+@patch("orxtra.identity.PgPrincipalStorage")
 @patch("orxtra.services._run.start_run_from_file", new_callable=AsyncMock)
 async def test_execute_service_action_workflow(
     mock_start: AsyncMock,
+    mock_storage_cls: AsyncMock,
     mock_pool: AsyncMock,
 ) -> None:
     mock_start.return_value = uuid4()
+    _patch_storage(mock_storage_cls)
     action = WorkflowAction(workflow_path="/test.toml", config={})
 
     await execute_service_action(

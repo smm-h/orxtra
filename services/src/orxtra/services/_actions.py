@@ -41,11 +41,29 @@ class ServicesActionExecutor:
         # Lazy import to avoid circular dependency at module level.
         from pathlib import Path
 
+        from orxtra.identity import PgPrincipalStorage
+        from orxtra.protocols import KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF
         from orxtra.services._run import start_run_from_file
+
+        # A dispatch-triggered workflow has no human caller: the creating actor
+        # is the singleton system principal. Resolve it explicitly (hard error
+        # if unseeded -- matches resolve_caller_principal's contract).
+        storage = PgPrincipalStorage(self._pool)
+        system_principal = await storage.get_principal_by_ref(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF,
+        )
+        if system_principal is None:
+            msg = (
+                "System principal not seeded -- run 'orxtra db init' to seed "
+                "the singleton system principal before dispatching workflows."
+            )
+            raise RuntimeError(msg)
 
         path = Path(workflow_path)
         intent = f"{self._intent_prefix}: {path.stem} ({len(events)} events)"
-        await start_run_from_file(self._pool, intent, path)
+        await start_run_from_file(
+            self._pool, storage, system_principal, intent, path,
+        )
 
 
 async def execute_service_action(

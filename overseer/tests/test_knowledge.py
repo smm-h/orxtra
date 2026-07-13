@@ -15,6 +15,10 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
+# InMemoryBackend does not enforce the principals FK; a shared stand-in id
+# suffices for the creating actor in these fixtures.
+_CREATED_BY = uuid6.uuid7()
+
 
 @pytest.fixture
 def tw() -> MockTraceWriter:
@@ -145,7 +149,7 @@ async def test_content_hash_skips_unchanged_with_storage(
 ) -> None:
     """When using a StorageBackend, hashes are persisted and reloading skips unchanged files."""
     backend = InMemoryBackend()
-    run_id = await backend.create_run("test", {}, "high")
+    run_id = await backend.create_run("test", {}, "high", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
     (tmp_path / "stable.md").write_text(
         "unchanged content", encoding="utf-8",
     )
@@ -191,7 +195,7 @@ async def test_knowledge_hashes_persisted_in_backend(
 ) -> None:
     """Hashes are written to the storage backend after each file load."""
     backend = InMemoryBackend()
-    run_id = await backend.create_run("test", {}, "high")
+    run_id = await backend.create_run("test", {}, "high", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
     (tmp_path / "a.md").write_text("content a", encoding="utf-8")
     (tmp_path / "b.toml").write_text(
         '[[constraints]]\ntext = "c"\ntier = "advisory"\nkind = "knowledge_file"\n',
@@ -209,7 +213,7 @@ async def test_changed_file_reloaded(
 ) -> None:
     """A changed file gets reloaded even if previously hashed."""
     backend = InMemoryBackend()
-    run_id = await backend.create_run("test", {}, "high")
+    run_id = await backend.create_run("test", {}, "high", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
     md = tmp_path / "evolving.md"
     md.write_text("version 1", encoding="utf-8")
     await load_knowledge_files(tmp_path, backend, run_id)

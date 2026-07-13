@@ -64,13 +64,17 @@ class MockTraceWriter:
         intent: str,
         config: dict[str, Any],
         autonomy_level: str,
+        *,
+        run_id: uuid.UUID,
+        created_by: uuid.UUID,
     ) -> uuid.UUID:
-        run_id = uuid6.uuid7()
         self._record(
             "create_run",
             intent=intent,
             config=config,
             autonomy_level=autonomy_level,
+            run_id=run_id,
+            created_by=created_by,
         )
         self._run_statuses[run_id] = "running"
         return run_id

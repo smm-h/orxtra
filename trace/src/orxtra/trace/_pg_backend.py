@@ -159,9 +159,17 @@ class PgBackend:
     # -- RunStorage --
 
     async def create_run(
-        self, intent: str, config: dict[str, Any], autonomy_level: str,
+        self,
+        intent: str,
+        config: dict[str, Any],
+        autonomy_level: str,
+        *,
+        run_id: UUID,
+        created_by: UUID,
     ) -> UUID:
-        return await self._writer.create_run(intent, config, autonomy_level)
+        return await self._writer.create_run(
+            intent, config, autonomy_level, run_id=run_id, created_by=created_by,
+        )
 
     async def transition_run(
         self, run_id: UUID, new_status: str, reason: str | None = None,

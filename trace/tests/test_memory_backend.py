@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Any
 
 import pytest
+import uuid6
 from orxtra.protocols import EventBus
 from orxtra.trace._memory_backend import InMemoryBackend, InMemoryEventBus
 from orxtra.trace._protocols import (
@@ -24,6 +25,10 @@ from orxtra.trace._protocols import (
     TaskStorage,
 )
 from orxtra.trace._transitions import InvalidTransitionError
+
+# The InMemoryBackend does not enforce the principals FK, so a single shared
+# principal id stands in for the creating actor across these run fixtures.
+_CREATED_BY = uuid6.uuid7()
 
 ALL_SUB_PROTOCOLS = [
     TaskStorage,
@@ -163,7 +168,7 @@ class TestInMemoryBackendRuntimeCheckable:
 class TestRunOperations:
     @pytest.mark.asyncio
     async def test_create_run(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test intent", {"key": "val"}, "max")
+        run_id = await backend.create_run("test intent", {"key": "val"}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         assert run_id is not None
         runs = await backend.list_runs()
         assert len(runs) == 1
@@ -172,7 +177,7 @@ class TestRunOperations:
 
     @pytest.mark.asyncio
     async def test_run_transitions(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
         runs = await backend.list_runs()
         assert runs[0].status == "running"
@@ -183,13 +188,13 @@ class TestRunOperations:
 
     @pytest.mark.asyncio
     async def test_invalid_run_transition(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         with pytest.raises(InvalidTransitionError):
             await backend.transition_run(run_id, "completed")
 
     @pytest.mark.asyncio
     async def test_run_terminal_state_transition(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
         await backend.transition_run(run_id, "completed")
         with pytest.raises(InvalidTransitionError):
@@ -197,7 +202,7 @@ class TestRunOperations:
 
     @pytest.mark.asyncio
     async def test_read_run_report(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test intent", {"k": "v"}, "max")
+        run_id = await backend.create_run("test intent", {"k": "v"}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         report = await backend.read_run_report(run_id)
         assert report is not None
         assert report.intent == "test intent"
@@ -205,7 +210,7 @@ class TestRunOperations:
 
     @pytest.mark.asyncio
     async def test_read_run_config(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("intent", {"foo": "bar"}, "supervised")
+        run_id = await backend.create_run("intent", {"foo": "bar"}, "supervised", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         config = await backend.read_run_config(run_id)
         assert config == {"foo": "bar"}
 
@@ -217,7 +222,7 @@ class TestRunOperations:
 
     @pytest.mark.asyncio
     async def test_coherence_summary(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_coherence_summary(run_id, "All good")
         report = await backend.read_run_report(run_id)
         assert report is not None
@@ -230,7 +235,7 @@ class TestRunOperations:
 class TestTaskOperations:
     @pytest.mark.asyncio
     async def test_create_and_list_tasks(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         t1 = await backend.create_task(run_id, None, "task1", "agent")
         await backend.create_task(run_id, t1, "task2", "agent")
         tasks = await backend.list_tasks(run_id)
@@ -241,7 +246,7 @@ class TestTaskOperations:
 
     @pytest.mark.asyncio
     async def test_task_transitions(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         await backend.transition_task(task_id, "prechecking")
         await backend.transition_task(task_id, "active")
@@ -251,14 +256,14 @@ class TestTaskOperations:
 
     @pytest.mark.asyncio
     async def test_invalid_task_transition(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         with pytest.raises(InvalidTransitionError):
             await backend.transition_task(task_id, "completed")
 
     @pytest.mark.asyncio
     async def test_task_cancelled_from_any_state(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         await backend.transition_task(task_id, "prechecking")
         await backend.transition_task(task_id, "cancelled")
@@ -269,7 +274,7 @@ class TestTaskOperations:
     async def test_task_terminal_state_rejects_transition(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         await backend.transition_task(task_id, "prechecking")
         await backend.transition_task(task_id, "active")
@@ -284,7 +289,7 @@ class TestTaskOperations:
 class TestTaskAttemptOperations:
     @pytest.mark.asyncio
     async def test_create_and_complete_attempt(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         attempt_id = await backend.create_task_attempt(task_id, 1)
         await backend.complete_task_attempt(
@@ -310,7 +315,7 @@ class TestTaskAttemptOperations:
 
     @pytest.mark.asyncio
     async def test_fail_attempt(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         attempt_id = await backend.create_task_attempt(task_id, 1)
         await backend.fail_task_attempt(
@@ -332,7 +337,7 @@ class TestTaskAttemptOperations:
 
     @pytest.mark.asyncio
     async def test_read_latest_attempt(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         await backend.create_task_attempt(task_id, 1)
         await backend.create_task_attempt(task_id, 2)
@@ -342,7 +347,7 @@ class TestTaskAttemptOperations:
 
     @pytest.mark.asyncio
     async def test_read_task_attempts(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         await backend.create_task_attempt(task_id, 1)
         await backend.create_task_attempt(task_id, 2)
@@ -361,7 +366,7 @@ class TestTaskAttemptOperations:
     async def test_attempt_count_in_task_summary(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         await backend.create_task_attempt(task_id, 1)
         await backend.create_task_attempt(task_id, 2)
@@ -377,7 +382,7 @@ class TestIterationOperations:
     async def test_create_and_complete_iteration(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         it_id = await backend.create_iteration(task_id, 0, "item0")
         await backend.complete_iteration(it_id, "result0", {"key": "val"}, None)
@@ -388,7 +393,7 @@ class TestIterationOperations:
 
     @pytest.mark.asyncio
     async def test_fail_iteration(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         it_id = await backend.create_iteration(task_id, 0, "item0")
         await backend.fail_iteration(it_id, "oops")
@@ -404,7 +409,7 @@ class TestIterationOperations:
 class TestEventOperations:
     @pytest.mark.asyncio
     async def test_write_and_query_events(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_event(run_id, "custom", {"key": "val"})
         await backend.write_event(run_id, "other", {"key2": "val2"})
         all_events = await backend.query_events(run_id)
@@ -414,7 +419,7 @@ class TestEventOperations:
 
     @pytest.mark.asyncio
     async def test_query_events_with_limit(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         for i in range(10):
             await backend.write_event(run_id, "test", {"i": i})
         events = await backend.query_events(run_id, limit=3)
@@ -426,7 +431,7 @@ class TestEventIdempotency:
 
     @pytest.mark.asyncio
     async def test_same_key_dedups(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         id1, inserted1 = await backend.write_event(
             run_id, "e", {"n": 1}, idempotency_key="dup-key",
         )
@@ -443,7 +448,7 @@ class TestEventIdempotency:
 
     @pytest.mark.asyncio
     async def test_distinct_keys_insert(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         id1, inserted1 = await backend.write_event(
             run_id, "e", {"n": 1}, idempotency_key="key-a",
         )
@@ -458,7 +463,7 @@ class TestEventIdempotency:
 
     @pytest.mark.asyncio
     async def test_none_key_always_inserts(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         id1, inserted1 = await backend.write_event(run_id, "e", {"n": 1})
         id2, inserted2 = await backend.write_event(run_id, "e", {"n": 2})
         assert inserted1 is True
@@ -475,7 +480,7 @@ class TestTranscriptOperations:
     @pytest.mark.asyncio
     async def test_write_and_read_transcript(self, backend: InMemoryBackend) -> None:
         import uuid
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         session_id = uuid.uuid4()
         await backend.write_transcript_entry(
             session_id, run_id, 1, "user", "hello",
@@ -491,7 +496,7 @@ class TestTranscriptOperations:
     @pytest.mark.asyncio
     async def test_search_transcript(self, backend: InMemoryBackend) -> None:
         import uuid
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         session_id = uuid.uuid4()
         await backend.write_transcript_entry(
             session_id, run_id, 1, "user", "find the bug",
@@ -505,7 +510,7 @@ class TestTranscriptOperations:
     @pytest.mark.asyncio
     async def test_session_token_counts(self, backend: InMemoryBackend) -> None:
         import uuid
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         session_id = uuid.uuid4()
         await backend.write_transcript_entry(
             session_id, run_id, 1, "user", "hello",
@@ -521,7 +526,7 @@ class TestTranscriptOperations:
     @pytest.mark.asyncio
     async def test_session_turn_count(self, backend: InMemoryBackend) -> None:
         import uuid
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         session_id = uuid.uuid4()
         await backend.write_transcript_entry(
             session_id, run_id, 1, "user", "hello",
@@ -539,7 +544,7 @@ class TestTranscriptOperations:
 class TestNotepadOperations:
     @pytest.mark.asyncio
     async def test_write_and_read_notepad(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_notepad_entry(
             run_id, "task1", "agent1", "observation", "something happened",
         )
@@ -555,7 +560,7 @@ class TestNotepadOperations:
 class TestInboxOperations:
     @pytest.mark.asyncio
     async def test_create_and_read_inbox(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         item_id = await backend.create_inbox_item(
             run_id=run_id,
             decision_type="choice",
@@ -576,7 +581,7 @@ class TestInboxOperations:
 
     @pytest.mark.asyncio
     async def test_answer_inbox_item(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [{"label": "A"}], None, None, None,
         )
@@ -588,7 +593,7 @@ class TestInboxOperations:
 
     @pytest.mark.asyncio
     async def test_skip_inbox_item(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
@@ -599,7 +604,7 @@ class TestInboxOperations:
 
     @pytest.mark.asyncio
     async def test_reject_inbox_item(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
@@ -611,7 +616,7 @@ class TestInboxOperations:
 
     @pytest.mark.asyncio
     async def test_expire_inbox_item(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
@@ -622,7 +627,7 @@ class TestInboxOperations:
 
     @pytest.mark.asyncio
     async def test_answer_non_pending_raises(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
@@ -634,7 +639,7 @@ class TestInboxOperations:
     async def test_read_inbox_with_status_filter(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.create_inbox_item(
             run_id, "choice", "q1", [], None, None, None,
         )
@@ -654,7 +659,7 @@ class TestInboxOperations:
 class TestOverseerStorage:
     @pytest.mark.asyncio
     async def test_decisions(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_decision(run_id, "strategy", "approach_a", "faster")
         decisions = await backend.read_decisions(run_id)
         assert len(decisions) == 1
@@ -662,7 +667,7 @@ class TestOverseerStorage:
 
     @pytest.mark.asyncio
     async def test_constraints(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_constraint(run_id, "no writes", "hard", "user")
         constraints = await backend.read_constraints(run_id)
         assert len(constraints) == 1
@@ -670,7 +675,7 @@ class TestOverseerStorage:
 
     @pytest.mark.asyncio
     async def test_assumptions(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_assumption(run_id, "db is up", "task")
         assumptions = await backend.read_assumptions(run_id)
         assert len(assumptions) == 1
@@ -678,7 +683,7 @@ class TestOverseerStorage:
 
     @pytest.mark.asyncio
     async def test_lessons(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_lesson(run_id, "always retry", ["retry"], True)
         lessons = await backend.query_lessons(run_id=run_id)
         assert len(lessons) == 1
@@ -686,7 +691,7 @@ class TestOverseerStorage:
 
     @pytest.mark.asyncio
     async def test_query_relevant_lessons(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_lesson(run_id, "lesson1", ["tag_a", "tag_b"], True)
         await backend.write_lesson(run_id, "lesson2", ["tag_c"], False)
         results = await backend.query_relevant_lessons(["tag_a"])
@@ -697,7 +702,7 @@ class TestOverseerStorage:
     async def test_query_lessons_permanent_only(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_lesson(run_id, "perm", ["x"], True)
         await backend.write_lesson(run_id, "temp", ["x"], False)
         permanent = await backend.query_lessons(permanent_only=True)
@@ -716,7 +721,7 @@ class TestOverseerStorage:
 
     @pytest.mark.asyncio
     async def test_context_diff(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         attempt_id = await backend.create_task_attempt(task_id, 1)
         await backend.write_context_diff(attempt_id, "before", "diff here")
@@ -724,7 +729,7 @@ class TestOverseerStorage:
 
     @pytest.mark.asyncio
     async def test_active_constraints(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_constraint(run_id, "c1", "hard", "user")
         active = await backend.read_active_constraints(run_id)
         assert len(active) == 1
@@ -736,7 +741,7 @@ class TestOverseerStorage:
 class TestLockOperations:
     @pytest.mark.asyncio
     async def test_acquire_and_release_lock(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.acquire_run_lock(run_id)
         assert backend._run_locks[run_id] is True
         await backend.release_run_lock(run_id)
@@ -747,14 +752,14 @@ class TestLockOperations:
         self, backend: InMemoryBackend,
     ) -> None:
         from orxtra.trace._lock import RunLockError
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.acquire_run_lock(run_id)
         with pytest.raises(RunLockError):
             await backend.acquire_run_lock(run_id)
 
     @pytest.mark.asyncio
     async def test_heartbeat_and_stale(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         # No heartbeat yet -- should be stale
         assert await backend.is_lock_stale(run_id) is True
         await backend.update_heartbeat(run_id)
@@ -768,7 +773,7 @@ class TestLockOperations:
 class TestRecoveryOperations:
     @pytest.mark.asyncio
     async def test_reclaim_interrupted(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         # Force task to active state
         backend._tasks[task_id]["status"] = "active"
@@ -778,7 +783,7 @@ class TestRecoveryOperations:
 
     @pytest.mark.asyncio
     async def test_reevaluate_blocked(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         task_id = await backend.create_task(run_id, None, "task1", "agent")
         # Task is in "created" state with no parent
         results = await backend.reevaluate_blocked()
@@ -786,7 +791,7 @@ class TestRecoveryOperations:
 
     @pytest.mark.asyncio
     async def test_clean_orphaned(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         # Force run to running without a lock
         backend._runs[run_id]["status"] = "running"
         cleaned = await backend.clean_orphaned()
@@ -797,7 +802,7 @@ class TestRecoveryOperations:
     async def test_clean_orphaned_skips_locked(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         backend._runs[run_id]["status"] = "running"
         await backend.acquire_run_lock(run_id)
         cleaned = await backend.clean_orphaned()
@@ -813,7 +818,7 @@ class TestRunControl:
     async def test_subscribe_fires_on_already_paused(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.transition_run(run_id, "running")
         await backend.transition_run(run_id, "paused")
         signals: list[tuple[Any, str]] = []
@@ -829,7 +834,7 @@ class TestRunControl:
     async def test_subscribe_fires_on_transition(
         self, backend: InMemoryBackend,
     ) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         signals: list[tuple[Any, str]] = []
 
         async def cb(rid: Any, status: str) -> None:
@@ -842,7 +847,7 @@ class TestRunControl:
 
     @pytest.mark.asyncio
     async def test_unsubscribe(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         signals: list[str] = []
 
         async def cb(rid: Any, status: str) -> None:
@@ -1005,14 +1010,14 @@ class TestInMemoryEventBus:
 class TestKnowledgeHashStorage:
     @pytest.mark.asyncio
     async def test_write_and_read(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_knowledge_hash(run_id, "/path/a.md", "abc123")
         hashes = await backend.read_knowledge_hashes(run_id)
         assert hashes == {"/path/a.md": "abc123"}
 
     @pytest.mark.asyncio
     async def test_upsert_overwrites(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_knowledge_hash(run_id, "/path/a.md", "hash1")
         await backend.write_knowledge_hash(run_id, "/path/a.md", "hash2")
         hashes = await backend.read_knowledge_hashes(run_id)
@@ -1020,13 +1025,13 @@ class TestKnowledgeHashStorage:
 
     @pytest.mark.asyncio
     async def test_empty_run_returns_empty(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         hashes = await backend.read_knowledge_hashes(run_id)
         assert hashes == {}
 
     @pytest.mark.asyncio
     async def test_multiple_paths(self, backend: InMemoryBackend) -> None:
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_knowledge_hash(run_id, "/a.md", "h1")
         await backend.write_knowledge_hash(run_id, "/b.toml", "h2")
         hashes = await backend.read_knowledge_hashes(run_id)
@@ -1034,8 +1039,8 @@ class TestKnowledgeHashStorage:
 
     @pytest.mark.asyncio
     async def test_runs_isolated(self, backend: InMemoryBackend) -> None:
-        run1 = await backend.create_run("test1", {}, "max")
-        run2 = await backend.create_run("test2", {}, "max")
+        run1 = await backend.create_run("test1", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
+        run2 = await backend.create_run("test2", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_knowledge_hash(run1, "/a.md", "h1")
         await backend.write_knowledge_hash(run2, "/a.md", "h2")
         assert (await backend.read_knowledge_hashes(run1)) == {"/a.md": "h1"}
@@ -1044,7 +1049,7 @@ class TestKnowledgeHashStorage:
     @pytest.mark.asyncio
     async def test_read_returns_copy(self, backend: InMemoryBackend) -> None:
         """Returned dict is a copy, not the internal dict."""
-        run_id = await backend.create_run("test", {}, "max")
+        run_id = await backend.create_run("test", {}, "max", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
         await backend.write_knowledge_hash(run_id, "/a.md", "h1")
         hashes = await backend.read_knowledge_hashes(run_id)
         hashes["/mutated"] = "bad"

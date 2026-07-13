@@ -7,11 +7,16 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
+import uuid6
 from orxtra.trace import replay
 from orxtra.trace._memory_backend import InMemoryBackend
 
 if TYPE_CHECKING:
     from .conftest import MockPool
+
+# InMemoryBackend does not enforce the principals FK; a shared stand-in id
+# suffices for the creating actor in these replay fixtures.
+_CREATED_BY = uuid6.uuid7()
 
 EVENT_ID_1 = UUID("01900000-0000-7000-8000-000000000001")
 EVENT_ID_2 = UUID("01900000-0000-7000-8000-000000000002")
@@ -102,7 +107,7 @@ class TestReplayInMemory:
     @pytest.mark.asyncio
     async def test_replay_all_events(self) -> None:
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "full")
+        run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1})
         eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
@@ -120,7 +125,7 @@ class TestReplayInMemory:
     @pytest.mark.asyncio
     async def test_replay_filter_event_types(self) -> None:
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "full")
+        run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_event(run_id, "ev_a", {"k": 1})
         eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
@@ -135,7 +140,7 @@ class TestReplayInMemory:
     @pytest.mark.asyncio
     async def test_replay_filter_source(self) -> None:
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "full")
+        run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         await backend.write_event(run_id, "ev_a", {"k": 1}, source="internal")
         eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2}, source="agent")
@@ -148,7 +153,7 @@ class TestReplayInMemory:
     @pytest.mark.asyncio
     async def test_replay_cursor_since_id(self) -> None:
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "full")
+        run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1})
         eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
@@ -164,7 +169,7 @@ class TestReplayInMemory:
     @pytest.mark.asyncio
     async def test_replay_limit(self) -> None:
         backend = InMemoryBackend()
-        run_id = await backend.create_run("test", {}, "full")
+        run_id = await backend.create_run("test", {}, "full", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
 
         for i in range(10):
             await backend.write_event(run_id, "ev", {"i": i})

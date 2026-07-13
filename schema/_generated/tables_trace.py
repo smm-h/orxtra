@@ -13,6 +13,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     status public.run_status NOT NULL DEFAULT 'created',
     autonomy_level public.autonomy_level NOT NULL,
     config_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_by uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     finished_at timestamptz,
     total_input_tokens int8 NOT NULL DEFAULT 0,
@@ -29,6 +30,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     status public.run_status NOT NULL DEFAULT 'created',
     autonomy_level public.autonomy_level NOT NULL,
     config_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_by uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     finished_at timestamptz,
     total_input_tokens int8 NOT NULL DEFAULT 0,
@@ -349,6 +351,16 @@ STATEMENTS: Final[list[DDLStmt]] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_context_diffs PRIMARY KEY (id)
 );""", "table", "context_diffs", "context_diffs", 4, True),
+    DDLStmt("ALTER TABLE public.runs ADD CONSTRAINT fk_runs_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_runs_created_by'
+    AND conrelid = 'public.runs'::regclass
+  ) THEN
+    ALTER TABLE public.runs ADD CONSTRAINT fk_runs_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk", "fk_runs_created_by", "runs", 6, True),
     DDLStmt("ALTER TABLE public.tasks ADD CONSTRAINT fk_tasks_parent FOREIGN KEY (parent_task_id) REFERENCES public.tasks (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -680,6 +692,7 @@ BEGIN
   END IF;
 END $$;""", "check", "chk_context_diffs_not_empty", "context_diffs", 8, True),
     DDLStmt("CREATE INDEX idx_runs_config_snapshot_gin ON public.runs USING gin (config_snapshot);", "CREATE INDEX IF NOT EXISTS idx_runs_config_snapshot_gin ON public.runs USING gin (config_snapshot);", "index", "idx_runs_config_snapshot_gin", "runs", 9, True),
+    DDLStmt("CREATE INDEX idx_runs_created_by ON public.runs (created_by);", "CREATE INDEX IF NOT EXISTS idx_runs_created_by ON public.runs (created_by);", "index", "idx_runs_created_by", "runs", 9, True),
     DDLStmt("CREATE INDEX idx_tasks_config_gin ON public.tasks USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_tasks_config_gin ON public.tasks USING gin (config);", "index", "idx_tasks_config_gin", "tasks", 9, True),
     DDLStmt("CREATE INDEX idx_tasks_parent_id ON public.tasks (parent_task_id);", "CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks (parent_task_id);", "index", "idx_tasks_parent_id", "tasks", 9, True),
     DDLStmt("CREATE INDEX idx_tasks_run_id ON public.tasks (run_id);", "CREATE INDEX IF NOT EXISTS idx_tasks_run_id ON public.tasks (run_id);", "index", "idx_tasks_run_id", "tasks", 9, True),
@@ -725,6 +738,7 @@ END $$;""", "check", "chk_context_diffs_not_empty", "context_diffs", 8, True),
     DDLStmt("COMMENT ON TABLE public.runs IS 'Top-level run records. One run per intent execution.';", None, "comment", "table.runs", "runs", 10, True),
     DDLStmt("COMMENT ON COLUMN public.runs.intent IS 'The user''s original intent';", None, "comment", "column.runs.intent", "runs", 10, True),
     DDLStmt("COMMENT ON COLUMN public.runs.config_snapshot IS 'Fully resolved configuration: categories, budgets, tool registry names, agent definitions';", None, "comment", "column.runs.config_snapshot", "runs", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.runs.created_by IS 'The creating actor''s principal. Historical rows are backfilled to the system principal (the original creator is unknowable).';", None, "comment", "column.runs.created_by", "runs", 10, True),
     DDLStmt("COMMENT ON COLUMN public.runs.total_cost_usd IS 'Best-effort USD from orxtra internal pricing table';", None, "comment", "column.runs.total_cost_usd", "runs", 10, True),
     DDLStmt("COMMENT ON COLUMN public.runs.coherence_summary IS 'Overseer end-of-run assessment of intent fulfillment';", None, "comment", "column.runs.coherence_summary", "runs", 10, True),
     DDLStmt("COMMENT ON TABLE public.tasks IS 'Recursive task hierarchy within a run. Replaces the old workflows + steps tables.';", None, "comment", "table.tasks", "tasks", 10, True),

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
+from orxtra.protocols import KIND_CONSUMER, Principal
 from orxtra.services._run import (
     RunConfig,
     _redact_db_url,
@@ -25,6 +29,36 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from orxtra.trace import RunReport, RunSummary
+
+
+def _storage() -> AsyncMock:
+    """A PrincipalStorage stand-in whose mint_principal is a no-op mock."""
+    storage = AsyncMock()
+    storage.mint_principal = AsyncMock()
+    return storage
+
+
+def _caller() -> Principal:
+    """The caller principal whose id becomes the run's created_by."""
+    return Principal(
+        id=uuid4(),
+        kind=KIND_CONSUMER,
+        external_ref=uuid4(),
+        display_name="test-caller",
+        created_at=datetime.now(UTC),
+    )
+
+
+@pytest.fixture(autouse=True)
+def _pin_run_id(sample_run_id: UUID) -> Iterator[None]:
+    """Pin the run id start_run generates so assertions stay deterministic.
+
+    start_run now mints its own run_id (uuid7) before the row exists; patching
+    the generator to sample_run_id keeps the existing per-test assertions
+    (result, scheduler run_id, transition targets) valid.
+    """
+    with patch("orxtra.services._run.uuid6.uuid7", return_value=sample_run_id):
+        yield
 
 
 @pytest.mark.asyncio
@@ -60,7 +94,7 @@ async def test_start_run_creates_run(mock_pool: AsyncMock, sample_run_id: UUID) 
             budget=Decimal("10.00"),
             autonomy_level="supervised",
         )
-        result = await start_run(mock_pool, "test intent", config)
+        result = await start_run(mock_pool, _storage(), _caller(), "test intent", config)
 
         assert result == sample_run_id
         mock_writer.create_run.assert_called_once()
@@ -108,7 +142,7 @@ async def test_start_run_from_file(
         mock_sched.execute_workflow = AsyncMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        result = await start_run_from_file(mock_pool, "test", config_file)
+        result = await start_run_from_file(mock_pool, _storage(), _caller(), "test", config_file)
 
         assert result == sample_run_id
         mock_writer.create_run.assert_called_once()
@@ -117,7 +151,7 @@ async def test_start_run_from_file(
 @pytest.mark.asyncio
 async def test_start_run_from_file_missing(mock_pool: AsyncMock) -> None:
     with pytest.raises(FileNotFoundError, match="Config file not found"):
-        await start_run_from_file(mock_pool, "test", Path("/nonexistent.toml"))
+        await start_run_from_file(mock_pool, _storage(), _caller(), "test", Path("/nonexistent.toml"))
 
 
 @pytest.mark.asyncio
@@ -291,7 +325,7 @@ async def test_start_run_constructs_scheduler(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        result = await start_run(mock_pool, "test intent", _default_config())
+        result = await start_run(mock_pool, _storage(), _caller(), "test intent", _default_config())
 
         assert result == sample_run_id
         mock_scheduler_cls.assert_called_once()
@@ -321,7 +355,7 @@ async def test_start_run_with_transport_registry(
 
         custom_registry = {"anthropic": MagicMock()}
         await start_run(
-            mock_pool, "test", _default_config(), transport_registry=custom_registry,
+            mock_pool, _storage(), _caller(), "test", _default_config(), transport_registry=custom_registry,
         )
 
         call_kwargs = mock_scheduler_cls.call_args[1]
@@ -347,7 +381,7 @@ async def test_start_run_loads_agents(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run(mock_pool, "test", _default_config())
+        await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
         mock_load_agents.assert_called_once_with(Path("/agents"))
         call_kwargs = mock_scheduler_cls.call_args[1]
@@ -373,7 +407,7 @@ async def test_start_run_loads_categories(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run(mock_pool, "test", _default_config())
+        await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
         mock_load_cats.assert_called_once_with(Path("/cats.toml"))
         call_kwargs = mock_scheduler_cls.call_args[1]
@@ -399,7 +433,7 @@ async def test_start_run_loads_workflow(
         mock_load_wf.return_value = wf_config
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run(mock_pool, "test", _default_config())
+        await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
         mock_load_wf.assert_called_once_with(Path("/workflow.toml"))
         mock_sched.execute_workflow.assert_called_once_with(wf_config)
@@ -423,7 +457,7 @@ async def test_start_run_transitions_to_running(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run(mock_pool, "test", _default_config())
+        await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
         # First transition_run call should be "running"
         calls = mock_writer.transition_run.call_args_list
@@ -449,7 +483,7 @@ async def test_start_run_transitions_to_completed(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run(mock_pool, "test", _default_config())
+        await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
         # Second transition_run call should be "completed"
         calls = mock_writer.transition_run.call_args_list
@@ -477,7 +511,7 @@ async def test_start_run_transitions_to_failed_on_error(
         mock_scheduler_cls.return_value = mock_sched
 
         with pytest.raises(RuntimeError, match="boom"):
-            await start_run(mock_pool, "test", _default_config())
+            await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
         # Should transition to "running" then "failed"
         calls = mock_writer.transition_run.call_args_list
@@ -519,7 +553,7 @@ async def test_start_run_from_file_with_workflow_path(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run_from_file(mock_pool, "test", config_file)
+        await start_run_from_file(mock_pool, _storage(), _caller(), "test", config_file)
 
         # Verify the workflow_path was parsed and used
         mock_load_wf.assert_called_once_with(Path("/my/workflow.toml"))
@@ -669,7 +703,7 @@ async def test_start_run_with_secrets_env_passes_registry(
             autonomy_level="supervised",
             secrets_env={"TOKEN": "TEST_TOKEN_VAR"},
         )
-        await start_run(mock_pool, "test intent", config)
+        await start_run(mock_pool, _storage(), _caller(), "test intent", config)
 
         mock_scheduler_cls.assert_called_once()
         call_kwargs = mock_scheduler_cls.call_args[1]
@@ -699,7 +733,7 @@ async def test_start_run_without_secrets_env_passes_none(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run(mock_pool, "test", _default_config())
+        await start_run(mock_pool, _storage(), _caller(), "test", _default_config())
 
         call_kwargs = mock_scheduler_cls.call_args[1]
         assert call_kwargs["secret_registry"] is None

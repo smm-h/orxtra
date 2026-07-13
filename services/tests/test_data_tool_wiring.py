@@ -8,12 +8,15 @@ resolution for custom.* vs fs.* namespaces.
 from __future__ import annotations
 
 import contextlib
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
+from orxtra.protocols import KIND_CONSUMER, Principal
 from orxtra.scheduler._tool_registry import (
     ToolEntry,
     create_builtin_registry,
@@ -23,6 +26,24 @@ from orxtra.services._run import RunConfig, _load_custom_tools, start_run
 
 if TYPE_CHECKING:
     from uuid import UUID
+
+
+def _storage() -> AsyncMock:
+    """A PrincipalStorage stand-in whose mint_principal is a no-op mock."""
+    storage = AsyncMock()
+    storage.mint_principal = AsyncMock()
+    return storage
+
+
+def _caller() -> Principal:
+    """The caller principal whose id becomes the run's created_by."""
+    return Principal(
+        id=uuid4(),
+        kind=KIND_CONSUMER,
+        external_ref=uuid4(),
+        display_name="test-caller",
+        created_at=datetime.now(UTC),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +338,7 @@ class TestOrderingGuarantee:
             # We do NOT mock the Scheduler -- we let the real
             # constructor run to verify the ordering.
             with contextlib.suppress(Exception):
-                await start_run(mock_pool, "test", config)
+                await start_run(mock_pool, _storage(), _caller(), "test", config)
 
     @pytest.mark.asyncio
     async def test_unknown_custom_tool_fails_validation(
@@ -350,4 +371,4 @@ class TestOrderingGuarantee:
             config = _make_run_config()  # No tools_dir
 
             with pytest.raises(ValueError, match="unknown tool"):
-                await start_run(mock_pool, "test", config)
+                await start_run(mock_pool, _storage(), _caller(), "test", config)
