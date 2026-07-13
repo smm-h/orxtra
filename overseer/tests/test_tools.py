@@ -145,6 +145,29 @@ async def test_create_inbox_item_all_params(
 
 
 @pytest.mark.asyncio
+async def test_create_inbox_item_deadline_coercion(
+    tw: MockTraceWriter, run_id: UUID,
+) -> None:
+    """Deadline string from params is coerced to datetime for the writer."""
+    from datetime import UTC, datetime
+
+    tool = make_create_inbox_item_tool(tw, run_id)
+    await tool.execute({
+        "decision_type": "approval",
+        "question": "Approve?",
+        "options": [{"label": "yes"}],
+        "assumed_option": "yes",
+        "work_proceeding": "proceeding",
+        "contradiction_impact": "none",
+        "deadline": "2025-01-01T00:00:00Z",
+    })
+    assert tw.calls[0][0] == "create_inbox_item"
+    passed_deadline = tw.calls[0][1]["deadline"]
+    assert isinstance(passed_deadline, datetime)
+    assert passed_deadline == datetime(2025, 1, 1, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
 async def test_write_lesson_permanent(
     tw: MockTraceWriter, run_id: UUID,
 ) -> None:

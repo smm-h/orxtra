@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
@@ -143,6 +144,11 @@ def make_create_inbox_item_tool(
             params = CreateInboxItemParams.model_validate(args)
         except ValidationError as e:
             raise ToolError(_validation_error(e)) from e
+        # Coerce deadline string to datetime (the params model accepts str,
+        # but the writer requires datetime).
+        deadline_dt: datetime | None = None
+        if params.deadline is not None:
+            deadline_dt = datetime.fromisoformat(params.deadline)
         item_id = await trace_writer.create_inbox_item(
             run_id=run_id,
             decision_type=params.decision_type,
@@ -152,7 +158,7 @@ def make_create_inbox_item_tool(
             work_proceeding=params.work_proceeding,
             contradiction_impact=params.contradiction_impact,
             tags=params.tags,
-            deadline=None,
+            deadline=deadline_dt,
             answer_event=params.answer_event,
         )
         result = CreateInboxItemResult(item_id=item_id)
