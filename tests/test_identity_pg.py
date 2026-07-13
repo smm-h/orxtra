@@ -195,10 +195,10 @@ class TestDeletePrincipalLifecycle:
     """delete_principal against real referencing FKs.
 
     A principal that anchors durable history (events, runs.created_by,
-    sources.created_by, consumers.principal_id -- all RESTRICT) is undeletable.
-    A principal that only owns operational state (subscriptions -- CASCADE) is
-    deletable, taking that state with it. A never-referenced principal deletes
-    cleanly.
+    sources.created_by, consumers.principal_id, inbox_items.resolved_by -- all
+    five RESTRICT) is undeletable. A principal that only owns operational state
+    (subscriptions -- CASCADE) is deletable, taking that state with it. A
+    never-referenced principal deletes cleanly.
     """
 
     async def test_subscription_owner_deletes_and_cascades_via_dispatch(
@@ -337,6 +337,42 @@ class TestDeletePrincipalLifecycle:
         with pytest.raises(PrincipalInUseError) as exc_info:
             await storage.delete_principal(principal.id)
         assert str(principal.id) in str(exc_info.value)
+
+    async def test_inbox_resolver_is_undeletable(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        """(e2) A principal that resolved an inbox item is pinned by
+        inbox_items.resolved_by -- the 5th RESTRICT FK.
+
+        The item's run is created by a DIFFERENT (system) principal, so the
+        resolver principal is referenced ONLY through resolved_by; the refused
+        delete therefore isolates that single FK.
+        """
+        storage = PgPrincipalStorage(pg_pool)
+        system = await storage.mint_principal(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+        )
+        resolver = await storage.mint_principal(
+            KIND_CONSUMER, uuid6.uuid7(), "inbox-resolver",
+        )
+        run_id = await pg_pool.fetchval(
+            "INSERT INTO runs (intent, autonomy_level, created_by) "
+            "VALUES ($1, $2, $3) RETURNING id",
+            "inbox run", "medium", system.id,
+        )
+        await pg_pool.execute(
+            "INSERT INTO inbox_items "
+            "(run_id, status, decision_type, question, resolved_by) "
+            "VALUES ($1, $2, $3, $4, $5)",
+            run_id, "answered", "retry_strategy", "Proceed?", resolver.id,
+        )
+        with pytest.raises(PrincipalInUseError) as exc_info:
+            await storage.delete_principal(resolver.id)
+        assert str(resolver.id) in str(exc_info.value), (
+            "the error must name the undeletable principal id"
+        )
+        # The principal survives the refused delete.
+        assert await storage.get_principal(resolver.id) is not None
 
     async def test_never_acted_principal_deletes_cleanly(
         self, pg_pool: asyncpg.Pool,
