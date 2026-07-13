@@ -23,10 +23,10 @@ if TYPE_CHECKING:
 
     from orxtra.auth._verifiers import HashCredentialVerifier, HmacCredentialVerifier
     from orxtra.protocols import (
+        AuthContext,
         AuthStorage,
         CredentialRecord,
         EventSink,
-        Principal,
     )
 
 _logger = logging.getLogger("orxtra.auth")
@@ -77,7 +77,7 @@ class Authenticator:
         self,
         credential_id: UUID,
         presented_credential: str,
-    ) -> Principal:
+    ) -> AuthContext:
         """Verify a credential looked up by ID rather than by hash.
 
         Used by the webhook receiver where the credential_id is known
@@ -107,7 +107,7 @@ class Authenticator:
     async def authenticate(
         self,
         raw_credential: str,
-    ) -> Principal:
+    ) -> AuthContext:
         """Authenticate a raw credential string.
 
         For hash-based types (api_key, bearer), this is the raw token.
@@ -151,7 +151,7 @@ class Authenticator:
         self,
         cred: CredentialRecord,
         presented_credential: str,
-    ) -> Principal:
+    ) -> AuthContext:
         """Verify a presented credential against a known credential record.
 
         Shared by authenticate() (hash lookup) and verify_by_credential_id()
@@ -170,7 +170,7 @@ class Authenticator:
             raise AuthenticationError(msg)
 
         try:
-            principal = await verifier.verify(cred, presented_credential)
+            auth_context = await verifier.verify(cred, presented_credential)
         except AuthenticationError as exc:
             await self._emit_audit(
                 credential_id=str(cred.id),
@@ -188,7 +188,7 @@ class Authenticator:
             outcome="success",
             reason=None,
         )
-        return principal
+        return auth_context
 
     async def _emit_audit(
         self,

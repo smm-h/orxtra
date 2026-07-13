@@ -17,7 +17,7 @@ ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 def auth_middleware(app: ASGIApp, authenticator: Authenticator) -> ASGIApp:
     """Pure ASGI middleware that authenticates requests via the Authorization header.
 
-    On success, attaches the Principal to scope["state"]["principal"].
+    On success, attaches the AuthContext to scope["state"]["auth_context"].
     On failure (missing/invalid credential, disabled consumer), returns 401.
     Non-HTTP scopes (websocket, lifespan) are passed through unchanged.
     """
@@ -35,15 +35,15 @@ def auth_middleware(app: ASGIApp, authenticator: Authenticator) -> ASGIApp:
             return
 
         try:
-            principal = await authenticator.authenticate(raw_token)
+            auth_context = await authenticator.authenticate(raw_token)
         except Exception:  # noqa: BLE001
             await _send_error(send, 401, "Invalid or expired credential")
             return
 
-        # Attach principal to scope state.
+        # Attach auth context to scope state.
         if "state" not in scope:
             scope["state"] = {}
-        scope["state"]["principal"] = principal
+        scope["state"]["auth_context"] = auth_context
 
         await app(scope, receive, send)
 

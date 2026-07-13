@@ -16,8 +16,8 @@ from typing import TYPE_CHECKING
 
 from orxtra.auth._exceptions import AuthenticationError
 from orxtra.protocols import (
+    AuthContext,
     MacOutcome,
-    Principal,
     TrustTier,
 )
 
@@ -54,7 +54,7 @@ class HashCredentialVerifier:
         self,
         credential_record: CredentialRecord,
         presented_credential: str,
-    ) -> Principal:
+    ) -> AuthContext:
         # Hash the presented credential and compare.
         presented_hash = hashlib.sha256(
             presented_credential.encode(),
@@ -74,7 +74,7 @@ class HashCredentialVerifier:
             msg = "Consumer is disabled"
             raise AuthenticationError(msg)
 
-        return _build_principal(credential_record, consumer)
+        return _build_auth_context(credential_record, consumer)
 
 
 class HmacCredentialVerifier:
@@ -102,7 +102,7 @@ class HmacCredentialVerifier:
         self,
         credential_record: CredentialRecord,
         presented_credential: str,
-    ) -> Principal:
+    ) -> AuthContext:
         if credential_record.secret_ref is None:
             msg = (
                 "HMAC credential has no secret_ref -- "
@@ -146,15 +146,15 @@ class HmacCredentialVerifier:
             msg = "Consumer is disabled"
             raise AuthenticationError(msg)
 
-        return _build_principal(credential_record, consumer)
+        return _build_auth_context(credential_record, consumer)
 
 
-def _build_principal(
+def _build_auth_context(
     credential: CredentialRecord,
     consumer: ConsumerRecord,
-) -> Principal:
+) -> AuthContext:
     now = datetime.now(tz=UTC)
-    return Principal(
+    return AuthContext(
         id=credential.id,
         consumer_id=consumer.id,
         scopes=frozenset(consumer.scope_grants),
