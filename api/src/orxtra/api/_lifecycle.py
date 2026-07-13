@@ -187,6 +187,48 @@ def _build_authenticator(
     return Authenticator(auth_backend, verifiers)
 
 
+async def _teardown(
+    compositor_lifespan_task: asyncio.Task[None] | None,
+    to_compositor: asyncio.Queue[dict[str, Any]] | None,
+    from_compositor: asyncio.Queue[dict[str, Any]] | None,
+    lifespan_cm: Any,
+    *,
+    lifespan_entered: bool,
+) -> None:
+    """Clean-shutdown helper: cancel compositor task, then exit the infra CM.
+
+    Called from both failed-startup branches and the normal shutdown path.
+    The order is important: the compositor task must be cancelled BEFORE
+    the infrastructure context manager exits, because the compositor holds
+    references to the pool and other infra resources.
+
+    ``lifespan_entered`` tracks whether ``lifespan_cm.__aenter__()``
+    completed successfully. A failure inside ``__aenter__`` (e.g.
+    ``verify_schema``) already closes the pool via the CM's own ``finally``,
+    so calling ``__aexit__`` on an un-entered CM raises
+    "generator didn't yield."
+    """
+    # 1. Ask the compositor to shut down (if it started).
+    if (
+        compositor_lifespan_task is not None
+        and to_compositor is not None
+        and from_compositor is not None
+    ):
+        await to_compositor.put({"type": "lifespan.shutdown"})
+        with contextlib.suppress(Exception):
+            await asyncio.wait_for(from_compositor.get(), timeout=5)
+
+    # 2. Cancel the compositor lifespan task.
+    if compositor_lifespan_task is not None:
+        compositor_lifespan_task.cancel()
+        with contextlib.suppress(Exception, asyncio.CancelledError):
+            await compositor_lifespan_task
+
+    # 3. Exit the infrastructure context manager (closes pool etc.).
+    if lifespan_cm is not None and lifespan_entered:
+        await lifespan_cm.__aexit__(None, None, None)
+
+
 def build_app(server_config: ServerConfig) -> Any:
     """Build the full ASGI app with lifespan wired in.
 
@@ -215,6 +257,7 @@ def build_app(server_config: ServerConfig) -> Any:
             # Queues bridging this driver to the compositor's ASGI lifespan.
             to_compositor: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
             from_compositor: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+            lifespan_entered = False
 
             async def _compositor_receive() -> dict[str, Any]:
                 return await to_compositor.get()
@@ -225,6 +268,7 @@ def build_app(server_config: ServerConfig) -> Any:
             try:
                 lifespan_cm = lifespan(server_config)
                 compositor_config = await lifespan_cm.__aenter__()
+                lifespan_entered = True
                 compositor = create_compositor(compositor_config)
 
                 # Drive the compositor's lifespan on a long-lived background
@@ -242,6 +286,13 @@ def build_app(server_config: ServerConfig) -> Any:
                 startup_msg = await from_compositor.get()
             except Exception:
                 log.exception("Startup failed")
+                await _teardown(
+                    compositor_lifespan_task,
+                    to_compositor,
+                    from_compositor,
+                    lifespan_cm,
+                    lifespan_entered=lifespan_entered,
+                )
                 await send({"type": "lifespan.startup.failed"})
                 return
 
@@ -249,6 +300,13 @@ def build_app(server_config: ServerConfig) -> Any:
                 log.error(
                     "Compositor lifespan startup failed: %s",
                     startup_msg.get("message", ""),
+                )
+                await _teardown(
+                    compositor_lifespan_task,
+                    to_compositor,
+                    from_compositor,
+                    lifespan_cm,
+                    lifespan_entered=lifespan_entered,
                 )
                 await send({"type": "lifespan.startup.failed"})
                 return
@@ -258,16 +316,13 @@ def build_app(server_config: ServerConfig) -> Any:
             # Wait for shutdown.
             message = await receive()
             if message["type"] == "lifespan.shutdown":
-                # Shut the compositor's mounts down first, then tear down the
-                # infrastructure lifespan (reverse of startup order).
-                await to_compositor.put({"type": "lifespan.shutdown"})
-                with contextlib.suppress(Exception):
-                    await asyncio.wait_for(from_compositor.get(), timeout=5)
-                if compositor_lifespan_task is not None:
-                    compositor_lifespan_task.cancel()
-                    with contextlib.suppress(Exception, asyncio.CancelledError):
-                        await compositor_lifespan_task
-                await lifespan_cm.__aexit__(None, None, None)
+                await _teardown(
+                    compositor_lifespan_task,
+                    to_compositor,
+                    from_compositor,
+                    lifespan_cm,
+                    lifespan_entered=lifespan_entered,
+                )
                 await send({"type": "lifespan.shutdown.complete"})
             return
 

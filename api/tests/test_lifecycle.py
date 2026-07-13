@@ -5,11 +5,18 @@ SchemaError if the database schema is incomplete.
 """
 from __future__ import annotations
 
+import asyncio
 import os
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from orxtra.api._lifecycle import ServerConfig, _build_authenticator, lifespan
+from orxtra.api._lifecycle import (
+    ServerConfig,
+    _build_authenticator,
+    build_app,
+    lifespan,
+)
 from orxtra.services import SchemaError
 
 
@@ -278,3 +285,168 @@ class TestLifespanSecretsEnvWiring:
             async with lifespan(config) as compositor_config:
                 assert compositor_config.authenticator is explicit_auth
                 mock_build.assert_not_called()
+
+
+class TestTeardownSymmetry:
+    """Verify that failed-startup branches clean up symmetrically.
+
+    build_app has two failed-startup paths: one where create_compositor
+    raises, and one where the compositor's own ASGI lifespan reports
+    startup failure. Both must tear down the compositor task and close
+    the pool, matching the normal shutdown path.
+    """
+
+    @staticmethod
+    async def _drive_lifespan(app: Any) -> list[dict[str, Any]]:
+        """Drive the ASGI lifespan and collect sent messages."""
+        to_app: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        sent: list[dict[str, Any]] = []
+
+        async def receive() -> dict[str, Any]:
+            return await to_app.get()
+
+        async def send(msg: dict[str, Any]) -> None:
+            sent.append(msg)
+
+        await to_app.put({"type": "lifespan.startup"})
+        scope: dict[str, Any] = {"type": "lifespan", "state": {}}
+        await asyncio.wait_for(app(scope, receive, send), timeout=10)
+        return sent
+
+    async def test_create_compositor_failure_closes_pool(self) -> None:
+        """When create_compositor raises, the pool is still closed and
+        startup.failed is sent.
+        """
+        config = ServerConfig(
+            db_url="postgresql://test:test@localhost/test", port=8080,
+        )
+        mock_pool = AsyncMock()
+        mock_pool.close = AsyncMock()
+
+        with (
+            patch(
+                "asyncpg.create_pool",
+                new_callable=AsyncMock,
+                return_value=mock_pool,
+            ),
+            patch("orxtra.services.verify_schema", new_callable=AsyncMock),
+            patch("orxtra.a2a.SkillRegistry"),
+            patch("orxtra.a2a.build_agent_card"),
+            patch("orxtra.services.get_capabilities", return_value=[]),
+            patch(
+                "orxtra.identity.PgPrincipalStorage",
+                return_value=_storage_mock(),
+            ),
+            patch(
+                "orxtra.api._lifecycle.create_compositor",
+                side_effect=RuntimeError("compositor boom"),
+            ),
+        ):
+            app = build_app(config)
+            sent = await self._drive_lifespan(app)
+
+        assert any(m["type"] == "lifespan.startup.failed" for m in sent), (
+            "startup.failed must be sent when create_compositor raises"
+        )
+        mock_pool.close.assert_awaited_once()
+
+    async def test_compositor_lifespan_failure_closes_pool_and_cancels_task(
+        self,
+    ) -> None:
+        """When the compositor's own lifespan reports startup failure, the
+        compositor task is cancelled and the pool is closed.
+        """
+        config = ServerConfig(
+            db_url="postgresql://test:test@localhost/test", port=8080,
+        )
+        mock_pool = AsyncMock()
+        mock_pool.close = AsyncMock()
+
+        compositor_task_cancelled = False
+
+        async def _fake_compositor(
+            scope: dict[str, Any],
+            receive: Any,
+            send: Any,
+        ) -> None:
+            """A compositor whose lifespan reports startup failure."""
+            nonlocal compositor_task_cancelled
+            if scope["type"] == "lifespan":
+                msg = await receive()
+                if msg["type"] == "lifespan.startup":
+                    # Report failure.
+                    await send({
+                        "type": "lifespan.startup.failed",
+                        "message": "compositor failed",
+                    })
+                    # Remain alive until cancelled (simulating a real task).
+                    try:
+                        await asyncio.sleep(3600)
+                    except asyncio.CancelledError:
+                        compositor_task_cancelled = True
+                        raise
+
+        with (
+            patch(
+                "asyncpg.create_pool",
+                new_callable=AsyncMock,
+                return_value=mock_pool,
+            ),
+            patch("orxtra.services.verify_schema", new_callable=AsyncMock),
+            patch("orxtra.a2a.SkillRegistry"),
+            patch("orxtra.a2a.build_agent_card"),
+            patch("orxtra.services.get_capabilities", return_value=[]),
+            patch(
+                "orxtra.identity.PgPrincipalStorage",
+                return_value=_storage_mock(),
+            ),
+            patch(
+                "orxtra.api._lifecycle.create_compositor",
+                return_value=_fake_compositor,
+            ),
+        ):
+            app = build_app(config)
+            sent = await self._drive_lifespan(app)
+
+        assert any(m["type"] == "lifespan.startup.failed" for m in sent), (
+            "startup.failed must be sent when compositor lifespan fails"
+        )
+        assert compositor_task_cancelled, (
+            "the compositor task must be cancelled on startup failure, "
+            "not leaked"
+        )
+        mock_pool.close.assert_awaited_once()
+
+    async def test_verify_schema_failure_sends_startup_failed(self) -> None:
+        """When verify_schema raises inside lifespan.__aenter__, the pool
+        is closed by the lifespan's own finally block and startup.failed
+        is sent. The lifespan CM must NOT receive __aexit__ (it was never
+        entered).
+        """
+        config = ServerConfig(
+            db_url="postgresql://test:test@localhost/test", port=8080,
+        )
+        mock_pool = AsyncMock()
+        mock_pool.close = AsyncMock()
+
+        with (
+            patch(
+                "asyncpg.create_pool",
+                new_callable=AsyncMock,
+                return_value=mock_pool,
+            ),
+            patch(
+                "orxtra.services.verify_schema",
+                new_callable=AsyncMock,
+                side_effect=SchemaError("tables.runs missing"),
+            ),
+        ):
+            app = build_app(config)
+            sent = await self._drive_lifespan(app)
+
+        assert any(m["type"] == "lifespan.startup.failed" for m in sent), (
+            "startup.failed must be sent when verify_schema raises"
+        )
+        # The pool is closed by the lifespan CM's finally block (not by
+        # _teardown, since lifespan_entered=False).
+        mock_pool.close.assert_awaited_once()
