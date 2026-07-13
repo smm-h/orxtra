@@ -7,7 +7,9 @@ completion, and event polling methods.
 from __future__ import annotations
 
 import asyncio
+import sys
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -18,8 +20,13 @@ from orxtra.dispatch._types import (
     Subscription,
     SubscriptionAction,
 )
-from orxtra.protocols import LogAction
+from orxtra.protocols import LogAction, ScriptAction
 from uuid6 import uuid7
+
+# Make _handlers importable for ScriptAction tests.
+_tests_dir = str(Path(__file__).resolve().parent)
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)
 
 NOW = datetime.now(tz=UTC)
 
@@ -141,6 +148,34 @@ def _add_subscription_with_log(
         subscription_id=sub.id,
         position=0,
         action=LogAction(message=log_message, level="info"),
+        created_at=NOW,
+    )
+    backend._actions[action.id] = action
+    return sub.id, action.id
+
+
+def _add_subscription_with_script(
+    backend: InMemoryDispatchBackend,
+    event_types: list[str] | None = None,
+    handler: str = "_handlers:flush_handler",
+    accumulator_config: dict[str, Any] | None = None,
+) -> tuple[UUID, UUID]:
+    """Add a subscription + script action, optionally with accumulator config."""
+    sub = Subscription(
+        id=uuid7(),
+        filter=FilterPredicate(event_types=event_types),
+        enabled=True,
+        storage="persistent",
+        principal_id=_SYSTEM_PID,
+        created_at=NOW,
+    )
+    backend._subscriptions[sub.id] = sub
+    action = SubscriptionAction(
+        id=uuid7(),
+        subscription_id=sub.id,
+        position=0,
+        action=ScriptAction(callable=handler),
+        accumulator_config=accumulator_config,
         created_at=NOW,
     )
     backend._actions[action.id] = action
@@ -298,3 +333,146 @@ class TestMultipleSubscriptions:
 
         assert await backend.is_action_completed(ev["id"], action_id1)
         assert await backend.is_action_completed(ev["id"], action_id2)
+
+
+class TestAccumulatorCountThreshold:
+    """Accumulator buffering: the worker respects accumulator_config."""
+
+    async def test_count_threshold_buffers_then_flushes(self) -> None:
+        """With accumulator_config={threshold: 3}, the action executes
+        ONCE after 3 events, not per-event."""
+        from _handlers import flush_calls
+
+        flush_calls.clear()
+
+        backend = InMemoryDispatchBackend()
+        _sub_id, _action_id = _add_subscription_with_script(
+            backend,
+            event_types=["accum.evt"],
+            handler="_handlers:flush_handler",
+            accumulator_config={"threshold": 3, "flush_interval_s": 0},
+        )
+
+        # Inject 3 matching events.
+        for i in range(3):
+            backend.inject_event(_make_event("accum.evt", {"seq": i}))
+
+        worker = _make_worker(backend)
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.5)
+        await worker.stop()
+        await run_task
+
+        # The action should execute exactly ONCE (batch of 3), not 3 times.
+        assert len(flush_calls) == 1
+        assert len(flush_calls[0]) == 3
+
+    async def test_no_accumulator_config_executes_per_event(self) -> None:
+        """Without accumulator_config, each event triggers the action."""
+        from _handlers import flush_calls
+
+        flush_calls.clear()
+
+        backend = InMemoryDispatchBackend()
+        _add_subscription_with_script(
+            backend,
+            event_types=["normal.evt"],
+            handler="_handlers:flush_handler",
+            accumulator_config=None,
+        )
+
+        for i in range(3):
+            backend.inject_event(_make_event("normal.evt", {"seq": i}))
+
+        worker = _make_worker(backend)
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.5)
+        await worker.stop()
+        await run_task
+
+        # Each event fires the action independently.
+        assert len(flush_calls) == 3
+
+    async def test_below_threshold_buffers_without_executing(self) -> None:
+        """When event count < threshold, events buffer but action does not fire."""
+        from _handlers import flush_calls
+
+        flush_calls.clear()
+
+        backend = InMemoryDispatchBackend()
+        _sub_id, action_id = _add_subscription_with_script(
+            backend,
+            event_types=["accum.partial"],
+            handler="_handlers:flush_handler",
+            accumulator_config={"threshold": 5, "flush_interval_s": 0},
+        )
+
+        # Only 2 events, threshold is 5.
+        for i in range(2):
+            backend.inject_event(_make_event("accum.partial", {"seq": i}))
+
+        worker = _make_worker(backend)
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.5)
+        await worker.stop()
+        await run_task
+
+        # No flush -- below threshold.
+        assert len(flush_calls) == 0
+        # Events are buffered in the accumulator.
+        assert await backend.pending_count(action_id) == 2
+
+    async def test_time_threshold_schedules_flush(self) -> None:
+        """With flush_interval_s > 0, the worker schedules a flush via
+        FlushScheduler."""
+        from _handlers import flush_calls
+
+        flush_calls.clear()
+
+        backend = InMemoryDispatchBackend()
+
+        # Use a tracking scheduler to verify the schedule_flush call.
+        scheduled: list[tuple[float, Any]] = []
+
+        class TrackingFlushScheduler:
+            def schedule_flush(self, deadline: float, callback: Any) -> object:
+                scheduled.append((deadline, callback))
+                return len(scheduled) - 1
+
+            def cancel_flush(self, handle: object) -> None:
+                pass
+
+        _add_subscription_with_script(
+            backend,
+            event_types=["accum.timed"],
+            handler="_handlers:flush_handler",
+            accumulator_config={"threshold": 0, "flush_interval_s": 60},
+        )
+
+        backend.inject_event(_make_event("accum.timed", {"seq": 0}))
+
+        worker = DispatchWorker(
+            backend=backend,  # type: ignore[arg-type]
+            action_executor=StubActionExecutor(),
+            flush_scheduler=TrackingFlushScheduler(),  # type: ignore[arg-type]
+            pool=StubPool(),  # type: ignore[arg-type]
+            cursor_name="test-timed",
+            events_channel="test_channel",
+            source_principal_resolver=_resolve_sources,
+            poll_interval=0.05,
+            batch_size=100,
+        )
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.5)
+        await worker.stop()
+        await run_task
+
+        # No inline flush (threshold=0 means never inline).
+        assert len(flush_calls) == 0
+        # But the scheduler was called.
+        assert len(scheduled) == 1
+        assert scheduled[0][0] == 60
+
+        # Simulate the scheduler firing the callback.
+        await scheduled[0][1]()
+        assert len(flush_calls) == 1

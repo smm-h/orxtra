@@ -16,10 +16,13 @@ import asyncio
 import contextlib
 import json
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from orxtra.dispatch._action_executor import execute_action
 from orxtra.dispatch._delivery import match_subscription
+from orxtra.dispatch._types import AccumulatorEntry
+from uuid6 import uuid7
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -27,7 +30,7 @@ if TYPE_CHECKING:
     import asyncpg
     from orxtra.dispatch._delivery import SourcePrincipalResolver
     from orxtra.dispatch._pg_backend import PgDispatchBackend
-    from orxtra.protocols import ActionExecutor, FlushScheduler
+    from orxtra.protocols import ActionExecutor, FlushScheduler, SubscriptionAction
 
 logger = logging.getLogger(__name__)
 
@@ -229,36 +232,21 @@ class DispatchWorker:
                     ):
                         continue
 
-                    # Execute the action.
-                    result_status = "success"
-                    try:
-                        event_payload: dict[str, object] = {
-                            "event_type": event_type,
-                            "principal_id": (
-                                str(principal_id) if principal_id else ""
-                            ),
-                            "data": data or {},
-                            "event_id": str(event_id),
-                        }
-                        await execute_action(
-                            sub_action.action,
-                            [event_payload],
-                            workflow_executor=self._action_executor,
-                            event_fire_callback=self._make_event_fire_callback(
-                                sub.principal_id,
-                            ),
+                    if sub_action.accumulator_config is not None:
+                        # Buffer event for accumulator; flush if threshold met.
+                        await self._buffer_or_flush(
+                            sub_action, event_id, sub.principal_id,
                         )
-                    except Exception:
-                        logger.exception(
-                            "Action %s failed for event %s",
-                            sub_action.id,
-                            event_id,
+                    else:
+                        # Execute the action immediately (no accumulator).
+                        await self._execute_action_immediate(
+                            sub_action, event_id, event_type,
+                            principal_id, data, sub.principal_id,
                         )
-                        result_status = "error"
 
                     # Record completion (idempotent via unique constraint).
                     await self._backend.record_completion(
-                        event_id, sub_action.id, result_status,
+                        event_id, sub_action.id, "success",
                     )
 
             # Advance cursor after processing all actions for this event.
@@ -266,6 +254,121 @@ class DispatchWorker:
             processed += 1
 
         return processed
+
+    async def _execute_action_immediate(
+        self,
+        sub_action: SubscriptionAction,
+        event_id: UUID,
+        event_type: str,
+        principal_id: UUID | None,
+        data: dict[str, Any] | None,
+        owner_principal_id: UUID,
+    ) -> None:
+        """Execute a single action immediately (no accumulator)."""
+        try:
+            event_payload: dict[str, object] = {
+                "event_type": event_type,
+                "principal_id": (
+                    str(principal_id) if principal_id else ""
+                ),
+                "data": data or {},
+                "event_id": str(event_id),
+            }
+            await execute_action(
+                sub_action.action,
+                [event_payload],
+                workflow_executor=self._action_executor,
+                event_fire_callback=self._make_event_fire_callback(
+                    owner_principal_id,
+                ),
+            )
+        except Exception:
+            logger.exception(
+                "Action %s failed for event %s",
+                sub_action.id,
+                event_id,
+            )
+
+    async def _buffer_or_flush(
+        self,
+        sub_action: SubscriptionAction,
+        event_id: UUID,
+        owner_principal_id: UUID,
+    ) -> None:
+        """Buffer event for accumulator; flush inline if count threshold reached.
+
+        Follows the same contract as DualPhaseEventDelivery._buffer_or_flush:
+        - Buffer the event via the backend.
+        - If count threshold is set and pending >= threshold, claim and execute.
+        - If time threshold is set, schedule a deferred flush via FlushScheduler.
+        - Whichever fires first wins (standard accumulator contract).
+        """
+        entry = AccumulatorEntry(
+            id=uuid7(),
+            subscription_action_id=sub_action.id,
+            event_id=event_id,
+            created_at=datetime.now(tz=UTC),
+        )
+        await self._backend.buffer_event(entry)
+
+        config = sub_action.accumulator_config or {}
+        threshold = config.get("threshold", 0)
+        flush_interval_s = config.get("flush_interval_s", 0)
+
+        pending = await self._backend.pending_count(sub_action.id)
+
+        if threshold > 0 and pending >= threshold:
+            # Inline flush: claim and execute immediately.
+            await self._flush_action(sub_action, owner_principal_id)
+        elif flush_interval_s > 0:
+            # Schedule a deferred flush via FlushScheduler.
+            self._flush_scheduler.schedule_flush(
+                flush_interval_s,
+                self._make_flush_callback(sub_action, owner_principal_id),
+            )
+
+    def _make_flush_callback(
+        self, sub_action: SubscriptionAction, owner_principal_id: UUID,
+    ) -> Any:
+        """Create a zero-arg async callback for FlushScheduler."""
+
+        async def _flush() -> None:
+            await self._flush_action(sub_action, owner_principal_id)
+
+        return _flush
+
+    async def _flush_action(
+        self, sub_action: SubscriptionAction, owner_principal_id: UUID,
+    ) -> None:
+        """Claim a batch from the accumulator buffer and execute the action."""
+        batch = await self._backend.claim_batch(sub_action.id)
+        if not batch:
+            return
+
+        events: list[dict[str, object]] = [
+            {
+                "entry_id": str(entry.id),
+                "event_id": str(entry.event_id),
+                "created_at": entry.created_at.isoformat(),
+            }
+            for entry in batch
+        ]
+        try:
+            await execute_action(
+                sub_action.action,
+                events,
+                workflow_executor=self._action_executor,
+                event_fire_callback=self._make_event_fire_callback(
+                    owner_principal_id,
+                ),
+            )
+        except Exception:
+            logger.exception(
+                "Accumulator flush for action %s failed",
+                sub_action.id,
+            )
+            return
+        await self._backend.confirm_batch([entry.id for entry in batch])
 
     def _make_event_fire_callback(self, owner_principal_id: UUID) -> Any:
         """Create a callback for EventAction dispatch.
