@@ -4,10 +4,8 @@ Translates domain events into MCP resource-updated notifications so
 connected MCP clients are informed when data changes. Implements the
 EventSink[OverseerEvent] protocol.
 
-For standalone stdio deployment, the existing PG LISTEN/NOTIFY path
-in MCPServer._start_event_listener remains the primary event delivery
-mechanism. This sink is used for in-process event delivery when the
-MCP server runs inside a compositor (e.g. fastware).
+This sink is the event delivery mechanism when the MCP server runs
+inside a compositor (e.g. fastware) over streamable HTTP.
 """
 
 from __future__ import annotations

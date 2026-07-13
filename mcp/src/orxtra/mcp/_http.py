@@ -37,7 +37,6 @@ def create_app(dispatch_context: DispatchContext) -> ASGIApp:
 
     server = MCPServer(
         pool=dispatch_context.pool,
-        event_bus=dispatch_context.event_bus,
         dispatch_context=dispatch_context,
     )
     return server.fastmcp.streamable_http_app()

@@ -127,7 +127,6 @@ def _build_mcp_app(dispatch_context: DispatchContext) -> Any:
 
     server = MCPServer(
         pool=dispatch_context.pool,
-        event_bus=dispatch_context.event_bus,
         dispatch_context=dispatch_context,
     )
     # Override the streamable_http_path setting before generating the app.

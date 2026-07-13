@@ -1,25 +1,25 @@
 from __future__ import annotations
 
-import asyncio
-import contextlib
+import dataclasses
 import json
-import sys
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from orxtra.protocols import Capability, EventBus
-from orxtra.services import DispatchContext, dispatch, event_stream, get_capabilities
+from orxtra.protocols import Capability
+from orxtra.services import DispatchContext, dispatch, get_capabilities
 from pydantic import BaseModel
 
 # MCP SDK imports are deferred to function bodies to avoid a name collision
 # with the orxtra workspace member directory mcp/ during pytest's
 # --import-mode=importlib conftest discovery.
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from orxtra.protocols import AuthContext
+
+    from mcp.server.fastmcp import Context, FastMCP
     from mcp.types import ToolAnnotations
 
 # Capabilities exposed as MCP tools. Validation tools are excluded
@@ -122,10 +122,28 @@ def get_tool_definitions() -> list[dict[str, object]]:
     return _project_tools(_mcp_capabilities())
 
 
+def _auth_context_from_ctx(ctx: Context[Any, Any, Any]) -> AuthContext | None:
+    """Extract the per-request AuthContext from the MCP request scope.
+
+    The api compositor's auth middleware sets
+    ``scope["state"]["auth_context"]`` for authenticated HTTP requests; the
+    key is absent when no authenticator is configured (explicit open mode),
+    yielding ``None``. This is the single seam through which per-request
+    identity enters dispatch for both tools and resources.
+    """
+    request = ctx.request_context.request
+    if request is None:
+        return None
+    state = request.scope.get("state", {})
+    auth_context: AuthContext | None = state.get("auth_context")
+    return auth_context
+
+
 def _build_fastmcp(
     dispatch_context: DispatchContext,
 ) -> FastMCP:
     """Create a FastMCP instance with all tools and resources registered."""
+    from mcp.server.fastmcp import Context as _Context
     from mcp.server.fastmcp import FastMCP as _FastMCP
 
     mcp_app = _FastMCP("orxtra-mcp")
@@ -133,10 +151,10 @@ def _build_fastmcp(
     # Register tools from capabilities
     for cap in _mcp_capabilities():
         annotations = _annotations_for_capability(cap)
-        _register_tool(mcp_app, cap, dispatch_context, annotations)
+        _register_tool(mcp_app, cap, dispatch_context, annotations, _Context)
 
     # Register resources
-    _register_resources(mcp_app, dispatch_context)
+    _register_resources(mcp_app, dispatch_context, _Context)
 
     return mcp_app
 
@@ -146,18 +164,30 @@ def _register_tool(
     cap: Capability,
     context: DispatchContext,
     annotations: ToolAnnotations,
+    context_cls: type[Context[Any, Any, Any]],
 ) -> None:
-    """Register a single capability as an MCP tool on the FastMCP instance."""
+    """Register a single capability as an MCP tool on the FastMCP instance.
+
+    The handler receives a per-request ``Context`` (injected by the SDK and
+    excluded from the tool's input schema) and dispatches against a per-request
+    copy of the construction-time context carrying the caller's identity.
+    """
     cap_name = cap.name
 
-    async def handler(**kwargs: Any) -> str:
-        result = await dispatch(context, cap_name, kwargs)
-        serialized = _serialize(result)
-        return json.dumps(serialized)
+    async def handler(ctx: Context[Any, Any, Any], **kwargs: Any) -> str:
+        auth_context = _auth_context_from_ctx(ctx)
+        request_context = dataclasses.replace(context, auth_context=auth_context)
+        result = await dispatch(request_context, cap_name, kwargs)
+        return json.dumps(_serialize(result))
 
-    # Give the handler a unique __name__ so FastMCP can distinguish them
+    # Give the handler a unique __name__ so FastMCP can distinguish them.
     handler.__name__ = cap_name
     handler.__qualname__ = f"_tool_{cap_name}"
+    # ``from __future__ import annotations`` stringifies the ``ctx`` annotation,
+    # and the MCP SDK is imported lazily (not a module global), so the SDK's
+    # get_type_hints-based Context detection cannot resolve it. Bind the real
+    # class directly so the SDK recognizes the injection parameter.
+    handler.__annotations__["ctx"] = context_cls
 
     mcp_app.add_tool(
         handler,
@@ -170,11 +200,22 @@ def _register_tool(
 def _register_resources(
     mcp_app: FastMCP,
     context: DispatchContext,
+    context_cls: type[Context[Any, Any, Any]],
 ) -> None:
-    """Register MCP resources backed by services dispatch."""
+    """Register MCP resources backed by services dispatch.
+
+    Static resources obtain the per-request ``Context`` via
+    ``mcp_app.get_context()`` (the SDK does not inject a parameter into
+    zero-argument resource functions), while parameterized resource templates
+    receive it as an injected ``Context`` parameter. Both funnel through
+    ``_auth_context_from_ctx`` so identity flows into dispatch uniformly.
+    """
 
     async def pricing_resource() -> str:
-        result = await dispatch(context, "show_pricing", {})
+        ctx = mcp_app.get_context()
+        auth_context = _auth_context_from_ctx(ctx)
+        request_context = dataclasses.replace(context, auth_context=auth_context)
+        result = await dispatch(request_context, "show_pricing", {})
         return json.dumps(_serialize(result))
 
     pricing_resource.__name__ = "pricing_resource"
@@ -190,7 +231,10 @@ def _register_resources(
     )
 
     async def list_runs_resource() -> str:
-        result = await dispatch(context, "list_runs", {})
+        ctx = mcp_app.get_context()
+        auth_context = _auth_context_from_ctx(ctx)
+        request_context = dataclasses.replace(context, auth_context=auth_context)
+        result = await dispatch(request_context, "list_runs", {})
         return json.dumps(_serialize(result))
 
     list_runs_resource.__name__ = "list_runs_resource"
@@ -205,46 +249,64 @@ def _register_resources(
         ),
     )
 
-    # Parameterized resources (registered as resource templates)
-    @mcp_app.resource(
+    # Parameterized resources (registered as resource templates). The ``ctx``
+    # parameter is injected per request by the SDK and excluded from the
+    # template's parameters; see _register_tool for the annotation-binding note.
+    async def run_report_resource(run_id: str, ctx: Context[Any, Any, Any]) -> str:
+        auth_context = _auth_context_from_ctx(ctx)
+        request_context = dataclasses.replace(context, auth_context=auth_context)
+        result = await dispatch(request_context, "get_run", {"run_id": run_id})
+        return json.dumps(_serialize(result))
+
+    run_report_resource.__annotations__["ctx"] = context_cls
+    mcp_app.resource(
         "orxtra://runs/{run_id}",
         name="run_report",
         description="Single run report",
         mime_type="application/json",
-    )
-    async def run_report_resource(run_id: str) -> str:
-        result = await dispatch(context, "get_run", {"run_id": run_id})
+    )(run_report_resource)
+
+    async def run_tasks_resource(run_id: str, ctx: Context[Any, Any, Any]) -> str:
+        auth_context = _auth_context_from_ctx(ctx)
+        request_context = dataclasses.replace(context, auth_context=auth_context)
+        result = await dispatch(request_context, "list_tasks", {"run_id": run_id})
         return json.dumps(_serialize(result))
 
-    @mcp_app.resource(
+    run_tasks_resource.__annotations__["ctx"] = context_cls
+    mcp_app.resource(
         "orxtra://runs/{run_id}/tasks",
         name="run_tasks",
         description="Tasks for a run",
         mime_type="application/json",
-    )
-    async def run_tasks_resource(run_id: str) -> str:
-        result = await dispatch(context, "list_tasks", {"run_id": run_id})
+    )(run_tasks_resource)
+
+    async def run_inbox_resource(run_id: str, ctx: Context[Any, Any, Any]) -> str:
+        auth_context = _auth_context_from_ctx(ctx)
+        request_context = dataclasses.replace(context, auth_context=auth_context)
+        result = await dispatch(request_context, "list_inbox", {"run_id": run_id})
         return json.dumps(_serialize(result))
 
-    @mcp_app.resource(
+    run_inbox_resource.__annotations__["ctx"] = context_cls
+    mcp_app.resource(
         "orxtra://runs/{run_id}/inbox",
         name="run_inbox",
         description="Inbox items for a run",
         mime_type="application/json",
-    )
-    async def run_inbox_resource(run_id: str) -> str:
-        result = await dispatch(context, "list_inbox", {"run_id": run_id})
+    )(run_inbox_resource)
+
+    async def run_notepad_resource(run_id: str, ctx: Context[Any, Any, Any]) -> str:
+        auth_context = _auth_context_from_ctx(ctx)
+        request_context = dataclasses.replace(context, auth_context=auth_context)
+        result = await dispatch(request_context, "get_notepad", {"run_id": run_id})
         return json.dumps(_serialize(result))
 
-    @mcp_app.resource(
+    run_notepad_resource.__annotations__["ctx"] = context_cls
+    mcp_app.resource(
         "orxtra://runs/{run_id}/notepad",
         name="run_notepad",
         description="Notepad entries for a run",
         mime_type="application/json",
-    )
-    async def run_notepad_resource(run_id: str) -> str:
-        result = await dispatch(context, "get_notepad", {"run_id": run_id})
-        return json.dumps(_serialize(result))
+    )(run_notepad_resource)
 
 
 def _make_function_resource(
@@ -266,208 +328,17 @@ def _make_function_resource(
     )
 
 
-ToolHandler = Callable[
-    [dict[str, Any]], Coroutine[Any, Any, Any]
-]
-
-
 class MCPServer:
     def __init__(
         self,
         pool: Any,
-        event_bus: EventBus | None = None,
         dispatch_context: DispatchContext | None = None,
     ) -> None:
         self._pool = pool
-        self._event_bus = event_bus
         self._dispatch_context = dispatch_context or DispatchContext(pool=pool)
         self._fastmcp = _build_fastmcp(self._dispatch_context)
-        self._tool_names: set[str] = {
-            c.name for c in get_capabilities()
-            if c.namespace not in _MCP_EXCLUDED_NAMESPACES
-        }
-        # Legacy JSON-RPC handlers for stdio mode and backward compat
-        self._handlers: dict[
-            str,
-            Callable[
-                [dict[str, Any]],
-                Coroutine[Any, Any, dict[str, Any]],
-            ],
-        ] = {
-            "initialize": self._handle_initialize,
-            "tools/list": self._handle_tools_list,
-            "tools/call": self._handle_tools_call,
-        }
 
     @property
     def fastmcp(self) -> FastMCP:
         """The underlying FastMCP instance."""
         return self._fastmcp
-
-    async def handle_request(self, request: dict[str, Any]) -> dict[str, Any]:
-        request_id: int | str | None = request.get("id")
-
-        if request.get("jsonrpc") != "2.0":
-            return _jsonrpc_error(
-                request_id, _INVALID_REQUEST, "Invalid JSON-RPC version"
-            )
-
-        method: Any = request.get("method")
-        if not isinstance(method, str):
-            return _jsonrpc_error(
-                request_id, _INVALID_REQUEST, "Missing or invalid method"
-            )
-
-        handler = self._handlers.get(method)
-        if handler is None:
-            msg = f"Unknown method: {method}"
-            return _jsonrpc_error(request_id, _METHOD_NOT_FOUND, msg)
-
-        try:
-            result = await handler(request)
-        except Exception as exc:  # noqa: BLE001
-            return _jsonrpc_error(request_id, _INTERNAL_ERROR, str(exc))
-
-        return _jsonrpc_result(request_id, result)
-
-    async def _handle_initialize(self, _request: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {"tools": {}},
-            "serverInfo": {"name": "orxtra-mcp", "version": "0.0.0"},
-        }
-
-    async def _handle_tools_list(self, _request: dict[str, Any]) -> dict[str, Any]:
-        return {"tools": get_tool_definitions()}
-
-    async def _handle_tools_call(self, request: dict[str, Any]) -> dict[str, Any]:
-        params: Any = request.get("params")
-        if not isinstance(params, dict):
-            msg = "Missing params"
-            raise TypeError(msg)
-
-        tool_name: Any = params.get("name")
-        if not isinstance(tool_name, str):
-            msg = "Missing tool name"
-            raise TypeError(msg)
-
-        if tool_name not in self._tool_names:
-            msg = f"Unknown tool: {tool_name}"
-            raise ValueError(msg)
-
-        arguments: dict[str, Any] = params.get("arguments") or {}
-
-        result = await dispatch(self._dispatch_context, tool_name, arguments)
-        serialized = _serialize(result)
-        text = json.dumps(serialized)
-
-        return {
-            "content": [{"type": "text", "text": text}],
-        }
-
-    async def _start_event_listener(
-        self, writer: asyncio.StreamWriter,
-    ) -> asyncio.Task[Any]:
-        """Start a background task that streams events via services event_stream
-        and forwards them as JSON-RPC notifications."""
-
-        async def _listen() -> None:
-            while True:
-                try:
-                    assert self._event_bus is not None  # noqa: S101
-                    async for event in event_stream(
-                        self._event_bus, channel="orxtra_events",
-                    ):
-                        notification = {
-                            "jsonrpc": "2.0",
-                            "method": "notifications/event",
-                            "params": event,
-                        }
-                        writer.write(
-                            (json.dumps(notification) + "\n").encode(),
-                        )
-                        await writer.drain()
-                except Exception:  # noqa: BLE001
-                    # Connection dropped or bus error - retry after delay
-                    await asyncio.sleep(1)
-
-        return asyncio.create_task(_listen())
-
-    async def run_stdio(self) -> None:
-        loop = asyncio.get_running_loop()
-        reader = asyncio.StreamReader()
-        protocol = asyncio.StreamReaderProtocol(reader)
-        await loop.connect_read_pipe(lambda: protocol, sys.stdin)
-
-        transport_out, _ = await loop.connect_write_pipe(
-            asyncio.streams.FlowControlMixin, sys.stdout
-        )
-        writer = asyncio.StreamWriter(
-            transport_out, protocol, reader, loop
-        )
-
-        # Start event stream listener if event bus is available
-        event_listener_task: asyncio.Task[Any] | None = None
-        if self._event_bus is not None:
-            event_listener_task = await self._start_event_listener(writer)
-
-        while True:
-            line = await reader.readline()
-            if not line:
-                break
-
-            try:
-                request = json.loads(line)
-            except json.JSONDecodeError:
-                response = _jsonrpc_error(None, _PARSE_ERROR, "Parse error")
-                writer.write((json.dumps(response) + "\n").encode())
-                await writer.drain()
-                continue
-
-            if not isinstance(request, dict):
-                response = _jsonrpc_error(
-                    None, _INVALID_REQUEST, "Request must be an object"
-                )
-                writer.write((json.dumps(response) + "\n").encode())
-                await writer.drain()
-                continue
-
-            response = await self.handle_request(request)
-
-            if request.get("id") is not None:
-                writer.write((json.dumps(response) + "\n").encode())
-                await writer.drain()
-
-        if event_listener_task is not None:
-            event_listener_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await event_listener_task
-
-
-# JSON-RPC error codes
-_PARSE_ERROR = -32700
-_INVALID_REQUEST = -32600
-_METHOD_NOT_FOUND = -32601
-_INVALID_PARAMS = -32602
-_INTERNAL_ERROR = -32603
-
-
-def _jsonrpc_error(
-    request_id: int | str | None, code: int, message: str
-) -> dict[str, Any]:
-    response: dict[str, Any] = {
-        "jsonrpc": "2.0",
-        "error": {"code": code, "message": message},
-    }
-    response["id"] = request_id
-    return response
-
-
-def _jsonrpc_result(
-    request_id: int | str | None, result: Any
-) -> dict[str, Any]:
-    return {
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "result": result,
-    }
