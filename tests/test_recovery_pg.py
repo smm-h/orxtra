@@ -20,6 +20,7 @@ import pytest
 import uuid6
 from orxtra.identity import PgPrincipalStorage
 from orxtra.protocols import (
+    KIND_CONSUMER,
     KIND_RUN,
     KIND_SYSTEM,
     SYSTEM_PRINCIPAL_EXTERNAL_REF,
@@ -102,6 +103,30 @@ class TestReclaimInterruptedPg:
         assert row["principal_id"] == system_id
         assert json.loads(row["data"])["action"] == "reclaim_interrupted"
 
+    async def test_raises_when_system_principal_unseeded(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        """Recovery hard-errors (no silent NULL) when the system row is absent.
+
+        The run's creator is a consumer principal, so a reclaimable task can
+        exist without the system principal ever being seeded.
+        """
+        storage = PgPrincipalStorage(pg_pool)
+        creator = await storage.mint_principal(
+            KIND_CONSUMER, uuid6.uuid7(), "caller",
+        )
+        run_id, run_pid = await _create_run(pg_pool, creator.id)
+        writer = TraceWriter(pg_pool)
+        task_id = await writer.create_task(
+            run_id=run_id, parent_task_id=None, name="t", task_type="callable",
+        )
+        await writer.transition_task(
+            task_id, "prechecking", principal_id=run_pid,
+        )
+
+        with pytest.raises(RuntimeError, match="not seeded"):
+            await reclaim_interrupted(pg_pool)
+
 
 # -- clean_orphaned -----------------------------------------------------------
 
@@ -130,3 +155,16 @@ class TestCleanOrphanedPg:
         assert row is not None
         assert row["principal_id"] == system_id
         assert json.loads(row["data"])["action"] == "clean_orphaned"
+
+    async def test_raises_when_system_principal_unseeded(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        """Recovery hard-errors (no silent NULL) when the system row is absent."""
+        storage = PgPrincipalStorage(pg_pool)
+        creator = await storage.mint_principal(
+            KIND_CONSUMER, uuid6.uuid7(), "caller",
+        )
+        await _create_run(pg_pool, creator.id)
+
+        with pytest.raises(RuntimeError, match="not seeded"):
+            await clean_orphaned(pg_pool)

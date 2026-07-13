@@ -29,10 +29,20 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 
-# The system principal's sentinel id used for internally-generated events
-# (crash-recovery). Mirrors the all-zeros system-principal external_ref; the
-# in-memory backend performs no FK validation, so this is a bare stand-in.
-_SYSTEM_PRINCIPAL_SENTINEL = UUID(int=0)
+# Attribution for internally-generated crash-recovery events.
+#
+# The PG backend resolves the REAL system principal id from the principals
+# table (see _recovery._resolve_system_principal_id) and attributes recovery
+# events to it. This backend has no principals table (parity boundary: it
+# performs NO FK validation), so it cannot resolve a real id. It therefore
+# attributes recovery events to a fabricated, DOCUMENTED-FAKE system-principal
+# id: a stable stand-in meaning "the machinery acted here".
+#
+# This is deliberately NOT UUID(int=0). That all-zeros value is the system
+# principal's EXTERNAL_REF (an FK-target key in the principals table), never a
+# principal id -- conflating the two is a category error even for a fake. The
+# all-ones pattern below signals, at a glance, "synthetic in-memory id".
+_INMEMORY_SYSTEM_PRINCIPAL_ID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class InMemoryBackend:
@@ -1025,7 +1035,7 @@ class InMemoryBackend:
                     "id": uuid6.uuid7(),
                     "run_id": task["run_id"],
                     "task_id": task["id"],
-                    "principal_id": _SYSTEM_PRINCIPAL_SENTINEL,
+                    "principal_id": _INMEMORY_SYSTEM_PRINCIPAL_ID,
                     "event_type": "crash_recovery",
                     "data": {"action": "reclaim_interrupted"},
                     "created_at": _now(),
@@ -1061,7 +1071,7 @@ class InMemoryBackend:
                     "id": uuid6.uuid7(),
                     "run_id": run_id,
                     "task_id": None,
-                    "principal_id": _SYSTEM_PRINCIPAL_SENTINEL,
+                    "principal_id": _INMEMORY_SYSTEM_PRINCIPAL_ID,
                     "event_type": "crash_recovery",
                     "data": {"action": "clean_orphaned"},
                     "created_at": _now(),

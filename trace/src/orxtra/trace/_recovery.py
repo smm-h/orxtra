@@ -2,14 +2,45 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 import uuid6
 from orxtra.trace._lock import lock_key
 
 if TYPE_CHECKING:
-    from uuid import UUID
-
     import asyncpg
+
+
+# The system principal's external_ref is the all-zeros UUID sentinel (mirrors
+# protocols.SYSTEM_PRINCIPAL_EXTERNAL_REF). trace is a zero-intra-workspace-dep
+# foundation module, so recovery resolves the system principal id with a raw
+# SELECT rather than importing identity's storage or the protocols constant.
+_SYSTEM_PRINCIPAL_EXTERNAL_REF = UUID(int=0)
+
+
+async def _resolve_system_principal_id(
+    conn: asyncpg.pool.PoolConnectionProxy[asyncpg.Record],
+) -> UUID:
+    """Resolve the singleton system principal id, or hard-error if unseeded.
+
+    Crash-recovery events are emitted by the machinery itself, not by any run
+    or caller, so they attribute to the SYSTEM principal. There is no silent
+    NULL or inline-subquery path: if the system principal row is absent the
+    database was never seeded, which is a hard error (matches the wording used
+    by ``resolve_caller_principal`` in the services/identity layer).
+    """
+    principal_id: UUID | None = await conn.fetchval(
+        "SELECT id FROM principals"
+        " WHERE kind = 'system' AND external_ref = $1",
+        _SYSTEM_PRINCIPAL_EXTERNAL_REF,
+    )
+    if principal_id is None:
+        msg = (
+            "System principal not seeded -- run 'orxtra db init' to seed "
+            "the singleton system principal before crash recovery."
+        )
+        raise RuntimeError(msg)
+    return principal_id
 
 
 async def reclaim_interrupted(pool: asyncpg.Pool) -> int:
@@ -20,6 +51,7 @@ async def reclaim_interrupted(pool: asyncpg.Pool) -> int:
         )
         if not rows:
             return 0
+        system_principal_id = await _resolve_system_principal_id(conn)
         task_ids = [row["id"] for row in rows]
         await conn.execute(
             "UPDATE tasks SET status = 'cancelled'"
@@ -28,11 +60,13 @@ async def reclaim_interrupted(pool: asyncpg.Pool) -> int:
         )
         for row in rows:
             await conn.execute(
-                "INSERT INTO events (id, run_id, task_id, event_type, data)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                "INSERT INTO events"
+                " (id, run_id, task_id, principal_id, event_type, data)"
+                " VALUES ($1, $2, $3, $4, $5, $6)",
                 uuid6.uuid7(),
                 row["run_id"],
                 row["id"],
+                system_principal_id,
                 "crash_recovery",
                 json.dumps({"action": "reclaim_interrupted"}),
             )
@@ -55,6 +89,14 @@ async def clean_orphaned(pool: asyncpg.Pool) -> int:
     rows = await pool.fetch(
         "SELECT id FROM runs WHERE status IN ('running', 'paused')"
     )
+    if not rows:
+        return 0
+    # Resolve the system principal up front, BEFORE acquiring any advisory
+    # lock. pg_try_advisory_lock is session-scoped, so a transaction rollback
+    # would NOT release it -- resolving here means an unseeded database fails
+    # cleanly with no leaked lock.
+    async with pool.acquire() as conn:
+        system_principal_id = await _resolve_system_principal_id(conn)
     cleaned = 0
     for row in rows:
         run_id: UUID = row["id"]
@@ -75,11 +117,13 @@ async def clean_orphaned(pool: asyncpg.Pool) -> int:
                     run_id,
                 )
                 await conn.execute(
-                    "INSERT INTO events (id, run_id, task_id, event_type, data)"
-                    " VALUES ($1, $2, $3, $4, $5)",
+                    "INSERT INTO events"
+                    " (id, run_id, task_id, principal_id, event_type, data)"
+                    " VALUES ($1, $2, $3, $4, $5, $6)",
                     uuid6.uuid7(),
                     run_id,
                     None,
+                    system_principal_id,
                     "crash_recovery",
                     json.dumps({"action": "clean_orphaned"}),
                 )
