@@ -7,7 +7,21 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-from orxtra.protocols import Capability
+from orxtra.protocols import (
+    SCOPE_CONFIG_READ,
+    SCOPE_EVENTS_WRITE,
+    SCOPE_INBOX_READ,
+    SCOPE_INBOX_RESPOND,
+    SCOPE_RUNS_MANAGE,
+    SCOPE_RUNS_READ,
+    SCOPE_SOURCES_MANAGE,
+    SCOPE_SOURCES_READ,
+    SCOPE_SUBSCRIPTIONS_MANAGE,
+    SCOPE_SUBSCRIPTIONS_READ,
+    SCOPE_TRACE_READ,
+    SCOPE_VALIDATE_READ,
+    Capability,
+)
 from orxtra.services._params import (
     AbortRunParams,
     CreateSourceParams,
@@ -47,6 +61,14 @@ from orxtra.services._params import (
 
 ServiceFn = Callable[..., Coroutine[Any, Any, Any]]
 
+# Infrastructure injection token sets, matching the dispatcher's routing:
+#  - pool-backed capabilities receive the asyncpg pool
+#  - dispatch-backed capabilities receive the DispatchBackend
+#  - pure capabilities receive neither (validated params only)
+_INJECT_POOL: frozenset[str] = frozenset({"pool"})
+_INJECT_DISPATCH_BACKEND: frozenset[str] = frozenset({"dispatch_backend"})
+_INJECT_NONE: frozenset[str] = frozenset()
+
 
 def _build_capabilities() -> list[Capability]:
     return [
@@ -59,6 +81,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="run",
+            required_scope=SCOPE_RUNS_MANAGE,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="list_runs",
@@ -68,6 +92,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="run",
+            required_scope=SCOPE_RUNS_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="get_run",
@@ -77,6 +103,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="run",
+            required_scope=SCOPE_RUNS_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="abort_run",
@@ -86,6 +114,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="run",
+            required_scope=SCOPE_RUNS_MANAGE,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="pause_run",
@@ -95,6 +125,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="run",
+            required_scope=SCOPE_RUNS_MANAGE,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="resume_run",
@@ -104,6 +136,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="run",
+            required_scope=SCOPE_RUNS_MANAGE,
+            injects=_INJECT_POOL,
         ),
         # -- Inbox --
         Capability(
@@ -114,6 +148,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="inbox",
+            required_scope=SCOPE_INBOX_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="get_inbox_item",
@@ -123,6 +159,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="inbox",
+            required_scope=SCOPE_INBOX_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="respond_to_inbox",
@@ -132,6 +170,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="inbox",
+            required_scope=SCOPE_INBOX_RESPOND,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="skip_inbox_item",
@@ -141,6 +181,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="inbox",
+            required_scope=SCOPE_INBOX_RESPOND,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="reject_inbox_item",
@@ -150,6 +192,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="inbox",
+            required_scope=SCOPE_INBOX_RESPOND,
+            injects=_INJECT_POOL,
         ),
         # -- Trace --
         Capability(
@@ -160,6 +204,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="trace",
+            required_scope=SCOPE_TRACE_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="get_task_attempts",
@@ -169,6 +215,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="trace",
+            required_scope=SCOPE_TRACE_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="get_transcript",
@@ -178,6 +226,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="trace",
+            required_scope=SCOPE_TRACE_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="search_transcript",
@@ -187,6 +237,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="trace",
+            required_scope=SCOPE_TRACE_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="query_events",
@@ -196,6 +248,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="trace",
+            required_scope=SCOPE_TRACE_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="get_notepad",
@@ -205,6 +259,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="trace",
+            required_scope=SCOPE_TRACE_READ,
+            injects=_INJECT_POOL,
         ),
         # -- Events --
         Capability(
@@ -215,6 +271,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="event",
+            required_scope=SCOPE_EVENTS_WRITE,
+            injects=_INJECT_POOL,
         ),
         # -- Config --
         Capability(
@@ -225,6 +283,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="config",
+            required_scope=SCOPE_CONFIG_READ,
+            injects=_INJECT_POOL,
         ),
         Capability(
             name="show_pricing",
@@ -234,6 +294,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="config",
+            required_scope=SCOPE_CONFIG_READ,
+            injects=_INJECT_NONE,
         ),
         # -- Validate --
         Capability(
@@ -244,6 +306,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="validate",
+            required_scope=SCOPE_VALIDATE_READ,
+            injects=_INJECT_NONE,
         ),
         Capability(
             name="validate_workflow",
@@ -253,6 +317,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="validate",
+            required_scope=SCOPE_VALIDATE_READ,
+            injects=_INJECT_NONE,
         ),
         Capability(
             name="validate_categories",
@@ -262,6 +328,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="validate",
+            required_scope=SCOPE_VALIDATE_READ,
+            injects=_INJECT_NONE,
         ),
         # -- Dispatch --
         Capability(
@@ -272,6 +340,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="dispatch",
+            required_scope=SCOPE_SUBSCRIPTIONS_MANAGE,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
         Capability(
             name="unsubscribe",
@@ -281,6 +351,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="dispatch",
+            required_scope=SCOPE_SUBSCRIPTIONS_MANAGE,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
         Capability(
             name="list_subscriptions",
@@ -290,6 +362,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="dispatch",
+            required_scope=SCOPE_SUBSCRIPTIONS_READ,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
         Capability(
             name="create_source",
@@ -299,6 +373,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="dispatch",
+            required_scope=SCOPE_SOURCES_MANAGE,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
         Capability(
             name="get_source",
@@ -308,6 +384,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="dispatch",
+            required_scope=SCOPE_SOURCES_READ,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
         Capability(
             name="get_source_by_slug",
@@ -317,6 +395,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="dispatch",
+            required_scope=SCOPE_SOURCES_READ,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
         Capability(
             name="list_sources",
@@ -326,6 +406,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"readonly"}),
             category="dispatch",
+            required_scope=SCOPE_SOURCES_READ,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
         Capability(
             name="delete_source",
@@ -335,6 +417,8 @@ def _build_capabilities() -> list[Capability]:
             result_model=None,
             tags=frozenset({"mutating"}),
             category="dispatch",
+            required_scope=SCOPE_SOURCES_MANAGE,
+            injects=_INJECT_DISPATCH_BACKEND,
         ),
     ]
 
