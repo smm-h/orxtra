@@ -8,7 +8,6 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from orxtra.agent import Agent
-    from orxtra.protocols import Tool
     from orxtra.secrets import SecretRegistry
     from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport
