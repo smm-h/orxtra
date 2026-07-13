@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -26,7 +27,7 @@ from orxtra.auth import (
 from orxtra.auth._verifiers import HashCredentialVerifier
 from orxtra.dispatch._memory_backend import InMemoryDispatchBackend
 from orxtra.incoming._receiver import create_incoming_router
-from orxtra.protocols import Source, TrustTier
+from orxtra.protocols import AuthContext, Source, TrustTier
 from orxtra.secrets import SecretRegistry
 from orxtra.secrets._mac_provider import EnvMacProvider
 
@@ -706,6 +707,67 @@ class TestInvalidJsonBody:
             )
 
         assert resp.status_code == 400
+
+
+class TestAuthContextCaptured:
+    """The verified AuthContext is captured and held at the fire site.
+
+    Phase 2.6: the receiver no longer discards the verification result. A
+    spy authenticator returns a sentinel AuthContext; the handler must hold
+    it through to the fire_event call site (surfaced via the receive log).
+    """
+
+    async def test_verified_context_held_at_fire_site(
+        self,
+        dispatch_backend: InMemoryDispatchBackend,
+        authenticator: Authenticator,
+        source_with_hmac: Source,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        sentinel = AuthContext(
+            id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            consumer_id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            scopes=frozenset({"events:write"}),
+            trust_tier=TrustTier.IDENTIFIED,
+            authenticated_via="hmac",
+            issued_at=datetime.now(tz=UTC),
+            expires_at=None,
+        )
+        app = _make_app(dispatch_backend, authenticator)
+        body = json.dumps({"action": "opened"}).encode()
+        signature = _sign_payload(body, WEBHOOK_SECRET)
+
+        with (
+            patch.object(
+                authenticator,
+                "verify_by_credential_id",
+                new=AsyncMock(return_value=sentinel),
+            ) as spy_verify,
+            patch(
+                "orxtra.incoming._receiver.fire_event",
+                new_callable=AsyncMock,
+                return_value=(
+                    UUID("99999999-9999-9999-9999-999999999999"),
+                    True,
+                ),
+            ),
+            caplog.at_level(logging.INFO, logger="orxtra.incoming._receiver"),
+        ):
+            async with AsyncTestClient(app) as client:
+                resp = await client.post(
+                    f"/incoming/events/{SLUG}",
+                    content=body,
+                    headers={
+                        "content-type": "application/json",
+                        "X-GitHub-Event": "push",
+                        "X-Hub-Signature-256": f"sha256={signature}",
+                    },
+                )
+
+        assert resp.status_code == 202
+        spy_verify.assert_awaited_once()
+        # The sentinel identity reached the fire site: held, not discarded.
+        assert str(sentinel.consumer_id) in caplog.text
 
 
 class TestDuplicateDelivery:

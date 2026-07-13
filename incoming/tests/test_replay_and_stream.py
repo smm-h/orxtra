@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -30,8 +31,12 @@ from orxtra.auth import (
 from orxtra.auth._verifiers import HashCredentialVerifier
 from orxtra.dispatch._memory_backend import InMemoryDispatchBackend
 from orxtra.incoming._receiver import create_incoming_router
-from orxtra.incoming._stream import _format_sse_event, _sse_generator
-from orxtra.protocols import Source, TrustTier
+from orxtra.incoming._stream import (
+    _format_sse_event,
+    _sse_generator,
+    stream_handler,
+)
+from orxtra.protocols import AuthContext, Source, TrustTier
 from orxtra.secrets import SecretRegistry
 from orxtra.secrets._mac_provider import EnvMacProvider
 from orxtra.trace import EVENTS_CHANNEL, InMemoryEventBus
@@ -177,6 +182,35 @@ def _make_app(
 def _auth_headers() -> dict[str, str]:
     """Standard bearer auth headers for test requests."""
     return {"Authorization": f"Bearer {BEARER_TOKEN}"}
+
+
+def _sentinel_auth_context() -> AuthContext:
+    """Build a distinctive AuthContext for capture-propagation assertions."""
+    return AuthContext(
+        id=UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+        consumer_id=UUID("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+        scopes=frozenset({"events:read"}),
+        trust_tier=TrustTier.IDENTIFIED,
+        authenticated_via="bearer",
+        issued_at=datetime.now(tz=UTC),
+        expires_at=None,
+    )
+
+
+class _FakeRequest:
+    """Minimal request stand-in for calling stream_handler directly.
+
+    Calling the handler directly (rather than over HTTP) avoids hanging on
+    the infinite SSE generator: we only need the handler to reach the
+    connect log before returning its StreamResponse.
+    """
+
+    def __init__(self, slug: str, headers: dict[str, str]) -> None:
+        self.path_params: dict[str, str] = {"slug": slug}
+        self._headers = {k.lower(): v for k, v in headers.items()}
+
+    def header(self, name: str) -> str | None:
+        return self._headers.get(name.lower())
 
 
 # ---------------------------------------------------------------------------
@@ -1059,3 +1093,84 @@ class TestSSEGeneratorCleanup:
 
         subs = event_bus._subscribers.get(EVENTS_CHANNEL, [])
         assert len(subs) == 0
+
+
+# ---------------------------------------------------------------------------
+# Phase 2.6: verified AuthContext is captured, not discarded
+# ---------------------------------------------------------------------------
+
+
+class TestReplayAuthContextCaptured:
+    """Replay captures the verified AuthContext and holds it at the site."""
+
+    async def test_verified_context_held_at_replay_site(
+        self,
+        dispatch_backend: InMemoryDispatchBackend,
+        authenticator: Authenticator,
+        source_with_bearer: Source,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        sentinel = _sentinel_auth_context()
+
+        with (
+            patch.object(
+                authenticator,
+                "verify_by_credential_id",
+                new=AsyncMock(return_value=sentinel),
+            ) as spy_verify,
+            patch(
+                "orxtra.incoming._replay.replay",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            caplog.at_level(logging.INFO, logger="orxtra.incoming._replay"),
+        ):
+            app = _make_app(dispatch_backend, authenticator)
+            async with AsyncTestClient(app) as client:
+                resp = await client.get(
+                    f"/incoming/events/{SLUG}/replay",
+                    headers=_auth_headers(),
+                )
+
+        assert resp.status_code == 200
+        spy_verify.assert_awaited_once()
+        # The sentinel identity reached the replay site: held, not discarded.
+        assert str(sentinel.consumer_id) in caplog.text
+
+
+class TestStreamAuthContextCaptured:
+    """Stream captures the verified AuthContext and holds it at the site."""
+
+    async def test_verified_context_held_at_stream_site(
+        self,
+        dispatch_backend: InMemoryDispatchBackend,
+        authenticator: Authenticator,
+        event_bus: InMemoryEventBus,
+        source_with_bearer: Source,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        sentinel = _sentinel_auth_context()
+        mock_pool = AsyncMock()
+        request = _FakeRequest(SLUG, _auth_headers())
+
+        with (
+            patch.object(
+                authenticator,
+                "verify_by_credential_id",
+                new=AsyncMock(return_value=sentinel),
+            ) as spy_verify,
+            caplog.at_level(logging.INFO, logger="orxtra.incoming._stream"),
+        ):
+            response = await stream_handler(
+                request,
+                pool=mock_pool,
+                dispatch_backend=dispatch_backend,
+                authenticator=authenticator,
+                event_bus=event_bus,
+            )
+
+        # A successful connect returns a StreamResponse (not a 4xx text body).
+        assert response.__class__.__name__ == "StreamResponse"
+        spy_verify.assert_awaited_once()
+        # The sentinel identity reached the stream site: held, not discarded.
+        assert str(sentinel.consumer_id) in caplog.text
