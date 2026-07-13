@@ -1,7 +1,15 @@
 """Schema compatibility tests.
 
-Verifies that the capability params models produce JSON schemas
-structurally equivalent to the hand-written MCP tool definitions.
+Verifies that the capability params models drive the MCP tool schemas.
+
+Two surfaces are covered:
+
+- The legacy ``get_tool_definitions()`` projection (still a public export).
+- What FastMCP actually SERVES via ``list_tools()``. The original suite only
+  checked the projection and never the served schema, which is how a broken
+  FastMCP input schema (a single ``kwargs`` object derived from a
+  ``(ctx, **kwargs)`` handler) shipped undetected. These served-schema tests
+  close that gap.
 """
 
 from __future__ import annotations
@@ -9,7 +17,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from orxtra.mcp._server import get_tool_definitions
+from orxtra.mcp._server import MCPServer, get_tool_definitions
 from orxtra.services._registry import get_capabilities
 
 
@@ -182,3 +190,61 @@ def test_capability_descriptions_match_mcp() -> None:
             assert caps[name].description == str(tool["description"]), (
                 f"{name}: description mismatch"
             )
+
+
+# ------------------------------------------------------------------
+# Served-schema coverage: what FastMCP actually exposes via list_tools().
+#
+# This is the coverage the legacy projection-only suite lacked. It compares the
+# schema FastMCP SERVES to the capability's params_model schema directly, so a
+# regression in the handler registration (e.g. reverting to a ``**kwargs``
+# schema) fails here.
+# ------------------------------------------------------------------
+
+
+def _served_schema_core(schema: dict[str, Any]) -> dict[str, Any]:
+    """Reduce a JSON schema to the parts clients depend on.
+
+    Drops only the top-level ``title`` (the served model has a different name
+    than the params_model) and keeps ``properties`` (names, types, formats,
+    defaults, descriptions), the ``required`` set, ``$defs`` for nested models,
+    and ``additionalProperties``.
+    """
+    return {
+        "properties": schema.get("properties", {}),
+        "required": sorted(schema.get("required", [])),
+        "defs": schema.get("$defs"),
+        "additionalProperties": schema.get("additionalProperties"),
+    }
+
+
+@pytest.mark.parametrize("tool_name", sorted(_MCP_CAPABILITY_NAMES))
+async def test_served_schema_matches_capability(
+    server: MCPServer,
+    tool_name: str,
+) -> None:
+    """The schema FastMCP SERVES equals the capability's params_model schema."""
+    tools = {t.name: t for t in await server.fastmcp.list_tools()}
+    assert tool_name in tools, f"tool {tool_name!r} not served by FastMCP"
+    caps = {c.name: c for c in get_capabilities()}
+    cap = caps[tool_name]
+
+    served = _served_schema_core(tools[tool_name].inputSchema)
+    expected = _served_schema_core(cap.params_model.model_json_schema())
+    assert served == expected, (
+        f"{tool_name}: served schema differs from params_model.\n"
+        f"served={served}\nexpected={expected}"
+    )
+
+
+async def test_served_schema_never_wraps_in_kwargs(server: MCPServer) -> None:
+    """No served tool schema exposes a single ``kwargs`` object.
+
+    Direct guard against the specific bug: a ``(ctx, **kwargs)`` handler makes
+    FastMCP derive ``{properties: {kwargs: ...}, required: [kwargs]}``.
+    """
+    for tool in await server.fastmcp.list_tools():
+        props = tool.inputSchema.get("properties", {})
+        assert set(props) != {"kwargs"}, (
+            f"{tool.name}: served schema collapsed to a single kwargs object"
+        )
