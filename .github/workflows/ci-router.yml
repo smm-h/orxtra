@@ -25,6 +25,7 @@ jobs:
       session: ${{ steps.changes.outputs.session }}
       compose: ${{ steps.changes.outputs.compose }}
       auth: ${{ steps.changes.outputs.auth }}
+      identity: ${{ steps.changes.outputs.identity }}
       a2ui: ${{ steps.changes.outputs.a2ui }}
       scheduler: ${{ steps.changes.outputs.scheduler }}
       dispatch: ${{ steps.changes.outputs.dispatch }}
@@ -55,6 +56,7 @@ jobs:
           session: 'session/**'
           compose: 'compose/**'
           auth: 'auth/**'
+          identity: 'identity/**'
           a2ui: 'a2ui/**'
           scheduler: 'scheduler/**'
           dispatch: 'dispatch/**'
@@ -67,99 +69,560 @@ jobs:
           worker: 'worker/**'
           incoming: 'incoming/**'
           api: 'api/**'
-  protocols:
-    needs: detect
+  protocols-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: protocols
+    name: protocols-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.protocols == 'true'
-    uses: ./.github/workflows/protocols-ci.yml
-  secrets:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  secrets-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: secrets
+    name: secrets-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.secrets == 'true'
-    uses: ./.github/workflows/secrets-ci.yml
-  write-safety:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  write-safety-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: write-safety
+    name: write-safety-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.write-safety == 'true'
-    uses: ./.github/workflows/write-safety-ci.yml
-  transport:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  transport-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: transport
+    name: transport-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.transport == 'true'
-    uses: ./.github/workflows/transport-ci.yml
-  agent:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  agent-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: agent
+    name: agent-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.agent == 'true'
-    uses: ./.github/workflows/agent-ci.yml
-  tool:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  tool-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: tool
+    name: tool-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.tool == 'true'
-    uses: ./.github/workflows/tool-ci.yml
-  verify:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  verify-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: verify
+    name: verify-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.verify == 'true'
-    uses: ./.github/workflows/verify-ci.yml
-  trace:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  trace-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: trace
+    name: trace-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.trace == 'true'
-    uses: ./.github/workflows/trace-ci.yml
-  notepad:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  notepad-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: notepad
+    name: notepad-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.notepad == 'true'
-    uses: ./.github/workflows/notepad-ci.yml
-  session:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  session-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: session
+    name: session-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.session == 'true'
-    uses: ./.github/workflows/session-ci.yml
-  compose:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  compose-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: compose
+    name: compose-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.compose == 'true'
-    uses: ./.github/workflows/compose-ci.yml
-  auth:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  auth-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: auth
+    name: auth-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.auth == 'true'
-    uses: ./.github/workflows/auth-ci.yml
-  a2ui:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  identity-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: identity
+    name: identity-ci / test
+    needs:
+    - detect
+    if: needs.detect.outputs.identity == 'true'
+    env:
+      UV_NO_SOURCES: '1'
+  a2ui-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: a2ui
+    name: a2ui-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.a2ui == 'true'
-    uses: ./.github/workflows/a2ui-ci.yml
-  scheduler:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  scheduler-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: scheduler
+    name: scheduler-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.scheduler == 'true'
-    uses: ./.github/workflows/scheduler-ci.yml
-  dispatch:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  dispatch-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: dispatch
+    name: dispatch-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.dispatch == 'true'
-    uses: ./.github/workflows/dispatch-ci.yml
-  overseer:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  overseer-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: overseer
+    name: overseer-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.overseer == 'true'
-    uses: ./.github/workflows/overseer-ci.yml
-  services:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  services-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: services
+    name: services-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.services == 'true'
-    uses: ./.github/workflows/services-ci.yml
-  cli:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  cli-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: cli
+    name: cli-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.cli == 'true'
-    uses: ./.github/workflows/cli-ci.yml
-  mcp:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  mcp-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: mcp
+    name: mcp-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.mcp == 'true'
-    uses: ./.github/workflows/mcp-ci.yml
-  a2a:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  a2a-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: a2a
+    name: a2a-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.a2a == 'true'
-    uses: ./.github/workflows/a2a-ci.yml
-  agui:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  agui-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: agui
+    name: agui-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.agui == 'true'
-    uses: ./.github/workflows/agui-ci.yml
-  worker:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  worker-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: worker
+    name: worker-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.worker == 'true'
-    uses: ./.github/workflows/worker-ci.yml
-  incoming:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  incoming-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+    defaults:
+      run:
+        working-directory: incoming
+    name: incoming-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.incoming == 'true'
-    uses: ./.github/workflows/incoming-ci.yml
-  api:
-    needs: detect
+    env:
+      UV_NO_SOURCES: '1'
+  api-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run python -c "import orxtra"
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: api
+    name: api-ci / test
+    needs:
+    - detect
     if: needs.detect.outputs.api == 'true'
-    uses: ./.github/workflows/api-ci.yml
+    env:
+      UV_NO_SOURCES: '1'
