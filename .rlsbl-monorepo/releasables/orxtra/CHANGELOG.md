@@ -2,30 +2,36 @@
 
 # Changelog
 
-## 0.10.0
+## 0.10.1
 
-Unified identity model: every actor gets a durable principal, every action names its actor, and dispatch enforces authentication structurally.
+Restore the Root Tests lint job to green by fixing ruff violations in scheduler and overseer.
 
 <details>
 <summary>Context</summary>
 
-Identity used to be computed at the edge and thrown away: an authenticated
-request produced an ephemeral auth context that never became a persisted,
-referenceable actor. Mutations could happen anonymously, ownership was tied to
-orchestration runs alone, and events recorded a free-text `source` that no
-foreign key could vouch for -- actions were fundamentally unattributable.
+Infrastructure-only release (no user-facing changes), hence the hotfix bump.
 
-This release makes identity first-class. A new `principals` table gives every
-actor -- runs, consumers, sources, the system, and app-registered kinds -- a
-durable identity minted at birth. Every event names its acting principal via a
-NOT NULL foreign key, subscriptions are owned by principals (cascading on
-deletion), and the ephemeral `Principal` auth type is renamed `AuthContext` to
-end the overload. Enforcement is structural, not advisory: every capability
-declares a required scope, and the single dispatch choke point rejects any call
-whose authenticated context lacks it -- MCP and A2A now sit behind the auth
-wall, and an API served without an authenticator exposes public surfaces only.
+The v0.10.0 Root Tests CI lint job was red on four ruff violations: three
+PLC0414 re-export aliases (scheduler/overseer importing protocol types via the
+`import X as X` idiom) and one N806 uppercase local. The re-exports were
+rewired to import shared types from their canonical home (`orxtra.protocols`),
+eliminating the alias idiom without any per-file lint suppression and keeping
+mypy --strict clean; the local was renamed. Root Tests now passes repo-wide.
+
+Two further CI issues investigated during this release are upstream rlsbl
+template defects, not orxtra-fixable, and are reported separately for the tool
+maintainers: (1) the CI Router per-package jobs fail because members are not
+independently testable under pytest rootdir confinement, and (2) the monorepo
+publish workflow has no CI gate because rlsbl's inline publish-router generator
+self-excludes the single root publisher, so no gated router is emitted.
 
 </details>
+
+### Hotfix
+
+- Restore the Root Tests lint job to green by fixing ruff violations in scheduler and overseer.
+
+## 0.10.0
 
 ### Breaking
 

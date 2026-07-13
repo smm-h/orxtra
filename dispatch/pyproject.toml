@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-dispatch"
-version = "0.10.0"
+version = "0.10.1"
 license = "BUSL-1.1"
 description = "Event delivery: subscriptions, action dispatch, accumulator flush."
 requires-python = ">=3.12"
