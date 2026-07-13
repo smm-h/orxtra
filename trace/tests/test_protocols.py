@@ -194,6 +194,12 @@ _PARITY_SURFACES: dict[str, type] = {
 _PARITY_METHODS: list[tuple[str, type]] = [
     ("write_event", EventStorage),
     ("create_run", RunStorage),
+    # Inbox resolution methods carry the ``resolved_by`` attribution argument;
+    # every surface must keep it in lockstep with the protocol.
+    ("answer_inbox_item", InboxStorage),
+    ("skip_inbox_item", InboxStorage),
+    ("reject_inbox_item", InboxStorage),
+    ("expire_inbox_item", InboxStorage),
 ]
 
 

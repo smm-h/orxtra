@@ -408,3 +408,55 @@ class TestSourceCRUD:
 class TestDispatchBackendProtocol:
     def test_isinstance_check(self) -> None:
         assert isinstance(InMemoryDispatchBackend(), DispatchBackend)
+
+
+# ---------------------------------------------------------------------------
+# Signature parity: both backends match the SubscriptionStorage protocol
+# ---------------------------------------------------------------------------
+
+
+def _normalized_params(func: object) -> list[tuple[str, object, object]]:
+    """Return each parameter's (name, kind, default), excluding ``self``."""
+    import inspect
+
+    sig = inspect.signature(func)  # type: ignore[arg-type]
+    return [
+        (p.name, p.kind, p.default)
+        for name, p in sig.parameters.items()
+        if name != "self"
+    ]
+
+
+_SUBSCRIPTION_STORAGE_METHODS = [
+    "create_subscription",
+    "get_subscription",
+    "list_subscriptions",
+    "update_subscription",
+    "delete_subscription",
+]
+
+
+@pytest.mark.parametrize("method_name", _SUBSCRIPTION_STORAGE_METHODS)
+def test_subscription_storage_signature_parity(method_name: str) -> None:
+    """Every SubscriptionStorage method (including the owner-filtered
+    ``list_subscriptions``) has an identical call shape on the protocol and on
+    both concrete backends (in-memory + PG).
+    """
+    from orxtra.dispatch._pg_backend import PgDispatchBackend
+    from orxtra.protocols import SubscriptionStorage
+
+    proto = _normalized_params(getattr(SubscriptionStorage, method_name))
+    for backend_cls in (InMemoryDispatchBackend, PgDispatchBackend):
+        impl = _normalized_params(getattr(backend_cls, method_name))
+        assert impl == proto, (
+            f"{backend_cls.__name__}.{method_name} signature drifted from "
+            f"SubscriptionStorage.{method_name}:\n"
+            f"  protocol: {proto}\n  impl: {impl}"
+        )
+
+
+def test_both_dispatch_backends_satisfy_subscription_storage() -> None:
+    """The in-memory dispatch backend satisfies the SubscriptionStorage protocol."""
+    from orxtra.protocols import SubscriptionStorage
+
+    assert isinstance(InMemoryDispatchBackend(), SubscriptionStorage)

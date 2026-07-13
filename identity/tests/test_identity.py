@@ -326,3 +326,62 @@ async def test_delete_principal_fk_violation_translated() -> None:
         await storage.delete_principal(principal_id)
     assert exc_info.value.principal_id == principal_id
     assert "cannot be deleted" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# Signature parity: both backends match the PrincipalStorage protocol
+# ---------------------------------------------------------------------------
+
+
+def _normalized_params(func: object) -> list[tuple[str, object, object]]:
+    """Return each parameter's (name, kind, default), excluding ``self``.
+
+    Two callables with an identical normalized parameter list have the same
+    public call shape -- names, positional/keyword kind, and defaults.
+    """
+    import inspect
+
+    sig = inspect.signature(func)  # type: ignore[arg-type]
+    return [
+        (p.name, p.kind, p.default)
+        for name, p in sig.parameters.items()
+        if name != "self"
+    ]
+
+
+_PRINCIPAL_STORAGE_METHODS = [
+    "mint_principal",
+    "get_principal",
+    "get_principal_by_ref",
+    "list_principals",
+    "update_display_name",
+    "delete_principal",
+]
+
+
+@pytest.mark.parametrize("backend_cls", [InMemoryPrincipalStorage, PgPrincipalStorage])
+@pytest.mark.parametrize("method_name", _PRINCIPAL_STORAGE_METHODS)
+def test_principal_storage_signature_parity(
+    backend_cls: type, method_name: str,
+) -> None:
+    """Every PrincipalStorage method has an identical call shape on the
+    protocol and on both concrete backends (in-memory + PG).
+
+    This pins mint/get/get_by_ref/list/update/delete so a change to one
+    surface that skips the others fails loudly.
+    """
+    from orxtra.protocols import PrincipalStorage
+
+    proto = _normalized_params(getattr(PrincipalStorage, method_name))
+    impl = _normalized_params(getattr(backend_cls, method_name))
+    assert impl == proto, (
+        f"{backend_cls.__name__}.{method_name} signature drifted from "
+        f"PrincipalStorage.{method_name}:\n  protocol: {proto}\n  impl: {impl}"
+    )
+
+
+def test_both_principal_backends_satisfy_protocol() -> None:
+    """Both backends are runtime instances of the PrincipalStorage protocol."""
+    from orxtra.protocols import PrincipalStorage
+
+    assert isinstance(InMemoryPrincipalStorage(), PrincipalStorage)
