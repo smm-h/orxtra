@@ -348,6 +348,7 @@ END $$;""", "credential_type"),
     answer_event text,
     rejection_reason text,
     answered_at timestamptz,
+    resolved_by uuid,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_inbox_items PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.inbox_items (
@@ -366,6 +367,7 @@ END $$;""", "credential_type"),
     answer_event text,
     rejection_reason text,
     answered_at timestamptz,
+    resolved_by uuid,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_inbox_items PRIMARY KEY (id)
 );""", "inbox_items"),
@@ -754,6 +756,16 @@ BEGIN
     ALTER TABLE public.notepad_entries ADD CONSTRAINT fk_notepad_run FOREIGN KEY (run_id) REFERENCES public.runs (id) ON DELETE RESTRICT;
   END IF;
 END $$;""", "fk_notepad_run"),
+            DDLOp("ALTER TABLE public.inbox_items ADD CONSTRAINT fk_inbox_resolved_by FOREIGN KEY (resolved_by) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_inbox_resolved_by'
+    AND conrelid = 'public.inbox_items'::regclass
+  ) THEN
+    ALTER TABLE public.inbox_items ADD CONSTRAINT fk_inbox_resolved_by FOREIGN KEY (resolved_by) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk_inbox_resolved_by"),
             DDLOp("ALTER TABLE public.inbox_items ADD CONSTRAINT fk_inbox_run FOREIGN KEY (run_id) REFERENCES public.runs (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1319,6 +1331,7 @@ END $$;""", "chk_dispatch_completions_status_valid"),
             DDLOp("CREATE INDEX idx_notepad_created_at_brin ON public.notepad_entries USING brin (created_at);", "CREATE INDEX IF NOT EXISTS idx_notepad_created_at_brin ON public.notepad_entries USING brin (created_at);", "idx_notepad_created_at_brin"),
             DDLOp("CREATE INDEX idx_notepad_run ON public.notepad_entries (run_id);", "CREATE INDEX IF NOT EXISTS idx_notepad_run ON public.notepad_entries (run_id);", "idx_notepad_run"),
             DDLOp("CREATE INDEX idx_inbox_options_gin ON public.inbox_items USING gin (options);", "CREATE INDEX IF NOT EXISTS idx_inbox_options_gin ON public.inbox_items USING gin (options);", "idx_inbox_options_gin"),
+            DDLOp("CREATE INDEX idx_inbox_resolved_by ON public.inbox_items (resolved_by);", "CREATE INDEX IF NOT EXISTS idx_inbox_resolved_by ON public.inbox_items (resolved_by);", "idx_inbox_resolved_by"),
             DDLOp("CREATE INDEX idx_inbox_run_pending ON public.inbox_items (run_id, status, created_at);", "CREATE INDEX IF NOT EXISTS idx_inbox_run_pending ON public.inbox_items (run_id, status, created_at);", "idx_inbox_run_pending"),
             DDLOp("CREATE INDEX idx_inbox_tags_gin ON public.inbox_items USING gin (tags);", "CREATE INDEX IF NOT EXISTS idx_inbox_tags_gin ON public.inbox_items USING gin (tags);", "idx_inbox_tags_gin"),
             DDLOp("CREATE INDEX idx_decisions_run ON public.decisions (run_id);", "CREATE INDEX IF NOT EXISTS idx_decisions_run ON public.decisions (run_id);", "idx_decisions_run"),
@@ -1422,6 +1435,7 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.inbox_items.answer IS 'Human response text';", None, "column.inbox_items.answer"),
             DDLOp("COMMENT ON COLUMN public.inbox_items.answer_event IS 'Event name fired when answered, for wait-for tasks to await';", None, "column.inbox_items.answer_event"),
             DDLOp("COMMENT ON COLUMN public.inbox_items.rejection_reason IS 'Why the human rejected this item (requires re-investigation and a new item)';", None, "column.inbox_items.rejection_reason"),
+            DDLOp("COMMENT ON COLUMN public.inbox_items.resolved_by IS 'The principal that resolved the item (respond/skip/reject) or the system principal for expiry. NULL = pending, or a historical row resolved before attribution existed (unknowable -- deliberately NOT backfilled).';", None, "column.inbox_items.resolved_by"),
             DDLOp("COMMENT ON TABLE public.decisions IS 'Overseer decision records. Every decision is recorded with its type, choice, and rationale.';", None, "table.decisions"),
             DDLOp("COMMENT ON COLUMN public.decisions.decision_type IS 'What kind of decision (e.g., retry_strategy, budget_reallocation)';", None, "column.decisions.decision_type"),
             DDLOp("COMMENT ON COLUMN public.decisions.choice IS 'Decision choice';", None, "column.decisions.choice"),

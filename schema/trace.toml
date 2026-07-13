@@ -6,7 +6,7 @@
 # via deny-mutation triggers (pgdesign append_only = true).
 
 [meta]
-version = 21
+version = 22
 schema = "public"
 extensions = ["pg_uuidv7"]
 
@@ -658,6 +658,11 @@ comment = "Why the human rejected this item (requires re-investigation and a new
 [tables.inbox_items.columns.answered_at]
 type = "timestamp_optional"
 
+[tables.inbox_items.columns.resolved_by]
+type = "ref"
+nullable = true
+comment = "The principal that resolved the item (respond/skip/reject) or the system principal for expiry. NULL = pending, or a historical row resolved before attribution existed (unknowable -- deliberately NOT backfilled)."
+
 [tables.inbox_items.columns.created_at]
 type = "timestamp"
 
@@ -670,8 +675,20 @@ ref_table = "runs"
 ref_columns = ["id"]
 on_delete = "CASCADE"
 
+# Cross-file FK: inbox_items.resolved_by -> identity's principals table.
+# pgdesign resolves this in its ALTER phase (topo sort merges all schema/
+# files), the same way runs.created_by references principals.
+[tables.inbox_items.fks.fk_inbox_resolved_by]
+columns = ["resolved_by"]
+ref_table = "principals"
+ref_columns = ["id"]
+on_delete = "RESTRICT"
+
 [tables.inbox_items.indexes.idx_inbox_run_pending]
 columns = ["run_id", "status", "created_at"]
+
+[tables.inbox_items.indexes.idx_inbox_resolved_by]
+columns = ["resolved_by"]
 
 [tables.inbox_items.indexes.idx_inbox_options_gin]
 columns = ["options"]

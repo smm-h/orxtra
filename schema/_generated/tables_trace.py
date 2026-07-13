@@ -121,6 +121,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     answer_event text,
     rejection_reason text,
     answered_at timestamptz,
+    resolved_by uuid,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_inbox_items PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.inbox_items (
@@ -139,6 +140,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     answer_event text,
     rejection_reason text,
     answered_at timestamptz,
+    resolved_by uuid,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_inbox_items PRIMARY KEY (id)
 );""", "table", "inbox_items", "inbox_items", 4, True),
@@ -401,6 +403,16 @@ BEGIN
     ALTER TABLE public.notepad_entries ADD CONSTRAINT fk_notepad_run FOREIGN KEY (run_id) REFERENCES public.runs (id) ON DELETE RESTRICT;
   END IF;
 END $$;""", "fk", "fk_notepad_run", "notepad_entries", 6, True),
+    DDLStmt("ALTER TABLE public.inbox_items ADD CONSTRAINT fk_inbox_resolved_by FOREIGN KEY (resolved_by) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_inbox_resolved_by'
+    AND conrelid = 'public.inbox_items'::regclass
+  ) THEN
+    ALTER TABLE public.inbox_items ADD CONSTRAINT fk_inbox_resolved_by FOREIGN KEY (resolved_by) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk", "fk_inbox_resolved_by", "inbox_items", 6, True),
     DDLStmt("ALTER TABLE public.inbox_items ADD CONSTRAINT fk_inbox_run FOREIGN KEY (run_id) REFERENCES public.runs (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -714,6 +726,7 @@ END $$;""", "check", "chk_context_diffs_not_empty", "context_diffs", 8, True),
     DDLStmt("CREATE INDEX idx_notepad_created_at_brin ON public.notepad_entries USING brin (created_at);", "CREATE INDEX IF NOT EXISTS idx_notepad_created_at_brin ON public.notepad_entries USING brin (created_at);", "index", "idx_notepad_created_at_brin", "notepad_entries", 9, True),
     DDLStmt("CREATE INDEX idx_notepad_run ON public.notepad_entries (run_id);", "CREATE INDEX IF NOT EXISTS idx_notepad_run ON public.notepad_entries (run_id);", "index", "idx_notepad_run", "notepad_entries", 9, True),
     DDLStmt("CREATE INDEX idx_inbox_options_gin ON public.inbox_items USING gin (options);", "CREATE INDEX IF NOT EXISTS idx_inbox_options_gin ON public.inbox_items USING gin (options);", "index", "idx_inbox_options_gin", "inbox_items", 9, True),
+    DDLStmt("CREATE INDEX idx_inbox_resolved_by ON public.inbox_items (resolved_by);", "CREATE INDEX IF NOT EXISTS idx_inbox_resolved_by ON public.inbox_items (resolved_by);", "index", "idx_inbox_resolved_by", "inbox_items", 9, True),
     DDLStmt("CREATE INDEX idx_inbox_run_pending ON public.inbox_items (run_id, status, created_at);", "CREATE INDEX IF NOT EXISTS idx_inbox_run_pending ON public.inbox_items (run_id, status, created_at);", "index", "idx_inbox_run_pending", "inbox_items", 9, True),
     DDLStmt("CREATE INDEX idx_inbox_tags_gin ON public.inbox_items USING gin (tags);", "CREATE INDEX IF NOT EXISTS idx_inbox_tags_gin ON public.inbox_items USING gin (tags);", "index", "idx_inbox_tags_gin", "inbox_items", 9, True),
     DDLStmt("CREATE INDEX idx_decisions_run ON public.decisions (run_id);", "CREATE INDEX IF NOT EXISTS idx_decisions_run ON public.decisions (run_id);", "index", "idx_decisions_run", "decisions", 9, True),
@@ -771,6 +784,7 @@ END $$;""", "check", "chk_context_diffs_not_empty", "context_diffs", 8, True),
     DDLStmt("COMMENT ON COLUMN public.inbox_items.answer IS 'Human response text';", None, "comment", "column.inbox_items.answer", "inbox_items", 10, True),
     DDLStmt("COMMENT ON COLUMN public.inbox_items.answer_event IS 'Event name fired when answered, for wait-for tasks to await';", None, "comment", "column.inbox_items.answer_event", "inbox_items", 10, True),
     DDLStmt("COMMENT ON COLUMN public.inbox_items.rejection_reason IS 'Why the human rejected this item (requires re-investigation and a new item)';", None, "comment", "column.inbox_items.rejection_reason", "inbox_items", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.inbox_items.resolved_by IS 'The principal that resolved the item (respond/skip/reject) or the system principal for expiry. NULL = pending, or a historical row resolved before attribution existed (unknowable -- deliberately NOT backfilled).';", None, "comment", "column.inbox_items.resolved_by", "inbox_items", 10, True),
     DDLStmt("COMMENT ON TABLE public.decisions IS 'Overseer decision records. Every decision is recorded with its type, choice, and rationale.';", None, "comment", "table.decisions", "decisions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.decisions.decision_type IS 'What kind of decision (e.g., retry_strategy, budget_reallocation)';", None, "comment", "column.decisions.decision_type", "decisions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.decisions.choice IS 'Decision choice';", None, "comment", "column.decisions.choice", "decisions", 10, True),
