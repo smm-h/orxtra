@@ -1,5 +1,5 @@
 {
-  ".": "5c97acfcb41d2dbd68cfc3c1f6e818cd8397bfa430c8d7bb1d98ce3896689d8d",
+  ".": "0553a43b47f34812766d8d6846e99e4e05d816566f48867a9f74f908e2b943bb",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "write-safety": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
@@ -11,7 +11,7 @@
   "notepad": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "session": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "compose": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "auth": null,
+  "auth": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "identity": null,
   "a2ui": null,
   "scheduler": null,
