@@ -7,6 +7,7 @@ from orxtra.identity._exceptions import PrincipalInUseError
 from orxtra.protocols import Principal
 
 if TYPE_CHECKING:
+    from datetime import timedelta
     from uuid import UUID
 
 
@@ -152,6 +153,35 @@ class PgPrincipalStorage:
                 )
         except asyncpg.ForeignKeyViolationError as exc:
             raise PrincipalInUseError(principal_id) from exc
+
+    async def sweep_orphaned_run_principals(
+        self, older_than: timedelta,
+    ) -> int:
+        """Delete kind=run principals with no matching ``runs`` row.
+
+        Orphaned run principals are created by a mint-first that crashed
+        before ``create_run``. They are harmless (nothing references them)
+        and swept by recovery (age-guarded). The ``older_than`` guard
+        closes the race with a concurrent ``start_run``: a principal
+        minted moments ago may not yet have its runs row.
+
+        The RESTRICT FKs on events/subscriptions/etc. independently
+        prevent deleting any referenced principal; the WHERE clause is a
+        performance optimization (avoids FK-violation churn), not the
+        safety mechanism.
+        """
+        async with self._pool.acquire() as conn, conn.transaction():
+            result: str = await conn.execute(
+                "DELETE FROM principals"
+                " WHERE kind = 'run'"
+                "   AND NOT EXISTS ("
+                "       SELECT 1 FROM runs WHERE runs.id = principals.external_ref"
+                "   )"
+                "   AND created_at < now() - $1::interval",
+                older_than,
+            )
+        # asyncpg execute returns "DELETE N"
+        return int(result.rsplit(maxsplit=1)[-1])
 
 
 def _row_to_principal(row: asyncpg.Record) -> Principal:

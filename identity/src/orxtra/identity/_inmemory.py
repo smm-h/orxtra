@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from orxtra.protocols import Principal
+from orxtra.protocols import KIND_RUN, Principal
 from uuid6 import uuid7
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from uuid import UUID
 
 
@@ -26,8 +27,13 @@ class InMemoryPrincipalStorage:
     PG backend and its integration tests, not this stand-in.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        run_ids_provider: Callable[[], set[UUID]] | None = None,
+    ) -> None:
         self._principals: dict[UUID, Principal] = {}
+        self._run_ids_provider = run_ids_provider
 
     async def mint_principal(
         self,
@@ -96,6 +102,32 @@ class InMemoryPrincipalStorage:
         docstring's parity note). Absence is a no-op.
         """
         self._principals.pop(principal_id, None)
+
+    async def sweep_orphaned_run_principals(
+        self, older_than: timedelta,
+    ) -> int:
+        """Delete kind=run principals with no matching run.
+
+        The in-memory backend has no access to the runs dict (that lives on
+        ``InMemoryBackend`` in trace). A ``run_ids_provider`` callback
+        injected at construction time supplies the current set of run IDs.
+        When no provider is set, no sweep is performed (returns 0).
+        """
+        if self._run_ids_provider is None:
+            return 0
+        run_ids = self._run_ids_provider()
+        cutoff = datetime.now(tz=UTC) - older_than
+        to_delete: list[UUID] = []
+        for pid, principal in self._principals.items():
+            if (
+                principal.kind == KIND_RUN
+                and principal.external_ref not in run_ids
+                and principal.created_at < cutoff
+            ):
+                to_delete.append(pid)
+        for pid in to_delete:
+            del self._principals[pid]
+        return len(to_delete)
 
     def _find_by_ref(self, kind: str, external_ref: UUID) -> Principal | None:
         for principal in self._principals.values():
