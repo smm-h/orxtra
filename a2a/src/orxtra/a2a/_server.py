@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
@@ -15,6 +16,7 @@ from a2a.server.context import ServerCallContext
 from a2a.server.events.event_queue import Event
 from a2a.server.request_handlers import RequestHandler
 from a2a.server.routes import (
+    DefaultServerCallContextBuilder,
     create_agent_card_routes,
     create_jsonrpc_routes,
 )
@@ -46,6 +48,44 @@ from a2a.utils.errors import UnsupportedOperationError
 
 if TYPE_CHECKING:
     from orxtra.services._dispatcher import DispatchContext
+    from starlette.requests import Request
+
+
+class _OrxtraServerCallContextBuilder(DefaultServerCallContextBuilder):
+    """Bridges orxtra's auth middleware into the A2A ServerCallContext.
+
+    The compositor's auth middleware stores the verified ``AuthContext`` at
+    ``scope["state"]["auth_context"]`` for authenticated requests (absent in
+    explicit open mode). The SDK's default builder does not know about that
+    key, so this subclass extends it: it preserves everything the default
+    builder provides (the request ``user``, request ``headers``, and any
+    negotiated ``requested_extensions``) and additionally surfaces the
+    ``AuthContext`` under ``state["auth_context"]`` so handlers can thread
+    per-request identity into dispatch. Absent (open mode) resolves to None.
+    """
+
+    def build(self, request: Request) -> ServerCallContext:
+        context = super().build(request)
+        state = request.scope.get("state", {})
+        context.state["auth_context"] = state.get("auth_context")
+        return context
+
+
+def _dispatch_context_for(
+    base: DispatchContext,
+    context: ServerCallContext | None,
+) -> DispatchContext:
+    """Derive a per-request DispatchContext carrying the caller's identity.
+
+    Reads the ``AuthContext`` the context builder stashed under
+    ``state["auth_context"]`` and overlays it onto the handler's base
+    context. A missing context or absent key yields ``auth_context=None``
+    (explicit open mode).
+    """
+    auth_context = None
+    if context is not None:
+        auth_context = context.state.get("auth_context")
+    return dataclasses.replace(base, auth_context=auth_context)
 
 
 class OrxtraRequestHandler(RequestHandler):
@@ -98,6 +138,7 @@ class OrxtraRequestHandler(RequestHandler):
         """Handle message/send: start a run or dispatch."""
         from orxtra.services import dispatch
 
+        ctx = _dispatch_context_for(self._ctx, context)
         message = params.message
         text = self._extract_text(message)
         task_id = message.task_id or message.message_id
@@ -111,7 +152,7 @@ class OrxtraRequestHandler(RequestHandler):
 
         if skill is not None:
             result = await dispatch(
-                self._ctx,
+                ctx,
                 skill.capability_name,
                 {"config_path": text}
                 if skill.capability_name == "start_run"
@@ -130,7 +171,7 @@ class OrxtraRequestHandler(RequestHandler):
         # Default: start_run with message text as config path
         try:
             result = await dispatch(
-                self._ctx,
+                ctx,
                 "start_run",
                 {"config_path": text.strip()},
             )
@@ -179,7 +220,7 @@ class OrxtraRequestHandler(RequestHandler):
 
         try:
             result = await dispatch(
-                self._ctx,
+                _dispatch_context_for(self._ctx, context),
                 "get_run",
                 {"run_id": params.id},
             )
@@ -220,7 +261,7 @@ class OrxtraRequestHandler(RequestHandler):
 
         try:
             result = await dispatch(
-                self._ctx,
+                _dispatch_context_for(self._ctx, context),
                 "list_runs",
                 {},
             )
@@ -255,7 +296,7 @@ class OrxtraRequestHandler(RequestHandler):
 
         try:
             await dispatch(
-                self._ctx,
+                _dispatch_context_for(self._ctx, context),
                 "abort_run",
                 {"run_id": params.id},
             )
@@ -329,7 +370,11 @@ def create_app(
 
     routes = [
         *create_agent_card_routes(agent_card),
-        *create_jsonrpc_routes(handler, rpc_url=rpc_url),
+        *create_jsonrpc_routes(
+            handler,
+            rpc_url=rpc_url,
+            context_builder=_OrxtraServerCallContextBuilder(),
+        ),
     ]
 
     return Starlette(routes=routes)
