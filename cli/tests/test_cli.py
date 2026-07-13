@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import ast
+import inspect
 import sys
+from datetime import datetime
 from unittest.mock import MagicMock
+from uuid import UUID
 
 # Mock heavy dependencies before importing _cli.
 _MOCK_MODS = [
@@ -41,6 +45,7 @@ for _mod in _MOCK_MODS:
         sys.modules[_mod] = MagicMock()
         _installed_mocks.append(_mod)
 
+from orxtra.cli import _cli as _cli_module
 from orxtra.cli._cli import app
 
 # Remove the mocks again: orxtra.cli._cli has already bound them, but
@@ -479,3 +484,64 @@ def test_serve_help_shows_secrets_env_flag() -> None:
     stdout, _, code = _test("--no-quiet", "serve", "--help")
     assert code == 0
     assert "--secrets-env" in stdout
+
+
+# -- Operator identity ------------------------------------------------------------
+
+
+def _dispatch_context_calls() -> list[ast.Call]:
+    """All ``DispatchContext(...)`` construction calls in the _cli module."""
+    source = inspect.getsource(_cli_module)
+    tree = ast.parse(source)
+    return [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "DispatchContext"
+    ]
+
+
+def test_every_dispatch_context_carries_operator_auth_context() -> None:
+    """Every DispatchContext the CLI builds must pass an operator auth_context.
+
+    Enforcement checks scopes on every dispatch -- including pure/no-pool
+    capabilities -- so no construction site may omit the operator context.
+    """
+    calls = _dispatch_context_calls()
+    assert len(calls) == 10
+    for call in calls:
+        kwargs = {kw.arg for kw in call.keywords}
+        assert "auth_context" in kwargs, ast.dump(call)
+
+
+def test_dispatch_context_auth_context_uses_operator_helper() -> None:
+    """auth_context is wired to _operator_auth_context() at every site."""
+    for call in _dispatch_context_calls():
+        auth_kw = next(kw for kw in call.keywords if kw.arg == "auth_context")
+        assert isinstance(auth_kw.value, ast.Call)
+        assert isinstance(auth_kw.value.func, ast.Name)
+        assert auth_kw.value.func.id == "_operator_auth_context"
+
+
+def test_operator_auth_context_field_values() -> None:
+    """Pin the operator context's fields to the single-operator contract."""
+    from orxtra.protocols import ALL_SCOPES, TrustTier
+
+    ctx = _cli_module._operator_auth_context()
+    assert ctx.trust_tier is TrustTier.SYSTEM
+    assert ctx.scopes == ALL_SCOPES
+    assert ctx.consumer_id is None
+    assert ctx.authenticated_via == "cli-local"
+    assert ctx.expires_at is None
+    assert isinstance(ctx.id, UUID)
+    assert isinstance(ctx.issued_at, datetime)
+    assert ctx.issued_at.tzinfo is not None
+
+
+def test_operator_auth_context_id_is_fresh_each_call() -> None:
+    """Each command builds its own ephemeral context (fresh id)."""
+    assert (
+        _cli_module._operator_auth_context().id
+        != _cli_module._operator_auth_context().id
+    )
