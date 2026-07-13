@@ -1,10 +1,26 @@
 [releasables.orxtra]
 # Version bump type: patch, minor, major, hotfix, or prerelease
-bump = ""
+bump = "minor"
 # Short description of this release (required)
-description = ""
+description = "Unified identity model: every actor gets a durable principal, every action names its actor, and dispatch enforces authentication structurally."
 # Optional context explaining why these changes were made
-context = ""
+context = """
+Identity used to be computed at the edge and thrown away: an authenticated
+request produced an ephemeral auth context that never became a persisted,
+referenceable actor. Mutations could happen anonymously, ownership was tied to
+orchestration runs alone, and events recorded a free-text `source` that no
+foreign key could vouch for -- actions were fundamentally unattributable.
+
+This release makes identity first-class. A new `principals` table gives every
+actor -- runs, consumers, sources, the system, and app-registered kinds -- a
+durable identity minted at birth. Every event names its acting principal via a
+NOT NULL foreign key, subscriptions are owned by principals (cascading on
+deletion), and the ephemeral `Principal` auth type is renamed `AuthContext` to
+end the overload. Enforcement is structural, not advisory: every capability
+declares a required scope, and the single dispatch choke point rejects any call
+whose authenticated context lacks it -- MCP and A2A now sit behind the auth
+wall, and an API served without an authenticator exposes public surfaces only.
+"""
 # Pre-release identifier: alpha, beta, rc, or stable
 # preid = ""
 include = ["pypi"]
