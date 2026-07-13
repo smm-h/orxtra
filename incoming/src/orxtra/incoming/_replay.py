@@ -80,7 +80,12 @@ async def replay_handler(
         presented = presented[7:]
 
     try:
-        await authenticator.verify_by_credential_id(credential_id, presented)
+        # Phase 4 will attribute replayed access to this AuthContext; for
+        # now we capture (not discard) the verification result and hold it
+        # in hand at the replay call site below.
+        auth_context = await authenticator.verify_by_credential_id(
+            credential_id, presented,
+        )
     except AuthenticationError:
         return TextResponse("Authentication failed", status=401)
 
@@ -111,11 +116,12 @@ async def replay_handler(
     serialized = [_serialize_event(e) for e in events]
 
     log.info(
-        "Replay: slug=%s since=%s limit=%d returned=%d",
+        "Replay: slug=%s since=%s limit=%d returned=%d consumer_id=%s",
         slug,
         since_id,
         limit,
         len(serialized),
+        auth_context.consumer_id,
     )
 
     return JSONResponse(serialized)

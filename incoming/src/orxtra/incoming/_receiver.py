@@ -89,7 +89,10 @@ def create_incoming_router(
 
         # -- Verify credential --
         try:
-            await authenticator.verify_by_credential_id(
+            # Phase 4 will attribute the fired event to this AuthContext;
+            # for now we capture (not discard) the verification result and
+            # hold it in hand at the fire_event call site below.
+            auth_context = await authenticator.verify_by_credential_id(
                 credential_id, presented,
             )
         except AuthenticationError:
@@ -121,11 +124,13 @@ def create_incoming_router(
         )
 
         log.info(
-            "Webhook received: slug=%s event_type=%s event_id=%s inserted=%s",
+            "Webhook received: slug=%s event_type=%s event_id=%s "
+            "inserted=%s consumer_id=%s",
             slug,
             event_type,
             event_id,
             inserted,
+            auth_context.consumer_id,
         )
 
         return JSONResponse(
@@ -224,7 +229,7 @@ def _build_presented_credential(
     if auth_value.lower().startswith("bearer "):
         auth_value = auth_value[7:]
 
-    return cast(str, auth_value)
+    return cast("str", auth_value)
 
 
 def _extract_event_type(
@@ -254,7 +259,7 @@ def _extract_event_type(
         if value is None:
             msg = f"Missing event type header: {field}"
             raise _ExtractionError(msg)
-        return cast(str, value)
+        return cast("str", value)
 
     if source_type == "json_field":
         try:
@@ -276,7 +281,7 @@ def _extract_event_type(
         return current
 
     if source_type == "constant":
-        return cast(str, field)
+        return cast("str", field)
 
     msg = f"Unknown event_type_source: {source_type!r}"
     raise _ExtractionError(msg)

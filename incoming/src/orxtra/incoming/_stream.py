@@ -99,7 +99,12 @@ async def stream_handler(
         presented = presented[7:]
 
     try:
-        await authenticator.verify_by_credential_id(credential_id, presented)
+        # Phase 4 will attribute streamed access to this AuthContext; for
+        # now we capture (not discard) the verification result and hold it
+        # in hand at the stream call site below.
+        auth_context = await authenticator.verify_by_credential_id(
+            credential_id, presented,
+        )
     except AuthenticationError:
         return TextResponse("Authentication failed", status=401)
 
@@ -116,9 +121,10 @@ async def stream_handler(
             )
 
     log.info(
-        "SSE stream connected: slug=%s last_event_id=%s",
+        "SSE stream connected: slug=%s last_event_id=%s consumer_id=%s",
         slug,
         last_event_id,
+        auth_context.consumer_id,
     )
 
     # -- Build the SSE generator with catch-up --
