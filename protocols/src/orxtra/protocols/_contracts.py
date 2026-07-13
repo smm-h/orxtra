@@ -21,6 +21,7 @@ if TYPE_CHECKING:
         SubscriptionAction,
     )
     from orxtra.protocols._types._events import OverseerEvent
+    from orxtra.protocols._types._identity import Principal
     from orxtra.protocols._types._surfaces import SurfaceSpec
     from orxtra.protocols._types._task import Execution
     from orxtra.protocols._types._tool import Tool
@@ -320,3 +321,65 @@ class AuthStorage(Protocol):
         *,
         credential_type: str | None = None,
     ) -> list[CredentialRecord]: ...
+
+
+# ---------------------------------------------------------------------------
+# Identity protocols
+# ---------------------------------------------------------------------------
+
+
+@runtime_checkable
+class PrincipalStorage(Protocol):
+    """Storage protocol for persisted identity (principals).
+
+    A Principal is the durable identity row for an actor; other tables FK
+    to it for attribution and ownership. The identity module owns the
+    concrete backend and the domain exceptions referenced below.
+    """
+
+    async def mint_principal(
+        self,
+        kind: str,
+        external_ref: UUID,
+        display_name: str | None,
+    ) -> Principal:
+        """Idempotent upsert on ``(kind, external_ref)``.
+
+        Creates the principal if absent; returns the existing row
+        otherwise. Never errors on duplicates. This is the crash-safe
+        eager-minting primitive: callers can mint unconditionally on every
+        actor appearance, and a retry after a partial failure converges to
+        the same single row.
+        """
+        ...
+
+    async def get_principal(self, principal_id: UUID) -> Principal | None: ...
+
+    async def get_principal_by_ref(
+        self,
+        kind: str,
+        external_ref: UUID,
+    ) -> Principal | None: ...
+
+    async def list_principals(self, kind: str | None = None) -> list[Principal]: ...
+
+    async def update_display_name(
+        self,
+        principal_id: UUID,
+        display_name: str,
+    ) -> None:
+        """Set the display name of an existing principal.
+
+        Hard error if the principal is absent -- this is not an upsert.
+        """
+        ...
+
+    async def delete_principal(self, principal_id: UUID) -> None:
+        """Delete a principal.
+
+        Cascades owned subscriptions. Hard domain error if the principal
+        has history: events/runs/inbox/sources/consumers FKs are RESTRICT,
+        so a principal with any such references cannot be deleted. The
+        domain exception is defined by the identity module.
+        """
+        ...
