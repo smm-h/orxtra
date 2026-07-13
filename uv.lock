@@ -1083,6 +1083,7 @@ dependencies = [
     { name = "orxtra-agui" },
     { name = "orxtra-auth" },
     { name = "orxtra-dispatch" },
+    { name = "orxtra-identity" },
     { name = "orxtra-incoming" },
     { name = "orxtra-mcp" },
     { name = "orxtra-services" },
@@ -1101,6 +1102,7 @@ requires-dist = [
     { name = "orxtra-agui", editable = "agui" },
     { name = "orxtra-auth", editable = "auth" },
     { name = "orxtra-dispatch", editable = "dispatch" },
+    { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-incoming", editable = "incoming" },
     { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-services", editable = "services" },
@@ -1138,6 +1140,7 @@ version = "0.9.0"
 source = { editable = "cli" }
 dependencies = [
     { name = "orxtra-api" },
+    { name = "orxtra-identity" },
     { name = "orxtra-services" },
     { name = "strictcli" },
 ]
@@ -1145,6 +1148,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "orxtra-api", editable = "api" },
+    { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-services", editable = "services" },
     { name = "strictcli" },
 ]
@@ -1202,6 +1206,7 @@ source = { editable = "identity" }
 dependencies = [
     { name = "asyncpg" },
     { name = "orxtra-protocols" },
+    { name = "uuid6" },
 ]
 
 [package.dev-dependencies]
@@ -1213,6 +1218,7 @@ dev = [
 requires-dist = [
     { name = "asyncpg" },
     { name = "orxtra-protocols", editable = "protocols" },
+    { name = "uuid6" },
 ]
 
 [package.metadata.requires-dev]

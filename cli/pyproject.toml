@@ -8,6 +8,7 @@ dependencies = [
     "strictcli",
     "orxtra-services",
     "orxtra-api",
+    "orxtra-identity",
 ]
 keywords = ["rlsbl"]
 
@@ -24,3 +25,4 @@ packages = ["src/orxtra"]
 [tool.uv.sources]
 orxtra-services = { workspace = true }
 orxtra-api = { workspace = true }
+orxtra-identity = { workspace = true }

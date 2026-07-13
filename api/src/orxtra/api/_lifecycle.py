@@ -66,6 +66,17 @@ async def lifespan(
 
         log.info("Verifying database schema")
         await verify_schema(pool)
+
+        # Seed the singleton system principal (idempotent via mint).
+        from orxtra.identity import PgPrincipalStorage
+        from orxtra.protocols import KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF
+
+        principal_storage = PgPrincipalStorage(pool)
+        await principal_storage.mint_principal(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+        )
+        log.info("System principal seeded")
+
         dispatch_backend = PgDispatchBackend(pool)
         ctx = DispatchContext(pool=pool, dispatch_backend=dispatch_backend)
 

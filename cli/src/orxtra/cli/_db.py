@@ -182,6 +182,25 @@ def register_db_commands(app: strictcli.App) -> None:
             finally:
                 await conn.close()
 
+            # Seed the singleton system principal (idempotent via mint).
+            # PgPrincipalStorage needs a pool, so open a short-lived one.
+            from orxtra.identity import PgPrincipalStorage
+            from orxtra.protocols import (
+                KIND_SYSTEM,
+                SYSTEM_PRINCIPAL_EXTERNAL_REF,
+            )
+
+            pool = await asyncpg.create_pool(db_url)
+            try:
+                storage = PgPrincipalStorage(pool)
+                await storage.mint_principal(
+                    KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+                )
+            finally:
+                await pool.close()
+            if not quiet:
+                print("System principal seeded.")
+
         asyncio.run(_run())
 
     @db_group.command(
