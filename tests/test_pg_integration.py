@@ -326,7 +326,7 @@ class TestCreateSourceIdentity:
             AuthContext,
             TrustTier,
         )
-        from orxtra.services._dispatcher import DispatchContext, dispatch
+        from orxtra.services import DispatchContext, dispatch
 
         storage = PgPrincipalStorage(pg_pool)
         system_principal = await storage.mint_principal(
