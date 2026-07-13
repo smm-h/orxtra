@@ -2,6 +2,7 @@
 title: orxtra dispatch
 description: "Reference for the orxtra dispatch command group — subcommands, flags, arguments, and usage details for the dispatch group in the orxtra CLI."
 generated: true
+seeded: true
 nav_group: "CLI Reference"
 nav_order: 3
 ---

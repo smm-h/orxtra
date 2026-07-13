@@ -2,6 +2,7 @@
 title: orxtra worker
 description: "Reference for the orxtra worker command group — subcommands, flags, arguments, and usage details for the worker group in the orxtra CLI."
 generated: true
+seeded: true
 nav_group: "CLI Reference"
 nav_order: 10
 ---

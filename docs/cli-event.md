@@ -2,6 +2,7 @@
 title: orxtra event
 description: "Reference for the orxtra event command group — subcommands, flags, arguments, and usage details for the event group in the orxtra CLI."
 generated: true
+seeded: true
 nav_group: "CLI Reference"
 nav_order: 4
 ---

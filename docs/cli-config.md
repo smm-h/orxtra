@@ -2,6 +2,7 @@
 title: orxtra config
 description: "Reference for the orxtra config command group — subcommands, flags, arguments, and usage details for the config group in the orxtra CLI."
 generated: true
+seeded: true
 nav_group: "CLI Reference"
 nav_order: 1
 ---

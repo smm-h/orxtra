@@ -2,6 +2,7 @@
 title: orxtra serve
 description: "Reference for the orxtra serve command — usage, flags, arguments, and examples for the serve subcommand of the orxtra CLI."
 generated: true
+seeded: true
 nav_group: "CLI Reference"
 nav_order: 7
 ---

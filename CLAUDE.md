@@ -6,12 +6,12 @@ Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if yo
 
 ## Status
 
-Active implementation. Monorepo with 24 sub-projects across five layers, implemented across 170+ source modules and 210+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
-Current version: 0.8.0.
+Active implementation. Monorepo with 25 sub-projects across five layers, implemented across 170+ source modules and 210+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
+Current version: 0.9.0.
 
 ## Philosophy
 
-Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 24.
+Every module is independently useful for a narrow purpose. Together they compose into a full autonomous agent orchestration system. A consumer wanting only a typed LLM client uses `orxtra.transport`. One wanting deterministic workflow execution without an Overseer brain uses `orxtra.scheduler`. The full system composes all 25.
 
 ### Structured Programming for AI Workflows
 
@@ -58,6 +58,7 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── docs/
 ├── examples/
 ├── hatch_build.py
+├── identity/
 ├── incoming/
 ├── knowledge/
 ├── mcp/
@@ -90,7 +91,7 @@ Each sub-project has: `pyproject.toml`, `src/orxtra/<name>/`, `tests/`.
 
 | Layer | Sub-projects | Dependencies |
 |---|---|---|
-| Foundation | [protocols](protocols/), [secrets](secrets/), [write-safety](write-safety/), [transport](transport/), [agent](agent/), [tool](tool/), [verify](verify/), [trace](trace/), [notepad](notepad/), [session](session/), [compose](compose/), [auth](auth/), [a2ui](a2ui/), [worker](worker/) | Zero intra-workspace deps (exceptions: transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols, notepad -> trace, session -> protocols + transport + trace, agent -> compose, auth -> protocols, a2ui -> protocols, worker -> protocols + tool + write-safety + auth + secrets) |
+| Foundation | [protocols](protocols/), [secrets](secrets/), [write-safety](write-safety/), [transport](transport/), [agent](agent/), [tool](tool/), [verify](verify/), [trace](trace/), [notepad](notepad/), [session](session/), [compose](compose/), [auth](auth/), [identity](identity/), [a2ui](a2ui/), [worker](worker/) | Zero intra-workspace deps (exceptions: transport -> protocols, tool -> protocols + secrets + write-safety, verify -> protocols, notepad -> trace, session -> protocols + transport + trace, agent -> compose, auth -> protocols, identity -> protocols, a2ui -> protocols, worker -> protocols + tool + write-safety + auth + secrets) |
 | Orchestration | [scheduler](scheduler/), [dispatch](dispatch/) | scheduler depends on foundation + dispatch; dispatch depends on protocols |
 | Intelligence | [overseer](overseer/) | Depends on foundation (not orchestration -- shared protocols at the seam) |
 | Composition | [services](services/) | Depends on orchestration + intelligence; provides concrete implementations (ActionExecutor, FlushScheduler) and service functions |

@@ -2,6 +2,7 @@
 title: orxtra validate
 description: "Reference for the orxtra validate command group — subcommands, flags, arguments, and usage details for the validate group in the orxtra CLI."
 generated: true
+seeded: true
 nav_group: "CLI Reference"
 nav_order: 9
 ---

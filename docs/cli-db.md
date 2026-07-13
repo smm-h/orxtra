@@ -2,6 +2,7 @@
 title: orxtra db
 description: "Reference for the orxtra db command group — subcommands, flags, arguments, and usage details for the db group in the orxtra CLI."
 generated: true
+seeded: true
 nav_group: "CLI Reference"
 nav_order: 2
 ---
