@@ -6,9 +6,8 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from pydantic import BaseModel
-
 from orxtra.protocols import (
+    VALID_INJECT_TOKENS,
     AuthContext,
     Capability,
     CardContributor,
@@ -21,7 +20,7 @@ from orxtra.protocols import (
     UpdateComponents,
     UpdateDataModel,
 )
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 # -- EventSink[T] --
 
@@ -254,6 +253,8 @@ class TestCapability:
             result_model=str,
             tags=frozenset({"io", "read"}),
             category="filesystem",
+            required_scope="files:read",
+            injects=frozenset({"pool"}),
         )
         assert c.name == "read_file"
         assert c.namespace == "fs"
@@ -262,6 +263,8 @@ class TestCapability:
         assert c.result_model is str
         assert c.tags == frozenset({"io", "read"})
         assert c.category == "filesystem"
+        assert c.required_scope == "files:read"
+        assert c.injects == frozenset({"pool"})
 
     def test_result_model_none(self) -> None:
         c = Capability(
@@ -272,6 +275,8 @@ class TestCapability:
             result_model=None,
             tags=frozenset(),
             category="test",
+            required_scope="test:read",
+            injects=frozenset(),
         )
         assert c.result_model is None
 
@@ -284,9 +289,28 @@ class TestCapability:
             result_model=None,
             tags=frozenset(),
             category="c",
+            required_scope="x:read",
+            injects=frozenset(),
         )
         with pytest.raises(FrozenInstanceError):
             c.name = "y"  # type: ignore[misc]
+
+    def test_valid_inject_tokens(self) -> None:
+        assert frozenset({"pool", "dispatch_backend"}) == VALID_INJECT_TOKENS
+
+    def test_unknown_inject_token_rejected(self) -> None:
+        with pytest.raises(ValueError, match="unknown inject token"):
+            Capability(
+                name="bad",
+                namespace="test",
+                description="Declares a bogus inject token",
+                params_model=_StubParams,
+                result_model=None,
+                tags=frozenset(),
+                category="test",
+                required_scope="test:read",
+                injects=frozenset({"pool", "not_a_real_token"}),
+            )
 
 
 # -- SurfaceGenerator and CardContributor importability --
