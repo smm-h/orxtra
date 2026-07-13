@@ -1,6 +1,52 @@
 {
   "batch_limits": {
-    "exclusions": []
+    "exclusions": [
+      {
+        "reason": "**MCP and A2A endpoints now require authentication.** Every capability dispatch requires an authenticated context carrying the capability declared scope, drawn from a new scope vocabulary covering all namespaces. An API served without an authenticator exposes public surfaces only (such as agent-card discovery).",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 4
+          }
+        ]
+      },
+      {
+        "reason": "**Unified identity model.** A new `principals` table gives every actor -- runs, consumers, sources, the system, and app-registered kinds -- a durable identity minted at birth. Runs, sources, and consumers record their creator (`runs.created_by`, `sources.created_by`, `consumers.principal_id`, inbox `resolved_by`); principal CRUD is exposed as capabilities gated by `principals:read`/`principals:manage`; and deletion pins historical actors, raising `PrincipalInUseError` when references remain.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 10
+          }
+        ]
+      },
+      {
+        "reason": "non-user-facing batch",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 18
+          }
+        ]
+      },
+      {
+        "reason": "non-user-facing batch",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 19
+          }
+        ]
+      },
+      {
+        "reason": "non-user-facing batch",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 20
+          }
+        ]
+      }
+    ]
   },
   "private": false,
   "targets": [
