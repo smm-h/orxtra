@@ -1,16 +1,48 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid4
 
 import uuid6
-from orxtra.protocols import Tool, ToolError
+from orxtra.protocols import (
+    ALL_SCOPES,
+    AuthContext,
+    Tool,
+    ToolError,
+    TrustTier,
+)
 from orxtra.transport import Continuation, Result, StepFinish, ToolUse, TransportEvent
 
 if TYPE_CHECKING:
     import uuid
     from collections.abc import AsyncIterator
     from decimal import Decimal
+
+
+def make_auth_context(
+    scopes: frozenset[str] = ALL_SCOPES,
+    *,
+    trust_tier: TrustTier = TrustTier.SYSTEM,
+    consumer_id: UUID | None = None,
+) -> AuthContext:
+    """Build an ephemeral AuthContext for tests that dispatch capabilities.
+
+    dispatch() enforces authorization at its choke point, so every test that
+    reaches it needs a context carrying the required scopes. This is the one
+    shared builder -- default to ALL_SCOPES (the operator/system posture) so
+    tests opt into scope restriction only when they mean to exercise it.
+    """
+    return AuthContext(
+        id=uuid4(),
+        consumer_id=consumer_id,
+        scopes=scopes,
+        trust_tier=trust_tier,
+        authenticated_via="test",
+        issued_at=datetime.now(UTC),
+        expires_at=None,
+    )
 
 
 class MockTraceWriter:
