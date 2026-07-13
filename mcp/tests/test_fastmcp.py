@@ -493,7 +493,7 @@ async def test_tool_dispatches_with_request_auth_context(
     mock_dispatch.return_value = None
     sentinel = _make_auth_context()
     with _request_scope(auth_context=sentinel):
-        await server.fastmcp.call_tool("list_runs", {"kwargs": {}})
+        await server.fastmcp.call_tool("list_runs", {})
     mock_dispatch.assert_awaited_once()
     dispatched_context = mock_dispatch.call_args[0][0]
     assert dispatched_context.auth_context is sentinel
@@ -507,7 +507,7 @@ async def test_tool_dispatches_open_mode_none(
     """With no state in the scope (open mode), auth_context is None."""
     mock_dispatch.return_value = None
     with _request_scope(auth_context=_ABSENT):
-        await server.fastmcp.call_tool("list_runs", {"kwargs": {}})
+        await server.fastmcp.call_tool("list_runs", {})
     mock_dispatch.assert_awaited_once()
     dispatched_context = mock_dispatch.call_args[0][0]
     assert dispatched_context.auth_context is None
@@ -586,7 +586,7 @@ async def test_tool_call_insufficient_scope_surfaces_error(
         expires_at=None,
     )
     with _request_scope(auth_context=unscoped), pytest.raises(ToolError) as exc_info:
-        await server.fastmcp.call_tool("list_runs", {"kwargs": {}})
+        await server.fastmcp.call_tool("list_runs", {})
     assert "runs:read" in str(exc_info.value)
 
 

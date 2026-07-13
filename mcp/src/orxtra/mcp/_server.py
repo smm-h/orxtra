@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import dataclasses
 import json
 from collections.abc import Callable
@@ -11,7 +12,7 @@ from uuid import UUID
 
 from orxtra.protocols import Capability
 from orxtra.services import DispatchContext, dispatch, get_capabilities
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, create_model
 
 # MCP SDK imports are deferred to function bodies to avoid a name collision
 # with the orxtra workspace member directory mcp/ during pytest's
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
     from orxtra.protocols import AuthContext
 
     from mcp.server.fastmcp import Context, FastMCP
+    from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase
     from mcp.types import ToolAnnotations
 
 # Capabilities exposed as MCP tools. Validation tools are excluded
@@ -159,6 +161,40 @@ def _build_fastmcp(
     return mcp_app
 
 
+def _build_strict_arg_model(cap: Capability) -> type[ArgModelBase]:
+    """Build the FastMCP argument model for a capability from its params_model.
+
+    FastMCP derives a tool's served input schema and its argument-validation
+    model from the *signature* of the registered handler. Our handlers accept
+    ``(ctx, **kwargs)`` because dispatch is generic, so left to itself FastMCP
+    would derive a single required ``kwargs`` object -- the wrong schema and the
+    wrong validation. Instead we build the model explicitly, mirroring the
+    capability's ``params_model`` field-for-field so the served schema matches
+    the params_model schema exactly.
+
+    The model subclasses FastMCP's ``ArgModelBase`` (which provides the
+    ``model_dump_one_level`` the SDK relies on) and forbids extra fields, so an
+    unknown argument is rejected at the FastMCP boundary rather than silently
+    dropped before dispatch's own strict validation ever sees it. Field
+    metadata (descriptions, formats, defaults, constraints) is carried over
+    verbatim via a deep copy of each ``FieldInfo``.
+    """
+    from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase
+
+    class _StrictArgs(ArgModelBase):
+        model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+    fields: dict[str, Any] = {
+        field_name: (field_info.annotation, copy.deepcopy(field_info))
+        for field_name, field_info in cap.params_model.model_fields.items()
+    }
+    return create_model(
+        f"{cap.name}Arguments",
+        __base__=_StrictArgs,
+        **fields,
+    )
+
+
 def _register_tool(
     mcp_app: FastMCP,
     cap: Capability,
@@ -171,7 +207,14 @@ def _register_tool(
     The handler receives a per-request ``Context`` (injected by the SDK and
     excluded from the tool's input schema) and dispatches against a per-request
     copy of the construction-time context carrying the caller's identity.
+
+    FastMCP's signature introspection cannot derive the right schema from the
+    generic ``(ctx, **kwargs)`` handler, so after registration we replace the
+    tool's argument model and served ``parameters`` with a model built directly
+    from the capability's ``params_model`` (see ``_build_strict_arg_model``).
     """
+    from mcp.server.fastmcp.utilities.func_metadata import FuncMetadata
+
     cap_name = cap.name
 
     async def handler(ctx: Context[Any, Any, Any], **kwargs: Any) -> str:
@@ -195,6 +238,20 @@ def _register_tool(
         description=cap.description,
         annotations=annotations,
     )
+
+    # Replace the SDK's signature-derived (broken) argument model and served
+    # schema with one built directly from the capability's params_model. The
+    # handler still receives the validated named arguments as ``**kwargs`` and
+    # forwards them to dispatch, which re-validates against the same params
+    # model. The SDK exposes no public accessor for the registered Tool object,
+    # so we reach the internal tool manager (the only route to its schema).
+    tool = mcp_app._tool_manager.get_tool(cap.name)  # noqa: SLF001
+    if tool is None:  # pragma: no cover - just registered above
+        msg = f"Tool {cap.name!r} disappeared immediately after registration"
+        raise RuntimeError(msg)
+    arg_model = _build_strict_arg_model(cap)
+    tool.fn_metadata = FuncMetadata(arg_model=arg_model)
+    tool.parameters = arg_model.model_json_schema(by_alias=True)
 
 
 def _register_resources(
