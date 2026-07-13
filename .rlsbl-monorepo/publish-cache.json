@@ -1,5 +1,5 @@
 {
-  ".": "baab6035a15baf3e34ab2837e00dc9c08570bfad30cc59546c23a51e935cf95f",
+  ".": "dae2e3bd913a350065288a31cdecc0e134bc03e3f4b5d03fffd97901b6f3c2f2",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "write-safety": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
@@ -19,7 +19,7 @@
   "overseer": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "services": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "cli": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "mcp": null,
+  "mcp": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "a2a": null,
   "agui": null,
   "worker": null,
