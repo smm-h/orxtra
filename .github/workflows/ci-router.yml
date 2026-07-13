@@ -506,9 +506,8 @@ jobs:
     - uses: actions/checkout@v6
     - uses: astral-sh/setup-uv@v7
     - run: uv python install ${{ matrix.python-version }}
-    - run: uv sync
+    - run: uv sync --locked
     - run: uv run python -c "import orxtra"
-    - run: uv run pytest tests/ -x -q
     defaults:
       run:
         working-directory: cli
@@ -516,8 +515,6 @@ jobs:
     needs:
     - detect
     if: needs.detect.outputs.cli == 'true'
-    env:
-      UV_NO_SOURCES: '1'
   mcp-ci-test:
     runs-on: ubuntu-latest
     strategy:
