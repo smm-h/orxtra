@@ -62,9 +62,16 @@ CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid AS $$
 $$ LANGUAGE sql;
 """
 
-# Migration SQL: the four delta changes from v0.8.0 to the current schema.
-# These are the exact DDL statements that a migration would contain.
-# Order matters: enum changes first, then tables, then columns + indexes.
+# Migration SQL: the 47 ordered DDL statements from the v0.8.0 baseline to the
+# current schema. These are the exact statements a migration would contain.
+# Order follows the dependency chain: the credential_type enum ADD VALUE and
+# the events/sources/credentials/dispatch additions first, then the full
+# identity migration -- create the principals table, then for each attributing
+# table (runs, sources, consumers, events, subscriptions) mint principals ->
+# add the nullable FK column -> backfill -> SET NOT NULL -> add the FK ->
+# index, plus the inbox_items.resolved_by column (nullable, no backfill) and
+# the NOTIFY trigger swap (source -> principal_id) -- and finally dropping the
+# superseded columns (events.source, subscriptions.owner_run_id).
 _MIGRATION_SQL = [
     # 1. Enum ADD VALUE: credential_type += hmac
     # (must run outside a transaction in PG < 14, but inside is fine for PG >= 12
