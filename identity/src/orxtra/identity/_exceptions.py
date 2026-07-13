@@ -9,18 +9,23 @@ if TYPE_CHECKING:
 class PrincipalInUseError(Exception):
     """Raised when a principal cannot be deleted because it is still referenced.
 
-    A principal that any other row points at (events, runs, inbox, sources,
-    consumers -- all RESTRICT foreign keys) is undeletable: it anchors durable
-    history and attribution. Deletion is reserved for principals that were
-    minted but never referenced.
+    A principal that any durable-history row points at is undeletable: it
+    anchors attribution. The referencing RESTRICT foreign keys are:
+
+    - ``events.principal_id`` (the actor that emitted the event)
+    - ``runs.created_by`` (the run's creator)
+    - ``sources.created_by`` (the source's creator)
+    - ``inbox_items.resolved_by`` (the actor that resolved the item)
+    - ``consumers.principal_id`` (a consumer's own backing principal)
+
+    Deletion is reserved for principals that were minted but never referenced
+    by history. Note that ``subscriptions.principal_id`` is the sole CASCADE
+    referent -- a subscription is operational state that is *deleted with* its
+    owner rather than blocking the delete, so it never triggers this error.
 
     The right way to retire an actor with history is to deactivate it on the
     consuming side (e.g. disable the consumer, archive the source), not to
     delete its identity row.
-
-    Until the referencing FKs land in a later phase, no table points at
-    ``principals`` yet, so deletes of unreferenced principals succeed silently
-    and this error is not yet raised in practice.
     """
 
     def __init__(self, principal_id: UUID) -> None:

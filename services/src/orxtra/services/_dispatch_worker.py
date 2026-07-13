@@ -11,11 +11,7 @@ from typing import TYPE_CHECKING
 
 from orxtra.dispatch import DispatchWorker, PgDispatchBackend
 from orxtra.identity import PgPrincipalStorage
-from orxtra.protocols import (
-    KIND_SOURCE,
-    KIND_SYSTEM,
-    SYSTEM_PRINCIPAL_EXTERNAL_REF,
-)
+from orxtra.protocols import KIND_SOURCE
 from orxtra.services._actions import ServicesActionExecutor
 from orxtra.services._flush import AsyncioFlushScheduler
 from orxtra.trace import EVENTS_CHANNEL
@@ -78,16 +74,6 @@ async def create_dispatch_worker(
     flush_scheduler = AsyncioFlushScheduler()
 
     principal_storage = PgPrincipalStorage(pool)
-    system_principal = await principal_storage.get_principal_by_ref(
-        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF,
-    )
-    if system_principal is None:
-        msg = (
-            "System principal not seeded -- run 'orxtra db init' to seed "
-            "the singleton system principal before starting the worker."
-        )
-        raise RuntimeError(msg)
-
     resolver = _make_source_principal_resolver(backend, principal_storage)
 
     return DispatchWorker(
@@ -97,7 +83,6 @@ async def create_dispatch_worker(
         pool=pool,
         cursor_name=cursor_name,
         events_channel=EVENTS_CHANNEL,
-        system_principal_id=system_principal.id,
         source_principal_resolver=resolver,
         poll_interval=poll_interval,
         batch_size=batch_size,

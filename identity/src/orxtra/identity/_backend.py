@@ -132,14 +132,17 @@ class PgPrincipalStorage:
     async def delete_principal(self, principal_id: UUID) -> None:
         """Delete a principal.
 
-        Raises ``PrincipalInUseError`` if the principal is still referenced.
-        Referencing foreign keys are RESTRICT, so PostgreSQL raises a
-        ``ForeignKeyViolationError`` which is translated into the domain
-        error here.
+        Raises ``PrincipalInUseError`` if the principal anchors durable
+        history. The referencing RESTRICT foreign keys are ``events.principal_id``,
+        ``runs.created_by``, ``sources.created_by``, ``inbox_items.resolved_by``,
+        and ``consumers.principal_id``; any of them raises a PostgreSQL
+        ``ForeignKeyViolationError`` on delete, translated into the domain error
+        here.
 
-        Until the referencing FKs land in a later phase, no table points at
-        ``principals`` yet, so deletes of unreferenced principals simply
-        succeed silently and this translation path is dormant.
+        The one CASCADE referent, ``subscriptions.principal_id``, does not block:
+        deleting an owning principal takes its subscriptions (operational state)
+        with it. A principal that is neither referenced by history nor owns any
+        subscription deletes cleanly.
         """
         try:
             async with self._pool.acquire() as conn, conn.transaction():

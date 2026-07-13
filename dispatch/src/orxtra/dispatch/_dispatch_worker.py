@@ -72,7 +72,6 @@ class DispatchWorker:
         pool: asyncpg.Pool,
         cursor_name: str,
         events_channel: str,
-        system_principal_id: UUID,
         source_principal_resolver: SourcePrincipalResolver,
         poll_interval: float = DEFAULT_POLL_INTERVAL,
         batch_size: int = DEFAULT_BATCH_SIZE,
@@ -83,9 +82,6 @@ class DispatchWorker:
         self._pool = pool
         self._cursor_name = cursor_name
         self._events_channel = events_channel
-        # The system principal, injected by services (dispatch never imports
-        # identity). Used to attribute the worker's own re-fired events.
-        self._system_principal_id = system_principal_id
         # Resolves a subscription filter's source slugs to source-principal ids.
         self._resolve_source_principals = source_principal_resolver
         self._poll_interval = poll_interval
@@ -248,7 +244,9 @@ class DispatchWorker:
                             sub_action.action,
                             [event_payload],
                             workflow_executor=self._action_executor,
-                            event_fire_callback=self._make_event_fire_callback(),
+                            event_fire_callback=self._make_event_fire_callback(
+                                sub.principal_id,
+                            ),
                         )
                     except Exception:
                         logger.exception(
@@ -269,8 +267,14 @@ class DispatchWorker:
 
         return processed
 
-    def _make_event_fire_callback(self) -> Any:
-        """Create a callback for EventAction dispatch."""
+    def _make_event_fire_callback(self, owner_principal_id: UUID) -> Any:
+        """Create a callback for EventAction dispatch.
+
+        A derived event re-fired by an EventAction is attributed to the OWNING
+        SUBSCRIPTION's principal: the subscription whose action triggered the
+        re-fire is the actor behind the new event. Every event the worker
+        processes flows through a subscription, so an owner is always in scope.
+        """
 
         async def _callback(
             event_type: str,
@@ -279,13 +283,9 @@ class DispatchWorker:
             from orxtra.trace import TraceWriter
 
             writer = TraceWriter(self._pool)
-            # Attribute the worker's re-fired event to the system principal.
-            # Subscription-owner attribution (crediting the event to the
-            # subscription that triggered the re-fire) arrives with ownership
-            # in the next phase; until then the worker itself is the actor.
             await writer.write_event(
                 None, event_type, data or {},
-                principal_id=self._system_principal_id,
+                principal_id=owner_principal_id,
             )
 
         return _callback

@@ -72,7 +72,7 @@ class StubPool:
         pass
 
 
-# System principal id used for the worker's own re-fired events.
+# A default actor principal for seeded events and subscription ownership.
 _SYSTEM_PID = uuid7()
 # A source principal used in event/routing tests.
 _SOURCE_PID = uuid7()
@@ -115,7 +115,6 @@ def _make_worker(
         pool=StubPool(),  # type: ignore[arg-type]
         cursor_name=cursor_name,
         events_channel="test_channel",
-        system_principal_id=_SYSTEM_PID,
         source_principal_resolver=_resolve_sources,
         poll_interval=poll_interval,
         batch_size=100,

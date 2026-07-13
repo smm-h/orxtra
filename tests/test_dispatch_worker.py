@@ -21,7 +21,13 @@ from orxtra.dispatch import (
     Subscription,
     SubscriptionAction,
 )
-from orxtra.protocols import LogAction, ScriptAction
+from orxtra.identity import PgPrincipalStorage
+from orxtra.protocols import (
+    KIND_CONSUMER,
+    EventAction,
+    LogAction,
+    ScriptAction,
+)
 from orxtra.services import (
     AsyncioFlushScheduler,
     SchemaError,
@@ -147,6 +153,32 @@ async def _create_subscription_with_script_action(
     return sub.id, action.id
 
 
+async def _create_subscription_with_event_action(
+    backend: PgDispatchBackend,
+    owner_principal_id: UUID,
+    event_types: list[str],
+    derived_event_type: str,
+) -> tuple[UUID, UUID]:
+    """Create a subscription owned by ``owner_principal_id`` whose action
+    re-fires ``derived_event_type`` via an EventAction."""
+    sub = Subscription(
+        id=uuid7(),
+        filter=FilterPredicate(event_types=event_types),
+        enabled=True,
+        storage="persistent",
+        principal_id=owner_principal_id,
+    )
+    await backend.create_subscription(sub)
+    action = SubscriptionAction(
+        id=uuid7(),
+        subscription_id=sub.id,
+        position=0,
+        action=EventAction(event_type=derived_event_type, data={"derived": True}),
+    )
+    await backend.create_action(action)
+    return sub.id, action.id
+
+
 async def _noop_source_resolver(_slugs: Any) -> set[UUID]:
     """These tests filter by event_type only; no source slug resolves."""
     return set()
@@ -159,12 +191,7 @@ def _make_worker(
     cursor_name: str = "test-cursor",
     poll_interval: float = 0.1,
 ) -> DispatchWorker:
-    """Build a DispatchWorker with test-friendly settings.
-
-    The system principal id is a bare sentinel: these tests use Script/Log
-    actions (never EventAction), so the worker never re-fires an event and the
-    id is never written.
-    """
+    """Build a DispatchWorker with test-friendly settings."""
     return DispatchWorker(
         backend=backend,
         action_executor=action_executor or TrackingActionExecutor(),
@@ -172,7 +199,6 @@ def _make_worker(
         pool=pool,
         cursor_name=cursor_name,
         events_channel=EVENTS_CHANNEL,
-        system_principal_id=uuid7(),
         source_principal_resolver=_noop_source_resolver,
         poll_interval=poll_interval,
         batch_size=100,
@@ -417,8 +443,6 @@ class TestServiceFactory:
         self, pg_pool: Any,
     ) -> None:
         """create_dispatch_worker returns a DispatchWorker that can run/stop."""
-        # The factory resolves the system principal from the DB; seed it first.
-        await _seed_system_principal(pg_pool)
         worker = await create_dispatch_worker(
             pg_pool,
             cursor_name="factory-test",
@@ -431,3 +455,51 @@ class TestServiceFactory:
         await asyncio.sleep(0.3)
         await worker.stop()
         await run_task
+
+
+class TestDerivedEventAttribution:
+    """Derived events are attributed to the owning subscription's principal."""
+
+    async def test_event_action_attributes_owning_principal(
+        self, pg_pool: Any,
+    ) -> None:
+        """A subscription owned by P with an EventAction re-fires a derived
+        event whose principal_id is P -- not the system principal."""
+        backend = PgDispatchBackend(pg_pool)
+
+        # Mint a distinct owner principal P for the subscription.
+        storage = PgPrincipalStorage(pg_pool)
+        owner = await storage.mint_principal(
+            KIND_CONSUMER, uuid7(), "derived-attr-owner",
+        )
+
+        # Subscription owned by P; its EventAction re-fires 'derived.by_p'.
+        await _create_subscription_with_event_action(
+            backend,
+            owner.id,
+            event_types=["trigger.for_p"],
+            derived_event_type="derived.by_p",
+        )
+
+        # Fire the triggering event (attributed to the system principal is fine;
+        # what matters is the DERIVED event's attribution).
+        await _fire_event(pg_pool, "trigger.for_p", {"seq": 0})
+
+        worker = _make_worker(
+            pg_pool, backend, cursor_name="derived-attr-cursor",
+        )
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.6)
+        await worker.stop()
+        await run_task
+
+        # The derived event exists and is attributed to P.
+        derived = await pg_pool.fetchrow(
+            "SELECT principal_id FROM events WHERE event_type = $1",
+            "derived.by_p",
+        )
+        assert derived is not None, "the EventAction must re-fire a derived event"
+        assert derived["principal_id"] == owner.id, (
+            "a derived event must be attributed to the owning subscription's "
+            "principal, not the system principal"
+        )
