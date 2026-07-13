@@ -69,6 +69,9 @@ class InMemoryBackend:
         self._control_callbacks: dict[UUID, Callable[[UUID, str], Awaitable[None]]] = {}
         # Knowledge hashes: run_id -> {path: hash}
         self._knowledge_hashes: dict[UUID, dict[str, str]] = {}
+        # Idempotency index: idempotency_key -> event_id of the stored event.
+        # Mirrors the PG partial unique index over events.idempotency_key.
+        self._idempotency_index: dict[str, UUID] = {}
 
     # ── TaskStorage ──
 
@@ -255,7 +258,20 @@ class InMemoryBackend:
         data: dict[str, Any],
         task_id: UUID | None = None,
         source: str = "internal",
-    ) -> UUID:
+        idempotency_key: str | None = None,
+    ) -> tuple[UUID, bool]:
+        """Insert an event. Returns ``(event_id, inserted)``.
+
+        Mirrors the PG backend's ``ON CONFLICT (idempotency_key) DO NOTHING``
+        semantics: when *idempotency_key* is provided and already seen, the
+        event is not inserted a second time and ``(existing_event_id, False)``
+        is returned. With no key, every call inserts and returns
+        ``(event_id, True)``.
+        """
+        if idempotency_key is not None:
+            existing = self._idempotency_index.get(idempotency_key)
+            if existing is not None:
+                return existing, False
         event_id = uuid6.uuid7()
         self._events.append({
             "id": event_id,
@@ -264,9 +280,12 @@ class InMemoryBackend:
             "source": source,
             "event_type": event_type,
             "data": data,
+            "idempotency_key": idempotency_key,
             "created_at": _now(),
         })
-        return event_id
+        if idempotency_key is not None:
+            self._idempotency_index[idempotency_key] = event_id
+        return event_id, True
 
     async def write_transcript_entry(
         self,

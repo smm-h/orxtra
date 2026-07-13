@@ -102,7 +102,8 @@ class EventStorage(Protocol):
         data: dict[str, Any],
         task_id: UUID | None = None,
         source: str = "internal",
-    ) -> UUID: ...
+        idempotency_key: str | None = None,
+    ) -> tuple[UUID, bool]: ...
 
     async def write_transcript_entry(
         self,

@@ -136,11 +136,11 @@ class PgBackend:
         data: dict[str, Any],
         task_id: UUID | None = None,
         source: str = "internal",
-    ) -> UUID:
-        event_id, _inserted = await self._writer.write_event(
-            run_id, event_type, data, task_id, source,
+        idempotency_key: str | None = None,
+    ) -> tuple[UUID, bool]:
+        return await self._writer.write_event(
+            run_id, event_type, data, task_id, source, idempotency_key,
         )
-        return event_id
 
     async def write_transcript_entry(
         self,
