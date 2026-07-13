@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from typing import Any
-from uuid import uuid4
+from unittest.mock import AsyncMock, patch
+from uuid import UUID, uuid4
 
 import pytest
 from a2a.types.a2a_pb2 import (
@@ -21,7 +23,8 @@ from orxtra.auth import (
     HmacCredentialVerifier,
     InMemoryAuthBackend,
 )
-from orxtra.protocols import TrustTier
+from orxtra.identity import InMemoryPrincipalStorage
+from orxtra.protocols import KIND_CONSUMER, TrustTier
 from orxtra.services import DispatchContext
 
 # -- Fixtures --
@@ -396,3 +399,114 @@ class TestWorkersWebSocket:
         types = [m["type"] for m in sent]
         assert "websocket.accept" in types
         assert "websocket.close" in types
+
+
+@dataclass(frozen=True)
+class _FakeRun:
+    """Minimal stand-in for RunReport; the access check reads created_by."""
+
+    created_by: UUID
+
+
+class TestAguiRunAccessThroughWall:
+    """The auth wall feeds auth_context into AG-UI, which then enforces
+    per-run ownership. These tests drive the full compositor: real bearer
+    auth wall -> AG-UI ownership check.
+    """
+
+    @staticmethod
+    async def _authed_app_with_owner(
+        agent_card: AgentCard,
+        skill_registry: SkillRegistry,
+    ) -> tuple[Any, str, UUID]:
+        """Build a compositor whose principal storage backs one consumer.
+
+        Returns (app, bearer_token, owner_principal_id) where the token
+        authenticates as the consumer whose principal is owner_principal_id.
+        """
+        backend = InMemoryAuthBackend()
+        token = "owner-token"
+        consumer_id = await backend.create_consumer(
+            "agui-owner",
+            TrustTier.IDENTIFIED,
+            ["api"],
+            consumer_id=uuid4(),
+            principal_id=uuid4(),
+        )
+        await backend.create_credential(consumer_id, "bearer", token)
+
+        storage = InMemoryPrincipalStorage()
+        # AuthContext.consumer_id == consumer_id; resolver looks it up by ref.
+        principal = await storage.mint_principal(
+            KIND_CONSUMER, consumer_id, "agui-owner",
+        )
+
+        verifiers: dict[str, HashCredentialVerifier | HmacCredentialVerifier] = {
+            "bearer": HashCredentialVerifier("bearer", backend),
+        }
+        authenticator = Authenticator(backend, verifiers)
+        ctx = DispatchContext(
+            pool=object(),  # sentinel: get_run is patched in the tests
+            principal_storage=storage,
+        )
+        config = CompositorConfig(
+            dispatch_context=ctx,
+            agent_card=agent_card,
+            skill_registry=skill_registry,
+            authenticator=authenticator,
+        )
+        return create_compositor(config), token, principal.id
+
+    async def test_owner_streams_own_run(
+        self, agent_card: AgentCard, skill_registry: SkillRegistry,
+    ) -> None:
+        app, token, owner_id = await self._authed_app_with_owner(
+            agent_card, skill_registry,
+        )
+        run = _FakeRun(created_by=owner_id)
+        with patch(
+            "orxtra.agui._server.get_run", new=AsyncMock(return_value=run),
+        ):
+            async with AsyncTestClient(app) as client:
+                async with asyncio.timeout(5), client.stream(
+                    "GET",
+                    "/ag-ui/events",
+                    params={"run_id": str(uuid4())},
+                    headers={"authorization": f"Bearer {token}"},
+                ) as resp:
+                    assert resp.status_code == 200
+
+    async def test_non_owner_gets_403(
+        self, agent_card: AgentCard, skill_registry: SkillRegistry,
+    ) -> None:
+        app, token, _owner_id = await self._authed_app_with_owner(
+            agent_card, skill_registry,
+        )
+        run = _FakeRun(created_by=uuid4())  # a different principal owns it
+        with patch(
+            "orxtra.agui._server.get_run", new=AsyncMock(return_value=run),
+        ):
+            async with AsyncTestClient(app) as client:
+                resp = await client.get(
+                    "/ag-ui/events",
+                    params={"run_id": str(uuid4())},
+                    headers={"authorization": f"Bearer {token}"},
+                )
+                assert resp.status_code == 403
+
+    async def test_unknown_run_gets_404(
+        self, agent_card: AgentCard, skill_registry: SkillRegistry,
+    ) -> None:
+        app, token, _owner_id = await self._authed_app_with_owner(
+            agent_card, skill_registry,
+        )
+        with patch(
+            "orxtra.agui._server.get_run", new=AsyncMock(return_value=None),
+        ):
+            async with AsyncTestClient(app) as client:
+                resp = await client.get(
+                    "/ag-ui/events",
+                    params={"run_id": str(uuid4())},
+                    headers={"authorization": f"Bearer {token}"},
+                )
+                assert resp.status_code == 404
