@@ -15,7 +15,8 @@ from orxtra.overseer._learning import (
     filter_stale_lessons,
     query_relevant_lessons,
 )
-from orxtra.overseer._overseer import Overseer, OverseerEvent, load_overseer_prompt
+from orxtra.overseer._overseer import Overseer, load_overseer_prompt
+from orxtra.protocols import OverseerEvent
 
 __all__ = [
     "AutonomyLevel",

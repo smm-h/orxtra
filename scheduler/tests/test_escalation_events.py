@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
-    from orxtra.scheduler._overseer import OverseerEvent
+    from orxtra.protocols import OverseerEvent
 
 
 class MockOverseerInterface:

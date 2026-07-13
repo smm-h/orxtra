@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from orxtra.protocols import ToolDeps as ToolDeps
+from orxtra.protocols import ToolDeps
 
 if TYPE_CHECKING:
     from collections.abc import Callable

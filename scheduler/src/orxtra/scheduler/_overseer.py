@@ -5,9 +5,7 @@ import logging
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Protocol
 
-from orxtra.protocols import (
-    OverseerEvent as OverseerEvent,
-)
+from orxtra.protocols import OverseerEvent
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable

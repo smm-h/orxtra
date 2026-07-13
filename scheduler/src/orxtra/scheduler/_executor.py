@@ -52,11 +52,8 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxtra.agent import Agent
-    from orxtra.protocols import EventSink, Execution
-    from orxtra.scheduler._overseer import (
-        OverseerEvent,
-        OverseerInterface,
-    )
+    from orxtra.protocols import EventSink, Execution, OverseerEvent
+    from orxtra.scheduler._overseer import OverseerInterface
     from orxtra.scheduler._tool_registry import ToolEntry
     from orxtra.scheduler._types import WorkflowConfig
     from orxtra.secrets import SecretRegistry

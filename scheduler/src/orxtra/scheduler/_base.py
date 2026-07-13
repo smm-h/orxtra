@@ -25,13 +25,14 @@ if TYPE_CHECKING:
         EventDelivery,
         EventSink,
         Execution,
+        OverseerEvent,
         TaskContext,
         TaskResult,
         TaskSpec,
         TaskState,
     )
     from orxtra.scheduler._locks import FileLockRegistry
-    from orxtra.scheduler._overseer import OverseerEvent, OverseerInterface
+    from orxtra.scheduler._overseer import OverseerInterface
     from orxtra.scheduler._services import ServiceInstance
     from orxtra.scheduler._tool_registry import ToolEntry, ToolRegistry
     from orxtra.secrets import SecretRegistry

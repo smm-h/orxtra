@@ -21,7 +21,7 @@ from .conftest import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from orxtra.scheduler._overseer import OverseerEvent
+    from orxtra.protocols import OverseerEvent
 
 
 @pytest.fixture

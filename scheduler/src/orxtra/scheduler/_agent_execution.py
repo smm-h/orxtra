@@ -16,6 +16,7 @@ from orxtra.protocols import (
     TaskSpec,
     TaskState,
     Tool,
+    ToolDeps,
     ToolOutput,
 )
 from orxtra.scheduler._allow_resolver import resolve_allow_list
@@ -33,7 +34,6 @@ from orxtra.scheduler._prompt_templates import (
 from orxtra.scheduler._tool_registry import (
     SYNTHETIC_ENTRIES,
     WRITE_TOOL_NAMES,
-    ToolDeps,
 )
 from orxtra.session import Session, create_session
 from orxtra.tool import (
@@ -1214,7 +1214,7 @@ class AgentExecutionMixin(SchedulerBase):
                 build_monty_tool,
             )
 
-            _BUILDERS: dict[type, Any] = {
+            builders: dict[type, Any] = {
                 CommandExecution: build_command_tool,
                 MontyExecution: build_monty_tool,
                 HttpExecution: build_http_tool,
@@ -1251,7 +1251,7 @@ class AgentExecutionMixin(SchedulerBase):
                     if not ns_match and "*" not in agent_def.allow:
                         continue
 
-                builder = _BUILDERS.get(type(defn.execution))
+                builder = builders.get(type(defn.execution))
                 if builder is None:
                     msg = (
                         f"No builder registered for execution "
