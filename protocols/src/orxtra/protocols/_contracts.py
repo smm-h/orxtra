@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
+    from datetime import timedelta
     from uuid import UUID
 
     from orxtra.protocols._types._auth import (
@@ -384,5 +385,25 @@ class PrincipalStorage(Protocol):
         has history: events/runs/inbox/sources/consumers FKs are RESTRICT,
         so a principal with any such references cannot be deleted. The
         domain exception is defined by the identity module.
+        """
+        ...
+
+    async def sweep_orphaned_run_principals(
+        self, older_than: timedelta,
+    ) -> int:
+        """Delete kind=run principals with no matching ``runs`` row.
+
+        Orphaned run principals are created by a mint-first that crashed
+        before ``create_run`` inserted the matching runs row. They
+        accumulate silently; the RESTRICT FKs independently guarantee
+        only zero-history rows can be deleted.
+
+        The ``older_than`` guard closes a race with concurrent
+        ``start_run``: a principal minted moments ago may not yet have
+        its runs row (the INSERT is the next statement). Principals
+        younger than ``now - older_than`` are skipped, making the race
+        structurally impossible with a conservative window.
+
+        Returns the count of deleted principals.
         """
         ...
