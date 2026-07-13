@@ -1,9 +1,9 @@
 {
-  ".": "03333762744b4ba5ef0fdd49c38b4753d1fe6ff7266969c5ae734f136d48365a",
+  ".": "e3401a8806b3a8f1a0d6cd047e36c5fe41c51c7a037ac7ac0e25c3214dfed3b0",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "write-safety": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "transport": null,
+  "transport": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "agent": null,
   "tool": null,
   "verify": null,
