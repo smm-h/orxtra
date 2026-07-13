@@ -17,6 +17,10 @@ class PrincipalInUseError(Exception):
     The right way to retire an actor with history is to deactivate it on the
     consuming side (e.g. disable the consumer, archive the source), not to
     delete its identity row.
+
+    Until the referencing FKs land in a later phase, no table points at
+    ``principals`` yet, so deletes of unreferenced principals succeed silently
+    and this error is not yet raised in practice.
     """
 
     def __init__(self, principal_id: UUID) -> None:

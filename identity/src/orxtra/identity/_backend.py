@@ -136,6 +136,10 @@ class PgPrincipalStorage:
         Referencing foreign keys are RESTRICT, so PostgreSQL raises a
         ``ForeignKeyViolationError`` which is translated into the domain
         error here.
+
+        Until the referencing FKs land in a later phase, no table points at
+        ``principals`` yet, so deletes of unreferenced principals simply
+        succeed silently and this translation path is dormant.
         """
         try:
             async with self._pool.acquire() as conn, conn.transaction():
