@@ -64,8 +64,11 @@ jobs:
           "orxtra@v"*)
             regex='^(notepad\-ci) / '
             ;;
+          "orxtra@v"*)
+            regex='^(session\-ci) / '
+            ;;
           *)
-            echo "::error::Publish gate: ref '$GITHUB_REF_NAME' matches no project tag prefix (known prefixes: orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v)."
+            echo "::error::Publish gate: ref '$GITHUB_REF_NAME' matches no project tag prefix (known prefixes: orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v, orxtra@v)."
             echo "To retry a release publish, dispatch this workflow at the tag ref: gh workflow run publish.yml --ref <tag>"
             exit 1
             ;;
@@ -413,3 +416,28 @@ jobs:
     defaults:
       run:
         working-directory: notepad
+  session-publish:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - name: Install gitleaks
+      run: |
+        GITLEAKS_VERSION=8.24.3
+        curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz -C /usr/local/bin gitleaks
+    - run: uv build --out-dir dist
+    - name: Scan artifacts for secrets
+      run: |
+        gitleaks dir dist/
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
+        packages-dir: session/dist/
+    permissions:
+      contents: read
+      id-token: write
+    if: startsWith(github.ref_name, 'orxtra@v')
+    defaults:
+      run:
+        working-directory: session
