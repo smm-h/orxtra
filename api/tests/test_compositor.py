@@ -303,6 +303,22 @@ class TestAuthWall:
             )
             assert resp.status_code not in (401, 404)
 
+    async def test_root_agent_card_public_when_authenticated(
+        self, authed_app: Any,
+    ) -> None:
+        """The ROOT /.well-known/agent.json stays public even with auth.
+
+        It is the deliberate discovery surface, registered directly on the
+        root router rather than behind the auth wall. Anonymous clients must
+        still fetch it (200) so they can learn how to authenticate. The SDK's
+        in-wall card at /a2a/.well-known/agent-card.json correctly stays 401
+        (see test_a2a_agent_card_rejects_unauthenticated).
+        """
+        async with AsyncTestClient(authed_app) as client:
+            resp = await client.get("/.well-known/agent.json")
+            assert resp.status_code == 200
+            assert resp.json()["name"] == "test-agent"
+
     async def test_mcp_unauthenticated_when_no_authenticator(
         self, app: Any,
     ) -> None:
