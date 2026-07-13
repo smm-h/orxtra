@@ -1,5 +1,5 @@
 {
-  ".": "cfe559f7acd37b62f4dec6657e9177ece74f50f5b223bcfb7b44644400ddaac4",
+  ".": "7259da8ba995186e1cb065eca345436d94f984e3f3ebb7d5aa86a2866ecd34a5",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "write-safety": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
@@ -7,7 +7,7 @@
   "agent": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "tool": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "verify": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "trace": null,
+  "trace": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "notepad": null,
   "session": null,
   "compose": null,
