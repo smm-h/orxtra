@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import importlib.util as _ilu
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
@@ -14,32 +14,19 @@ from orxtra.protocols import (
     KIND_SYSTEM,
     SCOPE_RUNS_READ,
     SYSTEM_PRINCIPAL_EXTERNAL_REF,
-    AuthContext,
     Capability,
     TrustTier,
 )
 from orxtra.services._dispatcher import DispatchContext, dispatch
 from pydantic import BaseModel, ValidationError
 
-_DEFAULT_CONSUMER_ID = UUID(int=2)
-
-
-def _auth_context(
-    scopes: frozenset[str],
-    *,
-    trust_tier: TrustTier = TrustTier.IDENTIFIED,
-    consumer_id: UUID | None = _DEFAULT_CONSUMER_ID,
-) -> AuthContext:
-    """Build an ephemeral AuthContext for dispatcher tests."""
-    return AuthContext(
-        id=UUID(int=1),
-        consumer_id=consumer_id,
-        scopes=scopes,
-        trust_tier=trust_tier,
-        authenticated_via="test",
-        issued_at=datetime.now(UTC),
-        expires_at=None,
-    )
+_spec = _ilu.spec_from_file_location(
+    "tests.shared_mocks",
+    Path(__file__).resolve().parents[2] / "tests" / "shared_mocks.py",
+)
+_mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
+_spec.loader.exec_module(_mod)  # type: ignore[union-attr]
+make_auth_context = _mod.make_auth_context
 
 
 class _NoParams(BaseModel):
@@ -79,7 +66,7 @@ def mock_pool() -> AsyncMock:
 
 @pytest.fixture
 def context(mock_pool: AsyncMock) -> DispatchContext:
-    return DispatchContext(pool=mock_pool)
+    return DispatchContext(pool=mock_pool, auth_context=make_auth_context())
 
 
 @pytest.mark.asyncio
@@ -146,7 +133,7 @@ async def test_dispatch_fire_event(
 async def test_dispatch_show_pricing_no_pool(mock_get_fn: MagicMock) -> None:
     mock_fn = AsyncMock(return_value={"model": {}})
     mock_get_fn.return_value = mock_fn
-    ctx = DispatchContext()  # no pool
+    ctx = DispatchContext(auth_context=make_auth_context())  # no pool
 
     result = await dispatch(ctx, "show_pricing", {})
 
@@ -159,7 +146,7 @@ async def test_dispatch_show_pricing_no_pool(mock_get_fn: MagicMock) -> None:
 async def test_dispatch_validate_agent_no_pool(mock_get_fn: MagicMock) -> None:
     mock_fn = AsyncMock(return_value=[])
     mock_get_fn.return_value = mock_fn
-    ctx = DispatchContext()  # no pool
+    ctx = DispatchContext(auth_context=make_auth_context())  # no pool
 
     result = await dispatch(ctx, "validate_agent", {"path": "/agents/test.toml"})
 
@@ -170,7 +157,7 @@ async def test_dispatch_validate_agent_no_pool(mock_get_fn: MagicMock) -> None:
 @pytest.mark.asyncio
 @patch("orxtra.services._dispatcher.get_capability_fn")
 async def test_dispatch_subscribe_requires_backend(mock_get_fn: MagicMock) -> None:
-    ctx = DispatchContext()  # no backend
+    ctx = DispatchContext(auth_context=make_auth_context())  # no backend
     with pytest.raises(ValueError, match="requires a dispatch backend"):
         await dispatch(
             ctx,
@@ -188,7 +175,9 @@ async def test_dispatch_subscribe_with_backend(mock_get_fn: MagicMock) -> None:
     mock_fn = AsyncMock(return_value=UUID("00000000-0000-0000-0000-000000000001"))
     mock_get_fn.return_value = mock_fn
     mock_backend = AsyncMock()
-    ctx = DispatchContext(dispatch_backend=mock_backend)
+    ctx = DispatchContext(
+        dispatch_backend=mock_backend, auth_context=make_auth_context()
+    )
 
     await dispatch(
         ctx,
@@ -224,14 +213,14 @@ async def test_dispatch_pure_capability_ignores_pool(
 
 @pytest.mark.asyncio
 async def test_dispatch_pool_required_error() -> None:
-    ctx = DispatchContext()  # no pool
+    ctx = DispatchContext(auth_context=make_auth_context())  # no pool
     with pytest.raises(ValueError, match="requires a database pool"):
         await dispatch(ctx, "list_runs", {})
 
 
 @pytest.mark.asyncio
 async def test_dispatch_invalid_params() -> None:
-    ctx = DispatchContext(pool=AsyncMock())
+    ctx = DispatchContext(pool=AsyncMock(), auth_context=make_auth_context())
     with pytest.raises(ValidationError):
         await dispatch(ctx, "get_run", {"wrong_param": "value"})
 
@@ -262,7 +251,9 @@ async def test_dispatch_get_principal_routes_storage(mock_get_fn: MagicMock) -> 
     mock_fn = AsyncMock(return_value=None)
     mock_get_fn.return_value = mock_fn
     mock_storage = AsyncMock()
-    ctx = DispatchContext(principal_storage=mock_storage)
+    ctx = DispatchContext(
+        principal_storage=mock_storage, auth_context=make_auth_context()
+    )
     principal_id = "12345678-1234-1234-1234-123456789abc"
 
     await dispatch(ctx, "get_principal", {"principal_id": principal_id})
@@ -283,6 +274,7 @@ async def test_dispatch_create_principal_routes_storage_and_registry(
     ctx = DispatchContext(
         principal_storage=mock_storage,
         kind_registry=mock_registry,
+        auth_context=make_auth_context(),
     )
     external_ref = "12345678-1234-1234-1234-123456789abc"
 
@@ -307,7 +299,7 @@ async def test_dispatch_create_principal_routes_storage_and_registry(
 
 @pytest.mark.asyncio
 async def test_dispatch_principal_storage_required_error() -> None:
-    ctx = DispatchContext()  # no principal_storage
+    ctx = DispatchContext(auth_context=make_auth_context())  # no principal_storage
     with pytest.raises(ValueError, match="requires a principal storage backend"):
         await dispatch(
             ctx,
@@ -319,7 +311,9 @@ async def test_dispatch_principal_storage_required_error() -> None:
 @pytest.mark.asyncio
 async def test_dispatch_kind_registry_required_error() -> None:
     # Storage present, but the registry the capability also declares is absent.
-    ctx = DispatchContext(principal_storage=AsyncMock())
+    ctx = DispatchContext(
+        principal_storage=AsyncMock(), auth_context=make_auth_context()
+    )
     with pytest.raises(ValueError, match="requires a principal kind registry"):
         await dispatch(
             ctx,
@@ -369,7 +363,7 @@ async def test_dispatch_resolves_caller_principal(
     )
     ctx = DispatchContext(
         principal_storage=storage,
-        auth_context=_auth_context(
+        auth_context=make_auth_context(
             frozenset({SCOPE_RUNS_READ}),
             trust_tier=TrustTier.SYSTEM,
             consumer_id=None,
@@ -390,11 +384,17 @@ async def test_dispatch_resolves_caller_principal(
 async def test_dispatch_caller_principal_requires_auth_context(
     mock_get_fn: MagicMock, mock_get_cap: MagicMock
 ) -> None:
+    # A caller_principal-declaring capability with no auth context is stopped
+    # by the dispatch-level authorization guard, which fires BEFORE any inject
+    # resolution. The message is the dispatch guard's, not the inject helper's:
+    # enforcement now supersedes the (still type-narrowing) inject-level check.
     mock_get_cap.return_value = _CALLER_PRINCIPAL_CAP
     mock_get_fn.return_value = AsyncMock()
     ctx = DispatchContext(principal_storage=InMemoryPrincipalStorage())
 
-    with pytest.raises(ValueError, match="requires an authenticated caller context"):
+    with pytest.raises(
+        ValueError, match="requires an authenticated context to dispatch"
+    ):
         await dispatch(ctx, "_caller_principal_probe", {})
 
 
@@ -407,7 +407,7 @@ async def test_dispatch_caller_principal_requires_principal_storage(
     mock_get_cap.return_value = _CALLER_PRINCIPAL_CAP
     mock_get_fn.return_value = AsyncMock()
     ctx = DispatchContext(
-        auth_context=_auth_context(
+        auth_context=make_auth_context(
             frozenset({SCOPE_RUNS_READ}),
             trust_tier=TrustTier.SYSTEM,
             consumer_id=None,
@@ -418,21 +418,15 @@ async def test_dispatch_caller_principal_requires_principal_storage(
         await dispatch(ctx, "_caller_principal_probe", {})
 
 
-# -- Enforcement contracts (Phase 2.1a groundwork; NO enforcement yet) --
+# -- Enforcement contracts (Phase 2.7: enforcement is LIVE) --
 #
-# The two xfail tests below describe the POST-enforcement world. The later
-# subphase that wires the Authorizer into dispatch() flips them from xfail to
-# passing. They are non-strict xfail so that, once enforcement lands and they
-# start passing (xpass), the suite stays green without a forced failure.
-# test_dispatch_scoped_capability_with_correct_scope_succeeds already passes
-# today (no enforcement = everything passes) and must survive the flip
-# unchanged.
+# dispatch() now enforces authorization at the choke point: an absent
+# auth_context is a hard error, and a context missing the capability's
+# required scope raises AuthorizationError.
+# test_dispatch_scoped_capability_with_correct_scope_succeeds proves the
+# correctly-scoped path still dispatches unchanged.
 
 
-@pytest.mark.xfail(
-    reason="Enforcement wired in a later 2.1 subphase; no scope check yet.",
-    strict=False,
-)
 @pytest.mark.asyncio
 @patch("orxtra.services._dispatcher.get_capability_fn")
 async def test_dispatch_scoped_capability_without_auth_context_raises(
@@ -445,10 +439,6 @@ async def test_dispatch_scoped_capability_without_auth_context_raises(
         await dispatch(ctx, "list_runs", {})
 
 
-@pytest.mark.xfail(
-    reason="Enforcement wired in a later 2.1 subphase; no scope check yet.",
-    strict=False,
-)
 @pytest.mark.asyncio
 @patch("orxtra.services._dispatcher.get_capability_fn")
 async def test_dispatch_scoped_capability_missing_scope_raises(
@@ -458,7 +448,7 @@ async def test_dispatch_scoped_capability_missing_scope_raises(
     # list_runs requires SCOPE_RUNS_READ; this context lacks it.
     ctx = DispatchContext(
         pool=AsyncMock(),
-        auth_context=_auth_context(frozenset()),
+        auth_context=make_auth_context(frozenset()),
     )
 
     with pytest.raises(AuthorizationError):
@@ -476,7 +466,7 @@ async def test_dispatch_scoped_capability_with_correct_scope_succeeds(
     mock_get_fn.return_value = mock_fn
     ctx = DispatchContext(
         pool=AsyncMock(),
-        auth_context=_auth_context(frozenset({SCOPE_RUNS_READ})),
+        auth_context=make_auth_context(frozenset({SCOPE_RUNS_READ})),
     )
 
     result = await dispatch(ctx, "list_runs", {})

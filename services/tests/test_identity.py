@@ -8,6 +8,8 @@ and ``PrincipalInUseError`` propagation.
 
 from __future__ import annotations
 
+import importlib.util as _ilu
+from pathlib import Path
 from uuid import UUID
 
 import pytest
@@ -18,6 +20,14 @@ from orxtra.identity import (
 )
 from orxtra.protocols import KIND_SYSTEM, Principal
 from orxtra.services import DispatchContext, dispatch
+
+_spec = _ilu.spec_from_file_location(
+    "tests.shared_mocks",
+    Path(__file__).resolve().parents[2] / "tests" / "shared_mocks.py",
+)
+_mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]
+_spec.loader.exec_module(_mod)  # type: ignore[union-attr]
+make_auth_context = _mod.make_auth_context
 
 _APP_KIND = "user"
 _EXT_REF = "11111111-1111-1111-1111-111111111111"
@@ -31,6 +41,7 @@ def _context(
     return DispatchContext(
         principal_storage=storage,
         kind_registry=KindRegistry(app_kinds),
+        auth_context=make_auth_context(),
     )
 
 
