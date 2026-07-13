@@ -114,6 +114,73 @@ _MIGRATION_SQL = [
 
     """CREATE INDEX IF NOT EXISTS idx_dispatch_completions_action
        ON dispatch_completions (subscription_action_id)""",
+
+    # 11. New table: principals (identity module; absent in the v0.8.0 baseline).
+    """CREATE TABLE IF NOT EXISTS principals (
+        id uuid NOT NULL DEFAULT uuid_generate_v7(),
+        kind text NOT NULL,
+        external_ref uuid NOT NULL,
+        display_name text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT pk_principals PRIMARY KEY (id)
+    )""",
+
+    # 12. Unique (kind, external_ref) so mint + backfill stay idempotent.
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'uq_principals_kind_external_ref'
+        AND conrelid = 'principals'::regclass
+      ) THEN
+        ALTER TABLE principals
+            ADD CONSTRAINT uq_principals_kind_external_ref
+            UNIQUE (kind, external_ref);
+      END IF;
+    END $$;""",
+
+    # 13. Seed the singleton system principal (all-zeros external_ref sentinel).
+    """INSERT INTO principals (kind, external_ref, display_name)
+       VALUES ('system', '00000000-0000-0000-0000-000000000000', 'system')
+       ON CONFLICT (kind, external_ref) DO NOTHING""",
+
+    # 14. Mint a run principal per existing run (kind=run, external_ref=run id,
+    # display_name NULL -- the runs table carries the run's descriptive data).
+    """INSERT INTO principals (kind, external_ref, display_name)
+       SELECT 'run', r.id, NULL FROM runs r
+       ON CONFLICT (kind, external_ref) DO NOTHING""",
+
+    # 15. New column: runs.created_by (nullable first so existing rows survive).
+    """ALTER TABLE runs ADD COLUMN IF NOT EXISTS created_by uuid""",
+
+    # 16. Backfill ALL existing runs to the system principal (the original
+    # creator is unknowable for historical rows).
+    """UPDATE runs SET created_by = (
+           SELECT id FROM principals
+           WHERE kind = 'system'
+           AND external_ref = '00000000-0000-0000-0000-000000000000'
+       ) WHERE created_by IS NULL""",
+
+    # 17. Enforce NOT NULL now that every row is backfilled.
+    """ALTER TABLE runs ALTER COLUMN created_by SET NOT NULL""",
+
+    # 18. FK runs.created_by -> principals.id ON DELETE RESTRICT.
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_runs_created_by'
+        AND conrelid = 'runs'::regclass
+      ) THEN
+        ALTER TABLE runs ADD CONSTRAINT fk_runs_created_by
+            FOREIGN KEY (created_by) REFERENCES principals (id)
+            ON DELETE RESTRICT;
+      END IF;
+    END $$;""",
+
+    # 19. Index on runs.created_by.
+    """CREATE INDEX IF NOT EXISTS idx_runs_created_by
+       ON runs (created_by)""",
 ]
 
 
@@ -248,6 +315,16 @@ async def test_migration_from_v080_baseline(
         # Verify baseline does NOT have the new objects
         assert "dispatch_cursor" not in table_names, "dispatch_cursor should not exist in baseline"
         assert "dispatch_completions" not in table_names, "dispatch_completions should not exist in baseline"
+        assert "principals" not in table_names, "principals should not exist in baseline"
+
+        runs_cols = await conn.fetch(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'runs' ORDER BY ordinal_position",
+        )
+        runs_col_names = [c["column_name"] for c in runs_cols]
+        assert "created_by" not in runs_col_names, (
+            "created_by should not exist in baseline runs"
+        )
 
         events_cols = await conn.fetch(
             "SELECT column_name FROM information_schema.columns "
@@ -521,6 +598,69 @@ async def test_migration_from_v080_baseline(
         )
         assert hmac_cred is not None
         assert hmac_cred["secret_ref"] == "env:WEBHOOK_SECRET"
+
+        # 4g: principals table now exists with the system principal seeded.
+        post_migration_tables = await conn.fetch(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'public'",
+        )
+        assert "principals" in {
+            r["table_name"] for r in post_migration_tables
+        }, "principals should exist after migration"
+
+        system_principal = await conn.fetchrow(
+            "SELECT id FROM principals "
+            "WHERE kind = 'system' "
+            "AND external_ref = '00000000-0000-0000-0000-000000000000'",
+        )
+        assert system_principal is not None, "system principal should be seeded"
+        system_principal_id = system_principal["id"]
+
+        # 4h: a run principal was minted for the pre-existing run.
+        run_principal = await conn.fetchrow(
+            "SELECT id, display_name FROM principals "
+            "WHERE kind = 'run' AND external_ref = $1",
+            run_id,
+        )
+        assert run_principal is not None, (
+            "each pre-existing run should get a run principal"
+        )
+        assert run_principal["display_name"] is None, (
+            "run principals carry no display name"
+        )
+
+        # 4i: runs.created_by exists, is NOT NULL, and the historical run was
+        # backfilled to the system principal.
+        migrated_run = await conn.fetchrow(
+            "SELECT created_by FROM runs WHERE id = $1", run_id,
+        )
+        assert migrated_run is not None
+        assert migrated_run["created_by"] == system_principal_id, (
+            "historical runs must be backfilled to the system principal"
+        )
+
+        created_by_col = await conn.fetchrow(
+            "SELECT is_nullable FROM information_schema.columns "
+            "WHERE table_name = 'runs' AND column_name = 'created_by'",
+        )
+        assert created_by_col is not None
+        assert created_by_col["is_nullable"] == "NO", (
+            "runs.created_by must be NOT NULL after migration"
+        )
+
+        # NOT NULL is enforced: a run without created_by is rejected.
+        with pytest.raises(Exception, match="created_by"):
+            await conn.execute(
+                """INSERT INTO runs (intent, autonomy_level)
+                   VALUES ('no creator', 'medium')""",
+            )
+
+        # FK RESTRICT is enforced: deleting a referenced principal is blocked.
+        with pytest.raises(Exception, match="fk_runs_created_by"):
+            await conn.execute(
+                "DELETE FROM principals WHERE id = $1",
+                system_principal_id,
+            )
 
     finally:
         await conn.close()
