@@ -269,6 +269,82 @@ _MIGRATION_SQL = [
             UNIQUE (principal_id);
       END IF;
     END $$;""",
+
+    # -- events attribution flip: events.source -> events.principal_id --------
+
+    # 32. New column: events.principal_id (nullable first so existing rows
+    # survive the backfill).
+    """ALTER TABLE events ADD COLUMN IF NOT EXISTS principal_id uuid""",
+
+    # 33. events is append-only (deny_mutation trigger blocks UPDATE/DELETE).
+    # Disable it for the one-time backfill, then re-enable in 33d.
+    """ALTER TABLE events DISABLE TRIGGER deny_mutation""",
+
+    # 33a. Run-attached events -> that run's principal (kind='run',
+    # external_ref = the run id). Covers both 'internal' and 'overseer' sources
+    # that carry a run_id.
+    """UPDATE events e SET principal_id = p.id
+       FROM principals p
+       WHERE e.run_id IS NOT NULL
+         AND p.kind = 'run' AND p.external_ref = e.run_id
+         AND e.principal_id IS NULL""",
+
+    # 33b. Run-less events whose source matches an existing source slug -> that
+    # source's principal (kind='source', external_ref = the source id).
+    """UPDATE events e SET principal_id = p.id
+       FROM sources s
+       JOIN principals p ON p.kind = 'source' AND p.external_ref = s.id
+       WHERE e.run_id IS NULL AND e.source = s.slug
+         AND e.principal_id IS NULL""",
+
+    # 33c. Everything else (internal without a run, dispatch-worker, orphaned
+    # slugs whose source row no longer exists) -> the system principal.
+    """UPDATE events SET principal_id = (
+           SELECT id FROM principals
+           WHERE kind = 'system'
+           AND external_ref = '00000000-0000-0000-0000-000000000000'
+       ) WHERE principal_id IS NULL""",
+
+    # 33d. Re-enable the append-only trigger now that the backfill is done.
+    """ALTER TABLE events ENABLE TRIGGER deny_mutation""",
+
+    # 34. Enforce NOT NULL now that every event has an actor.
+    """ALTER TABLE events ALTER COLUMN principal_id SET NOT NULL""",
+
+    # 35. FK events.principal_id -> principals.id ON DELETE RESTRICT.
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_events_principal'
+        AND conrelid = 'events'::regclass
+      ) THEN
+        ALTER TABLE events ADD CONSTRAINT fk_events_principal
+            FOREIGN KEY (principal_id) REFERENCES principals (id)
+            ON DELETE RESTRICT;
+      END IF;
+    END $$;""",
+
+    # 36. New index on (principal_id, created_at DESC).
+    """CREATE INDEX IF NOT EXISTS idx_events_principal_created
+       ON events (principal_id, created_at DESC)""",
+
+    # 37. Drop the old source column and its index.
+    """DROP INDEX IF EXISTS idx_events_source_created""",
+    """ALTER TABLE events DROP COLUMN IF EXISTS source""",
+
+    # 38. Replace the NOTIFY trigger function body: source -> principal_id.
+    """CREATE OR REPLACE FUNCTION notify_orxtra_event() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('orxtra_events', json_build_object(
+        'event_id', NEW.id,
+        'run_id', NEW.run_id,
+        'principal_id', NEW.principal_id::text,
+        'event_type', NEW.event_type
+    )::text);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql""",
 ]
 
 
@@ -500,6 +576,34 @@ async def test_migration_from_v080_baseline(
             "sha256_hash_placeholder",
         )
 
+        # Seed the remaining legacy event shapes so the principal_id backfill
+        # is exercised across all four rules (plus an orphaned slug).
+        # (1) event_id above is the run-attached 'internal' event.
+        # (2) overseer-sourced event that still carries a run_id.
+        event_overseer_id = await conn.fetchval(
+            """INSERT INTO events (run_id, event_type, source, data)
+               VALUES ($1, $2, $3, $4::jsonb) RETURNING id""",
+            run_id, "run.overseer_note", "overseer", "{}",
+        )
+        # (3) dispatch-worker event with no run.
+        event_worker_id = await conn.fetchval(
+            """INSERT INTO events (run_id, event_type, source, data)
+               VALUES (NULL, $1, $2, $3::jsonb) RETURNING id""",
+            "dispatch.refired", "dispatch-worker", "{}",
+        )
+        # (4) webhook event whose source matches an existing source slug.
+        event_webhook_id = await conn.fetchval(
+            """INSERT INTO events (run_id, event_type, source, data)
+               VALUES (NULL, $1, $2, $3::jsonb) RETURNING id""",
+            "webhook.push", "test-source", "{}",
+        )
+        # (5) orphaned-slug event: its source row does not exist.
+        event_orphan_id = await conn.fetchval(
+            """INSERT INTO events (run_id, event_type, source, data)
+               VALUES (NULL, $1, $2, $3::jsonb) RETURNING id""",
+            "webhook.ghost", "ghost-slug-404", "{}",
+        )
+
         # Also seed a subscription + action (needed for dispatch_completions FK)
         sub_id = await conn.fetchval(
             """INSERT INTO subscriptions (storage)
@@ -550,28 +654,35 @@ async def test_migration_from_v080_baseline(
             "Pre-existing events should have NULL idempotency_key"
         )
 
+        # Post-migration inserts must supply principal_id (now NOT NULL). Use
+        # the system principal as a valid actor for these index-behavior probes.
+        sys_pid = await conn.fetchval(
+            "SELECT id FROM principals WHERE kind = 'system'"
+            " AND external_ref = '00000000-0000-0000-0000-000000000000'",
+        )
+
         # Verify partial unique index: duplicate key -> conflict
         await conn.execute(
-            """INSERT INTO events (run_id, event_type, idempotency_key)
-               VALUES ($1, 'test.dedup1', 'unique-key-1')""",
-            run_id,
+            """INSERT INTO events (run_id, event_type, idempotency_key, principal_id)
+               VALUES ($1, 'test.dedup1', 'unique-key-1', $2)""",
+            run_id, sys_pid,
         )
         with pytest.raises(Exception, match="idx_events_idempotency_key"):
             await conn.execute(
-                """INSERT INTO events (run_id, event_type, idempotency_key)
-                   VALUES ($1, 'test.dedup2', 'unique-key-1')""",
-                run_id,
+                """INSERT INTO events (run_id, event_type, idempotency_key, principal_id)
+                   VALUES ($1, 'test.dedup2', 'unique-key-1', $2)""",
+                run_id, sys_pid,
             )
         # NULL keys should not conflict (partial index excludes NULLs)
         await conn.execute(
-            """INSERT INTO events (run_id, event_type)
-               VALUES ($1, 'test.null_key1')""",
-            run_id,
+            """INSERT INTO events (run_id, event_type, principal_id)
+               VALUES ($1, 'test.null_key1', $2)""",
+            run_id, sys_pid,
         )
         await conn.execute(
-            """INSERT INTO events (run_id, event_type)
-               VALUES ($1, 'test.null_key2')""",
-            run_id,
+            """INSERT INTO events (run_id, event_type, principal_id)
+               VALUES ($1, 'test.null_key2', $2)""",
+            run_id, sys_pid,
         )
 
         # 4c: New column - sources.config exists and is NULL for old rows
@@ -875,6 +986,97 @@ async def test_migration_from_v080_baseline(
                 "DELETE FROM principals WHERE id = $1",
                 consumer_principal["id"],
             )
+
+        # 4l: events.principal_id backfill maps every legacy shape per rule.
+        run_principal_id = run_principal["id"]
+        source_principal_id = source_principal["id"]
+
+        async def _event_principal(eid: Any) -> Any:
+            return await conn.fetchval(
+                "SELECT principal_id FROM events WHERE id = $1", eid,
+            )
+
+        # (1) run-attached 'internal' event -> the run's principal.
+        assert await _event_principal(event_id) == run_principal_id, (
+            "a run-attached event must attribute to the run principal"
+        )
+        # (2) overseer-sourced event that carries a run_id -> run principal.
+        assert await _event_principal(event_overseer_id) == run_principal_id, (
+            "a run-attached overseer event must attribute to the run principal"
+        )
+        # (3) dispatch-worker event, no run -> system principal.
+        assert await _event_principal(event_worker_id) == system_principal_id, (
+            "a run-less dispatch-worker event must attribute to system"
+        )
+        # (4) webhook event whose source slug exists -> the source principal.
+        assert await _event_principal(event_webhook_id) == source_principal_id, (
+            "a run-less webhook event must attribute to its source principal"
+        )
+        # (5) orphaned-slug event (source row gone) -> system principal.
+        assert await _event_principal(event_orphan_id) == system_principal_id, (
+            "an orphaned-slug event must fall back to the system principal"
+        )
+
+        # The append-only trigger was re-enabled after the backfill.
+        deny_state = await conn.fetchval(
+            "SELECT t.tgenabled::text FROM pg_trigger t "
+            "JOIN pg_class c ON c.oid = t.tgrelid "
+            "WHERE c.relname = 'events' AND t.tgname = 'deny_mutation'",
+        )
+        assert deny_state == "O", (
+            "the events deny_mutation trigger must be re-enabled after backfill"
+        )
+
+        # events.principal_id is NOT NULL after migration.
+        principal_col = await conn.fetchrow(
+            "SELECT is_nullable FROM information_schema.columns "
+            "WHERE table_name = 'events' AND column_name = 'principal_id'",
+        )
+        assert principal_col is not None
+        assert principal_col["is_nullable"] == "NO", (
+            "events.principal_id must be NOT NULL after migration"
+        )
+
+        # NOT NULL is enforced: an event without principal_id is rejected.
+        with pytest.raises(Exception, match="principal_id"):
+            await conn.execute(
+                """INSERT INTO events (run_id, event_type)
+                   VALUES ($1, 'no.actor')""",
+                run_id,
+            )
+
+        # The old source column is gone.
+        events_cols_post = await conn.fetch(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'events'",
+        )
+        assert "source" not in {c["column_name"] for c in events_cols_post}, (
+            "events.source must be dropped after migration"
+        )
+
+        # The new principal index exists; the old source index is gone.
+        events_indexes = await conn.fetch(
+            "SELECT indexname FROM pg_indexes WHERE tablename = 'events'",
+        )
+        index_names = {r["indexname"] for r in events_indexes}
+        assert "idx_events_principal_created" in index_names, (
+            "the principal_id index must exist after migration"
+        )
+        assert "idx_events_source_created" not in index_names, (
+            "the old source index must be dropped"
+        )
+
+        # The NOTIFY function body no longer references source.
+        notify_body = await conn.fetchval(
+            "SELECT pg_get_functiondef(oid) FROM pg_proc "
+            "WHERE proname = 'notify_orxtra_event'",
+        )
+        assert "principal_id" in notify_body, (
+            "the NOTIFY function must emit principal_id"
+        )
+        assert "NEW.source" not in notify_body, (
+            "the NOTIFY function must no longer reference source"
+        )
 
     finally:
         await conn.close()
