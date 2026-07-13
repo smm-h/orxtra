@@ -10,7 +10,6 @@ from orxtra.protocols import EventBus
 from orxtra.trace._memory_backend import InMemoryBackend
 from orxtra.trace._pg_backend import PgBackend
 from orxtra.trace._pg_event_bus import PgEventBus
-from orxtra.trace._writer import TraceWriter
 from orxtra.trace._protocols import (
     EventStorage,
     InboxStorage,
@@ -25,6 +24,7 @@ from orxtra.trace._protocols import (
     StorageReader,
     TaskStorage,
 )
+from orxtra.trace._writer import TraceWriter
 
 if TYPE_CHECKING:
     from .conftest import MockPool
@@ -182,8 +182,9 @@ def _normalize_signature(
 
 
 # The surfaces that MUST keep write_event / create_run in lockstep with the
-# protocol. A later phase adds parameters to these methods and relies on this
-# guard to fail loudly if any surface drifts from the others.
+# protocol. These methods carry the attribution parameters (principal_id /
+# created_by / resolved_by); this guard fails loudly if any surface drifts
+# from the others when a signature changes.
 _PARITY_SURFACES: dict[str, type] = {
     "TraceWriter": TraceWriter,
     "PgBackend": PgBackend,
@@ -208,8 +209,8 @@ class TestSignatureParity:
 
     If someone adds (or removes/renames/re-annotates) a parameter on one
     implementation but not the protocol -- or vice versa -- this fails.
-    That is the entire point: it protects a later phase that extends these
-    signatures and needs every surface to move together.
+    That is the entire point: whenever these signatures change, every surface
+    must move together.
     """
 
     @pytest.mark.parametrize(
