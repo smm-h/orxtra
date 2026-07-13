@@ -44,6 +44,15 @@ class ServerConfig:
     service-layer ``KindRegistry`` accepts them.
     """
 
+    mcp_allowed_hosts: tuple[str, ...] = ()
+    """Additional hostnames the MCP transport accepts beyond the loopback
+    baseline (``localhost:*``, ``127.0.0.1:*``, ``[::1]:*``).
+
+    Deploy behind a reverse proxy requires listing the proxy's Host header
+    value here (e.g. ``("api.example.com",)``). An empty tuple (the default)
+    means loopback-only -- the safe default for single-operator local use.
+    """
+
 
 @asynccontextmanager
 async def lifespan(
@@ -138,6 +147,7 @@ async def lifespan(
             authenticator=authenticator,
             incoming_router=incoming_router,
             cors_origins=server_config.cors_origins,
+            mcp_allowed_hosts=server_config.mcp_allowed_hosts,
         )
 
         log.info("Startup complete")

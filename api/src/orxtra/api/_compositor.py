@@ -39,6 +39,10 @@ class CompositorConfig:
     authenticator: Authenticator | None = None
     incoming_router: Router | None = None
     cors_origins: list[str] | None = None
+    mcp_allowed_hosts: tuple[str, ...] = ()
+    """Additional hostnames the MCP transport accepts beyond the loopback
+    baseline.  Forwarded verbatim from ``ServerConfig.mcp_allowed_hosts``.
+    """
 
 
 def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
@@ -59,7 +63,7 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     # (default "/mcp"). When mounted at /mcp, fastware strips the
     # prefix so the inner path becomes "/". We build the MCP app
     # with streamable_http_path="/" so routing works after mount.
-    mcp_app = _build_mcp_app(config.dispatch_context)
+    mcp_app = _build_mcp_app(config.dispatch_context, config.mcp_allowed_hosts)
     _mount_sub_app(router, "/mcp", mcp_app, config.authenticator)
 
     # -- Mount A2A at /a2a --
@@ -76,7 +80,7 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     # -- AG-UI SSE routes (under /ag-ui) --
     from orxtra.agui import create_agui_router
 
-    agui_router, _broadcaster = create_agui_router(
+    agui_router, _registry = create_agui_router(
         pool=config.dispatch_context.pool,
         principal_storage=config.dispatch_context.principal_storage,
     )
@@ -153,13 +157,39 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     return app
 
 
-def _build_mcp_app(dispatch_context: DispatchContext) -> Any:
+def _build_mcp_app(
+    dispatch_context: DispatchContext,
+    mcp_allowed_hosts: tuple[str, ...] = (),
+) -> Any:
     """Build the MCP Starlette app with root-relative routing.
 
     When mounted at /mcp, fastware strips the prefix. The MCP app
     must use streamable_http_path="/" so the inner route matches.
+
+    Transport security is set EXPLICITLY: the loopback baseline
+    (``localhost:*``, ``127.0.0.1:*``, ``[::1]:*``) is always included,
+    and any caller-supplied ``mcp_allowed_hosts`` are appended. An empty
+    caller list means loopback-only (the safe default). We never rely
+    on the SDK's inferred default (it could change between versions).
     """
+    from mcp.server.transport_security import TransportSecuritySettings
     from orxtra.mcp import MCPServer
+
+    # Loopback baseline -- port-wildcard patterns so localhost:8080 etc.
+    # are accepted, not just bare hostnames.
+    loopback_hosts = ("localhost:*", "127.0.0.1:*", "[::1]:*")
+    loopback_origins = (
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+        "http://[::1]:*",
+    )
+
+    allowed_hosts = list(loopback_hosts) + list(mcp_allowed_hosts)
+    transport_security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed_hosts,
+        allowed_origins=list(loopback_origins),
+    )
 
     server = MCPServer(
         pool=dispatch_context.pool,
@@ -167,6 +197,7 @@ def _build_mcp_app(dispatch_context: DispatchContext) -> Any:
     )
     # Override the streamable_http_path setting before generating the app.
     server.fastmcp.settings.streamable_http_path = "/"
+    server.fastmcp.settings.transport_security = transport_security
     return server.fastmcp.streamable_http_app()
 
 

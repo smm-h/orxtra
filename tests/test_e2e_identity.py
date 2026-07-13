@@ -744,10 +744,9 @@ async def test_mcp_session_manager_initializes_through_full_compositor(
     ``/mcp`` succeeds (proving the mount came up via forwarding), while an
     anonymous request to ``/mcp`` is still rejected 401 by the wall.
 
-    The MCP mount uses FastMCP's default transport security, which allowlists
-    ``localhost:*``/``127.0.0.1:*`` hosts, so the in-process client speaks to a
-    ``localhost:<port>`` base URL rather than the ``testserver`` host that 8a
-    accepts by disabling DNS-rebinding protection.
+    The MCP mount uses explicit transport security with ``testserver`` added
+    to ``mcp_allowed_hosts``, so the in-process ASGI client can use the
+    standard ``http://testserver`` base URL.
     """
     consumer, _cid = await _register_consumer(
         pg_pool, name="full-composited", tier=TrustTier.VERIFIED,
@@ -762,6 +761,7 @@ async def test_mcp_session_manager_initializes_through_full_compositor(
         db_url=db_url,
         port=8080,
         authenticator=_bearer_authenticator(pg_pool),
+        mcp_allowed_hosts=("testserver",),
     )
     app = build_app(server_config)
 
@@ -770,7 +770,7 @@ async def test_mcp_session_manager_initializes_through_full_compositor(
         # mounted MCP app's host validation).
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
-            base_url="http://localhost:8080",
+            base_url="http://testserver",
         ) as anon:
             anon_resp = await anon.get("/mcp")
             assert anon_resp.status_code == 401
@@ -778,10 +778,9 @@ async def test_mcp_session_manager_initializes_through_full_compositor(
         # Authenticated handshake reaches -- and is served by -- the session
         # manager mounted at /mcp, proving fastware forwarded the compositor's
         # lifespan into the mount and its task group initialized.
-        client = _mcp_http_client(app, token, "http://localhost:8080")
-        async with client:  # noqa: SIM117
+        async with _mcp_http_client(app, token) as client:  # noqa: SIM117
             async with streamable_http_client(
-                "http://localhost:8080/mcp", http_client=client,
+                "http://testserver/mcp", http_client=client,
             ) as (read, write, _get_session_id):
                 async with ClientSession(read, write) as session:
                     init_result = await session.initialize()

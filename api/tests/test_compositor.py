@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Self
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
 from a2a.types.a2a_pb2 import (
     AgentCapabilities,
@@ -16,7 +18,7 @@ from a2a.types.a2a_pb2 import (
 )
 from fastware.testing import AsyncTestClient
 from orxtra.a2a._skills import SkillRegistry
-from orxtra.api._compositor import CompositorConfig, create_compositor
+from orxtra.api._compositor import CompositorConfig, _build_mcp_app, create_compositor
 from orxtra.auth import (
     Authenticator,
     HashCredentialVerifier,
@@ -586,3 +588,101 @@ class TestCorsPosture:
             )
             assert resp.status_code == 200
             assert "access-control-allow-origin" not in resp.headers
+
+
+class _LifespanRunner:
+    """Minimal ASGI lifespan driver for the MCP Starlette app."""
+
+    def __init__(self, app: Any) -> None:
+        self._app = app
+        self._to: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        self._from: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        self._task: asyncio.Task[None] | None = None
+
+    async def _receive(self) -> dict[str, Any]:
+        return await self._to.get()
+
+    async def _send(self, message: dict[str, Any]) -> None:
+        await self._from.put(message)
+
+    async def __aenter__(self) -> Self:
+        self._task = asyncio.create_task(
+            self._app({"type": "lifespan", "state": {}}, self._receive, self._send),
+        )
+        await self._to.put({"type": "lifespan.startup"})
+        message = await self._from.get()
+        assert message["type"] == "lifespan.startup.complete", message
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        await self._to.put({"type": "lifespan.shutdown"})
+        with contextlib.suppress(Exception):
+            await asyncio.wait_for(self._from.get(), timeout=5)
+        if self._task is not None:
+            self._task.cancel()
+            with contextlib.suppress(Exception, asyncio.CancelledError):
+                await self._task
+
+
+class TestMcpTransportSecurity:
+    """MCP transport security via ``mcp_allowed_hosts``.
+
+    The ``_build_mcp_app`` function explicitly sets
+    ``TransportSecuritySettings`` with the three loopback port-wildcard
+    patterns (``localhost:*``, ``127.0.0.1:*``, ``[::1]:*``) plus any
+    caller-supplied additional hosts. These tests drive the real MCP
+    transport to verify host acceptance/rejection.
+    """
+
+    async def test_configured_proxy_host_accepted(self) -> None:
+        """A host listed in ``mcp_allowed_hosts`` is accepted."""
+        ctx = DispatchContext()
+        mcp_app = _build_mcp_app(ctx, mcp_allowed_hosts=("proxy.example.com",))
+        async with (
+            _LifespanRunner(mcp_app),
+            httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=mcp_app),
+                base_url="http://proxy.example.com",
+            ) as client,
+        ):
+            # GET to the MCP endpoint: expected to reach the handler
+            # (which returns 405 for GET), not be blocked by host
+            # validation (which returns 421).
+            resp = await client.get("/")
+            assert resp.status_code != 421, (
+                "a configured proxy host must not be rejected"
+            )
+
+    async def test_unconfigured_non_loopback_rejected(self) -> None:
+        """A non-loopback host NOT in ``mcp_allowed_hosts`` is rejected 421."""
+        ctx = DispatchContext()
+        mcp_app = _build_mcp_app(ctx, mcp_allowed_hosts=())
+        async with (
+            _LifespanRunner(mcp_app),
+            httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=mcp_app),
+                base_url="http://evil.example.com",
+            ) as client,
+        ):
+            resp = await client.get("/")
+            assert resp.status_code == 421, (
+                "an unconfigured non-loopback host must be rejected"
+            )
+
+    async def test_loopback_with_port_always_accepted(self) -> None:
+        """Loopback hosts with an arbitrary port are always accepted."""
+        ctx = DispatchContext()
+        mcp_app = _build_mcp_app(ctx, mcp_allowed_hosts=())
+        async with _LifespanRunner(mcp_app):
+            for base_url in (
+                "http://localhost:9090",
+                "http://127.0.0.1:4567",
+            ):
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=mcp_app),
+                    base_url=base_url,
+                ) as client:
+                    resp = await client.get("/")
+                    assert resp.status_code != 421, (
+                        f"loopback host {base_url} must not be rejected"
+                    )

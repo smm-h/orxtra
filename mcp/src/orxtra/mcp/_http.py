@@ -21,13 +21,19 @@ if TYPE_CHECKING:
     from starlette.types import ASGIApp
 
 
-def create_app(dispatch_context: DispatchContext) -> ASGIApp:
+def create_app(
+    dispatch_context: DispatchContext,
+    mcp_allowed_hosts: tuple[str, ...] = (),
+) -> ASGIApp:
     """Create a streamable HTTP ASGI app for the MCP server.
 
     Args:
         dispatch_context: Infrastructure dependencies for dispatching
             capability calls (pool, dispatch_backend, principal storage,
             and the authenticated caller context).
+        mcp_allowed_hosts: Additional hostnames the MCP transport accepts
+            beyond the loopback baseline (``localhost:*``, ``127.0.0.1:*``,
+            ``[::1]:*``).  An empty tuple means loopback-only.
 
     Returns:
         A Starlette ASGI app that speaks the MCP streamable HTTP
@@ -36,8 +42,25 @@ def create_app(dispatch_context: DispatchContext) -> ASGIApp:
     """
     from orxtra.mcp._server import MCPServer
 
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    loopback_hosts = ("localhost:*", "127.0.0.1:*", "[::1]:*")
+    loopback_origins = (
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+        "http://[::1]:*",
+    )
+
+    allowed_hosts = list(loopback_hosts) + list(mcp_allowed_hosts)
+    transport_security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed_hosts,
+        allowed_origins=list(loopback_origins),
+    )
+
     server = MCPServer(
         pool=dispatch_context.pool,
         dispatch_context=dispatch_context,
     )
+    server.fastmcp.settings.transport_security = transport_security
     return server.fastmcp.streamable_http_app()
