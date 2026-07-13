@@ -9,7 +9,7 @@ required -- PG parity lives in tests/test_identity_pg.py at the repo root.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import asyncpg
@@ -28,6 +28,7 @@ from orxtra.protocols import (
     KIND_SYSTEM,
     SYSTEM_PRINCIPAL_EXTERNAL_REF,
     AuthContext,
+    Principal,
     TrustTier,
 )
 
@@ -141,6 +142,88 @@ async def test_mint_is_idempotent(
     assert second.id == first.id
     assert second.display_name == "alice"
     assert len(await storage.list_principals()) == 1
+
+
+# ---------------------------------------------------------------------------
+# In-memory storage: sweep orphaned run principals
+# ---------------------------------------------------------------------------
+
+
+async def test_sweep_deletes_old_orphaned_run_principal() -> None:
+    """A kind=run principal with no matching run and old enough is swept."""
+    run_ids: set[UUID] = set()
+    storage = InMemoryPrincipalStorage(run_ids_provider=lambda: run_ids)
+    ref = uuid4()
+    minted = await storage.mint_principal(KIND_RUN, ref, None)
+    # Backdate the principal to make it old enough for the sweep.
+    storage._get_principals()[minted.id] = Principal(
+        id=minted.id,
+        kind=minted.kind,
+        external_ref=minted.external_ref,
+        display_name=minted.display_name,
+        created_at=datetime.now(tz=UTC) - timedelta(minutes=10),
+    )
+    swept = await storage.sweep_orphaned_run_principals(timedelta(minutes=5))
+    assert swept == 1
+    assert await storage.get_principal(minted.id) is None
+
+
+async def test_sweep_skips_fresh_run_principal() -> None:
+    """A kind=run principal that is too young is NOT swept (age guard)."""
+    run_ids: set[UUID] = set()
+    storage = InMemoryPrincipalStorage(run_ids_provider=lambda: run_ids)
+    ref = uuid4()
+    minted = await storage.mint_principal(KIND_RUN, ref, None)
+    # Principal is fresh (just created) -- should not be swept.
+    swept = await storage.sweep_orphaned_run_principals(timedelta(minutes=5))
+    assert swept == 0
+    assert await storage.get_principal(minted.id) is not None
+
+
+async def test_sweep_skips_run_principal_with_matching_run() -> None:
+    """A kind=run principal with a matching run IS NOT swept."""
+    ref = uuid4()
+    run_ids: set[UUID] = {ref}
+    storage = InMemoryPrincipalStorage(run_ids_provider=lambda: run_ids)
+    minted = await storage.mint_principal(KIND_RUN, ref, None)
+    # Backdate to be old enough.
+    storage._get_principals()[minted.id] = Principal(
+        id=minted.id,
+        kind=minted.kind,
+        external_ref=minted.external_ref,
+        display_name=minted.display_name,
+        created_at=datetime.now(tz=UTC) - timedelta(minutes=10),
+    )
+    swept = await storage.sweep_orphaned_run_principals(timedelta(minutes=5))
+    assert swept == 0
+    assert await storage.get_principal(minted.id) is not None
+
+
+async def test_sweep_skips_non_run_kind() -> None:
+    """A kind=consumer orphan is NOT swept (sweep is kind=run only)."""
+    run_ids: set[UUID] = set()
+    storage = InMemoryPrincipalStorage(run_ids_provider=lambda: run_ids)
+    ref = uuid4()
+    minted = await storage.mint_principal(KIND_CONSUMER, ref, "consumer")
+    # Backdate to be old enough.
+    storage._get_principals()[minted.id] = Principal(
+        id=minted.id,
+        kind=minted.kind,
+        external_ref=minted.external_ref,
+        display_name=minted.display_name,
+        created_at=datetime.now(tz=UTC) - timedelta(minutes=10),
+    )
+    swept = await storage.sweep_orphaned_run_principals(timedelta(minutes=5))
+    assert swept == 0
+    assert await storage.get_principal(minted.id) is not None
+
+
+async def test_sweep_without_provider_returns_zero() -> None:
+    """When no run_ids_provider is set, sweep is a no-op."""
+    storage = InMemoryPrincipalStorage()
+    await storage.mint_principal(KIND_RUN, uuid4(), None)
+    swept = await storage.sweep_orphaned_run_principals(timedelta(minutes=5))
+    assert swept == 0
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +439,7 @@ _PRINCIPAL_STORAGE_METHODS = [
     "list_principals",
     "update_display_name",
     "delete_principal",
+    "sweep_orphaned_run_principals",
 ]
 
 

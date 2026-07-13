@@ -775,3 +775,46 @@ def test_run_config_with_workflow_path() -> None:
         autonomy_level="autonomous",
     )
     assert config.workflow_path == Path("/my/workflow.toml")
+
+
+@pytest.mark.asyncio
+async def test_start_run_calls_sweep(mock_pool: AsyncMock, sample_run_id: UUID) -> None:
+    """start_run invokes sweep_orphaned_run_principals after create_run."""
+    with (
+        patch("orxtra.services._run.TraceWriter") as mock_writer_cls,
+        patch("orxtra.services._run.load_agents") as mock_load_agents,
+        patch("orxtra.services._run.load_categories") as mock_load_cats,
+        patch("orxtra.services._run.load_workflow") as mock_load_wf,
+        patch("orxtra.services._run.Scheduler") as mock_scheduler_cls,
+        patch(
+            "orxtra.services._identity.sweep_orphaned_run_principals",
+        ) as mock_sweep,
+    ):
+        mock_writer = AsyncMock()
+        mock_writer.create_run = AsyncMock(return_value=sample_run_id)
+        mock_writer.transition_run = AsyncMock()
+        mock_writer_cls.return_value = mock_writer
+
+        mock_load_agents.return_value = {"test-agent": MagicMock()}
+        mock_load_cats.return_value = {"default": "anthropic/claude-sonnet-4-6"}
+        mock_load_wf.return_value = MagicMock()
+
+        mock_sched = AsyncMock()
+        mock_sched.execute_workflow = AsyncMock()
+        mock_scheduler_cls.return_value = mock_sched
+
+        storage = _storage()
+        config = RunConfig(
+            workflow_path=Path("/workflow.toml"),
+            agents_dir=Path("/agents"),
+            knowledge_dir=Path("/knowledge"),
+            categories_path=Path("/cats.toml"),
+            read_root=Path("/project"),
+            db_url="postgres://localhost/test",
+            provider_configs={"anthropic": {"type": "anthropic", "api_key": "test"}},
+            budget=Decimal("10.00"),
+            autonomy_level="supervised",
+        )
+        await start_run(mock_pool, storage, _caller(), "test intent", config)
+
+        mock_sweep.assert_called_once_with(storage)

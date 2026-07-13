@@ -217,3 +217,27 @@ async def test_delete_principal_propagates_in_use_error() -> None:
 
     with pytest.raises(PrincipalInUseError):
         await dispatch(ctx, "delete_principal", {"principal_id": str(created.id)})
+
+
+# ---------------------------------------------------------------------------
+# Service-level sweep
+# ---------------------------------------------------------------------------
+
+
+async def test_sweep_orphaned_run_principals_delegates_to_storage() -> None:
+    """The service function delegates to storage.sweep_orphaned_run_principals
+    with a 5-minute age guard."""
+    from datetime import timedelta
+    from unittest.mock import AsyncMock
+
+    from orxtra.services._identity import sweep_orphaned_run_principals
+
+    mock_storage = AsyncMock()
+    mock_storage.sweep_orphaned_run_principals = AsyncMock(return_value=3)
+
+    result = await sweep_orphaned_run_principals(mock_storage)
+
+    assert result == 3
+    mock_storage.sweep_orphaned_run_principals.assert_called_once_with(
+        timedelta(minutes=5),
+    )

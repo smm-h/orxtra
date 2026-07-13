@@ -7,7 +7,7 @@ testcontainers. Skips gracefully when docker is unavailable.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -382,3 +382,127 @@ class TestDeletePrincipalLifecycle:
         idle = await storage.mint_principal(KIND_CONSUMER, uuid6.uuid7(), "idle")
         await storage.delete_principal(idle.id)
         assert await storage.get_principal(idle.id) is None
+
+
+class TestSweepOrphanedRunPrincipals:
+    """sweep_orphaned_run_principals against a real PG database.
+
+    Covers the four axes: old orphan (deleted), fresh orphan (kept by age
+    guard), orphan with history (kept by FK), and non-run kind (kept by
+    kind scope).
+    """
+
+    async def test_old_orphan_is_swept(self, pg_pool: asyncpg.Pool) -> None:
+        """A kind=run principal with no matching run and old created_at
+        is deleted by the sweep."""
+        storage = PgPrincipalStorage(pg_pool)
+        ref = uuid6.uuid7()
+        minted = await storage.mint_principal(KIND_RUN, ref, None)
+        # Backdate created_at to make it old enough.
+        await pg_pool.execute(
+            "UPDATE principals SET created_at = now() - interval '10 minutes'"
+            " WHERE id = $1",
+            minted.id,
+        )
+        swept = await storage.sweep_orphaned_run_principals(
+            timedelta(minutes=5),
+        )
+        assert swept == 1
+        assert await storage.get_principal(minted.id) is None
+
+    async def test_fresh_orphan_is_kept(self, pg_pool: asyncpg.Pool) -> None:
+        """A kind=run principal younger than the age guard is NOT swept."""
+        storage = PgPrincipalStorage(pg_pool)
+        ref = uuid6.uuid7()
+        minted = await storage.mint_principal(KIND_RUN, ref, None)
+        # Principal was just created -- should NOT be swept.
+        swept = await storage.sweep_orphaned_run_principals(
+            timedelta(minutes=5),
+        )
+        assert swept == 0
+        assert await storage.get_principal(minted.id) is not None
+
+    async def test_run_principal_with_matching_run_is_kept(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        """A kind=run principal whose external_ref matches a runs row
+        is NOT swept, even if old."""
+        storage = PgPrincipalStorage(pg_pool)
+        # Seed a system principal to use as created_by.
+        system = await storage.mint_principal(
+            KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+        )
+        run_id = uuid6.uuid7()
+        run_principal = await storage.mint_principal(KIND_RUN, run_id, None)
+        # Create a matching run.
+        await pg_pool.execute(
+            "INSERT INTO runs (id, intent, autonomy_level, created_by)"
+            " VALUES ($1, $2, $3, $4)",
+            run_id, "test", "full", system.id,
+        )
+        # Backdate created_at.
+        await pg_pool.execute(
+            "UPDATE principals SET created_at = now() - interval '10 minutes'"
+            " WHERE id = $1",
+            run_principal.id,
+        )
+        swept = await storage.sweep_orphaned_run_principals(
+            timedelta(minutes=5),
+        )
+        assert swept == 0
+        assert await storage.get_principal(run_principal.id) is not None
+
+    async def test_orphan_with_event_history_raises_fk_error(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        """A kind=run orphan with events raises ForeignKeyViolationError.
+
+        This scenario is structurally impossible in normal operation: a
+        principal whose run was never created cannot have events. The
+        test verifies the FK safety net: the DELETE matches the row
+        (kind=run, no matching run, old enough), PG tries to remove it,
+        the RESTRICT FK on events.principal_id fires, and the
+        transaction rolls back -- the principal survives.
+        """
+        import asyncpg as _asyncpg
+
+        storage = PgPrincipalStorage(pg_pool)
+        ref = uuid6.uuid7()
+        minted = await storage.mint_principal(KIND_RUN, ref, None)
+        # Attribute an event to this principal so the FK blocks deletion.
+        await pg_pool.execute(
+            "INSERT INTO events (event_type, principal_id)"
+            " VALUES ($1, $2)",
+            "test.event", minted.id,
+        )
+        # Backdate to be old enough.
+        await pg_pool.execute(
+            "UPDATE principals SET created_at = now() - interval '10 minutes'"
+            " WHERE id = $1",
+            minted.id,
+        )
+        with pytest.raises(_asyncpg.ForeignKeyViolationError):
+            await storage.sweep_orphaned_run_principals(
+                timedelta(minutes=5),
+            )
+        # The principal survives the failed sweep.
+        assert await storage.get_principal(minted.id) is not None
+
+    async def test_non_run_kind_is_not_swept(
+        self, pg_pool: asyncpg.Pool,
+    ) -> None:
+        """A kind=consumer orphan is NOT swept (kind=run scope only)."""
+        storage = PgPrincipalStorage(pg_pool)
+        ref = uuid6.uuid7()
+        minted = await storage.mint_principal(KIND_CONSUMER, ref, "consumer")
+        # Backdate.
+        await pg_pool.execute(
+            "UPDATE principals SET created_at = now() - interval '10 minutes'"
+            " WHERE id = $1",
+            minted.id,
+        )
+        swept = await storage.sweep_orphaned_run_principals(
+            timedelta(minutes=5),
+        )
+        assert swept == 0
+        assert await storage.get_principal(minted.id) is not None
