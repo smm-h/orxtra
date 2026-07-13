@@ -12,7 +12,7 @@ dependencies = [
     "a2a-sdk[http-server]",
     "ag-ui-protocol",
     "asyncpg",
-    "fastware",
+    "fastware>=0.5.0",
     "httpx",
     "jsonpatch",
     "jsonschema",

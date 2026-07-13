@@ -110,10 +110,39 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
         await ws.accept()
         await ws.close(code=1000)
 
+    # -- CORS posture (fastware >= 0.5.0) --
+    # fastware's create_app applies CORSMiddleware with allow_credentials=True
+    # and does not expose that flag; the middleware hard-rejects the
+    # wildcard-with-credentials combination (a credentialed "*" echoes any
+    # request origin and would grant every site cross-origin access).
+    #
+    # orxtra runs in exactly two deployment modes, and neither wants a wildcard:
+    #   * single-operator local -- clients are the CLI and agent processes
+    #     (non-browser) or same-origin UIs, so no cross-origin preflight ever
+    #     occurs and no CORS headers are needed.
+    #   * reverse-proxied -- browser-facing origins are deployment-specific and
+    #     unknowable at build time; the operator declares them explicitly via
+    #     ``cors_origins`` (or terminates CORS at the proxy).
+    #
+    # Therefore the default is NO CORS middleware (cors_origins unset), and any
+    # configured origins are passed through as an explicit credentialed
+    # allowlist. A wildcard entry is rejected up front so the credentialed-"*"
+    # footgun cannot be reintroduced through configuration.
+    cors_origins = config.cors_origins
+    if cors_origins is not None and "*" in cors_origins:
+        msg = (
+            "cors_origins must list explicit origins; the '*' wildcard is "
+            "rejected because fastware enables credentialed CORS and a "
+            "credentialed wildcard would grant any site cross-origin access. "
+            "List the exact browser origins that need access, or leave "
+            "cors_origins unset for local/reverse-proxied deployments."
+        )
+        raise ValueError(msg)
+
     # -- Build the ASGI app --
     app: Callable[..., Any] = create_app(
         router,
-        cors_origins=config.cors_origins or ["*"],
+        cors_origins=cors_origins,
         request_id=True,
         request_timing=True,
     )

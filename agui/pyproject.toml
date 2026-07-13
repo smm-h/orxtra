@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "ag-ui-protocol",
     "jsonpatch",
-    "fastware",
+    "fastware>=0.5.0",
     "orxtra-identity",
     "orxtra-services",
 ]

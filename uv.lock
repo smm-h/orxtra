@@ -453,15 +453,16 @@ wheels = [
 
 [[package]]
 name = "fastware"
-version = "0.2.0"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "granian" },
     { name = "msgspec" },
+    { name = "strictcli" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/63/e3/a23c5abde5b5beaa4225a54a2960af268893296c374ac6ca30f0b06ebbd7/fastware-0.2.0.tar.gz", hash = "sha256:773f4e91f8de5afce667b7996b35342e779fcdb0acf12ca391e2ea7aa357d846", size = 221000, upload-time = "2026-07-03T01:47:23.95Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/02/66/e28041d62cf50f3917e139924bb005d358b483309ce41380cd5b967842f8/fastware-0.5.0.tar.gz", hash = "sha256:0bb2825c538e4b989b822a0a3072fcc349ad9639d634b8687ab3020e93cd44df", size = 330295, upload-time = "2026-07-11T16:22:22.564Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5b/dd/79e9bbc848dfc5a11e167d511a485193b6c2bc631298da152e7ba616ec3f/fastware-0.2.0-py3-none-any.whl", hash = "sha256:a3c221a06a7a8e1b84d3bb5469380f60e47771fa9a8a906a7b6dad347787c7f4", size = 49971, upload-time = "2026-07-03T01:47:22.644Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/ef/d78d00095f3e5acd94b4e07d9e375e4c3cf90fc97bfef8f2fab97a6669dc/fastware-0.5.0-py3-none-any.whl", hash = "sha256:0dc7124b0036a9c74405d69a58dcb50c969de1131b8d75405a98139974c56844", size = 94229, upload-time = "2026-07-11T16:22:21.276Z" },
 ]
 
 [[package]]
@@ -926,7 +927,7 @@ requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"] },
     { name = "ag-ui-protocol" },
     { name = "asyncpg" },
-    { name = "fastware" },
+    { name = "fastware", specifier = ">=0.5.0" },
     { name = "httpx" },
     { name = "jsonpatch" },
     { name = "jsonschema" },
@@ -1065,7 +1066,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ag-ui-protocol" },
-    { name = "fastware" },
+    { name = "fastware", specifier = ">=0.5.0" },
     { name = "jsonpatch" },
     { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-services", editable = "services" },
@@ -1099,7 +1100,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "asyncpg" },
-    { name = "fastware" },
+    { name = "fastware", specifier = ">=0.5.0" },
     { name = "orxtra-a2a", editable = "a2a" },
     { name = "orxtra-agui", editable = "agui" },
     { name = "orxtra-auth", editable = "auth" },
@@ -1248,7 +1249,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastware" },
+    { name = "fastware", specifier = ">=0.5.0" },
     { name = "orxtra-auth", editable = "auth" },
     { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-protocols", editable = "protocols" },
@@ -1599,7 +1600,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastware" },
+    { name = "fastware", specifier = ">=0.5.0" },
     { name = "orxtra-auth", editable = "auth" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-secrets", editable = "secrets" },

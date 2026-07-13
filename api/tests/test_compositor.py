@@ -510,3 +510,79 @@ class TestAguiRunAccessThroughWall:
                     headers={"authorization": f"Bearer {token}"},
                 )
                 assert resp.status_code == 404
+
+
+class TestCorsPosture:
+    """The compositor's CORS posture under fastware >= 0.5.0.
+
+    fastware enables credentialed CORS and rejects the
+    wildcard-with-credentials combination. The compositor therefore never
+    defaults to a wildcard: with no configured origins it applies no CORS
+    middleware; with configured origins it passes them through as an
+    explicit credentialed allowlist; a wildcard entry is rejected up front.
+    """
+
+    def test_wildcard_origin_rejected(
+        self, compositor_config: CompositorConfig,
+    ) -> None:
+        """A wildcard entry in cors_origins is a hard error at build time."""
+        config = CompositorConfig(
+            dispatch_context=compositor_config.dispatch_context,
+            agent_card=compositor_config.agent_card,
+            skill_registry=compositor_config.skill_registry,
+            cors_origins=["*"],
+        )
+        with pytest.raises(ValueError, match=r"wildcard"):
+            create_compositor(config)
+
+    async def test_no_cors_headers_by_default(self, app: Any) -> None:
+        """With no configured origins, cross-origin requests get no CORS headers."""
+        async with AsyncTestClient(app) as client:
+            resp = await client.get(
+                "/health", headers={"origin": "https://evil.example"},
+            )
+            assert resp.status_code == 200
+            assert "access-control-allow-origin" not in resp.headers
+
+    async def test_explicit_origin_echoed_with_credentials(
+        self,
+        dispatch_context: DispatchContext,
+        agent_card: AgentCard,
+        skill_registry: SkillRegistry,
+    ) -> None:
+        """A configured explicit origin is allowed and credentialed CORS is set."""
+        config = CompositorConfig(
+            dispatch_context=dispatch_context,
+            agent_card=agent_card,
+            skill_registry=skill_registry,
+            cors_origins=["https://app.example"],
+        )
+        app = create_compositor(config)
+        async with AsyncTestClient(app) as client:
+            resp = await client.get(
+                "/health", headers={"origin": "https://app.example"},
+            )
+            assert resp.status_code == 200
+            assert resp.headers["access-control-allow-origin"] == "https://app.example"
+            assert resp.headers["access-control-allow-credentials"] == "true"
+
+    async def test_unlisted_origin_not_echoed(
+        self,
+        dispatch_context: DispatchContext,
+        agent_card: AgentCard,
+        skill_registry: SkillRegistry,
+    ) -> None:
+        """An origin outside the allowlist receives no allow-origin header."""
+        config = CompositorConfig(
+            dispatch_context=dispatch_context,
+            agent_card=agent_card,
+            skill_registry=skill_registry,
+            cors_origins=["https://app.example"],
+        )
+        app = create_compositor(config)
+        async with AsyncTestClient(app) as client:
+            resp = await client.get(
+                "/health", headers={"origin": "https://evil.example"},
+            )
+            assert resp.status_code == 200
+            assert "access-control-allow-origin" not in resp.headers
