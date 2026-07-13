@@ -8,6 +8,8 @@ from orxtra.protocols import (
     SCOPE_EVENTS_WRITE,
     SCOPE_INBOX_READ,
     SCOPE_INBOX_RESPOND,
+    SCOPE_PRINCIPALS_MANAGE,
+    SCOPE_PRINCIPALS_READ,
     SCOPE_RUNS_MANAGE,
     SCOPE_RUNS_READ,
     SCOPE_SOURCES_MANAGE,
@@ -65,6 +67,11 @@ EXPECTED_NAMES: set[str] = {
     "get_source_by_slug",
     "list_sources",
     "delete_source",
+    # Principal
+    "create_principal",
+    "get_principal",
+    "list_principals",
+    "delete_principal",
 }
 
 
@@ -187,6 +194,10 @@ EXPECTED_SCOPES: dict[str, str] = {
     "get_source_by_slug": SCOPE_SOURCES_READ,
     "list_sources": SCOPE_SOURCES_READ,
     "delete_source": SCOPE_SOURCES_MANAGE,
+    "create_principal": SCOPE_PRINCIPALS_MANAGE,
+    "get_principal": SCOPE_PRINCIPALS_READ,
+    "list_principals": SCOPE_PRINCIPALS_READ,
+    "delete_principal": SCOPE_PRINCIPALS_MANAGE,
 }
 
 # Documentation-as-test: the exact infrastructure each capability receives.
@@ -223,6 +234,10 @@ EXPECTED_INJECTS: dict[str, frozenset[str]] = {
     "get_source_by_slug": frozenset({"dispatch_backend"}),
     "list_sources": frozenset({"dispatch_backend"}),
     "delete_source": frozenset({"dispatch_backend"}),
+    "create_principal": frozenset({"principal_storage", "kind_registry"}),
+    "get_principal": frozenset({"principal_storage"}),
+    "list_principals": frozenset({"principal_storage"}),
+    "delete_principal": frozenset({"principal_storage"}),
 }
 
 

@@ -272,3 +272,41 @@ class DeleteSourceParams(BaseModel):
     source_id: str = Field(
         description="Source ID.", json_schema_extra={"format": "uuid"}
     )
+
+
+# -- Principal params --
+
+
+class CreatePrincipalParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    kind: str = Field(description="Principal kind (validated against the registry).")
+    external_ref: str = Field(
+        description="External reference the principal points at.",
+        json_schema_extra={"format": "uuid"},
+    )
+    display_name: str | None = Field(
+        default=None, description="Optional human-readable display name."
+    )
+
+
+class GetPrincipalParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    principal_id: str = Field(
+        description="Principal ID.", json_schema_extra={"format": "uuid"}
+    )
+
+
+class ListPrincipalsParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    kind: str | None = Field(default=None, description="Filter by principal kind.")
+
+
+class DeletePrincipalParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    principal_id: str = Field(
+        description="Principal ID.", json_schema_extra={"format": "uuid"}
+    )

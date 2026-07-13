@@ -12,6 +12,8 @@ from orxtra.protocols import (
     SCOPE_EVENTS_WRITE,
     SCOPE_INBOX_READ,
     SCOPE_INBOX_RESPOND,
+    SCOPE_PRINCIPALS_MANAGE,
+    SCOPE_PRINCIPALS_READ,
     SCOPE_RUNS_MANAGE,
     SCOPE_RUNS_READ,
     SCOPE_SOURCES_MANAGE,
@@ -24,17 +26,21 @@ from orxtra.protocols import (
 )
 from orxtra.services._params import (
     AbortRunParams,
+    CreatePrincipalParams,
     CreateSourceParams,
+    DeletePrincipalParams,
     DeleteSourceParams,
     FireEventParams,
     GetInboxItemParams,
     GetNotepadParams,
+    GetPrincipalParams,
     GetRunParams,
     GetSourceBySlugParams,
     GetSourceParams,
     GetTaskAttemptsParams,
     GetTranscriptParams,
     ListInboxParams,
+    ListPrincipalsParams,
     ListRunsParams,
     ListSourcesParams,
     ListSubscriptionsParams,
@@ -67,6 +73,11 @@ ServiceFn = Callable[..., Coroutine[Any, Any, Any]]
 #  - pure capabilities receive neither (validated params only)
 _INJECT_POOL: frozenset[str] = frozenset({"pool"})
 _INJECT_DISPATCH_BACKEND: frozenset[str] = frozenset({"dispatch_backend"})
+_INJECT_PRINCIPAL_STORAGE: frozenset[str] = frozenset({"principal_storage"})
+_INJECT_PRINCIPAL_STORAGE_AND_KIND_REGISTRY: frozenset[str] = frozenset({
+    "principal_storage",
+    "kind_registry",
+})
 _INJECT_NONE: frozenset[str] = frozenset()
 
 
@@ -420,6 +431,51 @@ def _build_capabilities() -> list[Capability]:
             required_scope=SCOPE_SOURCES_MANAGE,
             injects=_INJECT_DISPATCH_BACKEND,
         ),
+        # -- Principal --
+        Capability(
+            name="create_principal",
+            namespace="principal",
+            description="Create (idempotently mint) a principal",
+            params_model=CreatePrincipalParams,
+            result_model=None,
+            tags=frozenset({"mutating"}),
+            category="principal",
+            required_scope=SCOPE_PRINCIPALS_MANAGE,
+            injects=_INJECT_PRINCIPAL_STORAGE_AND_KIND_REGISTRY,
+        ),
+        Capability(
+            name="get_principal",
+            namespace="principal",
+            description="Get a principal by ID",
+            params_model=GetPrincipalParams,
+            result_model=None,
+            tags=frozenset({"readonly"}),
+            category="principal",
+            required_scope=SCOPE_PRINCIPALS_READ,
+            injects=_INJECT_PRINCIPAL_STORAGE,
+        ),
+        Capability(
+            name="list_principals",
+            namespace="principal",
+            description="List principals, optionally filtered by kind",
+            params_model=ListPrincipalsParams,
+            result_model=None,
+            tags=frozenset({"readonly"}),
+            category="principal",
+            required_scope=SCOPE_PRINCIPALS_READ,
+            injects=_INJECT_PRINCIPAL_STORAGE,
+        ),
+        Capability(
+            name="delete_principal",
+            namespace="principal",
+            description="Delete a principal (refuses the system principal)",
+            params_model=DeletePrincipalParams,
+            result_model=None,
+            tags=frozenset({"mutating"}),
+            category="principal",
+            required_scope=SCOPE_PRINCIPALS_MANAGE,
+            injects=_INJECT_PRINCIPAL_STORAGE,
+        ),
     ]
 
 
@@ -455,6 +511,12 @@ def _get_fn_map() -> dict[str, ServiceFn]:
         unsubscribe,
     )
     from orxtra.services._events import fire_event
+    from orxtra.services._identity import (
+        create_principal,
+        delete_principal,
+        get_principal,
+        list_principals,
+    )
     from orxtra.services._inbox import (
         get_inbox_item,
         list_inbox,
@@ -516,6 +578,10 @@ def _get_fn_map() -> dict[str, ServiceFn]:
         "get_source_by_slug": get_source_by_slug,
         "list_sources": list_sources,
         "delete_source": delete_source,
+        "create_principal": create_principal,
+        "get_principal": get_principal,
+        "list_principals": list_principals,
+        "delete_principal": delete_principal,
     }
 
 

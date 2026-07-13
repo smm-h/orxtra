@@ -18,7 +18,13 @@ from orxtra.services._registry import get_capability, get_capability_fn
 
 if TYPE_CHECKING:
     import asyncpg
-    from orxtra.protocols import Capability, DispatchBackend, EventBus
+    from orxtra.identity import KindRegistry
+    from orxtra.protocols import (
+        Capability,
+        DispatchBackend,
+        EventBus,
+        PrincipalStorage,
+    )
 
 
 @dataclass(frozen=True)
@@ -28,16 +34,25 @@ class DispatchContext:
     pool: asyncpg.Pool | None = None
     dispatch_backend: DispatchBackend | None = None
     event_bus: EventBus | None = None
+    principal_storage: PrincipalStorage | None = None
+    kind_registry: KindRegistry | None = None
 
 
 # Canonical order in which declared inject tokens are passed positionally to
 # the service function, plus the human-readable label used in error messages.
 # Every token in Capability.VALID_INJECT_TOKENS must appear here, or dispatch
 # will hard-error on a capability that declares it (no silent drop).
-_INJECT_ORDER: tuple[str, ...] = ("pool", "dispatch_backend")
+_INJECT_ORDER: tuple[str, ...] = (
+    "pool",
+    "dispatch_backend",
+    "principal_storage",
+    "kind_registry",
+)
 _INJECT_LABELS: dict[str, str] = {
     "pool": "a database pool",
     "dispatch_backend": "a dispatch backend",
+    "principal_storage": "a principal storage backend",
+    "kind_registry": "a principal kind registry",
 }
 
 

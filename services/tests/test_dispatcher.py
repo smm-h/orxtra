@@ -205,6 +205,82 @@ async def test_dispatch_start_run_path_coercion(
 
 @pytest.mark.asyncio
 @patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_get_principal_routes_storage(mock_get_fn: MagicMock) -> None:
+    """get_principal receives the principal_storage as its only positional arg."""
+    mock_fn = AsyncMock(return_value=None)
+    mock_get_fn.return_value = mock_fn
+    mock_storage = AsyncMock()
+    ctx = DispatchContext(principal_storage=mock_storage)
+    principal_id = "12345678-1234-1234-1234-123456789abc"
+
+    await dispatch(ctx, "get_principal", {"principal_id": principal_id})
+
+    mock_fn.assert_awaited_once_with(mock_storage, principal_id=UUID(principal_id))
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_create_principal_routes_storage_and_registry(
+    mock_get_fn: MagicMock,
+) -> None:
+    """create_principal receives principal_storage then kind_registry, in order."""
+    mock_fn = AsyncMock(return_value=None)
+    mock_get_fn.return_value = mock_fn
+    mock_storage = AsyncMock()
+    mock_registry = MagicMock()
+    ctx = DispatchContext(
+        principal_storage=mock_storage,
+        kind_registry=mock_registry,
+    )
+    external_ref = "12345678-1234-1234-1234-123456789abc"
+
+    await dispatch(
+        ctx,
+        "create_principal",
+        {"kind": "user", "external_ref": external_ref, "display_name": "Ann"},
+    )
+
+    mock_fn.assert_awaited_once_with(
+        mock_storage,
+        mock_registry,
+        kind="user",
+        external_ref=UUID(external_ref),
+        display_name="Ann",
+    )
+    # Storage is the first positional arg, registry the second.
+    call_args = mock_fn.call_args
+    assert call_args[0][0] is mock_storage
+    assert call_args[0][1] is mock_registry
+
+
+@pytest.mark.asyncio
+async def test_dispatch_principal_storage_required_error() -> None:
+    ctx = DispatchContext()  # no principal_storage
+    with pytest.raises(ValueError, match="requires a principal storage backend"):
+        await dispatch(
+            ctx,
+            "get_principal",
+            {"principal_id": "12345678-1234-1234-1234-123456789abc"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_dispatch_kind_registry_required_error() -> None:
+    # Storage present, but the registry the capability also declares is absent.
+    ctx = DispatchContext(principal_storage=AsyncMock())
+    with pytest.raises(ValueError, match="requires a principal kind registry"):
+        await dispatch(
+            ctx,
+            "create_principal",
+            {
+                "kind": "user",
+                "external_ref": "12345678-1234-1234-1234-123456789abc",
+            },
+        )
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
 async def test_dispatch_query_events_optional_params(
     mock_get_fn: MagicMock, context: DispatchContext, mock_pool: AsyncMock
 ) -> None:

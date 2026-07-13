@@ -24,6 +24,12 @@ from orxtra.services._dispatch_worker import create_dispatch_worker
 from orxtra.services._dispatcher import DispatchContext, dispatch
 from orxtra.services._events import event_stream, fire_blocking, fire_event
 from orxtra.services._flush import AsyncioFlushScheduler
+from orxtra.services._identity import (
+    create_principal,
+    delete_principal,
+    get_principal,
+    list_principals,
+)
 from orxtra.services._inbox import (
     get_inbox_item,
     list_inbox,
@@ -83,7 +89,9 @@ __all__ = [
     "ask_structured",
     "build_transport_registry",
     "create_dispatch_worker",
+    "create_principal",
     "create_source",
+    "delete_principal",
     "delete_source",
     "dispatch",
     "event_stream",
@@ -95,12 +103,14 @@ __all__ = [
     "get_capability_fn",
     "get_inbox_item",
     "get_notepad",
+    "get_principal",
     "get_run",
     "get_source",
     "get_source_by_slug",
     "get_task_attempts",
     "get_transcript",
     "list_inbox",
+    "list_principals",
     "list_runs",
     "list_sources",
     "list_subscriptions",
