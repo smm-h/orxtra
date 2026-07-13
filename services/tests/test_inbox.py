@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
+from orxtra.protocols import KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, Principal
 from orxtra.services._inbox import (
     get_inbox_item,
     list_inbox,
@@ -18,6 +20,16 @@ from .conftest import FakeRecord
 
 if TYPE_CHECKING:
     from uuid import UUID
+
+
+def _caller_principal() -> Principal:
+    return Principal(
+        id=uuid4(),
+        kind=KIND_SYSTEM,
+        external_ref=SYSTEM_PRINCIPAL_EXTERNAL_REF,
+        display_name="system",
+        created_at=datetime.now(UTC),
+    )
 
 
 def _make_inbox_record(
@@ -39,6 +51,7 @@ def _make_inbox_record(
         "answer_event": None,
         "rejection_reason": None,
         "answered_at": None,
+        "resolved_by": None,
         "created_at": datetime(2024, 1, 1, tzinfo=UTC),
     })
 
@@ -94,9 +107,14 @@ async def test_respond_to_inbox(
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
-        result = await respond_to_inbox(mock_pool, sample_item_id, "yes")
+        caller = _caller_principal()
+        result = await respond_to_inbox(
+            mock_pool, caller, item_id=sample_item_id, answer="yes",
+        )
 
-        mock_writer.answer_inbox_item.assert_called_once_with(sample_item_id, "yes")
+        mock_writer.answer_inbox_item.assert_called_once_with(
+            sample_item_id, "yes", resolved_by=caller.id,
+        )
         assert isinstance(result, InboxItem)
 
 
@@ -111,9 +129,14 @@ async def test_skip_inbox_item_service(
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
-        result = await skip_inbox_item(mock_pool, sample_item_id)
+        caller = _caller_principal()
+        result = await skip_inbox_item(
+            mock_pool, caller, item_id=sample_item_id,
+        )
 
-        mock_writer.skip_inbox_item.assert_called_once_with(sample_item_id)
+        mock_writer.skip_inbox_item.assert_called_once_with(
+            sample_item_id, resolved_by=caller.id,
+        )
         assert isinstance(result, InboxItem)
 
 
@@ -128,10 +151,13 @@ async def test_reject_inbox_item_service(
         mock_writer = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
-        result = await reject_inbox_item(mock_pool, sample_item_id, "not relevant")
+        caller = _caller_principal()
+        result = await reject_inbox_item(
+            mock_pool, caller, item_id=sample_item_id, reason="not relevant",
+        )
 
         mock_writer.reject_inbox_item.assert_called_once_with(
-            sample_item_id, "not relevant"
+            sample_item_id, "not relevant", resolved_by=caller.id,
         )
         assert isinstance(result, InboxItem)
 

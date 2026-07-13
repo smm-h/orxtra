@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import asyncpg
+    from orxtra.protocols import Principal
 
 
 async def list_inbox(
@@ -27,22 +28,39 @@ async def get_inbox_item(pool: asyncpg.Pool, item_id: UUID) -> InboxItem:
 
 
 async def respond_to_inbox(
-    pool: asyncpg.Pool, item_id: UUID, answer: str
+    pool: asyncpg.Pool,
+    caller_principal: Principal,
+    *,
+    item_id: UUID,
+    answer: str,
 ) -> InboxItem:
     writer = TraceWriter(pool)
-    await writer.answer_inbox_item(item_id, answer)
+    await writer.answer_inbox_item(
+        item_id, answer, resolved_by=caller_principal.id,
+    )
     return await get_inbox_item(pool, item_id)
 
 
-async def skip_inbox_item(pool: asyncpg.Pool, item_id: UUID) -> InboxItem:
+async def skip_inbox_item(
+    pool: asyncpg.Pool,
+    caller_principal: Principal,
+    *,
+    item_id: UUID,
+) -> InboxItem:
     writer = TraceWriter(pool)
-    await writer.skip_inbox_item(item_id)
+    await writer.skip_inbox_item(item_id, resolved_by=caller_principal.id)
     return await get_inbox_item(pool, item_id)
 
 
 async def reject_inbox_item(
-    pool: asyncpg.Pool, item_id: UUID, reason: str
+    pool: asyncpg.Pool,
+    caller_principal: Principal,
+    *,
+    item_id: UUID,
+    reason: str,
 ) -> InboxItem:
     writer = TraceWriter(pool)
-    await writer.reject_inbox_item(item_id, reason)
+    await writer.reject_inbox_item(
+        item_id, reason, resolved_by=caller_principal.id,
+    )
     return await get_inbox_item(pool, item_id)

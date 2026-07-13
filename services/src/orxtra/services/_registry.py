@@ -98,9 +98,10 @@ _INJECT_SOURCE_CREATE: frozenset[str] = frozenset({
     "principal_storage",
     "caller_principal",
 })
-# fire_event attributes the event to the authenticated caller's principal.
-# Injection order is deterministic (pool, then caller_principal last), matching
-# the fire_event service fn signature.
+# fire_event and the inbox resolution capabilities (respond/skip/reject)
+# attribute the write to the authenticated caller's principal. Injection order
+# is deterministic (pool, then caller_principal last), matching each service
+# fn signature.
 _INJECT_POOL_AND_CALLER: frozenset[str] = frozenset({
     "pool",
     "caller_principal",
@@ -209,7 +210,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="inbox",
             required_scope=SCOPE_INBOX_RESPOND,
-            injects=_INJECT_POOL,
+            injects=_INJECT_POOL_AND_CALLER,
         ),
         Capability(
             name="skip_inbox_item",
@@ -220,7 +221,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="inbox",
             required_scope=SCOPE_INBOX_RESPOND,
-            injects=_INJECT_POOL,
+            injects=_INJECT_POOL_AND_CALLER,
         ),
         Capability(
             name="reject_inbox_item",
@@ -231,7 +232,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="inbox",
             required_scope=SCOPE_INBOX_RESPOND,
-            injects=_INJECT_POOL,
+            injects=_INJECT_POOL_AND_CALLER,
         ),
         # -- Trace --
         Capability(

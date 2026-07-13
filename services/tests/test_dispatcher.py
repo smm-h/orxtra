@@ -11,6 +11,7 @@ import pytest
 from orxtra.auth import AuthorizationError
 from orxtra.identity import InMemoryPrincipalStorage
 from orxtra.protocols import (
+    KIND_CONSUMER,
     KIND_SYSTEM,
     SCOPE_RUNS_READ,
     SYSTEM_PRINCIPAL_EXTERNAL_REF,
@@ -138,6 +139,79 @@ async def test_dispatch_fire_event(
         run_id=UUID(run_id),
         event_name="deploy",
         payload={"key": "val"},
+    )
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_respond_to_inbox_attributes_scoped_caller(
+    mock_get_fn: MagicMock, mock_pool: AsyncMock,
+) -> None:
+    """Dispatching respond_to_inbox under a scoped (consumer) context passes
+    that consumer's persisted principal as the caller_principal inject."""
+    mock_fn = AsyncMock(return_value=None)
+    mock_get_fn.return_value = mock_fn
+    item_id = "abcdef01-2345-6789-abcd-ef0123456789"
+
+    storage = InMemoryPrincipalStorage()
+    consumer_ref = UUID("11111111-2222-3333-4444-555555555555")
+    consumer_principal = await storage.mint_principal(
+        KIND_CONSUMER, consumer_ref, "acme-consumer",
+    )
+    context = DispatchContext(
+        pool=mock_pool,
+        principal_storage=storage,
+        auth_context=make_auth_context(
+            trust_tier=TrustTier.IDENTIFIED, consumer_id=consumer_ref,
+        ),
+    )
+
+    await dispatch(
+        context,
+        "respond_to_inbox",
+        {"item_id": item_id, "answer": "yes"},
+    )
+
+    mock_fn.assert_awaited_once_with(
+        mock_pool,
+        consumer_principal,
+        item_id=UUID(item_id),
+        answer="yes",
+    )
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_skip_and_reject_inbox_attribute_caller(
+    mock_get_fn: MagicMock, mock_pool: AsyncMock,
+) -> None:
+    """skip_inbox_item and reject_inbox_item both receive the caller principal
+    (the system principal under the default operator context)."""
+    mock_fn = AsyncMock(return_value=None)
+    mock_get_fn.return_value = mock_fn
+    item_id = "abcdef01-2345-6789-abcd-ef0123456789"
+
+    storage = InMemoryPrincipalStorage()
+    system = await storage.mint_principal(
+        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+    )
+    context = DispatchContext(
+        pool=mock_pool,
+        principal_storage=storage,
+        auth_context=make_auth_context(),
+    )
+
+    await dispatch(context, "skip_inbox_item", {"item_id": item_id})
+    mock_fn.assert_awaited_once_with(
+        mock_pool, system, item_id=UUID(item_id),
+    )
+
+    mock_fn.reset_mock()
+    await dispatch(
+        context, "reject_inbox_item", {"item_id": item_id, "reason": "stale"},
+    )
+    mock_fn.assert_awaited_once_with(
+        mock_pool, system, item_id=UUID(item_id), reason="stale",
     )
 
 
