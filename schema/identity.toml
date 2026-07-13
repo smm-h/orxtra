@@ -1,0 +1,43 @@
+# identity module PostgreSQL schema
+# Single owner: the identity module. No other module writes to the principals
+# table directly -- other modules (dispatch, trace, etc.) FK into it to attribute
+# actions to actors, but only the identity service inserts/updates rows here.
+#
+# Deliberately minimal: principals is an FK target plus a display name. It is NOT
+# a user-profile store. Never add user-profile fields (email, avatar, preferences,
+# etc.) here -- that is a design guardrail, not an oversight. A principal is only
+# the identity of an actor (a run, consumer, source, or the system) so other rows
+# can point at it; richer per-kind data lives in that kind's own owning module.
+
+[meta]
+version = 1
+schema = "public"
+extensions = ["pg_uuidv7"]
+
+# ---------------------------------------------------------------------------
+# Tables: Principals
+# ---------------------------------------------------------------------------
+
+[tables.principals]
+comment = "Actors that can own or perform actions. FK target for other modules; never a user-profile store."
+
+[tables.principals.columns.id]
+type = "id"
+
+[tables.principals.columns.kind]
+type = "str"
+comment = "Actor kind, registered at composition time; built-ins are run/consumer/source/system. Validation lives at the service layer -- storage accepts any string."
+
+[tables.principals.columns.external_ref]
+type = "uuid_val"
+comment = "The actor's id in its kind's namespace; for the singleton system principal this is the all-zeros sentinel."
+
+[tables.principals.columns.display_name]
+type = "str_nullable"
+comment = "Optional human-readable label for the actor"
+
+[tables.principals.columns.created_at]
+type = "timestamp"
+
+[tables.principals.unique.uq_principals_kind_external_ref]
+columns = ["kind", "external_ref"]
