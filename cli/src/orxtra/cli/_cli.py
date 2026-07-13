@@ -3,12 +3,15 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from datetime import UTC, datetime
 from typing import Any, NoReturn
+from uuid import uuid4
 
 import asyncpg
 import strictcli
 from orxtra.cli._formatters import format_output
 from orxtra.identity import KindRegistry, PgPrincipalStorage
+from orxtra.protocols import ALL_SCOPES, AuthContext, TrustTier
 from orxtra.services import DispatchContext, dispatch, verify_schema
 
 # -- Helpers --
@@ -16,6 +19,27 @@ from orxtra.services import DispatchContext, dispatch, verify_schema
 def _die(message: str) -> NoReturn:
     print(message, file=sys.stderr)
     sys.exit(1)
+
+
+def _operator_auth_context() -> AuthContext:
+    """Build the local operator's auth context.
+
+    The CLI talks straight to the database with no HTTP layer in front of
+    it -- it is the local-trust path. Under the single-operator model the
+    local operator simply acts as the system: SYSTEM trust tier, every
+    scope, and no backing consumer record (``consumer_id`` is None, which
+    the resolver maps to the seeded system principal). The context lives
+    for exactly one command, so it never expires.
+    """
+    return AuthContext(
+        id=uuid4(),
+        consumer_id=None,
+        scopes=ALL_SCOPES,
+        trust_tier=TrustTier.SYSTEM,
+        authenticated_via="cli-local",
+        issued_at=datetime.now(tz=UTC),
+        expires_at=None,
+    )
 
 
 def _require_db(db: str) -> str:
@@ -43,6 +67,7 @@ def _dispatch_and_print(
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
+                auth_context=_operator_auth_context(),
             )
             result = await dispatch(ctx, capability, args)
             _print(result, fmt)
@@ -68,6 +93,7 @@ def _dispatch_quiet(
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
+                auth_context=_operator_auth_context(),
             )
             await dispatch(ctx, capability, args)
             if not quiet:
@@ -85,7 +111,7 @@ def _dispatch_no_pool(
 ) -> None:
     """Run a capability that does not require a database pool."""
     async def _run() -> None:
-        ctx = DispatchContext()
+        ctx = DispatchContext(auth_context=_operator_auth_context())
         result = await dispatch(ctx, capability, args)
         _print(result, fmt)
 
@@ -139,6 +165,7 @@ def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> No
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
+                auth_context=_operator_auth_context(),
             )
             run_id = await dispatch(ctx, "start_run", {
                 "config_path": config,
@@ -169,6 +196,7 @@ def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> Non
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
+                auth_context=_operator_auth_context(),
             )
             result = await dispatch(ctx, "get_run", {"run_id": run_id})
             if result is None:
@@ -349,6 +377,7 @@ def cmd_event_fire(
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
+                auth_context=_operator_auth_context(),
             )
             event_id, _inserted = await dispatch(ctx, "fire_event", {
                 "run_id": run_id,
@@ -372,7 +401,7 @@ validate_group = app.group("validate", help="Validate configuration files.")
 @strictcli.arg(name="path", help="Path to agent TOML file.")
 def cmd_validate_agent(*, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
-        ctx = DispatchContext()
+        ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_agent", {"path": path})
         if errors:
             for err in errors:
@@ -388,7 +417,7 @@ def cmd_validate_agent(*, quiet: bool, path: str, **_kwargs: object) -> None:
 @strictcli.arg(name="path", help="Path to workflow TOML file.")
 def cmd_validate_workflow(*, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
-        ctx = DispatchContext()
+        ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_workflow", {"path": path})
         if errors:
             for err in errors:
@@ -404,7 +433,7 @@ def cmd_validate_workflow(*, quiet: bool, path: str, **_kwargs: object) -> None:
 @strictcli.arg(name="path", help="Path to categories TOML file.")
 def cmd_validate_categories(*, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
-        ctx = DispatchContext()
+        ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_categories", {"path": path})
         if errors:
             for err in errors:
@@ -434,6 +463,7 @@ def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> 
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
+                auth_context=_operator_auth_context(),
             )
             result = await dispatch(ctx, "show_config", {"run_id": run_id})
             if result is None:
