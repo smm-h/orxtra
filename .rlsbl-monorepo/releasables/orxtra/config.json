@@ -12,5 +12,6 @@
       "local": false
     }
   },
-  "coverage_unit": "commit"
+  "coverage_unit": "commit",
+  "publish_gate_check_regex": "^(test \\(3\\.\\d+\\)|lint|mypy|import-check|dep-declarations|layer-docs|schema-codegen)$"
 }
