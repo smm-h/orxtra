@@ -1420,6 +1420,7 @@ source = { editable = "services" }
 dependencies = [
     { name = "asyncpg" },
     { name = "orxtra-agent" },
+    { name = "orxtra-auth" },
     { name = "orxtra-dispatch" },
     { name = "orxtra-identity" },
     { name = "orxtra-overseer" },
@@ -1435,6 +1436,7 @@ dependencies = [
 requires-dist = [
     { name = "asyncpg" },
     { name = "orxtra-agent", editable = "agent" },
+    { name = "orxtra-auth", editable = "auth" },
     { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-overseer", editable = "overseer" },
