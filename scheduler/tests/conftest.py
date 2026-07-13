@@ -12,9 +12,10 @@ if TYPE_CHECKING:
     import uuid
     from collections.abc import Callable
 
-# Import MockTraceWriter from the repo-root tests/shared_mocks.py.
-# Direct importlib path import avoids scheduler/tests/ shadowing the
-# root tests/ package when pytest runs from the scheduler/ subdirectory.
+# Cross-member test-infra seam: imports MockTraceWriter from the
+# repo-root tests/shared_mocks.py. Uses absolute-path importlib
+# loading (parents[2]) so it resolves correctly from both root and
+# member cwd (--rootdir .). Do not change to a relative import.
 import importlib.util as _ilu
 
 _spec = _ilu.spec_from_file_location(

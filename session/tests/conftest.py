@@ -10,6 +10,10 @@ import pytest
 from orxtra.session._session import Session
 from orxtra.transport import Result, StepFinish, StepStart, TransportEvent
 
+# Cross-member test-infra seam: imports MockTransport from the
+# repo-root tests/shared_mocks.py. Uses absolute-path importlib
+# loading (parents[2]) so it resolves correctly from both root and
+# member cwd (--rootdir .). Do not change to a relative import.
 _spec = _ilu.spec_from_file_location(
     "tests.shared_mocks",
     Path(__file__).resolve().parents[2] / "tests" / "shared_mocks.py",

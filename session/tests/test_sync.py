@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 import importlib.util as _ilu
 from pathlib import Path
 
+# Cross-member test-infra seam: parents[2] resolves from both root
+# and member cwd. See session/tests/conftest.py for details.
 _spec = _ilu.spec_from_file_location(
     "tests.shared_mocks",
     Path(__file__).resolve().parents[2] / "tests" / "shared_mocks.py",

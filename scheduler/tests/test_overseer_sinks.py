@@ -14,6 +14,8 @@ from orxtra.protocols import (
 )
 from orxtra.scheduler import Scheduler
 
+# Cross-member test-infra seam: parents[2] resolves from both root
+# and member cwd. See scheduler/tests/conftest.py for details.
 _spec = _ilu.spec_from_file_location(
     "tests.shared_mocks",
     Path(__file__).resolve().parents[2] / "tests" / "shared_mocks.py",
