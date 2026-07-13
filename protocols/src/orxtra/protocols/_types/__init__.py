@@ -29,11 +29,11 @@ from orxtra.protocols._types._auth import (
     SCOPE_EVENTS_WRITE,
     SCOPE_SOURCES_MANAGE,
     SCOPE_SUBSCRIPTIONS_MANAGE,
+    AuthContext,
     ConsumerRecord,
     CredentialRecord,
     MacOutcome,
     MacVerdict,
-    Principal,
     TrustTier,
 )
 from orxtra.protocols._types._capability import (
@@ -139,6 +139,7 @@ __all__ = [
     "AddConstraintResult",
     "AgentExecution",
     "AttemptSummary",
+    "AuthContext",
     "AutonomyLevel",
     "BudgetExhausted",
     "BudgetExhaustionPolicy",
@@ -191,7 +192,6 @@ __all__ = [
     "OnSuccessCallback",
     "OverseerEvent",
     "PreRetryCallback",
-    "Principal",
     "RecordAssumptionParams",
     "RecordAssumptionResult",
     "RecordDecisionParams",

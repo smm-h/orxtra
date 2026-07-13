@@ -7,10 +7,10 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from orxtra.protocols._types._auth import (
+        AuthContext,
         ConsumerRecord,
         CredentialRecord,
         MacVerdict,
-        Principal,
         TrustTier,
     )
     from orxtra.protocols._types._checks import CheckResult
@@ -271,7 +271,7 @@ class CredentialVerifier(Protocol):
         self,
         credential_record: object,
         presented_credential: str,
-    ) -> Principal: ...
+    ) -> AuthContext: ...
 
 
 @runtime_checkable

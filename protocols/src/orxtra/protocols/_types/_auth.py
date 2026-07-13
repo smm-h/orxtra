@@ -62,9 +62,20 @@ class CredentialRecord:
 
 
 @dataclass(frozen=True)
-class Principal:
+class AuthContext:
+    """Ephemeral authenticated-request context.
+
+    Created per request when a credential is verified; never persisted.
+    Carries the scopes, trust tier, and identity resolved for the caller
+    of a single request.
+
+    consumer_id is None only for system-tier contexts (a future
+    system/operator context with no backing consumer record); for all
+    consumer-backed requests it is the resolved consumer's id.
+    """
+
     id: UUID
-    consumer_id: UUID
+    consumer_id: UUID | None
     scopes: frozenset[str]
     trust_tier: TrustTier
     authenticated_via: str
