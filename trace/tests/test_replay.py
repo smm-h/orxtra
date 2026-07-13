@@ -104,9 +104,9 @@ class TestReplayInMemory:
         backend = InMemoryBackend()
         run_id = await backend.create_run("test", {}, "full")
 
-        eid1 = await backend.write_event(run_id, "ev_a", {"k": 1})
-        eid2 = await backend.write_event(run_id, "ev_b", {"k": 2})
-        eid3 = await backend.write_event(run_id, "ev_c", {"k": 3})
+        eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1})
+        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
+        eid3, _ = await backend.write_event(run_id, "ev_c", {"k": 3})
 
         result = await backend.replay()
 
@@ -123,7 +123,7 @@ class TestReplayInMemory:
         run_id = await backend.create_run("test", {}, "full")
 
         await backend.write_event(run_id, "ev_a", {"k": 1})
-        eid2 = await backend.write_event(run_id, "ev_b", {"k": 2})
+        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
         await backend.write_event(run_id, "ev_a", {"k": 3})
 
         result = await backend.replay(event_types=["ev_b"])
@@ -138,7 +138,7 @@ class TestReplayInMemory:
         run_id = await backend.create_run("test", {}, "full")
 
         await backend.write_event(run_id, "ev_a", {"k": 1}, source="internal")
-        eid2 = await backend.write_event(run_id, "ev_b", {"k": 2}, source="agent")
+        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2}, source="agent")
 
         result = await backend.replay(source="agent")
 
@@ -150,9 +150,9 @@ class TestReplayInMemory:
         backend = InMemoryBackend()
         run_id = await backend.create_run("test", {}, "full")
 
-        eid1 = await backend.write_event(run_id, "ev_a", {"k": 1})
-        eid2 = await backend.write_event(run_id, "ev_b", {"k": 2})
-        eid3 = await backend.write_event(run_id, "ev_c", {"k": 3})
+        eid1, _ = await backend.write_event(run_id, "ev_a", {"k": 1})
+        eid2, _ = await backend.write_event(run_id, "ev_b", {"k": 2})
+        eid3, _ = await backend.write_event(run_id, "ev_c", {"k": 3})
 
         result = await backend.replay(since_id=eid2)
 

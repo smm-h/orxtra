@@ -153,15 +153,17 @@ class MockTraceWriter:
         data: dict[str, Any],
         task_id: uuid.UUID | None = None,
         source: str = "internal",
-    ) -> uuid.UUID:
+        idempotency_key: str | None = None,
+    ) -> tuple[uuid.UUID, bool]:
         event_id = uuid6.uuid7()
         self._record(
             "write_event",
             run_id=run_id,
             event_type=event_type,
             data=data,
+            idempotency_key=idempotency_key,
         )
-        return event_id
+        return event_id, True
 
     async def write_transcript_entry(
         self,

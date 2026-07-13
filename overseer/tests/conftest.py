@@ -125,13 +125,15 @@ class MockTraceWriter:
         data: dict[str, Any],
         task_id: UUID | None = None,
         source: str = "internal",
-    ) -> UUID:
+        idempotency_key: str | None = None,
+    ) -> tuple[UUID, bool]:
         generated = self._gen_id()
         self.calls.append(("write_event", {
             "run_id": run_id, "event_type": event_type,
             "data": data, "task_id": task_id,
+            "idempotency_key": idempotency_key,
         }))
-        return generated
+        return generated, True
 
 
 class MockConn:
