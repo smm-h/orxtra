@@ -76,7 +76,10 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     # -- AG-UI SSE routes (under /ag-ui) --
     from orxtra.agui import create_agui_router
 
-    agui_router, _broadcaster = create_agui_router()
+    agui_router, _broadcaster = create_agui_router(
+        pool=config.dispatch_context.pool,
+        principal_storage=config.dispatch_context.principal_storage,
+    )
 
     # Wrap AG-UI routes with the auth wall if an authenticator is provided.
     if config.authenticator is not None:

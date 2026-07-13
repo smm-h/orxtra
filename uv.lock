@@ -1053,6 +1053,7 @@ dependencies = [
     { name = "ag-ui-protocol" },
     { name = "fastware" },
     { name = "jsonpatch" },
+    { name = "orxtra-identity" },
     { name = "orxtra-services" },
 ]
 
@@ -1066,6 +1067,7 @@ requires-dist = [
     { name = "ag-ui-protocol" },
     { name = "fastware" },
     { name = "jsonpatch" },
+    { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-services", editable = "services" },
 ]
 

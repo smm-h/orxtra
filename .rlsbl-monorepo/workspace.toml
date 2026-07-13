@@ -180,7 +180,7 @@ releasable = "orxtra"
 [[projects]]
 path = "agui"
 description = "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots."
-depends_on = ["services"]
+depends_on = ["identity", "services"]
 releasable = "orxtra"
 
 [[projects]]

@@ -8,6 +8,7 @@ dependencies = [
     "ag-ui-protocol",
     "jsonpatch",
     "fastware",
+    "orxtra-identity",
     "orxtra-services",
 ]
 keywords = ["rlsbl"]
@@ -27,4 +28,5 @@ build-backend = "hatchling.build"
 packages = ["src/orxtra"]
 
 [tool.uv.sources]
+orxtra-identity = { workspace = true }
 orxtra-services = { workspace = true }
