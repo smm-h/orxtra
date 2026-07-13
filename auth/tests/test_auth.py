@@ -18,10 +18,19 @@ from orxtra.auth import (
 )
 from orxtra.protocols import (
     ALL_SCOPES,
+    SCOPE_CONFIG_READ,
     SCOPE_EVENTS_READ,
     SCOPE_EVENTS_WRITE,
+    SCOPE_INBOX_READ,
+    SCOPE_INBOX_RESPOND,
+    SCOPE_RUNS_MANAGE,
+    SCOPE_RUNS_READ,
     SCOPE_SOURCES_MANAGE,
+    SCOPE_SOURCES_READ,
     SCOPE_SUBSCRIPTIONS_MANAGE,
+    SCOPE_SUBSCRIPTIONS_READ,
+    SCOPE_TRACE_READ,
+    SCOPE_VALIDATE_READ,
     AuthContext,
     KeyedMacProvider,
     MacOutcome,
@@ -348,9 +357,18 @@ async def test_scope_vocabulary(
 def test_all_scopes_constant() -> None:
     """ALL_SCOPES contains exactly the defined scope constants."""
     assert frozenset({
+        SCOPE_RUNS_READ,
+        SCOPE_RUNS_MANAGE,
+        SCOPE_INBOX_READ,
+        SCOPE_INBOX_RESPOND,
+        SCOPE_TRACE_READ,
         SCOPE_EVENTS_READ,
         SCOPE_EVENTS_WRITE,
+        SCOPE_CONFIG_READ,
+        SCOPE_VALIDATE_READ,
+        SCOPE_SOURCES_READ,
         SCOPE_SOURCES_MANAGE,
+        SCOPE_SUBSCRIPTIONS_READ,
         SCOPE_SUBSCRIPTIONS_MANAGE,
     }) == ALL_SCOPES
 

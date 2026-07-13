@@ -86,14 +86,32 @@ class AuthContext:
 # -- Scope vocabulary --
 # Coarse scope strings for the single-operator model.
 
+SCOPE_RUNS_READ = "runs:read"
+SCOPE_RUNS_MANAGE = "runs:manage"
+SCOPE_INBOX_READ = "inbox:read"
+SCOPE_INBOX_RESPOND = "inbox:respond"
+SCOPE_TRACE_READ = "trace:read"
 SCOPE_EVENTS_READ = "events:read"
 SCOPE_EVENTS_WRITE = "events:write"
+SCOPE_CONFIG_READ = "config:read"
+SCOPE_VALIDATE_READ = "validate:read"
+SCOPE_SOURCES_READ = "sources:read"
 SCOPE_SOURCES_MANAGE = "sources:manage"
+SCOPE_SUBSCRIPTIONS_READ = "subscriptions:read"
 SCOPE_SUBSCRIPTIONS_MANAGE = "subscriptions:manage"
 
 ALL_SCOPES: frozenset[str] = frozenset({
+    SCOPE_RUNS_READ,
+    SCOPE_RUNS_MANAGE,
+    SCOPE_INBOX_READ,
+    SCOPE_INBOX_RESPOND,
+    SCOPE_TRACE_READ,
     SCOPE_EVENTS_READ,
     SCOPE_EVENTS_WRITE,
+    SCOPE_CONFIG_READ,
+    SCOPE_VALIDATE_READ,
+    SCOPE_SOURCES_READ,
     SCOPE_SOURCES_MANAGE,
+    SCOPE_SUBSCRIPTIONS_READ,
     SCOPE_SUBSCRIPTIONS_MANAGE,
 })
