@@ -174,6 +174,7 @@ def sample_inbox_item(sample_item_id: UUID, sample_run_id: UUID) -> InboxItem:
         answer_event=None,
         rejection_reason=None,
         answered_at=None,
+        resolved_by=None,
         created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
