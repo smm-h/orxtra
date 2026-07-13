@@ -9,7 +9,12 @@ if TYPE_CHECKING:
 # Infrastructure tokens a capability may declare in its ``injects`` field.
 # The dispatcher maps each token to a concrete dependency it passes to the
 # service function. This vocabulary will grow as new infrastructure is added.
-VALID_INJECT_TOKENS: frozenset[str] = frozenset({"pool", "dispatch_backend"})
+VALID_INJECT_TOKENS: frozenset[str] = frozenset({
+    "pool",
+    "dispatch_backend",
+    "principal_storage",
+    "kind_registry",
+})
 
 
 @dataclass(frozen=True)
@@ -29,7 +34,8 @@ class Capability:
     injects: frozenset[str]
     """The infrastructure dependencies the dispatcher passes to the service function.
 
-    Valid tokens today: ``"pool"``, ``"dispatch_backend"`` (see
+    Valid tokens today: ``"pool"``, ``"dispatch_backend"``,
+    ``"principal_storage"``, ``"kind_registry"`` (see
     ``VALID_INJECT_TOKENS``). An empty frozenset means a pure function that
     receives only validated params. The token vocabulary will grow later.
     """

@@ -296,7 +296,12 @@ class TestCapability:
             c.name = "y"  # type: ignore[misc]
 
     def test_valid_inject_tokens(self) -> None:
-        assert frozenset({"pool", "dispatch_backend"}) == VALID_INJECT_TOKENS
+        assert frozenset({
+            "pool",
+            "dispatch_backend",
+            "principal_storage",
+            "kind_registry",
+        }) == VALID_INJECT_TOKENS
 
     def test_unknown_inject_token_rejected(self) -> None:
         with pytest.raises(ValueError, match="unknown inject token"):
