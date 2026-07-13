@@ -86,6 +86,8 @@ def test_readonly_annotation() -> None:
         result_model=None,
         tags=frozenset({"readonly"}),
         category="test",
+        required_scope="test:read",
+        injects=frozenset(),
     )
     ann = _annotations_for_capability(cap)
     assert ann.readOnlyHint is True
@@ -102,6 +104,8 @@ def test_mutating_annotation() -> None:
         result_model=None,
         tags=frozenset({"mutating"}),
         category="test",
+        required_scope="test:manage",
+        injects=frozenset(),
     )
     ann = _annotations_for_capability(cap)
     assert ann.destructiveHint is True
@@ -118,6 +122,8 @@ def test_no_tag_annotation() -> None:
         result_model=None,
         tags=frozenset(),
         category="test",
+        required_scope="test:read",
+        injects=frozenset(),
     )
     ann = _annotations_for_capability(cap)
     assert ann.readOnlyHint is None

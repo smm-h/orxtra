@@ -46,6 +46,8 @@ def _make_capability(
         result_model=None,
         tags=frozenset({"readonly"}),
         category="test",
+        required_scope="test:read",
+        injects=frozenset(),
     )
 
 
