@@ -2,111 +2,151 @@
 
 # orxtra
 
-## 0.9.0
+## 0.10.0
 
-Data-defined tools, compose engine, event-bus dispatcher, and database provisioning CLI.
+Unified identity model: every actor gets a durable principal, every action names its actor, and dispatch enforces authentication structurally.
 
 <details>
 <summary>Context</summary>
 
-Six new sub-projects (auth, compose, dispatch, incoming, a2ui, agui) and major rework of existing ones. Exec/shell tool configs replaced by declarative [[tools.define]] with three execution engines (http, monty, command). Prompt composition unified under the compose engine with template-based fragment providers. Event-bus connected end-to-end with a dispatcher worker, webhook receiver, and capability-keyed HMAC auth. The db command group provides init, verify, and migrate subcommands. Schema generation adopted from pgdesign with faceted codegen output.
+Identity used to be computed at the edge and thrown away: an authenticated
+request produced an ephemeral auth context that never became a persisted,
+referenceable actor. Mutations could happen anonymously, ownership was tied to
+orchestration runs alone, and events recorded a free-text `source` that no
+foreign key could vouch for -- actions were fundamentally unattributable.
+
+This release makes identity first-class. A new `principals` table gives every
+actor -- runs, consumers, sources, the system, and app-registered kinds -- a
+durable identity minted at birth. Every event names its acting principal via a
+NOT NULL foreign key, subscriptions are owned by principals (cascading on
+deletion), and the ephemeral `Principal` auth type is renamed `AuthContext` to
+end the overload. Enforcement is structural, not advisory: every capability
+declares a required scope, and the single dispatch choke point rejects any call
+whose authenticated context lacks it -- MCP and A2A now sit behind the auth
+wall, and an API served without an authenticator exposes public surfaces only.
 
 </details>
 
 ### Breaking
 
-- **Breaking.** Replace ExecToolConfig/ShellConfig with InlineToolDefinition and `[[tools.define]]` TOML parsing.
-- **Breaking.** Delete `make_exec_tool`/`make_shell_tool` constructors and `CONSULT_STRIP_TOOLS`/`FILE_MUTATION_TOOLS` name-sets. Consult stripping and mutation tracking now use tag-based logic. Agent `[[exec]]`/`[shell]` sections replaced by `[[tools.define]]` inline definitions.
+- [auth, protocols] **`Principal` renamed to `AuthContext`.** The ephemeral per-request auth type is now `AuthContext`; `consumer_id` is widened to `UUID | None`. Update imports and type references.
+- [a2a, api, auth, cli, incoming, mcp, protocols, services] **MCP and A2A endpoints now require authentication.** Every capability dispatch requires an authenticated context carrying the capability declared scope, drawn from a new scope vocabulary covering all namespaces. An API served without an authenticator exposes public surfaces only (such as agent-card discovery).
+- [., api, cli, dispatch, incoming, overseer, scheduler, services, trace] **`events.source` replaced by `events.principal_id`.** Every event names its acting principal via a NOT NULL foreign key; the NOTIFY payload and event query filters use `principal_id` instead of the free-text `source`. The idempotent-write dedup path on PostgreSQL now returns the existing persisted event id instead of a non-existent one.
+- [., dispatch, protocols, services] **Subscriptions are owned by principals.** `subscriptions.owner_run_id` is removed; ownership is a `principal_id` FK that cascades on owner deletion. `SubscribeParams` drops `owner_run_id`, and `list_subscriptions` gains a principal filter.
+- [., overseer, scheduler, services, trace] **Attribution parameters added to write paths.** `write_event`, `create_run`, and the inbox writers changed signatures to carry principal attribution, and `create_run` now takes a caller-supplied `run_id`.
+- [., agui, api, incoming, worker] **CORS wildcard-with-credentials is rejected.** The API compositor requires an explicit origin allowlist or no CORS; a `*` origin combined with credentials is refused.
+- [mcp] **Legacy MCP stdio transport removed.** The MCP server is served over HTTP with per-request identity; the stdio path is gone.
 
 ### Features
 
-- **New command group.** `orxtra db` with `init`, `verify`, and `migrate` (plan/apply/status) subcommands for database provisioning and migration.
+- [., api, auth, cli, dispatch, identity, incoming, protocols, services, trace] **Unified identity model.** A new `principals` table gives every actor -- runs, consumers, sources, the system, and app-registered kinds -- a durable identity minted at birth. Runs, sources, and consumers record their creator (`runs.created_by`, `sources.created_by`, `consumers.principal_id`, inbox `resolved_by`); principal CRUD is exposed as capabilities gated by `principals:read`/`principals:manage`; and deletion pins historical actors, raising `PrincipalInUseError` when references remain.
+- [agui, api] **AG-UI per-run access control.** The AG-UI SSE stream is restricted to the run creator or an operator.
+
+### Fixes
+
+- [mcp] **MCP tools expose real parameter schemas.** FastMCP-served tools previously advertised a broken kwargs-envelope schema; they now serve each capability actual parameter schema and validate input strictly.
+- [mcp] **MCP tools with tuple returns no longer crash.** Tool results that return a tuple (such as `fire_event`) now serialize correctly instead of crashing after the side effect ran.
+- [trace] **Inbox reads work against PostgreSQL.** Inbox item `options` and `tags` are decoded via a jsonb codec, fixing reads that failed against a real PostgreSQL backend.
+- [., trace] **Crash-recovery events are attributed to the system principal.** Recovery-generated events no longer violate the new NOT NULL event attribution.
+- [., api] **Mounted sub-app session managers initialize on startup.** The composited application lifespan now forwards through to mounted sub-apps (requires fastware >= 0.5.0), so their session managers start correctly.
+- [transport] **Streaming token usage is reported for Anthropic and OpenAI providers.** Streamed responses now surface input and output token usage instead of dropping it.
+
+## 0.9.0
+
+### Breaking
+
+- [agent] **Breaking.** Replace ExecToolConfig/ShellConfig with InlineToolDefinition and `[[tools.define]]` TOML parsing.
+- [., scheduler, tool, worker] **Breaking.** Delete `make_exec_tool`/`make_shell_tool` constructors and `CONSULT_STRIP_TOOLS`/`FILE_MUTATION_TOOLS` name-sets. Consult stripping and mutation tracking now use tag-based logic. Agent `[[exec]]`/`[shell]` sections replaced by `[[tools.define]]` inline definitions.
+
+### Features
+
+- [cli] **New command group.** `orxtra db` with `init`, `verify`, and `migrate` (plan/apply/status) subcommands for database provisioning and migration.
 
 ## 0.8.0
 
 ### Breaking
 
-- Transport's `Event` union is renamed to `TransportEvent`, and the `event_callback` hook is removed in favor of `TraceSink` implementing `EventSink`.
+- [., scheduler, session, trace, transport] Transport's `Event` union is renamed to `TransportEvent`, and the `event_callback` hook is removed in favor of `TraceSink` implementing `EventSink`.
 
 ### Features
 
-- **Worker sub-project.** Sandboxed remote tool execution: a brain-worker protocol, a native worker with `build_worker_tools` and a CLI entry point (new `worker connect`/`worker docker` commands), a Docker worker for containerized execution, a worker registry with one-per-root enforcement, and a pipeline split so tools can execute remotely (`TaskSpec` gains a `remote` field).
-- **HTTP compositor.** New `api` sub-project that mounts MCP, A2A, AG-UI, and native routes on a single ASGI app with graceful startup/shutdown, plus a new `orxtra serve` CLI command to run it.
-- **AG-UI protocol support.** New `agui` sub-project: event translation sinks, an SSE endpoint, and state snapshots with RFC 6902 deltas.
-- **A2A protocol support.** New `a2a` sub-project: Agent Card generation from the capability registry, a skill registry with TOML loading and auto-generation, a task state bridge, and a JSON-RPC server with an ASGI app factory.
-- **A2UI support.** New `a2ui` sub-project: surface registry, engine, and fragments; standard surface templates with a default registry; and overseer surface tools (`render_surface`, `compose_surface`).
-- **Auth sub-project.** Authentication and authorization: backend protocol with in-memory implementation, authenticator and authorizer, and ASGI auth middleware. Dispatch `Source` now references a `credential_id` instead of carrying `auth_method`/`auth_config`.
-- **MCP server upgrade.** The MCP server now builds on the official MCP SDK, registers tools with annotations and resources, offers a streamable HTTP transport factory, and emits notifications via `McpNotificationSink`.
-- **Capability registry.** Service functions are described once as capabilities with Pydantic params models; the MCP and CLI surfaces are now projections of that single registry through a generic dispatcher.
-- **New shared protocol types.** `EventSink[T]` generic protocol, `TrustTier` enum and `Principal` dataclass, A2UI surface types, `Capability` frozen dataclass, and `SurfaceGenerator`/`CardContributor` contracts.
-- **Event sink backbone.** Session emits transport events and the scheduler emits overseer events through `EventSink`; `ToolExecuting` and `ToolUse` events now carry a `tool_use_id`.
+- [., cli, protocols, worker] **Worker sub-project.** Sandboxed remote tool execution: a brain-worker protocol, a native worker with `build_worker_tools` and a CLI entry point (new `worker connect`/`worker docker` commands), a Docker worker for containerized execution, a worker registry with one-per-root enforcement, and a pipeline split so tools can execute remotely (`TaskSpec` gains a `remote` field).
+- [., api, cli] **HTTP compositor.** New `api` sub-project that mounts MCP, A2A, AG-UI, and native routes on a single ASGI app with graceful startup/shutdown, plus a new `orxtra serve` CLI command to run it.
+- [., agui] **AG-UI protocol support.** New `agui` sub-project: event translation sinks, an SSE endpoint, and state snapshots with RFC 6902 deltas.
+- [a2a] **A2A protocol support.** New `a2a` sub-project: Agent Card generation from the capability registry, a skill registry with TOML loading and auto-generation, a task state bridge, and a JSON-RPC server with an ASGI app factory.
+- [., a2ui] **A2UI support.** New `a2ui` sub-project: surface registry, engine, and fragments; standard surface templates with a default registry; and overseer surface tools (`render_surface`, `compose_surface`).
+- [., auth, dispatch, protocols, services] **Auth sub-project.** Authentication and authorization: backend protocol with in-memory implementation, authenticator and authorizer, and ASGI auth middleware. Dispatch `Source` now references a `credential_id` instead of carrying `auth_method`/`auth_config`.
+- [mcp] **MCP server upgrade.** The MCP server now builds on the official MCP SDK, registers tools with annotations and resources, offers a streamable HTTP transport factory, and emits notifications via `McpNotificationSink`.
+- [cli, mcp, services] **Capability registry.** Service functions are described once as capabilities with Pydantic params models; the MCP and CLI surfaces are now projections of that single registry through a generic dispatcher.
+- [protocols] **New shared protocol types.** `EventSink[T]` generic protocol, `TrustTier` enum and `Principal` dataclass, A2UI surface types, `Capability` frozen dataclass, and `SurfaceGenerator`/`CardContributor` contracts.
+- [., scheduler, session, trace, transport] **Event sink backbone.** Session emits transport events and the scheduler emits overseer events through `EventSink`; `ToolExecuting` and `ToolUse` events now carry a `tool_use_id`.
 
 ### Fixes
 
-- Dependency installation no longer requires a machine-local checkout: `uv.lock` previously carried a local path for `fastware`, breaking installs and CI outside the author's machine. It now resolves from PyPI (fastware 0.1.0, strictcli upgraded to 0.24.0).
-- `db_url` redaction now also redacts passwords passed as query parameters and preserves the netloc verbatim.
-- Credentials are now redacted from the run config snapshot before it is persisted.
-- The scheduler now closes the LLM session after orchestrator tasks, fixing a connection leak.
-- The CLI's `--quiet` flag is now optional and defaults to off, instead of being required on every invocation.
-- Bundled example TOML files are updated to the current agent/workflow loader formats (they previously failed to load), with a loading regression test.
+- [., worker] Dependency installation no longer requires a machine-local checkout: `uv.lock` previously carried a local path for `fastware`, breaking installs and CI outside the author's machine. It now resolves from PyPI (fastware 0.1.0, strictcli upgraded to 0.24.0).
+- [services] `db_url` redaction now also redacts passwords passed as query parameters and preserves the netloc verbatim.
+- [services] Credentials are now redacted from the run config snapshot before it is persisted.
+- [scheduler] The scheduler now closes the LLM session after orchestrator tasks, fixing a connection leak.
+- [cli] The CLI's `--quiet` flag is now optional and defaults to off, instead of being required on every invocation.
+- [.] Bundled example TOML files are updated to the current agent/workflow loader formats (they previously failed to load), with a loading regression test.
 
 ## 0.7.0
 
 ### Breaking
 
-- **MCP no longer depends on orxtra-trace.** MCPServer now requires EventBus injection instead of importing trace directly.
-- **ActionExecutor, DispatchBackend, and EventBus protocols moved to orxtra-protocols.** Import paths changed from orxtra.dispatch and orxtra.scheduler to orxtra.protocols.
+- [mcp] **MCP no longer depends on orxtra-trace.** MCPServer now requires EventBus injection instead of importing trace directly.
+- [dispatch, protocols, services, trace] **ActionExecutor, DispatchBackend, and EventBus protocols moved to orxtra-protocols.** Import paths changed from orxtra.dispatch and orxtra.scheduler to orxtra.protocols.
 
 ### Features
 
-- **PgDispatchBackend.** Full asyncpg-backed dispatch storage with subscription, source, and accumulator persistence.
-- **Source CRUD.** Register, query, and delete event sources with SourceStorage protocol and InMemoryDispatchBackend implementation.
-- **run_sync utility.** Event-loop-aware sync wrappers that safely handle nested event loops, replacing raw asyncio.run() calls.
-- **EventDelivery.fire()** gains source parameter for tracking event origin.
+- [dispatch] **PgDispatchBackend.** Full asyncpg-backed dispatch storage with subscription, source, and accumulator persistence.
+- [dispatch, protocols, services] **Source CRUD.** Register, query, and delete event sources with SourceStorage protocol and InMemoryDispatchBackend implementation.
+- [protocols, services, session] **run_sync utility.** Event-loop-aware sync wrappers that safely handle nested event loops, replacing raw asyncio.run() calls.
+- [dispatch, protocols] **EventDelivery.fire()** gains source parameter for tracking event origin.
 
 ## 0.6.0
 
 ### Breaking
 
-- **Scheduler migrated to dispatch.** EventRegistry removed from public API, replaced by dispatch module's TransientEventDelivery. Bridge-to-events pattern removed in favor of direct dispatch subscriptions.
-- **Services promoted to composition layer.** Services now owns dispatch integration (subscribe, unsubscribe, list_subscriptions), AsyncioFlushScheduler, and ServicesActionExecutor.
+- [scheduler] **Scheduler migrated to dispatch.** EventRegistry removed from public API, replaced by dispatch module's TransientEventDelivery. Bridge-to-events pattern removed in favor of direct dispatch subscriptions.
+- [services] **Services promoted to composition layer.** Services now owns dispatch integration (subscribe, unsubscribe, list_subscriptions), AsyncioFlushScheduler, and ServicesActionExecutor.
 
 ### Features
 
-- **EventDelivery protocol.** Clean abstraction for event delivery, injected into Scheduler.
-- **Event bus enhancements.** Nullable run_id for system-level events, source column for event provenance, replay() for cursor-based pagination, fire_blocking() for synchronous delivery, event_stream() async generator.
-- **Action type hierarchy and FlushScheduler protocol.** Typed Action union (CreateTask, CreateWorkflow, AddConstraint, etc.) and FlushScheduler protocol for accumulator-driven dispatch.
-- **Dispatch module.** New event delivery system with subscriptions, action dispatch, and accumulator flush. Includes TransientEventDelivery (in-memory), InMemoryDispatchBackend, dual-phase delivery, persistent subscriptions, and action executor with typed Action dispatch.
+- [protocols, scheduler] **EventDelivery protocol.** Clean abstraction for event delivery, injected into Scheduler.
+- [overseer, scheduler, services, trace] **Event bus enhancements.** Nullable run_id for system-level events, source column for event provenance, replay() for cursor-based pagination, fire_blocking() for synchronous delivery, event_stream() async generator.
+- [protocols] **Action type hierarchy and FlushScheduler protocol.** Typed Action union (CreateTask, CreateWorkflow, AddConstraint, etc.) and FlushScheduler protocol for accumulator-driven dispatch.
+- [dispatch] **Dispatch module.** New event delivery system with subscriptions, action dispatch, and accumulator flush. Includes TransientEventDelivery (in-memory), InMemoryDispatchBackend, dual-phase delivery, persistent subscriptions, and action executor with typed Action dispatch.
 
 ## 0.5.0
 
 ### Features
 
-- **New feature.** `prepare_event(event) -> str` replaces `handle_event` on OverseerProtocol. Separates message formatting from session interaction.
-- **New feature.** All 26 tools now use the `@tool` decorator. Shell, consult, http (two modes), and exec converted. `validate_args` and `jsonschema` removed from tool module.
-- **New feature.** `namespace` and `tags` fields on Tool. All 26 tools tagged with hierarchical namespaces (`fs.read`, `fs.write`, `git`, `task.lifecycle`, etc.) and capability tags (`readonly`, `mutation`, `lifecycle`, `suspending`).
-- **New feature.** `ToolRegistry` for data-driven tool construction. Allow lists support namespace wildcards (`fs.*`) and tag filters (`#readonly`). Replaces 207-line if/elif chain.
-- **New feature.** `load_tools` meta-tool for on-demand schema loading. Provider-aware deferred tools: Anthropic `defer_loading`, OpenAI empty params, Gemini parameterless. `Session.update_tools()` for dynamic tool sets.
+- [overseer, protocols, scheduler] **New feature.** `prepare_event(event) -> str` replaces `handle_event` on OverseerProtocol. Separates message formatting from session interaction.
+- [scheduler, tool] **New feature.** All 26 tools now use the `@tool` decorator. Shell, consult, http (two modes), and exec converted. `validate_args` and `jsonschema` removed from tool module.
+- [protocols, tool] **New feature.** `namespace` and `tags` fields on Tool. All 26 tools tagged with hierarchical namespaces (`fs.read`, `fs.write`, `git`, `task.lifecycle`, etc.) and capability tags (`readonly`, `mutation`, `lifecycle`, `suspending`).
+- [scheduler] **New feature.** `ToolRegistry` for data-driven tool construction. Allow lists support namespace wildcards (`fs.*`) and tag filters (`#readonly`). Replaces 207-line if/elif chain.
+- [protocols, session, tool, transport] **New feature.** `load_tools` meta-tool for on-demand schema loading. Provider-aware deferred tools: Anthropic `defer_loading`, OpenAI empty params, Gemini parameterless. `Session.update_tools()` for dynamic tool sets.
 
 ### Fixes
 
-- **Bug fix.** `multi_edit` tool now reachable via allow lists and correctly tracked as file mutation.
+- [scheduler, tool] **Bug fix.** `multi_edit` tool now reachable via allow lists and correctly tracked as file mutation.
 
 ## 0.4.0
 
 ### Features
 
-- **New feature.** `OverseerProtocol` and `HealthMonitorProtocol` in protocols. Scheduler no longer depends on the overseer module.
-- **New feature.** `StatResult` and `GlobResult` types replace union returns and misused `DirListing`.
-- **New feature.** Knowledge file hashes persisted via StorageBackend. Eliminates redundant re-loading on restart.
-- **New feature.** `@tool` decorator with `ToolTemplate[T].bind()` for typed tool definitions. 22 tools migrated. Pydantic input models for all tools.
-- **New feature.** Remaining tools migrated to Pydantic input schemas. Factory tools (exec, shell, http, consult) use `model_json_schema()`.
+- [overseer, protocols, scheduler] **New feature.** `OverseerProtocol` and `HealthMonitorProtocol` in protocols. Scheduler no longer depends on the overseer module.
+- [protocols, tool] **New feature.** `StatResult` and `GlobResult` types replace union returns and misused `DirListing`.
+- [overseer, trace] **New feature.** Knowledge file hashes persisted via StorageBackend. Eliminates redundant re-loading on restart.
+- [tool] **New feature.** `@tool` decorator with `ToolTemplate[T].bind()` for typed tool definitions. 22 tools migrated. Pydantic input models for all tools.
+- [tool] **New feature.** Remaining tools migrated to Pydantic input schemas. Factory tools (exec, shell, http, consult) use `model_json_schema()`.
 
 ### Fixes
 
-- **Bug fix.** Pipeline wrapping now preserves the `suspending` flag on tools.
-- **Bug fix.** Removed dead `_fixed_escalation_ladder` fallback handler.
-- **Bug fix.** Fixed conftest imports for pytest importlib mode compatibility across overseer, services, and verify tests.
+- [tool] **Bug fix.** Pipeline wrapping now preserves the `suspending` flag on tools.
+- [scheduler] **Bug fix.** Removed dead `_fixed_escalation_ladder` fallback handler.
+- [overseer, services, verify] **Bug fix.** Fixed conftest imports for pytest importlib mode compatibility across overseer, services, and verify tests.
 
 ## 0.3.0
 
@@ -157,13 +197,13 @@ Six new sub-projects (auth, compose, dispatch, incoming, a2ui, agui) and major r
 
 ### Breaking
 
-- **Single-package distribution.** orxtra is now published as a single `orxtra` package on PyPI instead of 16 separate `orxtra-*` packages. All sub-modules are included in one wheel.
+- [agent, cli, knowledge-module, mcp, notepad, overseer, protocols, scheduler, secrets, services, session, tool, trace, transport, verify, write-safety] **Single-package distribution.** orxtra is now published as a single `orxtra` package on PyPI instead of 16 separate `orxtra-*` packages. All sub-modules are included in one wheel.
 
 ## 0.1.1
 
 ### Fixes
 
-- **Fix.** CI publish workflow uses `--out-dir dist` for correct dist placement in workspace builds.
+- [agent, cli, knowledge-module, mcp, notepad, overseer, protocols, scheduler, secrets, services, session, tool, trace, transport, verify, write-safety] **Fix.** CI publish workflow uses `--out-dir dist` for correct dist placement in workspace builds.
 
 ## 0.1.0
 
