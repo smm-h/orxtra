@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-13T14:09:25Z",
+  "generated_at": "2026-07-13T14:53:08Z",
   "package_count": 28,
   "packages": {
     ".": {
@@ -7,7 +7,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Root package \u2014 single publishable wheel aggregating all sub-projects",
       "deps": [
         "mcp"
@@ -23,7 +23,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Shared types: Execution, task lifecycle, event descriptors, action tool schemas",
       "deps": [],
       "rdeps": [
@@ -53,7 +53,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Secret registry, substitution, and scrubbing",
       "deps": [
         "protocols"
@@ -74,7 +74,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Write queue, stale-write detection, atomic replace, transient replay",
       "deps": [],
       "rdeps": [
@@ -92,7 +92,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Typed LLM client via Provider protocol",
       "deps": [
         "protocols"
@@ -113,7 +113,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Agent definition loader (TOML + composable .md prompts)",
       "deps": [
         "compose"
@@ -132,7 +132,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Tool registry with granular constructors",
       "deps": [
         "protocols",
@@ -154,7 +154,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Check runner (pre/post-check Execution dispatch)",
       "deps": [
         "protocols"
@@ -172,7 +172,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "PG schema owner (events, task results, transcripts, inbox, state machines)",
       "deps": [],
       "rdeps": [
@@ -194,7 +194,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Append-only cross-agent context sharing",
       "deps": [
         "trace"
@@ -212,7 +212,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Session lifecycle, token tracking, cross-restart resumption",
       "deps": [
         "protocols",
@@ -234,7 +234,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Fragment-based prompt composition engine. Strict variable substitution, include resolution, priority ordering.",
       "deps": [],
       "rdeps": [
@@ -251,7 +251,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Authentication and authorization. Consumer registry, credential hashing, ASGI middleware.",
       "deps": [
         "protocols"
@@ -272,7 +272,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Identity model: persisted principals for durable actor identity.",
       "deps": [
         "protocols"
@@ -293,7 +293,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Agent-to-UI surface rendering. Template registry, fragment library, data-bound component engine.",
       "deps": [
         "protocols"
@@ -309,7 +309,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Task executor (recursive hierarchy, budgets, constraints)",
       "deps": [
         "protocols",
@@ -338,7 +338,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Event delivery: subscriptions, action dispatch, accumulator flush",
       "deps": [
         "protocols"
@@ -359,7 +359,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Persistent LLM with action tools, PG memory, session handoff",
       "deps": [
         "protocols",
@@ -381,7 +381,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Shared business logic for all frontends",
       "deps": [
         "agent",
@@ -413,7 +413,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "strictcli CLI frontend (agents are the primary users)",
       "deps": [
         "services",
@@ -432,7 +432,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "MCP server (human interface via dashboard/AI client)",
       "deps": [
         "services"
@@ -451,7 +451,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "A2A (Agent-to-Agent) protocol server",
       "deps": [
         "services",
@@ -470,7 +470,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots.",
       "deps": [
         "identity",
@@ -489,7 +489,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Brain-worker protocol: remote tool execution over WebSocket.",
       "deps": [
         "protocols",
@@ -509,7 +509,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Webhook receiver, event replay, and SSE stream. External event ingestion for the event bus.",
       "deps": [
         "protocols",
@@ -532,7 +532,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app.",
       "deps": [
         "auth",
