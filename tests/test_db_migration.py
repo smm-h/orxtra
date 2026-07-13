@@ -345,6 +345,31 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql""",
+
+    # -- inbox resolution attribution: inbox_items.resolved_by --------------
+
+    # 39. New column: inbox_items.resolved_by (nullable, NO backfill --
+    # historical resolutions predate attribution and stay NULL as an honest
+    # unknown; NULL also means "still pending").
+    """ALTER TABLE inbox_items ADD COLUMN IF NOT EXISTS resolved_by uuid""",
+
+    # 40. FK inbox_items.resolved_by -> principals.id ON DELETE RESTRICT.
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_inbox_resolved_by'
+        AND conrelid = 'inbox_items'::regclass
+      ) THEN
+        ALTER TABLE inbox_items ADD CONSTRAINT fk_inbox_resolved_by
+            FOREIGN KEY (resolved_by) REFERENCES principals (id)
+            ON DELETE RESTRICT;
+      END IF;
+    END $$;""",
+
+    # 41. Index on inbox_items.resolved_by (matches the runs/sources FK style).
+    """CREATE INDEX IF NOT EXISTS idx_inbox_resolved_by
+       ON inbox_items (resolved_by)""",
 ]
 
 
@@ -602,6 +627,24 @@ async def test_migration_from_v080_baseline(
             """INSERT INTO events (run_id, event_type, source, data)
                VALUES (NULL, $1, $2, $3::jsonb) RETURNING id""",
             "webhook.ghost", "ghost-slug-404", "{}",
+        )
+
+        # Seed two inbox items in the v0.8.0 baseline (no resolved_by column
+        # yet): one already answered (a historical resolution) and one pending.
+        # Both must end up with resolved_by NULL after migration -- historical
+        # resolutions are deliberately NOT backfilled.
+        inbox_answered_id = await conn.fetchval(
+            """INSERT INTO inbox_items
+               (run_id, decision_type, question, status, answer, answered_at)
+               VALUES ($1, $2, $3, 'answered', 'yes', now())
+               RETURNING id""",
+            run_id, "approval", "historical answered?",
+        )
+        inbox_pending_id = await conn.fetchval(
+            """INSERT INTO inbox_items (run_id, decision_type, question)
+               VALUES ($1, $2, $3)
+               RETURNING id""",
+            run_id, "approval", "still pending?",
         )
 
         # Also seed a subscription + action (needed for dispatch_completions FK)
@@ -1077,6 +1120,74 @@ async def test_migration_from_v080_baseline(
         assert "NEW.source" not in notify_body, (
             "the NOTIFY function must no longer reference source"
         )
+
+        # 4m: inbox_items.resolved_by exists, is NULLABLE, and historical rows
+        # (both the pre-answered and the pending item) stay NULL -- no backfill.
+        resolved_by_col = await conn.fetchrow(
+            "SELECT is_nullable FROM information_schema.columns "
+            "WHERE table_name = 'inbox_items' AND column_name = 'resolved_by'",
+        )
+        assert resolved_by_col is not None
+        assert resolved_by_col["is_nullable"] == "YES", (
+            "inbox_items.resolved_by must be NULLABLE after migration"
+        )
+
+        answered_resolved_by = await conn.fetchval(
+            "SELECT resolved_by FROM inbox_items WHERE id = $1",
+            inbox_answered_id,
+        )
+        assert answered_resolved_by is None, (
+            "a historical answered item must keep resolved_by NULL "
+            "(resolutions predating attribution are not backfilled)"
+        )
+
+        pending_resolved_by = await conn.fetchval(
+            "SELECT resolved_by FROM inbox_items WHERE id = $1",
+            inbox_pending_id,
+        )
+        assert pending_resolved_by is None, (
+            "a pending item has no resolver -- resolved_by stays NULL"
+        )
+
+        # A POST-migration resolution stamps resolved_by with a valid principal.
+        await conn.execute(
+            "UPDATE inbox_items SET status = 'answered', answer = 'ok', "
+            "answered_at = now(), resolved_by = $1 WHERE id = $2",
+            system_principal_id, inbox_pending_id,
+        )
+        post_resolved_by = await conn.fetchval(
+            "SELECT resolved_by FROM inbox_items WHERE id = $1",
+            inbox_pending_id,
+        )
+        assert post_resolved_by == system_principal_id, (
+            "a post-migration resolution must record the resolving principal"
+        )
+
+        # FK RESTRICT is enforced on inbox_items.resolved_by. Isolate it with a
+        # dedicated resolver principal so runs' FK (also -> system) is untouched.
+        inbox_resolver = await conn.fetchrow(
+            "INSERT INTO principals (kind, external_ref, display_name) "
+            "VALUES ('consumer', gen_random_uuid(), 'fk-inbox-resolver') "
+            "RETURNING id",
+        )
+        assert inbox_resolver is not None
+        await conn.execute(
+            "UPDATE inbox_items SET resolved_by = $1 WHERE id = $2",
+            inbox_resolver["id"], inbox_answered_id,
+        )
+        with pytest.raises(Exception, match="fk_inbox_resolved_by"):
+            await conn.execute(
+                "DELETE FROM principals WHERE id = $1",
+                inbox_resolver["id"],
+            )
+
+        # The resolved_by index exists.
+        inbox_indexes = await conn.fetch(
+            "SELECT indexname FROM pg_indexes WHERE tablename = 'inbox_items'",
+        )
+        assert "idx_inbox_resolved_by" in {
+            r["indexname"] for r in inbox_indexes
+        }, "the resolved_by index must exist after migration"
 
     finally:
         await conn.close()
