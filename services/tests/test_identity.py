@@ -50,6 +50,25 @@ async def test_create_principal_validates_known_kind() -> None:
     assert principal.display_name == "Ann"
 
 
+async def test_create_principal_rejects_system_kind() -> None:
+    storage = InMemoryPrincipalStorage()
+    # KIND_SYSTEM is a registered builtin kind (always present in the
+    # registry), so registry validation would accept it -- the create service
+    # must reject it independently, before any row is minted, to prevent a
+    # second undeletable system principal.
+    ctx = _context(storage)
+
+    with pytest.raises(ValueError, match="Refusing to create a system principal"):
+        await dispatch(
+            ctx,
+            "create_principal",
+            {"kind": KIND_SYSTEM, "external_ref": _EXT_REF},
+        )
+
+    # Nothing was written -- the rejection happens before minting.
+    assert await storage.list_principals() == []
+
+
 async def test_create_principal_rejects_unknown_kind() -> None:
     storage = InMemoryPrincipalStorage()
     ctx = _context(storage)
