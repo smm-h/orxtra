@@ -1,16 +1,35 @@
 """Migration test harness for the schema evolution workflow.
 
-Tests that the four schema changes introduced in 4.1 can be applied as a
-migration against a live baseline database without data loss. Covers:
+Tests that the full v0.8.0 -> current delta can be applied as a single
+forward migration against a live baseline database without data loss. The
+migration is reviewed here as ONE artifact -- ordering matters end to end:
+the principals table and its unique constraint precede every FK into it;
+each backfill precedes the NOT NULL that depends on it; the events
+append-only trigger is disabled only for the bracketed backfill and
+re-enabled immediately after. ``_MIGRATION_SQL`` is the ordered statement
+list; the assertions below verify both data preservation and schema shape.
 
-1. New table (dispatch_cursor, dispatch_completions)
-2. New column + partial unique index (events.idempotency_key)
-3. JSONB column (sources.config)
-4. Enum ADD VALUE (credential_type += hmac) + new column (credentials.secret_ref)
+Coverage, grouped by vertical:
 
-The harness initializes from the committed baseline (tests/migration_baselines/v0.8.0/),
-seeds test data, applies migration SQL, then asserts data preservation and schema
-correctness.
+1. Dispatch/dedup deltas: dispatch_cursor, dispatch_completions,
+   events.idempotency_key (+ partial unique index), sources.config (+ GIN),
+   credential_type += hmac, credentials.secret_ref.
+2. Identity table: principals (+ unique (kind, external_ref)) with the
+   singleton system principal seeded.
+3. Identity at birth: runs.created_by, sources.created_by,
+   consumers.principal_id -- each minted a principal, backfilled, then
+   pinned NOT NULL + FK (runs/sources/consumers are RESTRICT).
+4. Events attribution flip: events.source -> events.principal_id, backfilled
+   across all four legacy shapes (run-attached, overseer-with-run,
+   run-less worker, slug-matched webhook) plus an orphaned slug, then
+   NOT NULL + FK, old column/index/NOTIFY body dropped.
+5. Inbox resolution: inbox_items.resolved_by (nullable, no backfill).
+6. Subscription ownership cutover: owner_run_id -> principal_id (CASCADE),
+   historical rows attributed to the system principal.
+
+The harness initializes from the committed baseline
+(tests/migration_baselines/v0.8.0/), seeds every legacy shape, applies the
+migration SQL, then asserts data preservation and schema correctness.
 
 Also includes existing tests for pgdesign migrate generate/status functionality.
 
@@ -917,6 +936,15 @@ async def test_migration_from_v080_baseline(
         assert system_principal is not None, "system principal should be seeded"
         system_principal_id = system_principal["id"]
 
+        # The (kind, external_ref) uniqueness that keeps mint + backfill
+        # idempotent is enforced: a duplicate system sentinel is rejected.
+        with pytest.raises(Exception, match="uq_principals_kind_external_ref"):
+            await conn.execute(
+                "INSERT INTO principals (kind, external_ref, display_name) "
+                "VALUES ('system', "
+                "'00000000-0000-0000-0000-000000000000', 'dup')",
+            )
+
         # 4h: a run principal was minted for the pre-existing run.
         run_principal = await conn.fetchrow(
             "SELECT id, display_name FROM principals "
@@ -1020,6 +1048,15 @@ async def test_migration_from_v080_baseline(
                 src_creator["id"],
             )
 
+        # The baseline sources.slug uniqueness survives the migration: a second
+        # source reusing the seeded slug is rejected.
+        with pytest.raises(Exception, match="slug"):
+            await conn.execute(
+                "INSERT INTO sources (slug, name, created_by) "
+                "VALUES ($1, $2, $3)",
+                "test-source", "Dup Slug", system_principal_id,
+            )
+
         # 4k: a consumer principal was minted for the pre-existing consumer,
         # backfilled to ITS OWN principal (not the system principal).
         consumer_principal = await conn.fetchrow(
@@ -1105,6 +1142,16 @@ async def test_migration_from_v080_baseline(
         # (5) orphaned-slug event (source row gone) -> system principal.
         assert await _event_principal(event_orphan_id) == system_principal_id, (
             "an orphaned-slug event must fall back to the system principal"
+        )
+
+        # The backfill left NO event unattributed: every historical event got a
+        # principal before the SET NOT NULL could bite. (The NOT NULL below is
+        # the hard gate; this count is the explicit completeness witness.)
+        null_principal_events = await conn.fetchval(
+            "SELECT count(*) FROM events WHERE principal_id IS NULL",
+        )
+        assert null_principal_events == 0, (
+            "no event may remain with a NULL principal_id after the backfill"
         )
 
         # The append-only trigger was re-enabled after the backfill.
