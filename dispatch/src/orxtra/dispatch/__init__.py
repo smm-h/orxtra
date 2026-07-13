@@ -12,7 +12,6 @@ from orxtra.dispatch._action_executor import (
     execute_actions_bounded,
 )
 from orxtra.dispatch._delivery import (
-    DualPhaseEventDelivery,
     SourcePrincipalResolver,
     TransientEventDelivery,
     match_subscription,
@@ -43,7 +42,6 @@ __all__ = [
     "ActionStorage",
     "DispatchBackend",
     "DispatchWorker",
-    "DualPhaseEventDelivery",
     "EventFireCallback",
     "FilterPredicate",
     "InMemoryDispatchBackend",

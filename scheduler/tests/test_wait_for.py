@@ -16,8 +16,6 @@ from typing import TYPE_CHECKING
 import pytest
 import uuid6
 from orxtra.dispatch import (
-    DualPhaseEventDelivery,
-    InMemoryDispatchBackend,
     TransientEventDelivery,
 )
 from orxtra.protocols import (
@@ -49,7 +47,6 @@ def _make_scheduler(
     read_root: Path,
     *,
     event_delivery: TransientEventDelivery
-    | DualPhaseEventDelivery
     | None = None,
 ) -> Scheduler:
     """Create a headless scheduler with explicit event_delivery."""
@@ -282,78 +279,3 @@ class TestWaitForWithDependencies:
         assert execution_order == ["A", "C"]
 
 
-class TestWaitForWithDualPhase:
-    """wait_for works through DualPhaseEventDelivery."""
-
-    async def test_dual_phase_fire_completes_wait(
-        self, tmp_path: Path,
-    ) -> None:
-        backend = InMemoryDispatchBackend()
-        delivery = DualPhaseEventDelivery(backend=backend)
-        trace = MockTraceWriter()
-        transport = MockTransport(auto_execute_tools=True)
-        run_id = uuid6.uuid7()
-        sched = _make_scheduler(
-            trace, transport, run_id, tmp_path,
-            event_delivery=delivery,
-        )
-
-        task = TaskSpec(
-            name="dual-wait",
-            wait_for="dual_event",
-            timeout=5,
-        )
-        config = WorkflowConfig(
-            name="dual-wf",
-            description="Dual-phase wait test",
-            tasks=[task],
-            dependencies={},
-        )
-
-        payload = {"source": "dual", "ok": True}
-
-        async def run_workflow() -> None:
-            await sched.execute_workflow(config)
-
-        wf_task = asyncio.create_task(run_workflow())
-
-        # Yield so the scheduler registers the waiter.
-        await asyncio.sleep(0.05)
-        await delivery.fire("dual_event", payload)
-
-        await asyncio.wait_for(wf_task, timeout=5.0)
-
-        states = list(sched._task_states.values())
-        assert len(states) == 1
-        assert states[0] == TaskState.COMPLETED
-
-    async def test_dual_phase_timeout(
-        self, tmp_path: Path,
-    ) -> None:
-        backend = InMemoryDispatchBackend()
-        delivery = DualPhaseEventDelivery(backend=backend)
-        trace = MockTraceWriter()
-        transport = MockTransport(auto_execute_tools=True)
-        run_id = uuid6.uuid7()
-        sched = _make_scheduler(
-            trace, transport, run_id, tmp_path,
-            event_delivery=delivery,
-        )
-
-        task = TaskSpec(
-            name="dual-timeout",
-            wait_for="never_arrives",
-            timeout=1,
-        )
-        config = WorkflowConfig(
-            name="dual-timeout-wf",
-            description="Dual-phase timeout test",
-            tasks=[task],
-            dependencies={},
-        )
-
-        await sched.execute_workflow(config)
-
-        states = list(sched._task_states.values())
-        assert len(states) == 1
-        assert states[0] == TaskState.CANCELLED

@@ -297,7 +297,6 @@ class DispatchWorker:
     ) -> None:
         """Buffer event for accumulator; flush inline if count threshold reached.
 
-        Follows the same contract as DualPhaseEventDelivery._buffer_or_flush:
         - Buffer the event via the backend.
         - If count threshold is set and pending >= threshold, claim and execute.
         - If time threshold is set, schedule a deferred flush via FlushScheduler.
