@@ -53,7 +53,35 @@ pytestmark = skip_no_docker
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _SCHEMA_DIR = _REPO_ROOT / "schema"
-_BASELINE_DIR = _REPO_ROOT / "tests" / "migration_baselines" / "v0.8.0"
+_BASELINES_DIR = _REPO_ROOT / "tests" / "migration_baselines"
+_BASELINE_V080_DIR = _BASELINES_DIR / "v0.8.0"
+_BASELINE_V0101_DIR = _BASELINES_DIR / "v0.10.1"
+
+# Submodule load order for each frozen baseline. The tuple lists exactly the
+# sub-modules the frozen schema_executor imports from its package -- the loader
+# pre-registers each in sys.modules so the executor's relative imports resolve.
+# (Load order among the sub-modules is irrelevant; every one is registered
+# before the executor module is exec'd. The concatenation order that drives DDL
+# execution is baked into each frozen schema_executor.py itself.)
+# v0.8.0 predates the identity module, so it has no tables_identity. v0.10.1 is
+# the post-identity baseline and adds tables_identity between auth and post.
+_V080_SUBMODULES = (
+    "extensions",
+    "types",
+    "tables_trace",
+    "tables_dispatch",
+    "tables_auth",
+    "post_tables",
+)
+_V0101_SUBMODULES = (
+    "extensions",
+    "types",
+    "tables_trace",
+    "tables_dispatch",
+    "tables_auth",
+    "tables_identity",
+    "post_tables",
+)
 
 # PG_UUIDV7_STUB: gen_random_uuid() stand-in for test containers.
 _PG_UUIDV7_STUB = """\
@@ -443,78 +471,94 @@ $$ LANGUAGE plpgsql""",
 ]
 
 
-def _load_baseline_executor() -> Any:
-    """Import the schema_executor from the frozen v0.8.0 baseline.
+def _load_baseline_executor(
+    baseline_dir: Path,
+    submodules: tuple[str, ...],
+    pkg_name: str,
+) -> Any:
+    """Import the schema_executor from a frozen baseline snapshot.
 
-    The baseline directory contains a copy of the _generated package from
-    the v0.8.0 schema. We register it as a unique package name
-    (_baseline_generated) to avoid collisions with the live _generated
-    package on sys.path.
+    ``baseline_dir`` holds a frozen copy of the pgdesign-generated
+    ``_generated`` package for a released schema version. ``submodules`` lists
+    exactly the sub-modules that version's ``schema_executor`` imports from its
+    package (they vary across versions -- e.g. v0.8.0 predates
+    ``tables_identity``). ``pkg_name`` is a unique synthetic package name so the
+    snapshot never collides with the live ``_generated`` package on sys.path or
+    with another baseline loaded in the same session.
     """
-    _pkg = "_baseline_generated"
-
     # If already loaded (e.g., multiple tests), return cached module
-    executor_key = f"{_pkg}.schema_executor"
+    executor_key = f"{pkg_name}.schema_executor"
     if executor_key in sys.modules:
         return sys.modules[executor_key]
 
-    baseline_str = str(_BASELINE_DIR)
+    baseline_str = str(baseline_dir)
 
     # Register the baseline directory as a package
     pkg_spec = importlib.util.spec_from_file_location(
-        _pkg,
-        _BASELINE_DIR / "__init__.py",
+        pkg_name,
+        baseline_dir / "__init__.py",
         submodule_search_locations=[baseline_str],
     )
     if pkg_spec is None or pkg_spec.loader is None:
         msg = "Cannot load baseline __init__.py"
         raise ImportError(msg)
     pkg_mod = importlib.util.module_from_spec(pkg_spec)
-    sys.modules[_pkg] = pkg_mod
+    sys.modules[pkg_name] = pkg_mod
     pkg_spec.loader.exec_module(pkg_mod)
 
     # Load each sub-module the executor imports from its package
-    for sub_name in (
-        "extensions",
-        "types",
-        "tables_trace",
-        "tables_dispatch",
-        "tables_auth",
-        "post_tables",
-    ):
+    for sub_name in submodules:
         sub_spec = importlib.util.spec_from_file_location(
-            f"{_pkg}.{sub_name}",
-            _BASELINE_DIR / f"{sub_name}.py",
+            f"{pkg_name}.{sub_name}",
+            baseline_dir / f"{sub_name}.py",
             submodule_search_locations=[],
         )
         if sub_spec is None or sub_spec.loader is None:
             msg = f"Cannot load baseline {sub_name}.py"
             raise ImportError(msg)
         sub_mod = importlib.util.module_from_spec(sub_spec)
-        sub_mod.__package__ = _pkg
-        sys.modules[f"{_pkg}.{sub_name}"] = sub_mod
+        sub_mod.__package__ = pkg_name
+        sys.modules[f"{pkg_name}.{sub_name}"] = sub_mod
         setattr(pkg_mod, sub_name, sub_mod)
         sub_spec.loader.exec_module(sub_mod)
 
     # Load the executor module itself. Its relative imports (from .extensions, etc.)
-    # need to resolve against _baseline_generated.*, so we set __package__.
+    # need to resolve against the synthetic package, so we set __package__.
     exec_spec = importlib.util.spec_from_file_location(
         executor_key,
-        _BASELINE_DIR / "schema_executor.py",
+        baseline_dir / "schema_executor.py",
         submodule_search_locations=[],
     )
     if exec_spec is None or exec_spec.loader is None:
         msg = "Cannot load baseline schema_executor.py"
         raise ImportError(msg)
     exec_mod = importlib.util.module_from_spec(exec_spec)
-    exec_mod.__package__ = _pkg
+    exec_mod.__package__ = pkg_name
     sys.modules[executor_key] = exec_mod
     exec_spec.loader.exec_module(exec_mod)
 
     return exec_mod
 
 
-from orxtra.services import AsyncpgAdapter
+def _load_v080_baseline_executor() -> Any:
+    """Load the frozen v0.8.0 (pre-identity) baseline executor."""
+    return _load_baseline_executor(
+        _BASELINE_V080_DIR,
+        _V080_SUBMODULES,
+        "_baseline_generated",
+    )
+
+
+def _load_v0101_baseline_executor() -> Any:
+    """Load the frozen v0.10.1 (post-identity) baseline executor."""
+    return _load_baseline_executor(
+        _BASELINE_V0101_DIR,
+        _V0101_SUBMODULES,
+        "_baseline_generated_v0101",
+    )
+
+
+from orxtra.services import AsyncpgAdapter, verify_schema
 
 # ---------------------------------------------------------------------------
 # Test: full baseline -> migrate -> verify cycle
@@ -538,7 +582,7 @@ async def test_migration_from_v080_baseline(
     )
 
     # --- Step 1: Apply baseline schema ---
-    baseline_executor = _load_baseline_executor()
+    baseline_executor = _load_v080_baseline_executor()
 
     conn = await _asyncpg.connect(url)
     try:
@@ -1363,6 +1407,103 @@ async def test_migration_from_v080_baseline(
 
     finally:
         await conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Test: v0.10.1 anchored delta chain -> live schema verify
+# ---------------------------------------------------------------------------
+
+# The ordered delta chain from the frozen v0.10.1 baseline to the LIVE schema.
+# It is intentionally EMPTY at v0.10.1: the frozen baseline IS the current
+# schema, so no bridging DDL is needed yet. This mirrors _MIGRATION_SQL's role
+# for the v0.8.0 chain -- an ordered statement list applied on top of the frozen
+# baseline to reach today's schema.
+#
+# FUTURE SCHEMA DELTAS APPEND HERE. When the live schema evolves past v0.10.1
+# (a new column, table, index, enum value, ...), the frozen baseline stops
+# matching the live executor and test_migration_from_v0101_baseline fails with a
+# SchemaError naming the missing object(s). The fix is to append the exact
+# forward DDL for that change to this list (in dependency order), NOT to
+# re-snapshot the baseline. The baseline stays anchored at v0.10.1; the chain
+# grows. When the accumulated chain is large enough to warrant a fresh anchor,
+# capture a new baseline (v0.x.y) and start its own empty chain.
+_MIGRATION_SQL_V0101: list[str] = []
+
+
+async def test_migration_from_v0101_baseline(
+    pg_container: Any,
+) -> None:
+    """Anchored delta chain: frozen v0.10.1 baseline + deltas -> live schema.
+
+    Mechanics mirror ``test_migration_from_v080_baseline`` (frozen baseline +
+    ordered forward DDL), but the anchor is verification against the LIVE
+    generated executor rather than a hand-written assertion set -- so it tracks
+    the schema automatically instead of freezing today's shape:
+
+    1. Apply the frozen v0.10.1 baseline executor to an empty database.
+    2. Apply the v0.10.1 delta chain (``_MIGRATION_SQL_V0101`` -- empty today).
+    3. Assert the LIVE generated executor's ``verify()`` passes against the
+       resulting database (via ``verify_schema``, the same production path used
+       by ``orxtra db``, which filters known false positives and raises
+       ``SchemaError`` on any genuinely missing object).
+
+    This is deliberately NOT a frozen==live equality check. The frozen baseline
+    is an immutable anchor; the live schema is free to move ahead of it. When it
+    does, this test FAILS -- and that failure IS its purpose: it is the signal
+    that a forward delta must be appended to ``_MIGRATION_SQL_V0101`` so the
+    anchored chain once again reconstructs the live schema. A green run proves
+    the frozen baseline plus the recorded deltas exactly rebuild today's schema.
+
+    (A ``pgdesign migrate generate`` no-op assertion was evaluated and is not
+    included: with the current pgdesign, ``migrate generate`` emits a full
+    migration from the TOML schema against an empty migrations dir regardless of
+    live DB state -- it does not diff against the applied schema -- so it yields
+    no reliable no-op signal. The live ``verify()`` is the robust anchor.)
+    """
+    import asyncpg as _asyncpg
+
+    url = pg_container.get_connection_url().replace(
+        "postgresql+psycopg2://", "postgresql://",
+    )
+
+    # --- Step 1: Apply the frozen v0.10.1 baseline schema ---
+    baseline_executor = _load_v0101_baseline_executor()
+
+    conn = await _asyncpg.connect(url)
+    try:
+        await conn.execute("DROP SCHEMA public CASCADE")
+        await conn.execute("CREATE SCHEMA public")
+        await conn.execute(_PG_UUIDV7_STUB)
+
+        adapter = AsyncpgAdapter(conn)
+        result = await baseline_executor.execute(
+            adapter,
+            idempotent=True,
+            extension_stubs={"pg_uuidv7": _PG_UUIDV7_STUB},
+        )
+        if result.errors:
+            err_msg = "; ".join(
+                f"{kind}.{name}: {err}"
+                for kind, name, err in result.errors
+            )
+            msg = f"v0.10.1 baseline schema creation failed: {err_msg}"
+            raise RuntimeError(msg)
+
+        # --- Step 2: Apply the v0.10.1 delta chain (empty today) ---
+        for stmt in _MIGRATION_SQL_V0101:
+            await conn.execute(stmt)
+    finally:
+        await conn.close()
+
+    # --- Step 3: Assert the LIVE generated executor verifies clean ---
+    # verify_schema runs the live verify(), filters known false positives, and
+    # raises SchemaError if any real object is missing -- i.e. if the frozen
+    # baseline + delta chain no longer reconstruct the live schema.
+    pool = await _asyncpg.create_pool(url)
+    try:
+        await verify_schema(pool)
+    finally:
+        await pool.close()
 
 
 # ---------------------------------------------------------------------------
