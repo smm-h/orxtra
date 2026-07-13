@@ -514,8 +514,8 @@ LIFECYCLE_TOOL_NAMES = frozenset({
 # injected into the metadata dict before resolve_allow_list runs.
 #
 # MAINTENANCE CONTRACT:
-#   - Phase 7.1: deferred declarations validated via
-#     registry.get_entry (not synthetic entries).
+#   - Deferred declarations are validated via registry.get_entry,
+#     not against synthetic entries.
 SYNTHETIC_ENTRIES: dict[str, tuple[str, frozenset[str]]] = {
     "git": GIT_METADATA,
     "consult": CONSULT_METADATA,

@@ -678,7 +678,7 @@ class EnforcementMixin(SchedulerBase):
 
         Detects read-only tasks that could be front-loaded
         for earlier execution. Advisories are stored for the
-        Overseer to consume in Phase 3.
+        Overseer to consume.
         """
         advisories: list[dict[str, Any]] = []
 

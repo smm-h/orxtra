@@ -50,7 +50,7 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
       /ag-ui/* -- AG-UI SSE routes (native, auth-wrapped)
       /.well-known/agent.json -- A2A agent card (GET)
       /health  -- health check (GET)
-      /workers/connect -- WebSocket placeholder for Phase 9
+      /workers/connect -- WebSocket placeholder that accepts and closes
     """
     router = Router()
 
@@ -104,7 +104,11 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     async def health_handler(request: Any) -> dict[str, str]:  # noqa: ARG001
         return {"status": "ok"}
 
-    # -- Workers WebSocket placeholder (Phase 9) --
+    # -- Workers WebSocket placeholder --
+    # Accepts the socket and immediately closes it. Attaching a real worker
+    # requires authentication on the socket, worker registration, a
+    # compositor-scoped worker registry, and bridge wiring -- all currently
+    # unbuilt.
     @router.ws("/workers/connect")
     async def workers_ws_handler(ws: WebSocket) -> None:
         await ws.accept()

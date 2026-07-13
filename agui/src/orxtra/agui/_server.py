@@ -112,9 +112,11 @@ def create_agui_router(
     owner is loaded via ``pool``. The compositor injects both from the
     dispatch context; they are declared explicitly (no service-locator lookup).
 
-    ``subscribe_run`` is reserved for Phase 8 integration. When provided,
-    it will be called with (run_id, transport_sink, overseer_sink) to
-    register sinks with the scheduler for the active run.
+    ``subscribe_run`` is an optional seam for registering per-connection sinks
+    with a live event source; it is unwired today -- nothing pushes run events
+    yet. When provided, it will be called with (run_id, transport_sink,
+    overseer_sink) to register sinks for the active run, and once wired it must
+    deliver through the per-run channel only.
     """
     broadcaster = _create_broadcaster()
     encoder = EventEncoder()
