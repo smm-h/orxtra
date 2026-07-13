@@ -63,6 +63,7 @@ class RunSummary(BaseModel):
     status: str
     created_at: datetime
     finished_at: datetime | None
+    created_by: UUID
 
 
 class RunReport(BaseModel):
@@ -73,6 +74,7 @@ class RunReport(BaseModel):
     status: str
     created_at: datetime
     finished_at: datetime | None
+    created_by: UUID
     autonomy_level: str
     config_snapshot: dict[str, Any]
     total_input_tokens: int

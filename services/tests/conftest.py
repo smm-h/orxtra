@@ -93,6 +93,7 @@ def sample_run_summary(sample_run_id: UUID) -> RunSummary:
         status="running",
         created_at=datetime(2024, 1, 1, tzinfo=UTC),
         finished_at=None,
+        created_by=UUID("99999999-9999-9999-9999-999999999999"),
     )
 
 
@@ -104,6 +105,7 @@ def sample_run_report(sample_run_id: UUID) -> RunReport:
         status="running",
         created_at=datetime(2024, 1, 1, tzinfo=UTC),
         finished_at=None,
+        created_by=UUID("99999999-9999-9999-9999-999999999999"),
         autonomy_level="supervised",
         config_snapshot={"key": "value"},
         total_input_tokens=100,

@@ -702,6 +702,7 @@ class InMemoryBackend:
             status=run["status"],
             created_at=run["created_at"],
             finished_at=run["finished_at"],
+            created_by=run["created_by"],
             autonomy_level=run["autonomy_level"],
             config_snapshot=config_snapshot,
             total_input_tokens=run["total_input_tokens"],
@@ -725,6 +726,7 @@ class InMemoryBackend:
                 status=run["status"],
                 created_at=run["created_at"],
                 finished_at=run["finished_at"],
+                created_by=run["created_by"],
             )
             for run in reversed(list(self._runs.values()))
         ]

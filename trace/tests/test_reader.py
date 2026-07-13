@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from .conftest import MockPool
 
 RUN_ID = UUID("01234567-89ab-cdef-0123-456789abcdef")
+CREATED_BY = UUID("77777777-7777-7777-7777-777777777777")
 TASK_ID = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 SESSION_ID = UUID("11111111-2222-3333-4444-555555555555")
 ATTEMPT_ID = UUID("ffffffff-eeee-dddd-cccc-bbbbbbbbbbbb")
@@ -235,6 +236,7 @@ class TestListRuns:
                 "id": RUN_ID, "intent": "build",
                 "status": "running",
                 "created_at": NOW, "finished_at": None,
+                "created_by": CREATED_BY,
             },
         ])
 
@@ -247,6 +249,7 @@ class TestListRuns:
         assert result[0].status == "running"
         assert result[0].created_at == NOW
         assert result[0].finished_at is None
+        assert result[0].created_by == CREATED_BY
 
 
 class TestReadInbox:
@@ -361,6 +364,7 @@ class TestReadRunReport:
             "status": "running",
             "created_at": NOW,
             "finished_at": None,
+            "created_by": CREATED_BY,
             "autonomy_level": "full",
             "config_snapshot": {},
             "total_input_tokens": 100,
@@ -385,6 +389,7 @@ class TestReadRunReport:
         assert result.status == "running"
         assert result.created_at == NOW
         assert result.finished_at is None
+        assert result.created_by == CREATED_BY
         assert result.autonomy_level == "full"
         assert result.config_snapshot == {}
         assert result.total_input_tokens == 100

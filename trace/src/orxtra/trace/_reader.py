@@ -150,6 +150,7 @@ async def read_run_report(
         "status": run["status"],
         "created_at": run["created_at"],
         "finished_at": run["finished_at"],
+        "created_by": run["created_by"],
         "autonomy_level": run["autonomy_level"],
         "config_snapshot": (
             json.loads(run["config_snapshot"])
@@ -173,7 +174,7 @@ async def read_run_report(
 async def list_runs(pool: asyncpg.Pool) -> list[RunSummary]:
     rows: list[asyncpg.Record] = await pool.fetch(
         """
-        SELECT id, intent, status, created_at, finished_at
+        SELECT id, intent, status, created_at, finished_at, created_by
         FROM runs ORDER BY created_at DESC
         """,
     )
