@@ -1,0 +1,328 @@
+"""Unit tests for the identity module.
+
+Covers the in-memory storage (CRUD + mint idempotence), the KindRegistry,
+the caller resolver (all branches), and the delete-translation domain error
+(PrincipalInUseError) via a simulated foreign-key violation. No database is
+required -- PG parity lives in tests/test_identity_pg.py at the repo root.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
+
+import asyncpg
+import pytest
+from orxtra.identity import (
+    InMemoryPrincipalStorage,
+    KindRegistry,
+    PgPrincipalStorage,
+    PrincipalInUseError,
+    resolve_caller_principal,
+)
+from orxtra.protocols import (
+    BUILTIN_KINDS,
+    KIND_CONSUMER,
+    KIND_RUN,
+    KIND_SYSTEM,
+    SYSTEM_PRINCIPAL_EXTERNAL_REF,
+    AuthContext,
+    TrustTier,
+)
+
+# ---------------------------------------------------------------------------
+# In-memory storage: CRUD
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def storage() -> InMemoryPrincipalStorage:
+    return InMemoryPrincipalStorage()
+
+
+async def test_mint_creates_and_returns_principal(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    ref = uuid4()
+    principal = await storage.mint_principal(KIND_CONSUMER, ref, "alice")
+    assert principal.kind == KIND_CONSUMER
+    assert principal.external_ref == ref
+    assert principal.display_name == "alice"
+    assert isinstance(principal.id, UUID)
+    assert principal.created_at is not None
+
+
+async def test_get_principal_by_id(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    ref = uuid4()
+    minted = await storage.mint_principal(KIND_CONSUMER, ref, "bob")
+    fetched = await storage.get_principal(minted.id)
+    assert fetched == minted
+
+
+async def test_get_principal_absent_returns_none(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    assert await storage.get_principal(uuid4()) is None
+
+
+async def test_get_principal_by_ref(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    ref = uuid4()
+    minted = await storage.mint_principal(KIND_CONSUMER, ref, "carol")
+    fetched = await storage.get_principal_by_ref(KIND_CONSUMER, ref)
+    assert fetched == minted
+    # Same ref under a different kind is a distinct actor.
+    assert await storage.get_principal_by_ref(KIND_RUN, ref) is None
+
+
+async def test_list_principals_filter_by_kind(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    await storage.mint_principal(KIND_CONSUMER, uuid4(), "c1")
+    await storage.mint_principal(KIND_CONSUMER, uuid4(), "c2")
+    await storage.mint_principal(KIND_RUN, uuid4(), "r1")
+
+    assert len(await storage.list_principals()) == 3
+    consumers = await storage.list_principals(KIND_CONSUMER)
+    assert len(consumers) == 2
+    assert all(p.kind == KIND_CONSUMER for p in consumers)
+    runs = await storage.list_principals(KIND_RUN)
+    assert len(runs) == 1
+
+
+async def test_update_display_name(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    minted = await storage.mint_principal(KIND_CONSUMER, uuid4(), "old")
+    await storage.update_display_name(minted.id, "new")
+    fetched = await storage.get_principal(minted.id)
+    assert fetched is not None
+    assert fetched.display_name == "new"
+    # Other fields are unchanged.
+    assert fetched.id == minted.id
+    assert fetched.external_ref == minted.external_ref
+    assert fetched.created_at == minted.created_at
+
+
+async def test_update_display_name_absent_is_hard_error(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    with pytest.raises(KeyError):
+        await storage.update_display_name(uuid4(), "nope")
+
+
+async def test_delete_principal(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    minted = await storage.mint_principal(KIND_CONSUMER, uuid4(), "temp")
+    await storage.delete_principal(minted.id)
+    assert await storage.get_principal(minted.id) is None
+    # Deleting an absent principal is a no-op (in-memory parity boundary).
+    await storage.delete_principal(uuid4())
+
+
+# ---------------------------------------------------------------------------
+# In-memory storage: mint idempotence
+# ---------------------------------------------------------------------------
+
+
+async def test_mint_is_idempotent(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    ref = uuid4()
+    first = await storage.mint_principal(KIND_CONSUMER, ref, "alice")
+    second = await storage.mint_principal(KIND_CONSUMER, ref, "different-name")
+
+    # Same row returned; the first display name wins (no update on re-mint).
+    assert second.id == first.id
+    assert second.display_name == "alice"
+    assert len(await storage.list_principals()) == 1
+
+
+# ---------------------------------------------------------------------------
+# KindRegistry
+# ---------------------------------------------------------------------------
+
+
+def test_registry_builtins_always_registered() -> None:
+    registry = KindRegistry([])
+    assert registry.kinds >= BUILTIN_KINDS
+    for kind in BUILTIN_KINDS:
+        registry.validate(kind)  # no raise
+
+
+def test_registry_app_kinds_registered() -> None:
+    registry = KindRegistry(["user", "team"])
+    assert "user" in registry.kinds
+    assert "team" in registry.kinds
+    registry.validate("user")
+    registry.validate("team")
+    assert registry.kinds >= BUILTIN_KINDS
+
+
+def test_registry_duplicate_app_kind_rejected() -> None:
+    with pytest.raises(ValueError, match="Duplicate"):
+        KindRegistry(["user", "user"])
+
+
+def test_registry_app_kind_colliding_with_builtin_rejected() -> None:
+    with pytest.raises(ValueError, match="Duplicate"):
+        KindRegistry([KIND_CONSUMER])
+
+
+def test_registry_blank_app_kind_rejected() -> None:
+    with pytest.raises(ValueError, match="non-blank"):
+        KindRegistry([""])
+    with pytest.raises(ValueError, match="non-blank"):
+        KindRegistry(["   "])
+
+
+def test_registry_validate_unknown_kind() -> None:
+    registry = KindRegistry(["user"])
+    with pytest.raises(ValueError, match="Unknown principal kind"):
+        registry.validate("nonexistent")
+
+
+def test_registry_validate_error_names_registered_set() -> None:
+    registry = KindRegistry(["user"])
+    with pytest.raises(ValueError, match="user") as exc_info:
+        registry.validate("ghost")
+    # The error names both the offending kind and the registered set.
+    assert "ghost" in str(exc_info.value)
+    assert KIND_SYSTEM in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# Resolver
+# ---------------------------------------------------------------------------
+
+
+def _auth_context(
+    *,
+    consumer_id: UUID | None,
+    trust_tier: TrustTier,
+) -> AuthContext:
+    now = datetime.now(tz=UTC)
+    return AuthContext(
+        id=uuid4(),
+        consumer_id=consumer_id,
+        scopes=frozenset(),
+        trust_tier=trust_tier,
+        authenticated_via="test",
+        issued_at=now,
+        expires_at=None,
+    )
+
+
+async def test_resolver_system_tier(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    seeded = await storage.mint_principal(
+        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+    )
+    ctx = _auth_context(consumer_id=None, trust_tier=TrustTier.SYSTEM)
+    resolved = await resolve_caller_principal(ctx, storage)
+    assert resolved.id == seeded.id
+    assert resolved.kind == KIND_SYSTEM
+
+
+async def test_resolver_system_tier_unseeded_hard_error(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    ctx = _auth_context(consumer_id=None, trust_tier=TrustTier.SYSTEM)
+    with pytest.raises(RuntimeError, match="not seeded"):
+        await resolve_caller_principal(ctx, storage)
+
+
+async def test_resolver_consumer_tier(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    consumer_id = uuid4()
+    minted = await storage.mint_principal(KIND_CONSUMER, consumer_id, "alice")
+    ctx = _auth_context(
+        consumer_id=consumer_id, trust_tier=TrustTier.IDENTIFIED,
+    )
+    resolved = await resolve_caller_principal(ctx, storage)
+    assert resolved.id == minted.id
+    assert resolved.kind == KIND_CONSUMER
+
+
+async def test_resolver_none_consumer_non_system_hard_error(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    ctx = _auth_context(consumer_id=None, trust_tier=TrustTier.IDENTIFIED)
+    with pytest.raises(RuntimeError, match="no consumer_id"):
+        await resolve_caller_principal(ctx, storage)
+
+
+async def test_resolver_unminted_consumer_hard_error(
+    storage: InMemoryPrincipalStorage,
+) -> None:
+    ctx = _auth_context(
+        consumer_id=uuid4(), trust_tier=TrustTier.VERIFIED,
+    )
+    with pytest.raises(RuntimeError, match="integrity violation"):
+        await resolve_caller_principal(ctx, storage)
+
+
+# ---------------------------------------------------------------------------
+# PrincipalInUseError: simulated FK violation on the PG backend
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _FakeTxn:
+    async def __aenter__(self) -> None:
+        return None
+
+    async def __aexit__(self, *_exc: object) -> bool:
+        return False
+
+
+class _FakeConn:
+    """Connection stub whose execute() raises an FK violation."""
+
+    def transaction(self) -> _FakeTxn:
+        return _FakeTxn()
+
+    async def execute(self, *_args: object) -> str:
+        msg = (
+            'update or delete on table "principals" violates foreign key '
+            "constraint"
+        )
+        raise asyncpg.ForeignKeyViolationError(msg)
+
+
+class _FakeAcquire:
+    def __init__(self, conn: _FakeConn) -> None:
+        self._conn = conn
+
+    async def __aenter__(self) -> _FakeConn:
+        return self._conn
+
+    async def __aexit__(self, *_exc: object) -> bool:
+        return False
+
+
+class _FakePool:
+    def __init__(self, conn: _FakeConn) -> None:
+        self._conn = conn
+
+    def acquire(self) -> _FakeAcquire:
+        return _FakeAcquire(self._conn)
+
+
+async def test_delete_principal_fk_violation_translated() -> None:
+    """A ForeignKeyViolationError on DELETE becomes PrincipalInUseError."""
+    pool = _FakePool(_FakeConn())
+    storage = PgPrincipalStorage(pool)  # type: ignore[arg-type]
+
+    principal_id = uuid4()
+    with pytest.raises(PrincipalInUseError) as exc_info:
+        await storage.delete_principal(principal_id)
+    assert exc_info.value.principal_id == principal_id
+    assert "cannot be deleted" in str(exc_info.value)
