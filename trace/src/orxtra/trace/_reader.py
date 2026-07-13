@@ -24,6 +24,21 @@ def _record_to_dict(record: asyncpg.Record) -> dict[str, Any]:
     return dict(record)
 
 
+def _inbox_record_to_dict(record: asyncpg.Record) -> dict[str, Any]:
+    """Coerce an inbox_items row for ``InboxItem`` validation.
+
+    ``options`` and ``tags`` are jsonb columns. A pool without a jsonb codec
+    (the plain ``asyncpg.create_pool`` used in production and tests) returns
+    them as JSON text, so parse defensively -- matching ``read_run_config``.
+    """
+    data = dict(record)
+    for key in ("options", "tags"):
+        value = data.get(key)
+        if isinstance(value, str):
+            data[key] = json.loads(value)
+    return data
+
+
 async def list_tasks(pool: asyncpg.Pool, run_id: UUID) -> list[TaskSummary]:
     rows: list[asyncpg.Record] = await pool.fetch(
         "SELECT id, name, status, task_type, parent_task_id,"
@@ -197,7 +212,7 @@ async def read_inbox(
             run_id,
             status,
         )
-    return [InboxItem.model_validate(_record_to_dict(row)) for row in rows]
+    return [InboxItem.model_validate(_inbox_record_to_dict(row)) for row in rows]
 
 
 async def read_notepad(
@@ -284,7 +299,7 @@ async def read_inbox_item(
     )
     if row is None:
         return None
-    return InboxItem.model_validate(_record_to_dict(row))
+    return InboxItem.model_validate(_inbox_record_to_dict(row))
 
 
 async def read_run_config(

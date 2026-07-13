@@ -299,6 +299,44 @@ class TestReadInbox:
         assert result[0].created_at == NOW
 
     @pytest.mark.asyncio
+    async def test_read_inbox_parses_jsonb_string_columns(
+        self, mock_pool: MockPool,
+    ) -> None:
+        """options/tags arriving as JSON TEXT (a pool with no jsonb codec, as
+        used in production and tests) are parsed into lists.
+
+        Regression: the reader previously passed the raw strings straight to
+        ``InboxItem.model_validate``, which then failed the ``list`` type check.
+        """
+        mock_pool.conn.queue_fetch([
+            {
+                "id": INBOX_ID,
+                "run_id": RUN_ID,
+                "status": "pending",
+                "decision_type": "approval",
+                "question": "Proceed?",
+                "options": '[{"label": "yes"}]',
+                "assumed_option": None,
+                "work_proceeding": None,
+                "contradiction_impact": None,
+                "tags": '["deploy"]',
+                "deadline": None,
+                "answer": None,
+                "answer_event": None,
+                "rejection_reason": None,
+                "answered_at": None,
+                "resolved_by": None,
+                "created_at": NOW,
+            },
+        ])
+
+        result = await read_inbox(mock_pool, RUN_ID)  # type: ignore[arg-type]
+
+        assert len(result) == 1
+        assert result[0].options == [{"label": "yes"}]
+        assert result[0].tags == ["deploy"]
+
+    @pytest.mark.asyncio
     async def test_read_inbox_with_status(self, mock_pool: MockPool) -> None:
         mock_pool.conn.queue_fetch([
             {
