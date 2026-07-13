@@ -1,7 +1,7 @@
 {
-  ".": "70295344495ae53589fbed640356cf8179cb249381a64427cd7f3350d8a262ca",
+  ".": "b527d20fbbe419567206a8f86051bb63870eb33b6fc283e870278483daf95eed",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "secrets": null,
+  "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "write-safety": null,
   "transport": null,
   "agent": null,
