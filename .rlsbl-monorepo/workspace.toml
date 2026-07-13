@@ -154,7 +154,7 @@ releasable = "orxtra"
 [[projects]]
 path = "services"
 description = "Shared business logic for all frontends"
-depends_on = ["agent", "dispatch", "protocols", "scheduler", "session", "overseer", "trace"]
+depends_on = ["agent", "dispatch", "identity", "protocols", "scheduler", "session", "overseer", "trace"]
 releasable = "orxtra"
 
 # --- Interface layer ---
