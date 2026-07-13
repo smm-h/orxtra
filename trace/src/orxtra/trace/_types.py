@@ -108,6 +108,7 @@ class InboxItem(BaseModel):
     answer_event: str | None
     rejection_reason: str | None
     answered_at: datetime | None
+    resolved_by: UUID | None
     created_at: datetime
 
 

@@ -427,13 +427,16 @@ class TraceWriter:
             )
         return item_id
 
-    async def answer_inbox_item(self, item_id: UUID, answer: str) -> None:
+    async def answer_inbox_item(
+        self, item_id: UUID, answer: str, *, resolved_by: UUID,
+    ) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
             status = await conn.execute(
                 "UPDATE inbox_items SET status = 'answered',"
-                " answer = $1, answered_at = now()"
-                " WHERE id = $2 AND status = 'pending'",
+                " answer = $1, answered_at = now(), resolved_by = $2"
+                " WHERE id = $3 AND status = 'pending'",
                 answer,
+                resolved_by,
                 item_id,
             )
             if status == "UPDATE 0":
@@ -448,11 +451,15 @@ class TraceWriter:
                 )
                 raise InvalidTransitionError(msg)
 
-    async def skip_inbox_item(self, item_id: UUID) -> None:
+    async def skip_inbox_item(
+        self, item_id: UUID, *, resolved_by: UUID,
+    ) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
             status = await conn.execute(
-                "UPDATE inbox_items SET status = 'skipped'"
-                " WHERE id = $1 AND status = 'pending'",
+                "UPDATE inbox_items SET status = 'skipped',"
+                " resolved_by = $1"
+                " WHERE id = $2 AND status = 'pending'",
+                resolved_by,
                 item_id,
             )
             if status == "UPDATE 0":
@@ -467,13 +474,16 @@ class TraceWriter:
                 )
                 raise InvalidTransitionError(msg)
 
-    async def reject_inbox_item(self, item_id: UUID, reason: str) -> None:
+    async def reject_inbox_item(
+        self, item_id: UUID, reason: str, *, resolved_by: UUID,
+    ) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
             status = await conn.execute(
                 "UPDATE inbox_items SET status = 'rejected',"
-                " rejection_reason = $1"
-                " WHERE id = $2 AND status = 'pending'",
+                " rejection_reason = $1, resolved_by = $2"
+                " WHERE id = $3 AND status = 'pending'",
                 reason,
+                resolved_by,
                 item_id,
             )
             if status == "UPDATE 0":
@@ -488,11 +498,15 @@ class TraceWriter:
                 )
                 raise InvalidTransitionError(msg)
 
-    async def expire_inbox_item(self, item_id: UUID) -> None:
+    async def expire_inbox_item(
+        self, item_id: UUID, *, resolved_by: UUID,
+    ) -> None:
         async with self._pool.acquire() as conn, conn.transaction():
             status = await conn.execute(
-                "UPDATE inbox_items SET status = 'expired'"
-                " WHERE id = $1 AND status = 'pending'",
+                "UPDATE inbox_items SET status = 'expired',"
+                " resolved_by = $1"
+                " WHERE id = $2 AND status = 'pending'",
+                resolved_by,
                 item_id,
             )
             if status == "UPDATE 0":

@@ -544,11 +544,14 @@ class InMemoryBackend:
             "answer_event": answer_event,
             "rejection_reason": None,
             "answered_at": None,
+            "resolved_by": None,
             "created_at": now,
         }
         return item_id
 
-    async def answer_inbox_item(self, item_id: UUID, answer: str) -> None:
+    async def answer_inbox_item(
+        self, item_id: UUID, answer: str, *, resolved_by: UUID,
+    ) -> None:
         item = self._inbox_items.get(item_id)
         if item is None or item["status"] != "pending":
             current = item["status"] if item is not None else None
@@ -561,8 +564,11 @@ class InMemoryBackend:
         item["status"] = "answered"
         item["answer"] = answer
         item["answered_at"] = _now()
+        item["resolved_by"] = resolved_by
 
-    async def skip_inbox_item(self, item_id: UUID) -> None:
+    async def skip_inbox_item(
+        self, item_id: UUID, *, resolved_by: UUID,
+    ) -> None:
         item = self._inbox_items.get(item_id)
         if item is None or item["status"] != "pending":
             current = item["status"] if item is not None else None
@@ -573,8 +579,11 @@ class InMemoryBackend:
             )
             raise InvalidTransitionError(msg)
         item["status"] = "skipped"
+        item["resolved_by"] = resolved_by
 
-    async def reject_inbox_item(self, item_id: UUID, reason: str) -> None:
+    async def reject_inbox_item(
+        self, item_id: UUID, reason: str, *, resolved_by: UUID,
+    ) -> None:
         item = self._inbox_items.get(item_id)
         if item is None or item["status"] != "pending":
             current = item["status"] if item is not None else None
@@ -586,8 +595,11 @@ class InMemoryBackend:
             raise InvalidTransitionError(msg)
         item["status"] = "rejected"
         item["rejection_reason"] = reason
+        item["resolved_by"] = resolved_by
 
-    async def expire_inbox_item(self, item_id: UUID) -> None:
+    async def expire_inbox_item(
+        self, item_id: UUID, *, resolved_by: UUID,
+    ) -> None:
         item = self._inbox_items.get(item_id)
         if item is None or item["status"] != "pending":
             current = item["status"] if item is not None else None
@@ -598,6 +610,7 @@ class InMemoryBackend:
             )
             raise InvalidTransitionError(msg)
         item["status"] = "expired"
+        item["resolved_by"] = resolved_by
 
     # ── NotepadStorage ──
 

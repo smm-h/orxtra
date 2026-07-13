@@ -272,6 +272,7 @@ class TestReadInbox:
                 "answer_event": None,
                 "rejection_reason": None,
                 "answered_at": None,
+                "resolved_by": None,
                 "created_at": NOW,
             },
         ])
@@ -316,6 +317,7 @@ class TestReadInbox:
                 "answer_event": None,
                 "rejection_reason": None,
                 "answered_at": None,
+                "resolved_by": None,
                 "created_at": NOW,
             },
         ])
@@ -555,6 +557,7 @@ class TestReadInboxItem:
             "answer_event": None,
             "rejection_reason": None,
             "answered_at": None,
+            "resolved_by": None,
             "created_at": NOW,
         })
 

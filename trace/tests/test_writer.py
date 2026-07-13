@@ -482,47 +482,53 @@ class TestInbox:
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         mock_pool.conn.queue_execute("UPDATE 1")
-        await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
+        await writer.answer_inbox_item(
+            INBOX_ITEM_ID, "yes", resolved_by=PRINCIPAL_ID,
+        )
 
         sql, args = mock_pool.conn.executed[0]
         assert "update inbox_items" in sql.lower()
         assert "status = 'answered'" in sql.lower()
-        assert args == ("yes", INBOX_ITEM_ID)
+        assert "resolved_by" in sql.lower()
+        assert args == ("yes", PRINCIPAL_ID, INBOX_ITEM_ID)
 
     async def test_skip_inbox_item(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         mock_pool.conn.queue_execute("UPDATE 1")
-        await writer.skip_inbox_item(INBOX_ITEM_ID)
+        await writer.skip_inbox_item(INBOX_ITEM_ID, resolved_by=PRINCIPAL_ID)
 
         sql, args = mock_pool.conn.executed[0]
         assert "update inbox_items" in sql.lower()
         assert "status = 'skipped'" in sql.lower()
-        assert args == (INBOX_ITEM_ID,)
+        assert "resolved_by" in sql.lower()
+        assert args == (PRINCIPAL_ID, INBOX_ITEM_ID)
 
     async def test_reject_inbox_item(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         mock_pool.conn.queue_execute("UPDATE 1")
         await writer.reject_inbox_item(
-            INBOX_ITEM_ID, "not relevant",
+            INBOX_ITEM_ID, "not relevant", resolved_by=PRINCIPAL_ID,
         )
 
         sql, args = mock_pool.conn.executed[0]
         assert "update inbox_items" in sql.lower()
         assert "status = 'rejected'" in sql.lower()
-        assert args == ("not relevant", INBOX_ITEM_ID)
+        assert "resolved_by" in sql.lower()
+        assert args == ("not relevant", PRINCIPAL_ID, INBOX_ITEM_ID)
 
     async def test_expire_inbox_item(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         mock_pool.conn.queue_execute("UPDATE 1")
-        await writer.expire_inbox_item(INBOX_ITEM_ID)
+        await writer.expire_inbox_item(INBOX_ITEM_ID, resolved_by=PRINCIPAL_ID)
 
         sql, args = mock_pool.conn.executed[0]
         assert "update inbox_items" in sql.lower()
         assert "status = 'expired'" in sql.lower()
-        assert args == (INBOX_ITEM_ID,)
+        assert "resolved_by" in sql.lower()
+        assert args == (PRINCIPAL_ID, INBOX_ITEM_ID)
 
     async def test_answer_already_answered_raises(
         self, writer: TraceWriter, mock_pool: MockPool,
@@ -533,7 +539,9 @@ class TestInbox:
             InvalidTransitionError,
             match=r"cannot transition inbox item.*from 'answered' to 'answered'",
         ):
-            await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
+            await writer.answer_inbox_item(
+                INBOX_ITEM_ID, "yes", resolved_by=PRINCIPAL_ID,
+            )
 
     async def test_skip_expired_raises(
         self, writer: TraceWriter, mock_pool: MockPool,
@@ -544,13 +552,15 @@ class TestInbox:
             InvalidTransitionError,
             match=r"cannot transition inbox item.*from 'expired' to 'skipped'",
         ):
-            await writer.skip_inbox_item(INBOX_ITEM_ID)
+            await writer.skip_inbox_item(INBOX_ITEM_ID, resolved_by=PRINCIPAL_ID)
 
     async def test_answer_pending_succeeds(
         self, writer: TraceWriter, mock_pool: MockPool,
     ) -> None:
         mock_pool.conn.queue_execute("UPDATE 1")
-        await writer.answer_inbox_item(INBOX_ITEM_ID, "yes")
+        await writer.answer_inbox_item(
+            INBOX_ITEM_ID, "yes", resolved_by=PRINCIPAL_ID,
+        )
         sql, _args = mock_pool.conn.executed[0]
         assert "status = 'pending'" in sql.lower()
 

@@ -603,11 +603,12 @@ class TestInboxOperations:
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [{"label": "A"}], None, None, None,
         )
-        await backend.answer_inbox_item(item_id, "A")
+        await backend.answer_inbox_item(item_id, "A", resolved_by=_CREATED_BY)
         item = await backend.read_inbox_item(item_id)
         assert item is not None
         assert item.status == "answered"
         assert item.answer == "A"
+        assert item.resolved_by == _CREATED_BY
 
     @pytest.mark.asyncio
     async def test_skip_inbox_item(self, backend: InMemoryBackend) -> None:
@@ -615,10 +616,11 @@ class TestInboxOperations:
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
-        await backend.skip_inbox_item(item_id)
+        await backend.skip_inbox_item(item_id, resolved_by=_CREATED_BY)
         item = await backend.read_inbox_item(item_id)
         assert item is not None
         assert item.status == "skipped"
+        assert item.resolved_by == _CREATED_BY
 
     @pytest.mark.asyncio
     async def test_reject_inbox_item(self, backend: InMemoryBackend) -> None:
@@ -626,11 +628,14 @@ class TestInboxOperations:
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
-        await backend.reject_inbox_item(item_id, "bad question")
+        await backend.reject_inbox_item(
+            item_id, "bad question", resolved_by=_CREATED_BY,
+        )
         item = await backend.read_inbox_item(item_id)
         assert item is not None
         assert item.status == "rejected"
         assert item.rejection_reason == "bad question"
+        assert item.resolved_by == _CREATED_BY
 
     @pytest.mark.asyncio
     async def test_expire_inbox_item(self, backend: InMemoryBackend) -> None:
@@ -638,10 +643,11 @@ class TestInboxOperations:
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
-        await backend.expire_inbox_item(item_id)
+        await backend.expire_inbox_item(item_id, resolved_by=_CREATED_BY)
         item = await backend.read_inbox_item(item_id)
         assert item is not None
         assert item.status == "expired"
+        assert item.resolved_by == _CREATED_BY
 
     @pytest.mark.asyncio
     async def test_answer_non_pending_raises(self, backend: InMemoryBackend) -> None:
@@ -649,9 +655,9 @@ class TestInboxOperations:
         item_id = await backend.create_inbox_item(
             run_id, "choice", "q?", [], None, None, None,
         )
-        await backend.skip_inbox_item(item_id)
+        await backend.skip_inbox_item(item_id, resolved_by=_CREATED_BY)
         with pytest.raises(InvalidTransitionError):
-            await backend.answer_inbox_item(item_id, "A")
+            await backend.answer_inbox_item(item_id, "A", resolved_by=_CREATED_BY)
 
     @pytest.mark.asyncio
     async def test_read_inbox_with_status_filter(
@@ -664,7 +670,7 @@ class TestInboxOperations:
         item2 = await backend.create_inbox_item(
             run_id, "choice", "q2", [], None, None, None,
         )
-        await backend.answer_inbox_item(item2, "yes")
+        await backend.answer_inbox_item(item2, "yes", resolved_by=_CREATED_BY)
         pending = await backend.read_inbox(run_id, status="pending")
         assert len(pending) == 1
         answered = await backend.read_inbox(run_id, status="answered")

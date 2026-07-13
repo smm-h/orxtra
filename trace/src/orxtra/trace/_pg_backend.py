@@ -274,17 +274,29 @@ class PgBackend:
             answer_event,
         )
 
-    async def answer_inbox_item(self, item_id: UUID, answer: str) -> None:
-        await self._writer.answer_inbox_item(item_id, answer)
+    async def answer_inbox_item(
+        self, item_id: UUID, answer: str, *, resolved_by: UUID,
+    ) -> None:
+        await self._writer.answer_inbox_item(
+            item_id, answer, resolved_by=resolved_by,
+        )
 
-    async def skip_inbox_item(self, item_id: UUID) -> None:
-        await self._writer.skip_inbox_item(item_id)
+    async def skip_inbox_item(
+        self, item_id: UUID, *, resolved_by: UUID,
+    ) -> None:
+        await self._writer.skip_inbox_item(item_id, resolved_by=resolved_by)
 
-    async def reject_inbox_item(self, item_id: UUID, reason: str) -> None:
-        await self._writer.reject_inbox_item(item_id, reason)
+    async def reject_inbox_item(
+        self, item_id: UUID, reason: str, *, resolved_by: UUID,
+    ) -> None:
+        await self._writer.reject_inbox_item(
+            item_id, reason, resolved_by=resolved_by,
+        )
 
-    async def expire_inbox_item(self, item_id: UUID) -> None:
-        await self._writer.expire_inbox_item(item_id)
+    async def expire_inbox_item(
+        self, item_id: UUID, *, resolved_by: UUID,
+    ) -> None:
+        await self._writer.expire_inbox_item(item_id, resolved_by=resolved_by)
 
     # -- NotepadStorage --
 
