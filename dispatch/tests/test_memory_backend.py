@@ -29,6 +29,7 @@ def _sub(
         id=sub_id or uuid7(),
         filter=FilterPredicate(event_types=event_types),
         enabled=enabled,
+        principal_id=uuid7(),
         created_at=NOW,
     )
 

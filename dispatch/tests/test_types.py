@@ -15,6 +15,7 @@ from pydantic import ValidationError
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
 SUB_ID = UUID("01234567-89ab-cdef-0123-456789abcdef")
+PRINCIPAL_ID = UUID("11111111-2222-3333-4444-555555555555")
 ACTION_ID = UUID("abcdef01-2345-6789-abcd-ef0123456789")
 EVENT_ID = UUID("11111111-2222-3333-4444-555555555555")
 
@@ -49,31 +50,41 @@ class TestSubscription:
         sub = Subscription(
             id=SUB_ID,
             filter=FilterPredicate(),
+            principal_id=PRINCIPAL_ID,
             created_at=NOW,
         )
         assert sub.id == SUB_ID
         assert sub.enabled is True
         assert sub.storage == "persistent"
-        assert sub.owner_run_id is None
+        assert sub.principal_id == PRINCIPAL_ID
 
     def test_full(self) -> None:
-        run_id = UUID("99999999-8888-7777-6666-555544443333")
         sub = Subscription(
             id=SUB_ID,
             filter=FilterPredicate(event_types=["task.completed"]),
             enabled=False,
             storage="transient",
-            owner_run_id=run_id,
+            principal_id=PRINCIPAL_ID,
             created_at=NOW,
         )
         assert sub.enabled is False
         assert sub.storage == "transient"
-        assert sub.owner_run_id == run_id
+        assert sub.principal_id == PRINCIPAL_ID
+
+    def test_principal_id_required(self) -> None:
+        # principal_id is mandatory: a subscription must have an owner.
+        with pytest.raises(ValidationError):
+            Subscription(  # type: ignore[call-arg]
+                id=SUB_ID,
+                filter=FilterPredicate(),
+                created_at=NOW,
+            )
 
     def test_frozen(self) -> None:
         sub = Subscription(
             id=SUB_ID,
             filter=FilterPredicate(),
+            principal_id=PRINCIPAL_ID,
             created_at=NOW,
         )
         with pytest.raises(ValidationError):
@@ -84,6 +95,7 @@ class TestSubscription:
             Subscription(
                 id=SUB_ID,
                 filter=FilterPredicate(),
+                principal_id=PRINCIPAL_ID,
                 created_at=NOW,
                 extra_field="x",  # type: ignore[call-arg]
             )

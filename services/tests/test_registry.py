@@ -226,7 +226,7 @@ EXPECTED_INJECTS: dict[str, frozenset[str]] = {
     "validate_agent": frozenset(),
     "validate_workflow": frozenset(),
     "validate_categories": frozenset(),
-    "subscribe": frozenset({"dispatch_backend"}),
+    "subscribe": frozenset({"dispatch_backend", "caller_principal"}),
     "unsubscribe": frozenset({"dispatch_backend"}),
     "list_subscriptions": frozenset({"dispatch_backend"}),
     "create_source": frozenset(

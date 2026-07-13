@@ -16,6 +16,7 @@ from orxtra.protocols import (
     SCOPE_RUNS_READ,
     SYSTEM_PRINCIPAL_EXTERNAL_REF,
     Capability,
+    FilterPredicate,
     TrustTier,
 )
 from orxtra.services._dispatcher import DispatchContext, dispatch
@@ -262,8 +263,17 @@ async def test_dispatch_subscribe_with_backend(mock_get_fn: MagicMock) -> None:
     mock_fn = AsyncMock(return_value=UUID("00000000-0000-0000-0000-000000000001"))
     mock_get_fn.return_value = mock_fn
     mock_backend = AsyncMock()
+
+    # subscribe now injects the dispatch backend AND the derived caller_principal
+    # (the subscription's owner), so the context must carry principal_storage.
+    storage = InMemoryPrincipalStorage()
+    system = await storage.mint_principal(
+        KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
+    )
     ctx = DispatchContext(
-        dispatch_backend=mock_backend, auth_context=make_auth_context()
+        dispatch_backend=mock_backend,
+        principal_storage=storage,
+        auth_context=make_auth_context(),
     )
 
     await dispatch(
@@ -277,9 +287,12 @@ async def test_dispatch_subscribe_with_backend(mock_get_fn: MagicMock) -> None:
     )
 
     mock_fn.assert_awaited_once()
-    # Backend should be the first positional arg
+    # Injected positionally: backend first, then the caller principal (owner).
     call_args = mock_fn.call_args
     assert call_args[0][0] is mock_backend
+    assert call_args[0][1] == system
+    # The params-model ``filter`` field reaches the fn as ``filter_pred``.
+    assert isinstance(call_args.kwargs["filter_pred"], FilterPredicate)
 
 
 @pytest.mark.asyncio

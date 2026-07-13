@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from collections.abc import ItemsView, KeysView, ValuesView
 
 NOW = datetime(2025, 7, 1, 12, 0, 0, tzinfo=UTC)
+_PRINCIPAL_ID = UUID("11111111-2222-3333-4444-555555555555")
 
 
 # -- Mock infrastructure (mirrors trace/tests/conftest.py) --
@@ -168,6 +169,7 @@ def _sub(
         id=sub_id or uuid7(),
         filter=FilterPredicate(event_types=event_types),
         enabled=enabled,
+        principal_id=uuid7(),
         created_at=NOW,
     )
 
@@ -427,7 +429,7 @@ class TestSubscriptionStorage:
         assert filter_data["event_types"] == ["task.done", "task.failed"]
         assert args[2] is True  # enabled
         assert args[3] == "persistent"  # storage
-        assert args[4] is None  # owner_run_id
+        assert args[4] == sub.principal_id  # principal_id
 
     async def test_get_subscription_found(
         self, pg_backend: PgDispatchBackend, mock_pool: MockPool,
@@ -442,13 +444,14 @@ class TestSubscriptionStorage:
             }),
             "enabled": True,
             "storage": "persistent",
-            "owner_run_id": None,
+            "principal_id": _PRINCIPAL_ID,
             "created_at": NOW,
         })
         result = await pg_backend.get_subscription(sub_id)
         assert result is not None
         assert result.id == sub_id
         assert result.filter.event_types == ["x"]
+        assert result.principal_id == _PRINCIPAL_ID
 
     async def test_get_subscription_not_found(
         self, pg_backend: PgDispatchBackend, mock_pool: MockPool,
@@ -717,6 +720,7 @@ class TestFilterPredicateSerialization:
                 data_predicates={"key": "value"},
             ),
             enabled=True,
+            principal_id=_PRINCIPAL_ID,
             created_at=NOW,
         )
         await pg_backend.create_subscription(sub)
@@ -741,7 +745,7 @@ class TestFilterPredicateSerialization:
             "filter_expr": json.dumps(original_filter),
             "enabled": True,
             "storage": "transient",
-            "owner_run_id": None,
+            "principal_id": _PRINCIPAL_ID,
             "created_at": NOW,
         })
         result = await pg_backend.get_subscription(sub_id)

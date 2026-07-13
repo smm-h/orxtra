@@ -22,10 +22,17 @@ disable = [
 # CASCADE on run/task deletion because their data is meaningless without the
 # parent. Audit tables (events, transcripts, notepad_entries) use RESTRICT to
 # prevent accidental data loss -- runs with audit records must be explicitly
-# cleaned. Subscriptions use SET NULL because they can outlive their owning run.
+# cleaned.
 "runs.W014" = "Cascade blast radius is intentional: operational-state tables cascade on run deletion while audit tables use RESTRICT"
-"runs.W015" = "Mixed ON DELETE by table class: CASCADE for operational state, RESTRICT for audit (events/transcripts/notepad), SET NULL for subscriptions"
+"runs.W015" = "Mixed ON DELETE by table class: CASCADE for operational state, RESTRICT for audit (events/transcripts/notepad)"
 "tasks.W015" = "Mixed ON DELETE by table class: CASCADE for operational state (attempts/iterations/children), RESTRICT for audit (events)"
 "events.W015" = "Mixed ON DELETE by table class: CASCADE for accumulator_buffer (transient operational data), RESTRICT for dispatch_cursor and dispatch_completions (durable delivery records)"
+# Incoming FKs to principals mix ON DELETE by referent class: CASCADE for
+# operational state (subscriptions -- owned by a principal, meaningless without
+# it), RESTRICT for durable history/attribution (events, runs.created_by,
+# sources.created_by, consumers.principal_id, inbox_items.resolved_by). A
+# principal that anchors history is undeletable; deleting one takes only its
+# operational state with it.
+"principals.W015" = "Mixed ON DELETE by referent class: CASCADE for operational state (subscriptions), RESTRICT for durable history/attribution (events, runs.created_by, sources.created_by, consumers.principal_id, inbox_items.resolved_by)"
 "dispatch_cursor.W005" = "Uses last_processed_at instead of created_at; cursor rows are upserted, not appended"
 "dispatch_completions.W005" = "Uses completed_at instead of created_at; completion is recorded when the action finishes"

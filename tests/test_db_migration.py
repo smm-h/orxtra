@@ -370,6 +370,50 @@ $$ LANGUAGE plpgsql""",
     # 41. Index on inbox_items.resolved_by (matches the runs/sources FK style).
     """CREATE INDEX IF NOT EXISTS idx_inbox_resolved_by
        ON inbox_items (resolved_by)""",
+
+    # -- subscription ownership cutover: owner_run_id -> principal_id ---------
+
+    # 42. New column: subscriptions.principal_id (nullable first so existing
+    # rows survive the backfill).
+    """ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS principal_id uuid""",
+
+    # 43. Backfill ALL existing subscriptions to the system principal.
+    # owner_run_id was never populated in production; even where a seeded row
+    # carries one, ownership history is unknowable, so every historical
+    # subscription is attributed to the system principal.
+    """UPDATE subscriptions SET principal_id = (
+           SELECT id FROM principals
+           WHERE kind = 'system'
+           AND external_ref = '00000000-0000-0000-0000-000000000000'
+       ) WHERE principal_id IS NULL""",
+
+    # 44. Enforce NOT NULL now that every subscription has an owner.
+    """ALTER TABLE subscriptions ALTER COLUMN principal_id SET NOT NULL""",
+
+    # 45. FK subscriptions.principal_id -> principals.id ON DELETE CASCADE.
+    # CASCADE is deliberate: a subscription is operational state that dies with
+    # its owner (contrast the RESTRICT history FKs).
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_subscriptions_principal'
+        AND conrelid = 'subscriptions'::regclass
+      ) THEN
+        ALTER TABLE subscriptions ADD CONSTRAINT fk_subscriptions_principal
+            FOREIGN KEY (principal_id) REFERENCES principals (id)
+            ON DELETE CASCADE;
+      END IF;
+    END $$;""",
+
+    # 46. Index on subscriptions.principal_id.
+    """CREATE INDEX IF NOT EXISTS idx_subscriptions_principal_id
+       ON subscriptions (principal_id)""",
+
+    # 47. Drop the old owner_run_id column, its FK, and the baseline index.
+    """DROP INDEX IF EXISTS idx_subscriptions_owner_run_id""",
+    """ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS fk_subscriptions_run""",
+    """ALTER TABLE subscriptions DROP COLUMN IF EXISTS owner_run_id""",
 ]
 
 
@@ -647,11 +691,14 @@ async def test_migration_from_v080_baseline(
             run_id, "approval", "still pending?",
         )
 
-        # Also seed a subscription + action (needed for dispatch_completions FK)
+        # Also seed a subscription + action (needed for dispatch_completions FK).
+        # The v0.8.0 baseline has owner_run_id: set it so the cutover proves that
+        # ownership history is discarded (backfilled to system, not the run).
         sub_id = await conn.fetchval(
-            """INSERT INTO subscriptions (storage)
-               VALUES ('persistent')
+            """INSERT INTO subscriptions (storage, owner_run_id)
+               VALUES ('persistent', $1)
                RETURNING id""",
+            run_id,
         )
         action_id = await conn.fetchval(
             """INSERT INTO subscription_actions (subscription_id, position, action_type)
@@ -1188,6 +1235,77 @@ async def test_migration_from_v080_baseline(
         assert "idx_inbox_resolved_by" in {
             r["indexname"] for r in inbox_indexes
         }, "the resolved_by index must exist after migration"
+
+        # 4n: subscription ownership cutover. The seeded subscription carried
+        # owner_run_id; after migration it is attributed to the system principal
+        # (ownership history is unknowable), owner_run_id is gone, and the FK
+        # CASCADEs so deleting an owning principal deletes its subscriptions.
+        migrated_sub = await conn.fetchrow(
+            "SELECT principal_id FROM subscriptions WHERE id = $1", sub_id,
+        )
+        assert migrated_sub is not None
+        assert migrated_sub["principal_id"] == system_principal_id, (
+            "historical subscriptions must be backfilled to the system principal "
+            "(owner_run_id ownership history is discarded)"
+        )
+
+        sub_principal_col = await conn.fetchrow(
+            "SELECT is_nullable FROM information_schema.columns "
+            "WHERE table_name = 'subscriptions' AND column_name = 'principal_id'",
+        )
+        assert sub_principal_col is not None
+        assert sub_principal_col["is_nullable"] == "NO", (
+            "subscriptions.principal_id must be NOT NULL after migration"
+        )
+
+        # owner_run_id and its index are gone.
+        sub_cols_post = await conn.fetch(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'subscriptions'",
+        )
+        assert "owner_run_id" not in {c["column_name"] for c in sub_cols_post}, (
+            "subscriptions.owner_run_id must be dropped after migration"
+        )
+        sub_indexes = await conn.fetch(
+            "SELECT indexname FROM pg_indexes WHERE tablename = 'subscriptions'",
+        )
+        sub_index_names = {r["indexname"] for r in sub_indexes}
+        assert "idx_subscriptions_principal_id" in sub_index_names, (
+            "the principal_id index must exist after migration"
+        )
+        assert "idx_subscriptions_owner_run_id" not in sub_index_names, (
+            "the old owner_run_id index must be dropped"
+        )
+
+        # NOT NULL is enforced: a subscription without principal_id is rejected.
+        with pytest.raises(Exception, match="principal_id"):
+            await conn.execute(
+                "INSERT INTO subscriptions (storage) VALUES ('persistent')",
+            )
+
+        # ON DELETE CASCADE: deleting an owning principal deletes its
+        # subscriptions. Use a dedicated owner principal + subscription so the
+        # cascade is isolated from the system principal (pinned by RESTRICT FKs).
+        sub_owner = await conn.fetchrow(
+            "INSERT INTO principals (kind, external_ref, display_name) "
+            "VALUES ('consumer', gen_random_uuid(), 'cascade-owner') "
+            "RETURNING id",
+        )
+        assert sub_owner is not None
+        cascade_sub_id = await conn.fetchval(
+            "INSERT INTO subscriptions (storage, principal_id) "
+            "VALUES ('persistent', $1) RETURNING id",
+            sub_owner["id"],
+        )
+        await conn.execute(
+            "DELETE FROM principals WHERE id = $1", sub_owner["id"],
+        )
+        cascade_survivor = await conn.fetchrow(
+            "SELECT id FROM subscriptions WHERE id = $1", cascade_sub_id,
+        )
+        assert cascade_survivor is None, (
+            "deleting an owning principal must CASCADE-delete its subscriptions"
+        )
 
     finally:
         await conn.close()

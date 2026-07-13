@@ -2,12 +2,13 @@
 # Single owner: the dispatch module. Event sources, subscriptions, actions,
 # and accumulator buffering.
 #
-# Cross-file FK references: subscriptions.owner_run_id -> trace's runs table,
+# Cross-file FK references: subscriptions.principal_id -> identity's principals
+# table, sources.created_by -> identity's principals table,
 # accumulator_buffer.event_id -> trace's events table. pgdesign resolves these
 # when generating from the schema/ directory (topo sort merges all files).
 
 [meta]
-version = 2
+version = 3
 schema = "public"
 
 # ---------------------------------------------------------------------------
@@ -94,10 +95,9 @@ type = "str"
 default = "persistent"
 comment = "Storage mode: persistent or transient"
 
-[tables.subscriptions.columns.owner_run_id]
+[tables.subscriptions.columns.principal_id]
 type = "ref"
-nullable = true
-comment = "Run that owns this subscription (null = global)"
+comment = "The owning actor's principal. A subscription is operational state owned by its principal (a consumer, run, or the system)."
 
 [tables.subscriptions.columns.created_at]
 type = "timestamp"
@@ -111,11 +111,21 @@ ref_table = "sources"
 ref_columns = ["id"]
 on_delete = "SET NULL"
 
-[tables.subscriptions.fks.fk_subscriptions_run]
-columns = ["owner_run_id"]
-ref_table = "runs"
+# Cross-file FK: subscriptions.principal_id -> identity's principals table.
+# ON DELETE CASCADE is deliberate: a subscription is operational state that dies
+# with its owner. This contrasts with the RESTRICT history FKs (events,
+# runs.created_by, sources.created_by, consumers.principal_id) which anchor
+# durable attribution and block deletion of a referenced principal. Deleting an
+# owning principal takes its subscriptions with it; deleting one that fired
+# events is refused.
+[tables.subscriptions.fks.fk_subscriptions_principal]
+columns = ["principal_id"]
+ref_table = "principals"
 ref_columns = ["id"]
-on_delete = "SET NULL"
+on_delete = "CASCADE"
+
+[tables.subscriptions.indexes.idx_subscriptions_principal_id]
+columns = ["principal_id"]
 
 [tables.subscriptions.indexes.idx_subscriptions_active]
 columns = ["source_id", "created_at"]

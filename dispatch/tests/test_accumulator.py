@@ -54,6 +54,7 @@ def _make_sub(
         id=uuid7(),
         filter=FilterPredicate(event_types=event_types),
         enabled=True,
+        principal_id=uuid7(),
         created_at=NOW,
     )
 

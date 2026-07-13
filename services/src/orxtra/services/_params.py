@@ -208,11 +208,6 @@ class SubscribeParams(BaseModel):
     storage: str = Field(
         default="persistent", description="Storage type for the subscription."
     )
-    owner_run_id: str | None = Field(
-        default=None,
-        description="Run ID that owns this subscription.",
-        json_schema_extra={"format": "uuid"},
-    )
 
 
 class UnsubscribeParams(BaseModel):

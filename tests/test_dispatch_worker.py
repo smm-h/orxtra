@@ -109,6 +109,7 @@ async def _create_subscription_with_log_action(
         filter=FilterPredicate(event_types=event_types),
         enabled=True,
         storage="persistent",
+        principal_id=await _seed_system_principal(backend._pool),
     )
     await backend.create_subscription(sub)
     action = SubscriptionAction(
@@ -131,6 +132,7 @@ async def _create_subscription_with_script_action(
         filter=FilterPredicate(event_types=event_types),
         enabled=True,
         storage="persistent",
+        principal_id=await _seed_system_principal(backend._pool),
     )
     await backend.create_subscription(sub)
     action = SubscriptionAction(

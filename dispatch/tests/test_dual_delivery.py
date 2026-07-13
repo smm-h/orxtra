@@ -110,6 +110,7 @@ def _make_sub(
         id=uuid7(),
         filter=FilterPredicate(event_types=event_types, sources=sources),
         enabled=enabled,
+        principal_id=uuid7(),
         created_at=NOW,
     )
 

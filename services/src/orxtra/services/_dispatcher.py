@@ -233,9 +233,11 @@ def _prepare_kwargs(validated: Any) -> dict[str, Any]:
             kwargs[key] = datetime.fromisoformat(value)
             continue
 
-        # FilterPredicate for subscribe
+        # FilterPredicate for subscribe. The params model field is ``filter``;
+        # the subscribe service fn parameter is ``filter_pred`` (``filter``
+        # shadows the builtin), so remap the key here as we coerce.
         if key == "filter" and isinstance(value, dict):
-            kwargs[key] = FilterPredicate(**value)
+            kwargs["filter_pred"] = FilterPredicate(**value)
             continue
 
         kwargs[key] = value

@@ -32,7 +32,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     filter_expr jsonb NOT NULL DEFAULT '{}',
     enabled bool NOT NULL DEFAULT true,
     storage text NOT NULL DEFAULT 'persistent',
-    owner_run_id uuid,
+    principal_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_subscriptions PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.subscriptions (
@@ -41,7 +41,7 @@ STATEMENTS: Final[list[DDLStmt]] = [
     filter_expr jsonb NOT NULL DEFAULT '{}',
     enabled bool NOT NULL DEFAULT true,
     storage text NOT NULL DEFAULT 'persistent',
-    owner_run_id uuid,
+    principal_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_subscriptions PRIMARY KEY (id)
 );""", "table", "subscriptions", "subscriptions", 4, True),
@@ -115,16 +115,16 @@ BEGIN
     ALTER TABLE public.sources ADD CONSTRAINT fk_sources_created_by FOREIGN KEY (created_by) REFERENCES public.principals (id) ON DELETE RESTRICT;
   END IF;
 END $$;""", "fk", "fk_sources_created_by", "sources", 6, True),
-    DDLStmt("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_run FOREIGN KEY (owner_run_id) REFERENCES public.runs (id) ON DELETE SET NULL;", """DO $$
+    DDLStmt("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
-    WHERE conname = 'fk_subscriptions_run'
+    WHERE conname = 'fk_subscriptions_principal'
     AND conrelid = 'public.subscriptions'::regclass
   ) THEN
-    ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_run FOREIGN KEY (owner_run_id) REFERENCES public.runs (id) ON DELETE SET NULL;
+    ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE CASCADE;
   END IF;
-END $$;""", "fk", "fk_subscriptions_run", "subscriptions", 6, True),
+END $$;""", "fk", "fk_subscriptions_principal", "subscriptions", 6, True),
     DDLStmt("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_source FOREIGN KEY (source_id) REFERENCES public.sources (id) ON DELETE SET NULL;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -299,7 +299,7 @@ END $$;""", "check", "chk_dispatch_completions_status_valid", "dispatch_completi
     DDLStmt("CREATE INDEX idx_sources_created_by ON public.sources (created_by);", "CREATE INDEX IF NOT EXISTS idx_sources_created_by ON public.sources (created_by);", "index", "idx_sources_created_by", "sources", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "CREATE INDEX IF NOT EXISTS idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "index", "idx_subscriptions_active", "subscriptions", 9, True),
     DDLStmt("CREATE INDEX idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "index", "idx_subscriptions_filter_expr_gin", "subscriptions", 9, True),
-    DDLStmt("CREATE INDEX idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "index", "idx_subscriptions_owner_run_id", "subscriptions", 9, True),
+    DDLStmt("CREATE INDEX idx_subscriptions_principal_id ON public.subscriptions (principal_id);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_principal_id ON public.subscriptions (principal_id);", "index", "idx_subscriptions_principal_id", "subscriptions", 9, True),
     DDLStmt("CREATE INDEX idx_subscription_actions_accumulator_gin ON public.subscription_actions USING gin (accumulator_config);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_accumulator_gin ON public.subscription_actions USING gin (accumulator_config);", "index", "idx_subscription_actions_accumulator_gin", "subscription_actions", 9, True),
     DDLStmt("CREATE INDEX idx_subscription_actions_config_gin ON public.subscription_actions USING gin (action_config);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_config_gin ON public.subscription_actions USING gin (action_config);", "index", "idx_subscription_actions_config_gin", "subscription_actions", 9, True),
     DDLStmt("CREATE INDEX idx_subscription_actions_sub ON public.subscription_actions (subscription_id);", "CREATE INDEX IF NOT EXISTS idx_subscription_actions_sub ON public.subscription_actions (subscription_id);", "index", "idx_subscription_actions_sub", "subscription_actions", 9, True),
@@ -318,7 +318,7 @@ END $$;""", "check", "chk_dispatch_completions_status_valid", "dispatch_completi
     DDLStmt("COMMENT ON COLUMN public.subscriptions.source_id IS 'Optional source filter (null = match all sources)';", None, "comment", "column.subscriptions.source_id", "subscriptions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscriptions.filter_expr IS 'FilterPredicate serialized as JSON';", None, "comment", "column.subscriptions.filter_expr", "subscriptions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscriptions.storage IS 'Storage mode: persistent or transient';", None, "comment", "column.subscriptions.storage", "subscriptions", 10, True),
-    DDLStmt("COMMENT ON COLUMN public.subscriptions.owner_run_id IS 'Run that owns this subscription (null = global)';", None, "comment", "column.subscriptions.owner_run_id", "subscriptions", 10, True),
+    DDLStmt("COMMENT ON COLUMN public.subscriptions.principal_id IS 'The owning actor''s principal. A subscription is operational state owned by its principal (a consumer, run, or the system).';", None, "comment", "column.subscriptions.principal_id", "subscriptions", 10, True),
     DDLStmt("COMMENT ON TABLE public.subscription_actions IS 'Ordered action pipeline for a subscription. Each action processes matched events.';", None, "comment", "table.subscription_actions", "subscription_actions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscription_actions.position IS 'Execution order within the subscription';", None, "comment", "column.subscription_actions.position", "subscription_actions", 10, True),
     DDLStmt("COMMENT ON COLUMN public.subscription_actions.action_type IS 'Action type identifier (e.g. script, log, webhook)';", None, "comment", "column.subscription_actions.action_type", "subscription_actions", 10, True),

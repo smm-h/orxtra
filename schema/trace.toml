@@ -190,7 +190,7 @@ method = "gin"
 
 # Cross-file FK: runs.created_by -> identity's principals table. pgdesign
 # resolves this in its ALTER phase (topo sort merges all schema/ files), the
-# same way dispatch's subscriptions.owner_run_id references trace's runs.
+# same way dispatch's sources.created_by references identity's principals.
 [tables.runs.fks.fk_runs_created_by]
 columns = ["created_by"]
 ref_table = "principals"

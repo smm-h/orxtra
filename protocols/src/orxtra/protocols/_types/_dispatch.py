@@ -26,7 +26,10 @@ class Subscription(BaseModel):
     filter: FilterPredicate
     enabled: bool = True
     storage: str = "persistent"  # "transient" or "persistent"
-    owner_run_id: UUID | None = None
+    # The owning actor's principal. A subscription is operational state owned by
+    # its principal (a consumer, run, or the system); the FK CASCADEs, so
+    # deleting the owner deletes the subscription.
+    principal_id: UUID
     created_at: datetime = Field(default_factory=_utcnow)
 
 

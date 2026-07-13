@@ -456,7 +456,7 @@ END $$;""", "credential_type"),
     filter_expr jsonb NOT NULL DEFAULT '{}',
     enabled bool NOT NULL DEFAULT true,
     storage text NOT NULL DEFAULT 'persistent',
-    owner_run_id uuid,
+    principal_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_subscriptions PRIMARY KEY (id)
 );""", """CREATE TABLE IF NOT EXISTS public.subscriptions (
@@ -465,7 +465,7 @@ END $$;""", "credential_type"),
     filter_expr jsonb NOT NULL DEFAULT '{}',
     enabled bool NOT NULL DEFAULT true,
     storage text NOT NULL DEFAULT 'persistent',
-    owner_run_id uuid,
+    principal_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_subscriptions PRIMARY KEY (id)
 );""", "subscriptions"),
@@ -826,16 +826,16 @@ BEGIN
     ALTER TABLE public.knowledge_hashes ADD CONSTRAINT fk_knowledge_hashes_run FOREIGN KEY (run_id) REFERENCES public.runs (id) ON DELETE CASCADE;
   END IF;
 END $$;""", "fk_knowledge_hashes_run"),
-            DDLOp("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_run FOREIGN KEY (owner_run_id) REFERENCES public.runs (id) ON DELETE SET NULL;", """DO $$
+            DDLOp("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
-    WHERE conname = 'fk_subscriptions_run'
+    WHERE conname = 'fk_subscriptions_principal'
     AND conrelid = 'public.subscriptions'::regclass
   ) THEN
-    ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_run FOREIGN KEY (owner_run_id) REFERENCES public.runs (id) ON DELETE SET NULL;
+    ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE CASCADE;
   END IF;
-END $$;""", "fk_subscriptions_run"),
+END $$;""", "fk_subscriptions_principal"),
             DDLOp("ALTER TABLE public.subscriptions ADD CONSTRAINT fk_subscriptions_source FOREIGN KEY (source_id) REFERENCES public.sources (id) ON DELETE SET NULL;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1344,7 +1344,7 @@ END $$;""", "chk_dispatch_completions_status_valid"),
             DDLOp("CREATE INDEX idx_knowledge_hashes_run ON public.knowledge_hashes (run_id);", "CREATE INDEX IF NOT EXISTS idx_knowledge_hashes_run ON public.knowledge_hashes (run_id);", "idx_knowledge_hashes_run"),
             DDLOp("CREATE INDEX idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "CREATE INDEX IF NOT EXISTS idx_subscriptions_active ON public.subscriptions (source_id, created_at) WHERE enabled = true;", "idx_subscriptions_active"),
             DDLOp("CREATE INDEX idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_filter_expr_gin ON public.subscriptions USING gin (filter_expr);", "idx_subscriptions_filter_expr_gin"),
-            DDLOp("CREATE INDEX idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_owner_run_id ON public.subscriptions (owner_run_id);", "idx_subscriptions_owner_run_id"),
+            DDLOp("CREATE INDEX idx_subscriptions_principal_id ON public.subscriptions (principal_id);", "CREATE INDEX IF NOT EXISTS idx_subscriptions_principal_id ON public.subscriptions (principal_id);", "idx_subscriptions_principal_id"),
             DDLOp("CREATE INDEX idx_credentials_consumer_id ON public.credentials (consumer_id);", "CREATE INDEX IF NOT EXISTS idx_credentials_consumer_id ON public.credentials (consumer_id);", "idx_credentials_consumer_id"),
             DDLOp("CREATE INDEX idx_credentials_hash ON public.credentials (credential_hash);", "CREATE INDEX IF NOT EXISTS idx_credentials_hash ON public.credentials (credential_hash);", "idx_credentials_hash"),
             DDLOp("CREATE INDEX idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "CREATE INDEX IF NOT EXISTS idx_credentials_metadata_gin ON public.credentials USING gin (metadata);", "idx_credentials_metadata_gin"),
@@ -1455,7 +1455,7 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.subscriptions.source_id IS 'Optional source filter (null = match all sources)';", None, "column.subscriptions.source_id"),
             DDLOp("COMMENT ON COLUMN public.subscriptions.filter_expr IS 'FilterPredicate serialized as JSON';", None, "column.subscriptions.filter_expr"),
             DDLOp("COMMENT ON COLUMN public.subscriptions.storage IS 'Storage mode: persistent or transient';", None, "column.subscriptions.storage"),
-            DDLOp("COMMENT ON COLUMN public.subscriptions.owner_run_id IS 'Run that owns this subscription (null = global)';", None, "column.subscriptions.owner_run_id"),
+            DDLOp("COMMENT ON COLUMN public.subscriptions.principal_id IS 'The owning actor''s principal. A subscription is operational state owned by its principal (a consumer, run, or the system).';", None, "column.subscriptions.principal_id"),
             DDLOp("COMMENT ON TABLE public.credentials IS 'Hashed credentials linked to consumers.';", None, "table.credentials"),
             DDLOp("COMMENT ON COLUMN public.credentials.credential_hash IS 'SHA-256 hash of the raw credential value';", None, "column.credentials.credential_hash"),
             DDLOp("COMMENT ON COLUMN public.credentials.algorithm IS 'Hash algorithm used';", None, "column.credentials.algorithm"),

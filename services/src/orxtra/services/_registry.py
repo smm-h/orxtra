@@ -106,6 +106,14 @@ _INJECT_POOL_AND_CALLER: frozenset[str] = frozenset({
     "pool",
     "caller_principal",
 })
+# subscribe persists via the dispatch backend and attributes the subscription's
+# ownership to the caller (needs the derived caller_principal). Injection order
+# is deterministic (dispatch_backend, then caller_principal last), matching the
+# subscribe service fn signature.
+_INJECT_DISPATCH_BACKEND_AND_CALLER: frozenset[str] = frozenset({
+    "dispatch_backend",
+    "caller_principal",
+})
 _INJECT_NONE: frozenset[str] = frozenset()
 
 
@@ -380,7 +388,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="dispatch",
             required_scope=SCOPE_SUBSCRIPTIONS_MANAGE,
-            injects=_INJECT_DISPATCH_BACKEND,
+            injects=_INJECT_DISPATCH_BACKEND_AND_CALLER,
         ),
         Capability(
             name="unsubscribe",

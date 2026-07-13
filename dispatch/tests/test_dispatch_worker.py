@@ -133,6 +133,7 @@ def _add_subscription_with_log(
         filter=FilterPredicate(event_types=event_types),
         enabled=True,
         storage="persistent",
+        principal_id=_SYSTEM_PID,
         created_at=NOW,
     )
     backend._subscriptions[sub.id] = sub

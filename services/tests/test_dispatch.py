@@ -52,10 +52,12 @@ def sample_filter() -> FilterPredicate:
 @pytest.mark.asyncio
 async def test_subscribe_creates_subscription(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
     sub_id = await subscribe(
         backend,
+        caller,
         sample_filter,
         [{"action": {"callable": "mod:func"}}],
     )
@@ -68,10 +70,12 @@ async def test_subscribe_creates_subscription(
 @pytest.mark.asyncio
 async def test_subscribe_creates_actions(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
     sub_id = await subscribe(
         backend,
+        caller,
         sample_filter,
         [
             {"action": {"callable": "mod:func_a"}},
@@ -87,10 +91,12 @@ async def test_subscribe_creates_actions(
 @pytest.mark.asyncio
 async def test_subscribe_with_accumulator_config(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
     sub_id = await subscribe(
         backend,
+        caller,
         sample_filter,
         [
             {
@@ -105,31 +111,32 @@ async def test_subscribe_with_accumulator_config(
 
 
 @pytest.mark.asyncio
-async def test_subscribe_with_owner_run_id(
+async def test_subscribe_attributes_owner_principal(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
-    from uuid import UUID
-
-    run_id = UUID("12345678-1234-1234-1234-123456789abc")
+    # The subscription is owned by the calling principal.
     sub_id = await subscribe(
         backend,
+        caller,
         sample_filter,
         [{"action": {"callable": "mod:func"}}],
-        owner_run_id=run_id,
     )
     sub = await backend.get_subscription(sub_id)
     assert sub is not None
-    assert sub.owner_run_id == run_id
+    assert sub.principal_id == caller.id
 
 
 @pytest.mark.asyncio
 async def test_subscribe_transient_storage(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
     sub_id = await subscribe(
         backend,
+        caller,
         sample_filter,
         [{"action": {"callable": "mod:func"}}],
         storage="transient",
@@ -145,10 +152,12 @@ async def test_subscribe_transient_storage(
 @pytest.mark.asyncio
 async def test_unsubscribe_removes_subscription(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
     sub_id = await subscribe(
         backend,
+        caller,
         sample_filter,
         [{"action": {"callable": "mod:func"}}],
     )
@@ -161,10 +170,12 @@ async def test_unsubscribe_removes_subscription(
 @pytest.mark.asyncio
 async def test_unsubscribe_removes_actions(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
     sub_id = await subscribe(
         backend,
+        caller,
         sample_filter,
         [
             {"action": {"callable": "mod:func_a"}},
@@ -201,10 +212,15 @@ async def test_list_subscriptions_empty(
 @pytest.mark.asyncio
 async def test_list_subscriptions_returns_enabled(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
-    await subscribe(backend, sample_filter, [{"action": {"callable": "mod:func"}}])
-    await subscribe(backend, sample_filter, [{"action": {"callable": "mod:func2"}}])
+    await subscribe(
+        backend, caller, sample_filter, [{"action": {"callable": "mod:func"}}],
+    )
+    await subscribe(
+        backend, caller, sample_filter, [{"action": {"callable": "mod:func2"}}],
+    )
 
     result = await list_subscriptions(backend, enabled_only=True)
     assert len(result) == 2
@@ -213,10 +229,11 @@ async def test_list_subscriptions_returns_enabled(
 @pytest.mark.asyncio
 async def test_list_subscriptions_includes_disabled(
     backend: InMemoryDispatchBackend,
+    caller: Principal,
     sample_filter: FilterPredicate,
 ) -> None:
     sub_id = await subscribe(
-        backend, sample_filter, [{"action": {"callable": "mod:func"}}],
+        backend, caller, sample_filter, [{"action": {"callable": "mod:func"}}],
     )
     # Disable via backend directly.
     await backend.update_subscription(sub_id, enabled=False)

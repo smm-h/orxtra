@@ -125,13 +125,13 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO subscriptions"
-                " (id, filter_expr, enabled, storage, owner_run_id)"
+                " (id, filter_expr, enabled, storage, principal_id)"
                 " VALUES ($1, $2, $3, $4, $5)",
                 subscription.id,
                 filter_json,
                 subscription.enabled,
                 subscription.storage,
-                subscription.owner_run_id,
+                subscription.principal_id,
             )
         return subscription.id
 
@@ -139,7 +139,7 @@ class PgDispatchBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             row = await conn.fetchrow(
                 "SELECT id, filter_expr, enabled, storage,"
-                " owner_run_id, created_at"
+                " principal_id, created_at"
                 " FROM subscriptions WHERE id = $1",
                 sub_id,
             )
@@ -153,14 +153,14 @@ class PgDispatchBackend:
         if enabled_only:
             sql = (
                 "SELECT id, filter_expr, enabled, storage,"
-                " owner_run_id, created_at"
+                " principal_id, created_at"
                 " FROM subscriptions WHERE enabled = true"
                 " ORDER BY created_at"
             )
         else:
             sql = (
                 "SELECT id, filter_expr, enabled, storage,"
-                " owner_run_id, created_at"
+                " principal_id, created_at"
                 " FROM subscriptions"
                 " ORDER BY created_at"
             )
@@ -417,7 +417,7 @@ def _row_to_subscription(row: asyncpg.Record) -> Subscription:
         filter=FilterPredicate.model_validate(filter_data),
         enabled=row["enabled"],
         storage=row["storage"],
-        owner_run_id=row["owner_run_id"],
+        principal_id=row["principal_id"],
         created_at=row["created_at"],
     )
 

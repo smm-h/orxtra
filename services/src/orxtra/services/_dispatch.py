@@ -45,18 +45,22 @@ def _resolve_action_from_dict(action_data: dict[str, Any]) -> Action:
 
 async def subscribe(
     backend: DispatchBackend,
+    caller_principal: Principal,
     filter_pred: FilterPredicate,
     actions: list[dict[str, Any]],
     *,
     storage: str = "persistent",
-    owner_run_id: UUID | None = None,
 ) -> UUID:
-    """Create a subscription with actions.
+    """Create a subscription with actions, owned by the calling principal.
 
-    Thin wrapper: builds a Subscription from the filter predicate,
-    persists it via the backend, then creates SubscriptionActions
-    for each action dict in order. Action dicts are resolved to
-    typed Action instances before storage.
+    Thin wrapper: builds a Subscription from the filter predicate, attributing
+    ownership to ``caller_principal`` (the authenticated actor derived at the
+    dispatch choke point), persists it via the backend, then creates
+    SubscriptionActions for each action dict in order. Action dicts are resolved
+    to typed Action instances before storage.
+
+    A subscription is operational state owned by its principal: the FK CASCADEs,
+    so deleting the owner deletes the subscription.
     """
     now = datetime.now(tz=UTC)
     sub = Subscription(
@@ -64,7 +68,7 @@ async def subscribe(
         filter=filter_pred,
         enabled=True,
         storage=storage,
-        owner_run_id=owner_run_id,
+        principal_id=caller_principal.id,
         created_at=now,
     )
     await backend.create_subscription(sub)
