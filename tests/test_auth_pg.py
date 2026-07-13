@@ -69,6 +69,44 @@ class TestConsumerCRUD:
         assert consumer.scope_grants == ["events:read", "events:write"]
         assert consumer.disabled_at is None
         assert consumer.created_at is not None
+        # The row carries its identity link (FK into principals).
+        assert consumer.principal_id is not None
+
+    async def test_create_consumer_mint_first_resolves(
+        self, pg_pool: asyncpg.Pool
+    ) -> None:
+        """A mint-first consumer is found by resolve_caller_principal.
+
+        Proves the auth -> identity handoff against a real database: the
+        consumer's principal (minted with external_ref=consumer id) is what the
+        resolver returns for that consumer's auth context.
+        """
+        from datetime import UTC, datetime
+
+        from orxtra.identity import resolve_caller_principal
+        from orxtra.protocols import AuthContext
+
+        backend = AuthBackend(pg_pool)
+        consumer_id = await _mk_consumer(
+            backend, pg_pool, "resolver-pg", TrustTier.IDENTIFIED, ["read"],
+        )
+
+        consumer = await backend.get_consumer(consumer_id)
+        assert consumer is not None
+
+        ctx = AuthContext(
+            id=uuid7(),
+            consumer_id=consumer_id,
+            scopes=frozenset(),
+            trust_tier=TrustTier.IDENTIFIED,
+            authenticated_via="test",
+            issued_at=datetime.now(UTC),
+            expires_at=None,
+        )
+        resolved = await resolve_caller_principal(ctx, PgPrincipalStorage(pg_pool))
+        assert resolved.id == consumer.principal_id
+        assert resolved.kind == KIND_CONSUMER
+        assert resolved.external_ref == consumer_id
 
     async def test_disable_consumer(
         self, pg_pool: asyncpg.Pool
