@@ -23,8 +23,12 @@ orxtra-write-safety = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.0",
     "pytest-asyncio>=1.4.0",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
 
 [build-system]
 requires = ["hatchling"]
