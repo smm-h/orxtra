@@ -1,5 +1,5 @@
 {
-  ".": "0eee00b45db2c21efb92155493894869019423291a826ebe090a4b593640c4c7",
+  ".": "08f3ea64073db430c200ba335f6094f0d4f517b93ec6ca9d23f870ab665a3bdd",
   "protocols": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "secrets": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "write-safety": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
@@ -14,7 +14,7 @@
   "auth": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "identity": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "a2ui": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
-  "scheduler": null,
+  "scheduler": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
   "dispatch": null,
   "overseer": null,
   "services": null,
