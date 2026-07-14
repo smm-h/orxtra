@@ -73,7 +73,7 @@ async def lifespan(
     """
     import asyncpg
     from orxtra.a2a import SkillRegistry, build_agent_card
-    from orxtra.services import DispatchContext, get_capabilities
+    from orxtra.services import DispatchContext, RunManager, get_capabilities
 
     log.info("Starting up: connecting to database")
     pool: asyncpg.Pool = await asyncpg.create_pool(server_config.db_url)
@@ -116,6 +116,8 @@ async def lifespan(
                 return None
             return info.bridge
 
+        run_manager = RunManager()
+
         dispatch_backend = PgDispatchBackend(pool)
         ctx = DispatchContext(
             pool=pool,
@@ -125,6 +127,7 @@ async def lifespan(
             kind_registry=kind_registry,
             notification_port=notification_backend,
             get_worker_bridge=_get_worker_bridge,
+            run_manager=run_manager,
         )
 
         # Build skill registry and agent card.

@@ -58,6 +58,7 @@ from orxtra.services._run import (
     start_run,
     start_run_from_file,
 )
+from orxtra.services._run_manager import RunManager
 from orxtra.services._schema import (
     PG_UUIDV7_STUB,
     AsyncpgAdapter,
@@ -86,6 +87,7 @@ __all__ = [
     "AsyncpgTx",
     "DispatchContext",
     "RunConfig",
+    "RunManager",
     "SchemaError",
     "ServicesActionExecutor",
     "__version__",

@@ -222,6 +222,7 @@ async def start_run(
     overseer: Any | None = None,
     backend: StorageBackend | None = None,
     get_worker_bridge: Callable[..., Any] | None = None,
+    run_manager: Any | None = None,
 ) -> UUID:
     # When a StorageBackend is provided, use it for all operations.
     # Otherwise, create a TraceWriter from the pool (backward compat).
@@ -330,14 +331,22 @@ async def start_run(
             refresh_notepad=refresh_notepad_cb,
             get_worker_bridge=get_worker_bridge,
         )
-        workflow_config = load_workflow(config.workflow_path)
-        await load_knowledge_files(
-            config.knowledge_dir, writer, run_id,
-        )
-        await scheduler.execute_workflow(workflow_config)
-        await writer.transition_run(
-            run_id, "completed", principal_id=run_principal.id,
-        )
+        # Register BEFORE execute_workflow so SSE clients can subscribe
+        # while the run is in progress.
+        if run_manager is not None:
+            run_manager.register_run(run_id, scheduler)
+        try:
+            workflow_config = load_workflow(config.workflow_path)
+            await load_knowledge_files(
+                config.knowledge_dir, writer, run_id,
+            )
+            await scheduler.execute_workflow(workflow_config)
+            await writer.transition_run(
+                run_id, "completed", principal_id=run_principal.id,
+            )
+        finally:
+            if run_manager is not None:
+                run_manager.deregister_run(run_id)
     except Exception:
         await writer.transition_run(
             run_id, "failed", principal_id=run_principal.id,
@@ -350,7 +359,7 @@ async def start_run_from_file(
     pool: asyncpg.Pool,
     principal_storage: PrincipalStorage,
     get_worker_bridge: Callable[..., Any] | None,
-    run_manager: Any,  # noqa: ARG001 -- reserved for RunManager integration
+    run_manager: Any,
     caller_principal: Principal,
     intent: str,
     config_path: Path,
@@ -377,6 +386,7 @@ async def start_run_from_file(
     return await start_run(
         pool, principal_storage, caller_principal, intent, config,
         get_worker_bridge=get_worker_bridge,
+        run_manager=run_manager,
     )
 
 
