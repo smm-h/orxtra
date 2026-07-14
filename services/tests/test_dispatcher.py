@@ -333,16 +333,20 @@ async def test_dispatch_start_run_path_coercion(
     mock_fn = AsyncMock(return_value=UUID("00000000-0000-0000-0000-000000000001"))
     mock_get_fn.return_value = mock_fn
 
-    # start_run now injects pool, principal_storage, and the derived
-    # caller_principal (resolved to the system principal for a SYSTEM-tier
-    # operator context), then the coerced params.
+    # start_run now injects pool, principal_storage, get_worker_bridge,
+    # run_manager, and the derived caller_principal (resolved to the system
+    # principal for a SYSTEM-tier operator context), then the coerced params.
     storage = InMemoryPrincipalStorage()
     system = await storage.mint_principal(
         KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF, "system",
     )
+    mock_worker_bridge = MagicMock()
+    mock_run_manager = MagicMock()
     ctx = DispatchContext(
         pool=mock_pool,
         principal_storage=storage,
+        get_worker_bridge=mock_worker_bridge,
+        run_manager=mock_run_manager,
         auth_context=make_auth_context(),
     )
 
@@ -355,7 +359,9 @@ async def test_dispatch_start_run_path_coercion(
     call_args = mock_fn.call_args
     assert call_args[0][0] is mock_pool
     assert call_args[0][1] is storage
-    assert call_args[0][2] == system
+    assert call_args[0][2] is mock_worker_bridge
+    assert call_args[0][3] is mock_run_manager
+    assert call_args[0][4] == system
     call_kwargs = call_args[1]
     assert isinstance(call_kwargs["config_path"], Path)
     assert call_kwargs["intent"] == "test"

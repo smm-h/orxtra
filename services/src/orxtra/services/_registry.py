@@ -91,13 +91,16 @@ _INJECT_PRINCIPAL_CREATE: frozenset[str] = frozenset({
     "principal_storage",
     "kind_registry",
 })
-# start_run mints the run's principal (needs principal_storage) and attributes
-# the row to the caller (needs the derived caller_principal). Injection order is
-# deterministic (pool, principal_storage, caller_principal last), matching the
-# start_run service fn signature.
-_INJECT_POOL_STORAGE_AND_CALLER: frozenset[str] = frozenset({
+# start_run mints the run's principal (needs principal_storage), may route
+# tool calls to a worker bridge, and attributes the row to the caller (needs
+# the derived caller_principal). Injection order is deterministic:
+# pool, principal_storage, get_worker_bridge, run_manager, caller_principal
+# -- matching the start_run_from_file service fn signature.
+_INJECT_POOL_STORAGE_WORKER_AND_CALLER: frozenset[str] = frozenset({
     "pool",
     "principal_storage",
+    "get_worker_bridge",
+    "run_manager",
     "caller_principal",
 })
 # create_source validates credential_id against auth's credentials table (needs
@@ -146,7 +149,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="run",
             required_scope=SCOPE_RUNS_MANAGE,
-            injects=_INJECT_POOL_STORAGE_AND_CALLER,
+            injects=_INJECT_POOL_STORAGE_WORKER_AND_CALLER,
         ),
         Capability(
             name="list_runs",
