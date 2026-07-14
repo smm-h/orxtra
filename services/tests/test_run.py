@@ -142,7 +142,7 @@ async def test_start_run_from_file(
         mock_sched.execute_workflow = AsyncMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        result = await start_run_from_file(mock_pool, _storage(), _caller(), "test", config_file)
+        result = await start_run_from_file(mock_pool, _storage(), None, None, _caller(), "test", config_file)
 
         assert result == sample_run_id
         mock_writer.create_run.assert_called_once()
@@ -151,7 +151,7 @@ async def test_start_run_from_file(
 @pytest.mark.asyncio
 async def test_start_run_from_file_missing(mock_pool: AsyncMock) -> None:
     with pytest.raises(FileNotFoundError, match="Config file not found"):
-        await start_run_from_file(mock_pool, _storage(), _caller(), "test", Path("/nonexistent.toml"))
+        await start_run_from_file(mock_pool, _storage(), None, None, _caller(), "test", Path("/nonexistent.toml"))
 
 
 @pytest.mark.asyncio
@@ -576,7 +576,7 @@ async def test_start_run_from_file_with_workflow_path(
         mock_load_wf.return_value = MagicMock()
         mock_scheduler_cls.return_value = mock_sched
 
-        await start_run_from_file(mock_pool, _storage(), _caller(), "test", config_file)
+        await start_run_from_file(mock_pool, _storage(), None, None, _caller(), "test", config_file)
 
         # Verify the workflow_path was parsed and used
         mock_load_wf.assert_called_once_with(Path("/my/workflow.toml"))

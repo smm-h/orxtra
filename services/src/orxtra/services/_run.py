@@ -221,6 +221,7 @@ async def start_run(
     transport_registry: dict[str, Any] | None = None,
     overseer: Any | None = None,
     backend: StorageBackend | None = None,
+    get_worker_bridge: Callable[..., Any] | None = None,
 ) -> UUID:
     # When a StorageBackend is provided, use it for all operations.
     # Otherwise, create a TraceWriter from the pool (backward compat).
@@ -327,6 +328,7 @@ async def start_run(
             refresh_constraints=refresh_constraints_cb,
             refresh_lessons=refresh_lessons_cb,
             refresh_notepad=refresh_notepad_cb,
+            get_worker_bridge=get_worker_bridge,
         )
         workflow_config = load_workflow(config.workflow_path)
         await load_knowledge_files(
@@ -347,6 +349,8 @@ async def start_run(
 async def start_run_from_file(
     pool: asyncpg.Pool,
     principal_storage: PrincipalStorage,
+    get_worker_bridge: Callable[..., Any] | None,
+    run_manager: Any,  # noqa: ARG001 -- reserved for RunManager integration
     caller_principal: Principal,
     intent: str,
     config_path: Path,
@@ -372,6 +376,7 @@ async def start_run_from_file(
     config = RunConfig(**raw)
     return await start_run(
         pool, principal_storage, caller_principal, intent, config,
+        get_worker_bridge=get_worker_bridge,
     )
 
 

@@ -75,11 +75,13 @@ async def test_execute_workflow_calls_start_run(
 
     mock_start.assert_awaited_once()
     call_args = mock_start.call_args
-    # Positional order is pool, principal_storage, caller_principal, then intent
-    # and path -- assert the pool and caller identity threaded through.
+    # Positional order: pool, storage, get_worker_bridge, run_manager,
+    # caller_principal, intent, path.
     assert call_args[0][0] is mock_pool
-    assert call_args[0][2] is system
-    intent = call_args[0][3]
+    assert call_args[0][2] is None  # get_worker_bridge
+    assert call_args[0][3] is None  # run_manager
+    assert call_args[0][4] is system
+    intent = call_args[0][5]
     assert "test:" in intent
     assert "workflow" in intent
 
@@ -98,7 +100,7 @@ async def test_execute_workflow_intent_includes_event_count(
     events = [{"type": "a"}, {"type": "b"}, {"type": "c"}]
     await executor.execute_workflow("/w.toml", {}, events)
 
-    intent = mock_start.call_args[0][3]
+    intent = mock_start.call_args[0][5]
     assert "3 events" in intent
 
 

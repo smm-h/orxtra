@@ -108,6 +108,7 @@ class SchedulerBase(ABC):
     _custom_tools: list[ToolEntry]
     _tool_registry: ToolRegistry
     _overseer_sinks: list[EventSink[OverseerEvent]]
+    _get_worker_bridge: Callable[[str], Any] | None
 
     # ------------------------------------------------------------------
     # Cross-mixin methods (from _executor.py)

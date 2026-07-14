@@ -266,6 +266,7 @@ def _build_worker_router(worker_registry: Any) -> Router:
 
     When mounted at /workers, the route becomes /workers/connect.
     """
+    import contextlib
     import json
     import logging
 
@@ -318,18 +319,15 @@ def _build_worker_router(worker_registry: Any) -> Router:
             if bridge._receive_task is not None:  # noqa: SLF001
                 await bridge._receive_task  # noqa: SLF001
 
-        except Exception:
+        except Exception:  # noqa: BLE001 -- any error during worker connection lifecycle
             _log.exception("Worker connection error")
         finally:
             if worker_id is not None:
                 worker_registry.unregister(worker_id)
                 _log.info("Worker %s unregistered", worker_id)
-            # Stop bridge loops (idempotent if already stopped).
-            if worker_id is not None:
-                try:
-                    await bridge.stop()  # type: ignore[possibly-undefined]
-                except Exception:  # noqa: BLE001
-                    pass
+                # Stop bridge loops (idempotent if already stopped).
+                with contextlib.suppress(Exception):
+                    await bridge.stop()
 
     return worker_router
 

@@ -161,6 +161,9 @@ class Scheduler(
         refresh_notepad: (
             Callable[[UUID], Awaitable[list[NotepadEntry]]] | None
         ) = None,
+        get_worker_bridge: (
+            Callable[[str], Any] | None
+        ) = None,
     ) -> None:
         # When a StorageBackend is provided, use it as the trace writer
         # (it implements all the same write methods).
@@ -191,6 +194,7 @@ class Scheduler(
         self._constraint_checkers = constraint_checkers or {}
         self._custom_tools = custom_tools or []
         self._overseer_sinks: list[EventSink[OverseerEvent]] = overseer_sinks or []
+        self._get_worker_bridge = get_worker_bridge
 
         # Build tool registry once per Scheduler lifetime.
         from orxtra.scheduler._tool_registry import (

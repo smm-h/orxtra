@@ -1050,15 +1050,61 @@ class AgentExecutionMixin(SchedulerBase):
             )
             raw_tools.append(lt)
 
-        tools = wrap_tools_for_session(
-            tools=raw_tools,
-            scheduler_check=self.check_active_task,
-            secret_registry=self._secret_registry,
-            trace_callback=_trace_callback,
-            session_id=session_id,
-            mutation_tracker=self._session_mutations,
-            result_appendix=_result_appendix,
-        )
+        # Route tools: if the task has an execution_target, ANYWHERE
+        # tools go through the brain-worker bridge (wrap_tool_for_remote)
+        # while LOCAL tools stay in-process (wrap_tools_for_session).
+        if task.execution_target is not None and self._get_worker_bridge is not None:
+            from orxtra.worker import should_route_to_worker, wrap_tool_for_remote
+
+            bridge = self._get_worker_bridge(task.execution_target)
+            if bridge is None:
+                msg = (
+                    f"No worker registered for root "
+                    f"{task.execution_target!r}"
+                )
+                raise RuntimeError(msg)
+
+            local_tools: list[Tool] = []
+            remote_tools: list[Tool] = []
+            for raw_tool in raw_tools:
+                if should_route_to_worker(
+                    raw_tool.location, task.execution_target,
+                ):
+                    wrapped = wrap_tool_for_remote(
+                        tool=raw_tool,
+                        send_to_worker_fn=bridge.send_tool_call,
+                        secret_registry=self._secret_registry,
+                        scheduler_check=self.check_active_task,
+                        trace_callback=_trace_callback,
+                        mutation_tracker=self._session_mutations,
+                        session_id=session_id,
+                        is_start_task=(raw_tool.name == "start_task"),
+                    )
+                    remote_tools.append(wrapped)
+                else:
+                    local_tools.append(raw_tool)
+
+            # Wrap LOCAL tools through the normal pipeline.
+            wrapped_local = wrap_tools_for_session(
+                tools=local_tools,
+                scheduler_check=self.check_active_task,
+                secret_registry=self._secret_registry,
+                trace_callback=_trace_callback,
+                session_id=session_id,
+                mutation_tracker=self._session_mutations,
+                result_appendix=_result_appendix,
+            )
+            tools = wrapped_local + remote_tools
+        else:
+            tools = wrap_tools_for_session(
+                tools=raw_tools,
+                scheduler_check=self.check_active_task,
+                secret_registry=self._secret_registry,
+                trace_callback=_trace_callback,
+                session_id=session_id,
+                mutation_tracker=self._session_mutations,
+                result_appendix=_result_appendix,
+            )
 
         previous_session_id: str | None = None
         if (

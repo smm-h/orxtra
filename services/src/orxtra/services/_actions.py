@@ -62,7 +62,7 @@ class ServicesActionExecutor:
         path = Path(workflow_path)
         intent = f"{self._intent_prefix}: {path.stem} ({len(events)} events)"
         await start_run_from_file(
-            self._pool, storage, system_principal, intent, path,
+            self._pool, storage, None, None, system_principal, intent, path,
         )
 
 

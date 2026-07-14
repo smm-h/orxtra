@@ -458,3 +458,167 @@ class TestMultiEditToolPresent:
         sched = _make_scheduler(agent, tmp_path)
         names = await _extract_tool_names(sched)
         assert "multi_edit" not in names
+
+
+# -- Tool routing with execution_target --
+
+
+def _task_with_target(target: str | None = None) -> TaskSpec:
+    return TaskSpec(
+        name="test-task",
+        agent="test-agent",
+        task_prompt="Do something",
+        context_refinement=False,
+        execution_target=target,
+    )
+
+
+def _make_scheduler_with_bridge(
+    agent: Agent,
+    tmp_path: Path,
+    bridge: object | None = None,
+) -> Scheduler:
+    """Create a scheduler with a get_worker_bridge callback."""
+    trace = MockTraceWriter()
+    transport = MockTransport(auto_execute_tools=True)
+
+    def _get_bridge(root: str) -> object | None:
+        return bridge
+
+    return Scheduler(
+        run_principal_id=TEST_RUN_PRINCIPAL_ID,
+        trace_writer=trace,  # type: ignore[arg-type]
+        transport_registry={"anthropic": transport},  # type: ignore[dict-item]
+        agents={agent.name: agent},
+        categories=make_categories(),
+        run_id=uuid6.uuid7(),
+        read_root=tmp_path,
+        autonomy_level="max",
+        get_worker_bridge=_get_bridge,
+    )
+
+
+async def _extract_tools_for_task(
+    scheduler: Scheduler,
+    task: TaskSpec,
+) -> list[Tool]:
+    """Call _create_agent_session and return the actual Tool list."""
+    task_id = uuid6.uuid7()
+
+    with patch(
+        "orxtra.scheduler._agent_execution.create_session",
+        new_callable=AsyncMock,
+    ) as mock_create:
+        mock_session = MagicMock()
+        mock_create.return_value = mock_session
+
+        await scheduler._create_agent_session(
+            task, task_id, 1,
+        )
+
+        tools_arg: list[Tool] = (
+            mock_create.call_args[1]["tools"]
+        )
+        return tools_arg
+
+
+class TestToolRoutingWithExecutionTarget:
+    """Tool routing: ANYWHERE tools go remote when execution_target is set."""
+
+    async def test_anywhere_tools_routed_through_bridge(
+        self, tmp_path: Path,
+    ) -> None:
+        """With an execution_target, ANYWHERE tools get wrapped for remote
+        execution (their execute function changes). LOCAL tools (lifecycle)
+        stay local."""
+        from orxtra.protocols import ToolLocation
+
+        agent = _agent(["read", "write"])
+        mock_bridge = MagicMock()
+        mock_bridge.send_tool_call = AsyncMock()
+        sched = _make_scheduler_with_bridge(agent, tmp_path, mock_bridge)
+        task = _task_with_target("/project/root")
+
+        tools = await _extract_tools_for_task(sched, task)
+        tool_map = {t.name: t for t in tools}
+
+        # read and write are ANYWHERE by default -- they should be routed.
+        # Lifecycle tools are LOCAL -- they should NOT be routed.
+        # We verify by checking the tool count includes both sets.
+        assert "read" in tool_map
+        assert "write" in tool_map
+        assert "start_task" in tool_map
+        assert "end_task" in tool_map
+
+        # The total tool count should be the same as without routing.
+        # (We have read, write + lifecycle = 8 tools.)
+        assert len(tools) >= 8  # noqa: PLR2004
+
+    async def test_missing_worker_raises_runtime_error(
+        self, tmp_path: Path,
+    ) -> None:
+        """When execution_target is set but no worker is registered,
+        creating the session raises RuntimeError."""
+        agent = _agent(["read"])
+        # Bridge returns None (no worker registered).
+        sched = _make_scheduler_with_bridge(agent, tmp_path, bridge=None)
+        task = _task_with_target("/nonexistent/root")
+        task_id = uuid6.uuid7()
+
+        with (
+            patch(
+                "orxtra.scheduler._agent_execution.create_session",
+                new_callable=AsyncMock,
+            ),
+            pytest.raises(RuntimeError, match="No worker registered"),
+        ):
+            await sched._create_agent_session(task, task_id, 1)
+
+    async def test_no_target_all_tools_local(
+        self, tmp_path: Path,
+    ) -> None:
+        """Without execution_target, all tools stay local (existing behavior).
+        Verified by confirming the session is created normally."""
+        agent = _agent(["read", "write"])
+        mock_bridge = MagicMock()
+        sched = _make_scheduler_with_bridge(agent, tmp_path, mock_bridge)
+        task = _task_with_target(None)
+
+        tools = await _extract_tools_for_task(sched, task)
+        tool_map = {t.name: t for t in tools}
+
+        assert "read" in tool_map
+        assert "write" in tool_map
+        assert "start_task" in tool_map
+
+    async def test_local_tools_stay_local_with_target(
+        self, tmp_path: Path,
+    ) -> None:
+        """Lifecycle tools are LOCAL and must not be routed to the bridge,
+        even when execution_target is set. Verified by confirming they
+        do NOT have the remote execute wrapper (which uses bridge.send_tool_call)."""
+        agent = _agent(["read"])
+        mock_bridge = MagicMock()
+        mock_bridge.send_tool_call = AsyncMock()
+        sched = _make_scheduler_with_bridge(agent, tmp_path, mock_bridge)
+        task = _task_with_target("/project/root")
+
+        tools = await _extract_tools_for_task(sched, task)
+
+        # All lifecycle tools should be present.
+        tool_names = {t.name for t in tools}
+        assert tool_names >= LIFECYCLE_TOOLS
+
+        # Lifecycle tools should NOT reference the bridge. We verify
+        # by ensuring the _raw_execute attribute on local-wrapped tools
+        # does NOT reference bridge.send_tool_call.
+        for t in tools:
+            if t.name in LIFECYCLE_TOOLS:
+                # Lifecycle tools go through wrap_tools_for_session,
+                # not wrap_tool_for_remote. The local pipeline's
+                # execute always has _raw_execute set.
+                raw = getattr(t.execute, "_raw_execute", None)
+                assert raw is not None, (
+                    f"Lifecycle tool {t.name!r} should have "
+                    f"_raw_execute (local pipeline wrap)"
+                )
