@@ -55,6 +55,16 @@ for _mod in _installed_mocks:
     if isinstance(sys.modules.get(_mod), MagicMock):
         del sys.modules[_mod]
 
+# Reload parent packages whose top-level attributes were bound to
+# mock sub-module attributes during the mock window. Without this,
+# e.g. orxtra.worker.should_route_to_worker remains a MagicMock even
+# after the sub-module mocks are removed from sys.modules.
+import importlib as _importlib
+
+for _parent in ("orxtra.worker",):
+    if _parent in sys.modules:
+        _importlib.reload(sys.modules[_parent])
+
 
 def _test(*args: str) -> tuple[str, str, int]:
     """Run app.test() and return (stdout, stderr, exit_code)."""
