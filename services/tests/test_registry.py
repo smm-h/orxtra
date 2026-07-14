@@ -245,7 +245,9 @@ EXPECTED_INJECTS: dict[str, frozenset[str]] = {
     "delete_source": frozenset({"dispatch_backend"}),
     "list_deliveries": frozenset({"notification_port", "caller_principal"}),
     "acknowledge_delivery": frozenset({"notification_port", "caller_principal"}),
-    "create_principal": frozenset({"principal_storage", "kind_registry"}),
+    "create_principal": frozenset(
+        {"dispatch_backend", "principal_storage", "kind_registry"},
+    ),
     "get_principal": frozenset({"principal_storage"}),
     "list_principals": frozenset({"principal_storage"}),
     "delete_principal": frozenset({"principal_storage"}),

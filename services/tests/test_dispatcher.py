@@ -383,12 +383,15 @@ async def test_dispatch_get_principal_routes_storage(mock_get_fn: MagicMock) -> 
 async def test_dispatch_create_principal_routes_storage_and_registry(
     mock_get_fn: MagicMock,
 ) -> None:
-    """create_principal receives principal_storage then kind_registry, in order."""
+    """create_principal receives dispatch_backend, principal_storage, then
+    kind_registry, in _INJECT_ORDER positional order."""
     mock_fn = AsyncMock(return_value=None)
     mock_get_fn.return_value = mock_fn
+    mock_backend = AsyncMock()
     mock_storage = AsyncMock()
     mock_registry = MagicMock()
     ctx = DispatchContext(
+        dispatch_backend=mock_backend,
         principal_storage=mock_storage,
         kind_registry=mock_registry,
         auth_context=make_auth_context(),
@@ -402,16 +405,19 @@ async def test_dispatch_create_principal_routes_storage_and_registry(
     )
 
     mock_fn.assert_awaited_once_with(
+        mock_backend,
         mock_storage,
         mock_registry,
         kind="user",
         external_ref=UUID(external_ref),
         display_name="Ann",
+        notification_event_types=None,
     )
-    # Storage is the first positional arg, registry the second.
+    # dispatch_backend is first, storage second, registry third.
     call_args = mock_fn.call_args
-    assert call_args[0][0] is mock_storage
-    assert call_args[0][1] is mock_registry
+    assert call_args[0][0] is mock_backend
+    assert call_args[0][1] is mock_storage
+    assert call_args[0][2] is mock_registry
 
 
 @pytest.mark.asyncio
@@ -427,9 +433,12 @@ async def test_dispatch_principal_storage_required_error() -> None:
 
 @pytest.mark.asyncio
 async def test_dispatch_kind_registry_required_error() -> None:
-    # Storage present, but the registry the capability also declares is absent.
+    # Storage and dispatch_backend present, but the registry the capability
+    # also declares is absent.
     ctx = DispatchContext(
-        principal_storage=AsyncMock(), auth_context=make_auth_context()
+        dispatch_backend=AsyncMock(),
+        principal_storage=AsyncMock(),
+        auth_context=make_auth_context(),
     )
     with pytest.raises(ValueError, match="requires a principal kind registry"):
         await dispatch(

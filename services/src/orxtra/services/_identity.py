@@ -8,25 +8,44 @@ string kind and deletes any row; the enforcement point lives here.
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from orxtra.protocols import KIND_SYSTEM
+from orxtra.protocols import (
+    KIND_RUN,
+    KIND_SOURCE,
+    KIND_SYSTEM,
+    FilterPredicate,
+    NotifyAction,
+    Subscription,
+    SubscriptionAction,
+)
+from uuid6 import uuid7
 
 if TYPE_CHECKING:
     from uuid import UUID
 
     from orxtra.identity import KindRegistry
-    from orxtra.protocols import Principal, PrincipalStorage
+    from orxtra.protocols import DispatchBackend, Principal, PrincipalStorage
+
+# Kinds that are infrastructure-level identities and never receive
+# self-subscriptions. Consumer and app-registered kinds DO.
+_NO_SELF_SUBSCRIPTION_KINDS: frozenset[str] = frozenset({
+    KIND_RUN,
+    KIND_SOURCE,
+    KIND_SYSTEM,
+})
 
 
 async def create_principal(
+    dispatch_backend: DispatchBackend,
     principal_storage: PrincipalStorage,
     kind_registry: KindRegistry,
     *,
     kind: str,
     external_ref: UUID,
     display_name: str | None = None,
+    notification_event_types: list[str] | None = None,
 ) -> Principal:
     """Validate the kind, then idempotently mint the principal.
 
@@ -41,6 +60,13 @@ async def create_principal(
     seeded singleton, not something the API mints. Allowing it would let a
     caller create a SECOND system-kind row under an arbitrary external_ref --
     a row the delete path refuses to remove, leaving it permanently stuck.
+
+    For consumer and app-registered kinds, ``notification_event_types`` is
+    required and triggers automatic self-subscription creation: the minted
+    principal subscribes to events matching the given types with its own id
+    as both the filter's principal_id and the NotifyAction target. For
+    infrastructure kinds (run, source, system), self-subscriptions are
+    rejected.
     """
     if kind == KIND_SYSTEM:
         msg = (
@@ -50,7 +76,75 @@ async def create_principal(
         )
         raise ValueError(msg)
     kind_registry.validate(kind)
-    return await principal_storage.mint_principal(kind, external_ref, display_name)
+
+    # Validate notification_event_types before minting.
+    if kind in _NO_SELF_SUBSCRIPTION_KINDS:
+        if notification_event_types is not None:
+            msg = (
+                f"{kind} principals do not support self-subscriptions"
+            )
+            raise ValueError(msg)
+    elif notification_event_types is None:
+        # Consumer and app-registered kinds require event types.
+        msg = (
+            f"{kind} principals must specify notification_event_types"
+        )
+        raise ValueError(msg)
+
+    principal = await principal_storage.mint_principal(
+        kind, external_ref, display_name,
+    )
+
+    # Create self-subscription for consumer and app-registered kinds.
+    if notification_event_types is not None:
+        await _create_self_subscription(
+            dispatch_backend, principal, notification_event_types,
+        )
+
+    return principal
+
+
+async def _create_self_subscription(
+    backend: DispatchBackend,
+    principal: Principal,
+    event_types: list[str],
+) -> None:
+    """Create a self-subscription for a newly minted principal.
+
+    The subscription filters events by the given event types AND the
+    principal's own id, delivering a NotifyAction back to the same
+    principal. This is the mechanism by which consumers (and app-registered
+    kinds) automatically receive notifications for events they care about.
+    """
+    now = datetime.now(tz=UTC)
+    filter_pred = FilterPredicate(
+        event_types=event_types,
+        principal_id=principal.id,
+    )
+    sub = Subscription(
+        id=uuid7(),
+        filter=filter_pred,
+        enabled=True,
+        storage="persistent",
+        principal_id=principal.id,
+        created_at=now,
+    )
+    await backend.create_subscription(sub)
+
+    action = NotifyAction(
+        target_principal_id=principal.id,
+        source_ref="self-subscription",
+        payload={},
+    )
+    sub_action = SubscriptionAction(
+        id=uuid7(),
+        subscription_id=sub.id,
+        position=0,
+        action=action,
+        accumulator_config=None,
+        created_at=now,
+    )
+    await backend.create_action(sub_action)
 
 
 async def get_principal(

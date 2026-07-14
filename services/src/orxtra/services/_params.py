@@ -288,6 +288,13 @@ class CreatePrincipalParams(BaseModel):
     display_name: str | None = Field(
         default=None, description="Optional human-readable display name."
     )
+    notification_event_types: list[str] | None = Field(
+        default=None,
+        description=(
+            "Event types for self-subscription. Required for consumer "
+            "and app-registered kinds; must be None for run/source/system."
+        ),
+    )
 
 
 class GetPrincipalParams(BaseModel):

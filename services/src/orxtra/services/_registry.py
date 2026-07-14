@@ -82,6 +82,15 @@ _INJECT_PRINCIPAL_STORAGE_AND_KIND_REGISTRY: frozenset[str] = frozenset({
     "principal_storage",
     "kind_registry",
 })
+# create_principal needs dispatch_backend to create self-subscriptions for
+# consumer and app-registered kinds, principal_storage for minting, and
+# kind_registry for kind validation. Injection order is deterministic
+# (dispatch_backend, principal_storage, kind_registry), matching _INJECT_ORDER.
+_INJECT_PRINCIPAL_CREATE: frozenset[str] = frozenset({
+    "dispatch_backend",
+    "principal_storage",
+    "kind_registry",
+})
 # start_run mints the run's principal (needs principal_storage) and attributes
 # the row to the caller (needs the derived caller_principal). Injection order is
 # deterministic (pool, principal_storage, caller_principal last), matching the
@@ -508,7 +517,7 @@ def _build_capabilities() -> list[Capability]:
             tags=frozenset({"mutating"}),
             category="principal",
             required_scope=SCOPE_PRINCIPALS_MANAGE,
-            injects=_INJECT_PRINCIPAL_STORAGE_AND_KIND_REGISTRY,
+            injects=_INJECT_PRINCIPAL_CREATE,
         ),
         Capability(
             name="get_principal",
