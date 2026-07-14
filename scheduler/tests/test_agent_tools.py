@@ -531,7 +531,6 @@ class TestToolRoutingWithExecutionTarget:
         """With an execution_target, ANYWHERE tools get wrapped for remote
         execution (their execute function changes). LOCAL tools (lifecycle)
         stay local."""
-        from orxtra.protocols import ToolLocation
 
         agent = _agent(["read", "write"])
         mock_bridge = MagicMock()
@@ -552,7 +551,7 @@ class TestToolRoutingWithExecutionTarget:
 
         # The total tool count should be the same as without routing.
         # (We have read, write + lifecycle = 8 tools.)
-        assert len(tools) >= 8  # noqa: PLR2004
+        assert len(tools) >= 8
 
     async def test_missing_worker_raises_runtime_error(
         self, tmp_path: Path,
