@@ -285,7 +285,7 @@ class TestBridgeDisconnection:
         ws = AsyncMock()
         bridge = BrainWorkerBridge(ws, uuid4())
         # Mark it disconnected without starting the loops.
-        bridge._connected = False  # type: ignore[attr-defined]
+        bridge._connected = False
 
         call = ExecuteToolCall(
             call_id=uuid4(),
