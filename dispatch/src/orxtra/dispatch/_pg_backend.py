@@ -121,7 +121,7 @@ class PgDispatchBackend:
     # -- SubscriptionStorage --
 
     async def create_subscription(self, subscription: Subscription) -> UUID:
-        filter_json = json.dumps(subscription.filter.model_dump())
+        filter_json = json.dumps(subscription.filter.model_dump(mode="json"))
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO subscriptions"
@@ -413,9 +413,11 @@ def _row_to_subscription(row: asyncpg.Record) -> Subscription:
     filter_data = row["filter_expr"]
     if isinstance(filter_data, str):
         filter_data = json.loads(filter_data)
+    # filter_expr is jsonb; UUIDs (e.g. principal_id) arrive as strings.
+    # Use strict=False so pydantic coerces str -> UUID.
     return Subscription(
         id=row["id"],
-        filter=FilterPredicate.model_validate(filter_data),
+        filter=FilterPredicate.model_validate(filter_data, strict=False),
         enabled=row["enabled"],
         storage=row["storage"],
         principal_id=row["principal_id"],

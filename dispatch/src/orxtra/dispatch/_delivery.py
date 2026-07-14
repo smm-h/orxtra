@@ -74,19 +74,26 @@ async def match_subscription(
 ) -> bool:
     """Evaluate whether an event matches a subscription's filter.
 
-    Filter semantics:
+    Filter semantics (AND-combined; None = wildcard on that axis):
     - ``event_types``: if set, event_type must be in the list.
+    - ``principal_id``: if set, the event's ``principal_id`` must equal this
+      value exactly.
     - ``sources``: if set (a list of source slugs), the event's
       ``principal_id`` must be one of the source principals those slugs
       resolve to. Slugs are the authoring interface; principals are the runtime
       identity. The injected ``resolve_source_principals`` callback bridges the
       two so dispatch never touches identity storage directly.
     - ``data_predicates``: reserved for future jsonb matching; ignored now.
-    - All None fields are treated as wildcards (match everything).
     """
     if (
         filter_predicate.event_types is not None
         and event_type not in filter_predicate.event_types
+    ):
+        return False
+    # principal_id: if set, the event's principal must match exactly.
+    if (
+        filter_predicate.principal_id is not None
+        and principal_id != filter_predicate.principal_id
     ):
         return False
     # data_predicates: reserved, not evaluated yet.
