@@ -91,6 +91,8 @@ SCOPE_RUNS_READ = "runs:read"
 SCOPE_RUNS_MANAGE = "runs:manage"
 SCOPE_INBOX_READ = "inbox:read"
 SCOPE_INBOX_RESPOND = "inbox:respond"
+SCOPE_NOTIFICATIONS_READ = "notifications:read"
+SCOPE_NOTIFICATIONS_MANAGE = "notifications:manage"
 SCOPE_TRACE_READ = "trace:read"
 SCOPE_EVENTS_READ = "events:read"
 SCOPE_EVENTS_WRITE = "events:write"
@@ -108,6 +110,8 @@ ALL_SCOPES: frozenset[str] = frozenset({
     SCOPE_RUNS_MANAGE,
     SCOPE_INBOX_READ,
     SCOPE_INBOX_RESPOND,
+    SCOPE_NOTIFICATIONS_READ,
+    SCOPE_NOTIFICATIONS_MANAGE,
     SCOPE_TRACE_READ,
     SCOPE_EVENTS_READ,
     SCOPE_EVENTS_WRITE,
