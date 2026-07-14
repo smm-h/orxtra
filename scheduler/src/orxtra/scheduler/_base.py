@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from orxtra.secrets import SecretRegistry
     from orxtra.session import Session
     from orxtra.trace import StorageBackend, TraceWriter
-    from orxtra.transport import Transport, Usage
+    from orxtra.transport import Transport, TransportEvent, Usage
     from orxtra.write_safety import StaleWriteTracker, WriteQueue
 
 
@@ -108,6 +108,7 @@ class SchedulerBase(ABC):
     _custom_tools: list[ToolEntry]
     _tool_registry: ToolRegistry
     _overseer_sinks: list[EventSink[OverseerEvent]]
+    _transport_sinks: list[EventSink[TransportEvent]]
     _get_worker_bridge: Callable[[str], Any] | None
 
     # ------------------------------------------------------------------

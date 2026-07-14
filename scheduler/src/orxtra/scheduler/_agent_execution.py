@@ -1125,6 +1125,7 @@ class AgentExecutionMixin(SchedulerBase):
             session_id=previous_session_id,
             pool=self._pool,
             backend=self._backend,
+            sinks=list(self._transport_sinks),
         )
 
         # Wire the session reference into load_tools'

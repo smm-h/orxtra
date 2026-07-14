@@ -288,3 +288,92 @@ class TestSessionClose:
 
         # After context manager exit, sink tasks should be drained
         assert len(sink.events) == 3
+
+
+class TestSessionSinkMutation:
+    async def test_add_sink_receives_subsequent_events(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        """A sink added after session creation receives subsequent events."""
+        sid = "d0e1f2a3-b4c5-4d6e-7f80-910213243546"
+        mock_transport.set_events(
+            make_standard_events(session_id=sid),
+            make_standard_events(session_id=sid, text="second"),
+        )
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+
+        # First send: no sinks
+        await _collect_events(session, "first")
+
+        # Add sink before second send
+        late_sink = MockSink()
+        session.add_sink(late_sink)
+
+        await _collect_events(session, "second")
+        await session.close()
+
+        # Late sink only sees the second batch
+        assert len(late_sink.events) == 3
+
+    async def test_remove_sink_stops_receiving(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        """A removed sink stops receiving events."""
+        sid = "e1f2a3b4-c5d6-4e7f-8091-021324354657"
+        mock_transport.set_events(
+            make_standard_events(session_id=sid),
+            make_standard_events(session_id=sid, text="second"),
+        )
+        sink = MockSink()
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+            sinks=[sink],
+        )
+
+        await _collect_events(session, "first")
+        await session.close()
+        first_count = len(sink.events)
+
+        # Remove sink before second send
+        session.remove_sink(sink)
+        await _collect_events(session, "second")
+        await session.close()
+
+        # Sink count unchanged after removal
+        assert len(sink.events) == first_count
+
+    async def test_remove_nonexistent_sink_is_noop(
+        self,
+        mock_transport: MockTransport,
+        mock_trace_writer: MockTraceWriter,
+        run_id: uuid.UUID,
+    ) -> None:
+        """Removing a sink that was never added does not raise."""
+        session = Session(
+            transport=mock_transport,  # type: ignore[arg-type]
+            model="anthropic/claude-sonnet-4-6",
+            system_prompt="test",
+            tools=[],
+            trace_writer=mock_trace_writer,  # type: ignore[arg-type]
+            run_id=run_id,
+        )
+        unknown_sink = MockSink()
+        session.remove_sink(unknown_sink)  # Should not raise

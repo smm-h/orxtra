@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     import asyncpg
     from orxtra.agent import Agent
     from orxtra.protocols import EventSink, Execution, OverseerEvent
+    from orxtra.transport import TransportEvent
     from orxtra.scheduler._overseer import OverseerInterface
     from orxtra.scheduler._tool_registry import ToolEntry
     from orxtra.scheduler._types import WorkflowConfig
@@ -152,6 +153,7 @@ class Scheduler(
         ) = None,
         event_delivery: EventDelivery | None = None,
         overseer_sinks: list[EventSink[OverseerEvent]] | None = None,
+        transport_sinks: list[EventSink[TransportEvent]] | None = None,
         refresh_constraints: (
             Callable[[UUID], Awaitable[list[tuple[str, str]]]] | None
         ) = None,
@@ -194,6 +196,7 @@ class Scheduler(
         self._constraint_checkers = constraint_checkers or {}
         self._custom_tools = custom_tools or []
         self._overseer_sinks: list[EventSink[OverseerEvent]] = overseer_sinks or []
+        self._transport_sinks: list[EventSink[TransportEvent]] = transport_sinks or []
         self._get_worker_bridge = get_worker_bridge
 
         # Build tool registry once per Scheduler lifetime.
@@ -882,6 +885,41 @@ class Scheduler(
     def is_paused(self) -> bool:
         return not self._paused.is_set()
 
+    # -- Sink management --
+
+    def add_overseer_sink(self, sink: EventSink[OverseerEvent]) -> None:
+        """Add an overseer event sink."""
+        self._overseer_sinks.append(sink)
+
+    def remove_overseer_sink(self, sink: EventSink[OverseerEvent]) -> None:
+        """Remove an overseer event sink. No-op if not present."""
+        try:
+            self._overseer_sinks.remove(sink)
+        except ValueError:
+            pass
+
+    def add_transport_sink(self, sink: EventSink[TransportEvent]) -> None:
+        """Add a transport event sink.
+
+        Also registers the sink on all currently active sessions so that
+        events from in-progress tasks are delivered immediately.
+        """
+        self._transport_sinks.append(sink)
+        for session in self._task_sessions.values():
+            session.add_sink(sink)
+
+    def remove_transport_sink(self, sink: EventSink[TransportEvent]) -> None:
+        """Remove a transport event sink. No-op if not present.
+
+        Also removes the sink from all currently active sessions.
+        """
+        try:
+            self._transport_sinks.remove(sink)
+        except ValueError:
+            pass
+        for session in self._task_sessions.values():
+            session.remove_sink(sink)
+
     async def _handle_control_signal(
         self, run_id: UUID, new_status: str,  # noqa: ARG002
     ) -> None:
@@ -1016,9 +1054,10 @@ class Scheduler(
         """Dispatch an OverseerEvent to all registered sinks.
 
         Errors in individual sinks are logged but do not
-        crash the scheduler.
+        crash the scheduler. Uses a snapshot copy to allow
+        safe concurrent mutation of the sinks list.
         """
-        for sink in self._overseer_sinks:
+        for sink in list(self._overseer_sinks):
             try:
                 await sink.on_event(event)
             except Exception:

@@ -82,9 +82,20 @@ class Session:
         for handler in self._event_handlers.get(type(event), []):
             handler(event)
 
+    def add_sink(self, sink: EventSink[TransportEvent]) -> None:
+        """Add a sink to receive subsequent events."""
+        self._sinks.append(sink)
+
+    def remove_sink(self, sink: EventSink[TransportEvent]) -> None:
+        """Remove a previously added sink. No-op if not present."""
+        try:
+            self._sinks.remove(sink)
+        except ValueError:
+            pass
+
     def _dispatch_to_sinks(self, event: TransportEvent) -> None:
         """Dispatch event to all registered sinks asynchronously."""
-        for sink in self._sinks:
+        for sink in list(self._sinks):
             task = asyncio.create_task(sink.on_event(event))
             self._sink_tasks.add(task)
             task.add_done_callback(self._sink_task_done)

@@ -1,4 +1,4 @@
-"""Tests for scheduler dispatching to overseer event sinks."""
+"""Tests for scheduler dispatching to overseer and transport event sinks."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from orxtra.protocols import (
     StructuralAdvisory,
 )
 from orxtra.scheduler import Scheduler
+from orxtra.transport import TransportEvent
 
 # Cross-member test-infra seam: parents[2] resolves from both root
 # and member cwd. See scheduler/tests/conftest.py for details.
@@ -134,3 +135,57 @@ class TestOverseerSinkDispatch:
 
         assert len(sink.events) == 1
         assert isinstance(sink.events[0], StructuralAdvisory)
+
+
+class TransportRecordingSink:
+    """EventSink that records all received transport events."""
+
+    def __init__(self) -> None:
+        self.events: list[TransportEvent] = []
+
+    async def on_event(self, event: TransportEvent) -> None:
+        self.events.append(event)
+
+
+class TestSchedulerSinkManagement:
+    def test_add_overseer_sink(self) -> None:
+        """add_overseer_sink appends to the internal list."""
+        scheduler = _make_scheduler()
+        sink = RecordingSink()
+        scheduler.add_overseer_sink(sink)
+        assert sink in scheduler._overseer_sinks
+
+    def test_remove_overseer_sink(self) -> None:
+        """remove_overseer_sink removes from the internal list."""
+        sink = RecordingSink()
+        scheduler = _make_scheduler(sinks=[sink])
+        assert sink in scheduler._overseer_sinks
+        scheduler.remove_overseer_sink(sink)
+        assert sink not in scheduler._overseer_sinks
+
+    def test_remove_overseer_sink_noop_if_absent(self) -> None:
+        """remove_overseer_sink is a no-op if the sink is not present."""
+        scheduler = _make_scheduler()
+        unknown = RecordingSink()
+        scheduler.remove_overseer_sink(unknown)  # Should not raise
+
+    def test_add_transport_sink(self) -> None:
+        """add_transport_sink appends to the internal list."""
+        scheduler = _make_scheduler()
+        sink = TransportRecordingSink()
+        scheduler.add_transport_sink(sink)
+        assert sink in scheduler._transport_sinks
+
+    def test_remove_transport_sink(self) -> None:
+        """remove_transport_sink removes from the internal list."""
+        scheduler = _make_scheduler()
+        sink = TransportRecordingSink()
+        scheduler.add_transport_sink(sink)
+        scheduler.remove_transport_sink(sink)
+        assert sink not in scheduler._transport_sinks
+
+    def test_remove_transport_sink_noop_if_absent(self) -> None:
+        """remove_transport_sink is a no-op if the sink is not present."""
+        scheduler = _make_scheduler()
+        unknown = TransportRecordingSink()
+        scheduler.remove_transport_sink(unknown)  # Should not raise
