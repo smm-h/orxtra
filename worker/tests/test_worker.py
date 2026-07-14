@@ -131,19 +131,20 @@ class TestWorkerRegistry:
     def test_register_and_get(self) -> None:
         registry = WorkerRegistry()
         bridge = self._make_bridge()
+        cid = uuid4()
         wid = registry.register(
-            "consumer-1", "/project/a", [ToolCapability.READ], bridge,
+            cid, "/project/a", [ToolCapability.READ], bridge,
         )
         info = registry.get_worker(wid)
         assert info is not None
         assert info.root == "/project/a"
-        assert info.consumer_id == "consumer-1"
+        assert info.consumer_id == cid
         assert info.capabilities == [ToolCapability.READ]
 
     def test_get_worker_for_root(self) -> None:
         registry = WorkerRegistry()
         bridge = self._make_bridge()
-        wid = registry.register("c1", "/project/a", [], bridge)
+        wid = registry.register(uuid4(), "/project/a", [], bridge)
         info = registry.get_worker_for_root("/project/a")
         assert info is not None
         assert info.id == wid
@@ -156,16 +157,17 @@ class TestWorkerRegistry:
         registry = WorkerRegistry()
         bridge1 = self._make_bridge()
         bridge2 = self._make_bridge()
-        registry.register("c1", "/project/a", [], bridge1)
+        registry.register(uuid4(), "/project/a", [], bridge1)
         with pytest.raises(WorkerConflictError):
-            registry.register("c2", "/project/a", [], bridge2)
+            registry.register(uuid4(), "/project/a", [], bridge2)
 
     def test_same_consumer_reconnection(self) -> None:
         registry = WorkerRegistry()
         bridge1 = self._make_bridge()
         bridge2 = self._make_bridge()
-        wid1 = registry.register("c1", "/project/a", [], bridge1)
-        wid2 = registry.register("c1", "/project/a", [], bridge2)
+        cid = uuid4()
+        wid1 = registry.register(cid, "/project/a", [], bridge1)
+        wid2 = registry.register(cid, "/project/a", [], bridge2)
         assert wid1 != wid2
         # Old worker should be gone.
         assert registry.get_worker(wid1) is None
@@ -174,7 +176,7 @@ class TestWorkerRegistry:
     def test_unregister(self) -> None:
         registry = WorkerRegistry()
         bridge = self._make_bridge()
-        wid = registry.register("c1", "/project/a", [], bridge)
+        wid = registry.register(uuid4(), "/project/a", [], bridge)
         registry.unregister(wid)
         assert registry.get_worker(wid) is None
         assert registry.get_worker_for_root("/project/a") is None
@@ -182,7 +184,7 @@ class TestWorkerRegistry:
     def test_assign_task(self) -> None:
         registry = WorkerRegistry()
         bridge = self._make_bridge()
-        wid = registry.register("c1", "/project/a", [], bridge)
+        wid = registry.register(uuid4(), "/project/a", [], bridge)
         task_id = uuid4()
         registry.assign_task(wid, task_id)
         info = registry.get_worker(wid)
@@ -197,7 +199,7 @@ class TestWorkerRegistry:
     def test_unassign_task(self) -> None:
         registry = WorkerRegistry()
         bridge = self._make_bridge()
-        wid = registry.register("c1", "/project/a", [], bridge)
+        wid = registry.register(uuid4(), "/project/a", [], bridge)
         task_id = uuid4()
         registry.assign_task(wid, task_id)
         registry.unassign_task(wid, task_id)
@@ -209,7 +211,7 @@ class TestWorkerRegistry:
         registry = WorkerRegistry()
         assert registry.worker_count == 0
         bridge = self._make_bridge()
-        registry.register("c1", "/a", [], bridge)
+        registry.register(uuid4(), "/a", [], bridge)
         assert registry.worker_count == 1
 
 

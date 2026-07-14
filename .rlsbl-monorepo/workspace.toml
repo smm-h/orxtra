@@ -207,7 +207,7 @@ releasable = "orxtra"
 [[projects]]
 path = "api"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
-depends_on = ["a2a", "agui", "auth", "dispatch", "identity", "incoming", "mcp", "notification", "protocols", "secrets", "services"]
+depends_on = ["a2a", "agui", "auth", "dispatch", "identity", "incoming", "mcp", "notification", "protocols", "secrets", "services", "worker"]
 releasable = "orxtra"
 
 # --- Infrastructure ---

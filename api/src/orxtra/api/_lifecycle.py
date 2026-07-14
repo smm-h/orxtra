@@ -105,6 +105,17 @@ async def lifespan(
 
         notification_backend = PgNotificationBackend(pool)
 
+        from orxtra.worker import WorkerRegistry
+
+        worker_registry = WorkerRegistry()
+
+        def _get_worker_bridge(root: str) -> Any:
+            """Synchronous closure that returns the BrainWorkerBridge for a root."""
+            info = worker_registry.get_worker_for_root(root)
+            if info is None:
+                return None
+            return info.bridge
+
         dispatch_backend = PgDispatchBackend(pool)
         ctx = DispatchContext(
             pool=pool,
@@ -113,6 +124,7 @@ async def lifespan(
             principal_storage=principal_storage,
             kind_registry=kind_registry,
             notification_port=notification_backend,
+            get_worker_bridge=_get_worker_bridge,
         )
 
         # Build skill registry and agent card.
@@ -159,6 +171,7 @@ async def lifespan(
             incoming_router=incoming_router,
             cors_origins=server_config.cors_origins,
             mcp_allowed_hosts=server_config.mcp_allowed_hosts,
+            worker_registry=worker_registry,
         )
 
         log.info("Startup complete")

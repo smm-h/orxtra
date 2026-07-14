@@ -43,6 +43,12 @@ class CompositorConfig:
     """Additional hostnames the MCP transport accepts beyond the loopback
     baseline.  Forwarded verbatim from ``ServerConfig.mcp_allowed_hosts``.
     """
+    worker_registry: Any = None
+    """In-memory WorkerRegistry for brain-worker connections.
+
+    Typed as Any to avoid importing worker at module scope; the lifespan
+    passes the concrete ``WorkerRegistry`` instance.
+    """
 
 
 def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
@@ -54,7 +60,7 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
       /ag-ui/* -- AG-UI SSE routes (native, auth-wrapped)
       /.well-known/agent.json -- A2A agent card (GET)
       /health  -- health check (GET)
-      /workers/connect -- WebSocket placeholder that accepts and closes
+      /workers/connect -- worker WebSocket (auth-wrapped sub-app)
     """
     router = Router()
 
@@ -92,6 +98,29 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     else:
         router.include_router(agui_router, prefix="/ag-ui")
 
+    # -- Notification SSE stream (under /notifications) --
+    _ctx = config.dispatch_context
+    if (
+        _ctx.notification_port is not None
+        and _ctx.event_bus is not None
+        and _ctx.principal_storage is not None
+    ):
+        from orxtra.notification import create_notification_router
+
+        notif_router = create_notification_router(
+            notification_port=_ctx.notification_port,
+            event_bus=_ctx.event_bus,
+            principal_storage=_ctx.principal_storage,
+        )
+
+        if config.authenticator is not None:
+            notif_app = create_app(notif_router)
+            _mount_sub_app(
+                router, "/notifications", notif_app, config.authenticator,
+            )
+        else:
+            router.include_router(notif_router, prefix="/notifications")
+
     # -- Incoming webhook receiver (under /incoming) --
     if config.incoming_router is not None:
         router.include_router(config.incoming_router, prefix="/incoming")
@@ -108,15 +137,21 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     async def health_handler(request: Any) -> dict[str, str]:  # noqa: ARG001
         return {"status": "ok"}
 
-    # -- Workers WebSocket placeholder --
-    # Accepts the socket and immediately closes it. Attaching a real worker
-    # requires authentication on the socket, worker registration, a
-    # compositor-scoped worker registry, and bridge wiring -- all currently
-    # unbuilt.
-    @router.ws("/workers/connect")
-    async def workers_ws_handler(ws: WebSocket) -> None:
-        await ws.accept()
-        await ws.close(code=1000)
+    # -- Workers WebSocket (under /workers, auth-wrapped) --
+    # The worker WebSocket endpoint is a sub-app mounted at /workers,
+    # wrapped with the auth middleware (matching the MCP/A2A/AG-UI pattern).
+    # The handler receives authenticated WebSocket connections from
+    # NativeWorker instances and manages the brain-worker bridge lifecycle.
+    if config.worker_registry is not None:
+        worker_router = _build_worker_router(config.worker_registry)
+        worker_app = create_app(worker_router)
+        _mount_sub_app(router, "/workers", worker_app, config.authenticator)
+    else:
+        # No worker registry: accept and immediately close (test/stub mode).
+        @router.ws("/workers/connect")
+        async def workers_ws_stub(ws: WebSocket) -> None:
+            await ws.accept()
+            await ws.close(code=1000)
 
     # -- CORS posture (fastware >= 0.5.0) --
     # fastware's create_app applies CORSMiddleware with allow_credentials=True
@@ -219,6 +254,84 @@ def _build_a2a_app(
         skill_registry,
         rpc_url="/",
     )
+
+
+def _build_worker_router(worker_registry: Any) -> Router:
+    """Build a Router with the real worker WebSocket handler.
+
+    The handler authenticates via the auth middleware (which stores
+    AuthContext in scope["state"]["auth_context"]), receives the
+    WorkerRegistration message, registers the worker in the registry,
+    runs the BrainWorkerBridge loops, and unregisters on disconnect.
+
+    When mounted at /workers, the route becomes /workers/connect.
+    """
+    import json
+    import logging
+
+    from orxtra.worker import BrainWorkerBridge, WorkerRegistration
+
+    _log = logging.getLogger("orxtra.api.workers")
+
+    worker_router = Router()
+
+    @worker_router.ws("/connect")
+    async def workers_ws_handler(ws: WebSocket) -> None:
+        # Read auth context from the middleware (if present).
+        auth_context = ws.scope.get("state", {}).get("auth_context")
+        consumer_id = auth_context.consumer_id if auth_context is not None else None
+
+        await ws.accept()
+
+        worker_id = None
+        try:
+            # First message must be a WorkerRegistration.
+            raw = await ws.receive_text()
+            envelope: dict[str, Any] = json.loads(raw)
+            data = envelope.get("data", {})
+            registration = WorkerRegistration.model_validate(data)
+
+            _log.info(
+                "Worker registration: root=%s consumer=%s",
+                registration.root, consumer_id,
+            )
+
+            # Register in the compositor-scoped WorkerRegistry.
+            # The registry assigns the real worker_id; we create the
+            # bridge with a temporary UUID and patch it after registration.
+            from uuid import uuid4 as _uuid4
+
+            bridge = BrainWorkerBridge(ws, worker_id=_uuid4())
+            worker_id = worker_registry.register(
+                consumer_id=consumer_id,
+                root=registration.root,
+                capabilities=registration.capabilities,
+                bridge=bridge,
+            )
+            bridge._worker_id = worker_id  # noqa: SLF001
+
+            _log.info("Worker %s registered for root %s", worker_id, registration.root)
+
+            # Run the bridge loops until disconnect.
+            bridge.start()
+            # Block until the receive loop ends (worker disconnects or error).
+            if bridge._receive_task is not None:  # noqa: SLF001
+                await bridge._receive_task  # noqa: SLF001
+
+        except Exception:
+            _log.exception("Worker connection error")
+        finally:
+            if worker_id is not None:
+                worker_registry.unregister(worker_id)
+                _log.info("Worker %s unregistered", worker_id)
+            # Stop bridge loops (idempotent if already stopped).
+            if worker_id is not None:
+                try:
+                    await bridge.stop()  # type: ignore[possibly-undefined]
+                except Exception:  # noqa: BLE001
+                    pass
+
+    return worker_router
 
 
 def _mount_sub_app(

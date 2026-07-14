@@ -31,7 +31,7 @@ class WorkerInfo:
     """State for a single connected worker."""
 
     id: UUID
-    consumer_id: str
+    consumer_id: UUID | None
     root: str
     capabilities: list[ToolCapability]
     bridge: BrainWorkerBridge
@@ -51,7 +51,7 @@ class WorkerRegistry:
 
     def register(
         self,
-        consumer_id: str,
+        consumer_id: UUID | None,
         root: str,
         capabilities: list[ToolCapability],
         bridge: BrainWorkerBridge,
