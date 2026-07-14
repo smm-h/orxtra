@@ -1,0 +1,263 @@
+# Delivery + Worker + AG-UI Live Streaming — Implementation Plan
+
+## Locked decisions
+
+1. FilterPredicate gains `principal_id: UUID | None` for self-subscription filtering; AND-combined with all other predicates.
+2. WebSocket auth extends auth_middleware for websocket scopes; reject with code 4001 before accept (receive websocket.connect, extract from scope headers, verify, send websocket.close without websocket.accept on failure).
+3. ToolLocation enum (LOCAL/REMOTE/ANYWHERE) and ToolCapability enum on ToolEntry (routing decisions happen before tool construction) and Tool (factory propagates). TaskSpec.execution_target: str | None replaces TaskSpec.remote: bool.
+4. New Foundation-layer notification module behind NotificationPort protocol; notification_deliveries table in schema/notification.toml with opaque source_ref (no upward FK); PG NOTIFY trigger on global channel orxtra_notifications with client-side principal filtering (no per-principal channels).
+5. NotifyAction as fifth action type; receives NotificationPort via injection; handler calls port.create_delivery().
+6. Self-subscription filter is a REQUIRED parameter of create_principal (consumer/app-registered → required, run/source/system → must be None); exact new signature: create_principal(dispatch_backend, principal_storage, kind_registry, caller_principal, *, kind, external_ref, display_name=None, self_subscription_filter=None).
+7. Principal notifications SSE endpoint replicating incoming's catch-up pattern against notification_deliveries.
+8. RunManager instance-scoped on DispatchContext; demand-driven subscribe(run_id, sinks) → unsubscribe; Scheduler gains add/remove sink methods; new sessions auto-receive registered transport sinks; safe iteration via list snapshot copy.
+9. Completed runs get enriched StateSnapshotEvent only (terminal metadata from read_run_report); no trace replay, no second translation path.
+10. Workers authenticate as consumers via extended middleware; get_worker_bridge as a synchronous callback injected via capability inject tokens (no layer violation).
+
+---
+
+## Phase 0 — Foundational groundwork
+
+### 0.1 — Notification scope constants
+Add `SCOPE_NOTIFICATIONS_READ` and `SCOPE_NOTIFICATIONS_MANAGE` to the scope vocabulary in `protocols/_types/_auth.py`; add both to `ALL_SCOPES`; export through both `__init__` chains; update the scope-pinning test in `auth/tests/test_auth.py`.
+
+Verify: both constants in ALL_SCOPES; imports resolve; pinning test green.
+
+### 0.2 — NotificationPort protocol + inject token + DispatchContext field
+Add `"notification_port"` to `VALID_INJECT_TOKENS` in `protocols/_types/_capability.py`, to `_INJECT_ORDER`, and to `_INJECT_LABELS` in `services/_dispatcher.py`. Add the `NotificationPort` protocol to `protocols/_contracts.py` (runtime-checkable; methods: `create_delivery`, `list_for_principal`, `acknowledge`). Add `notification_port: NotificationPort | None = None` to DispatchContext (after kind_registry, before caller_principal in injection order). Export from protocols.
+
+Verify: Capability declaring notification_port inject accepted; DispatchContext(notification_port=mock) works; existing dispatch unchanged; protocol importable.
+
+### 0.3 — get_worker_bridge + run_manager on DispatchContext
+Add `"get_worker_bridge"` to `VALID_INJECT_TOKENS`, `_INJECT_ORDER`, and `_INJECT_LABELS`. Add `get_worker_bridge: Callable[[str], Any] | None = None` and `run_manager: Any | None = None` to DispatchContext. get_worker_bridge is a synchronous callback (WorkerRegistry is in-memory, no I/O; called from the synchronous _build_agent_tools context).
+
+Verify: DispatchContext construction with all new fields; existing tests unaffected (all default to None).
+
+---
+
+## Phase 1 — FilterPredicate.principal_id + WebSocket auth
+
+Parallel with Phases 2 and 3; disjoint files.
+
+### 1.1 — FilterPredicate.principal_id
+Add `principal_id: UUID | None = None` to FilterPredicate in `protocols/_types/_dispatch.py`. In `dispatch/_delivery.py` match_subscription: after the sources check, add a principal_id branch — if `filter_predicate.principal_id is not None`, return False when it does not equal `event.principal_id`. This is AND-combined: the event must match principal_id AND event_types AND sources (whichever are set; None = wildcard on that axis). Both backends' serialization works unchanged (PG stores filter as JSON via model_dump; the new field defaults to None so existing rows deserialize cleanly). Tests: match with principal_id set; match with None (wildcard); mismatch rejects; combined with event_types (both must match).
+
+Verify: red-green match tests; existing FilterPredicate tests pass unchanged; both backends round-trip the field.
+
+### 1.2 — WebSocket auth in middleware
+Extend `auth/_middleware.py` for `scope["type"] == "websocket"`. ASGI flow: receive the `websocket.connect` message from the receive callable first; extract bearer from `scope["headers"]` via the existing `_extract_bearer_token`; authenticate; if invalid, send `{"type": "websocket.close", "code": 4001}` without ever sending `websocket.accept` — the connection is rejected during the handshake; if valid, store AuthContext in `scope["state"]["auth_context"]` and call `await app(scope, receive, send)`. Lifespan scopes still pass through.
+
+Verify: red-green — authenticated WebSocket passes (AuthContext in scope state); unauthenticated rejected at 4001 before accept; HTTP behavior unchanged; lifespan untouched.
+
+---
+
+## Phase 2 — ToolLocation + capabilities + ExecutionTarget
+
+Parallel with Phases 1 and 3.
+
+### 2.1 — Enums + ToolEntry/Tool fields
+`ToolLocation` (LOCAL, REMOTE, ANYWHERE) and `ToolCapability` (READ, WRITE, EXEC, HTTP, GIT) as StrEnums in `protocols/_types/_tool.py`. ToolEntry gains `location: ToolLocation = ToolLocation.ANYWHERE` and `capabilities: frozenset[ToolCapability] = frozenset()` — routing decisions happen in `_build_agent_tools` before tool construction, so the metadata must live on ToolEntry. The factory propagates both fields to the constructed Tool (Tool also gains the fields). Every ToolEntry in `tool/_registry.py` declares both: lifecycle tools = LOCAL, filesystem read tools = ANYWHERE + {READ}, filesystem write tools = ANYWHERE + {WRITE}, exec = ANYWHERE + {EXEC}, git = ANYWHERE + {GIT}, http = ANYWHERE + {HTTP}, notepad/trace-mutating = LOCAL. WorkerRegistration gains `capabilities: list[ToolCapability]` replacing `list[str]`. Exports through protocols.
+
+Verify: every tool in the registry declares location + capabilities; WorkerRegistration validates capability enum values; existing tests pass (defaults are backward-compatible).
+
+### 2.2 — TaskSpec.execution_target + resolver + sweep
+Replace `TaskSpec.remote: bool = False` with `execution_target: str | None = None` (the string names a worker root; None = all-local). `execution_target` defaults to None so existing TOML workflow files without the field work unchanged (extra='forbid' only rejects unknown keys, not missing optional ones). Sweep all `TaskSpec.remote` references: `worker/tests/test_worker.py`, plus `examples/*.toml` and test fixture TOMLs (verify none use `remote = true`). `resolve_tool_location(tool_entry, task) -> ToolLocation` composition function: task has no target → LOCAL; tool is LOCAL → LOCAL regardless of target; tool is REMOTE + no target → hard error; tool is ANYWHERE + task has target → REMOTE; else LOCAL.
+
+Verify: resolver tested for every combination; grep zero `.remote` on TaskSpec (excluding the deletion diff itself); examples and fixture TOMLs clean; full suite green.
+
+---
+
+## Phase 3 — Notification module (Foundation)
+
+Parallel with Phases 1 and 2.
+
+### 3.1 — Module scaffold
+Full monorepo registration per the established checklist (following identity/ as template): `notification/pyproject.toml` (depends on orxtra-protocols + asyncpg + uuid6), root pyproject (sdist include, workspace member, uv source, dev group), workspace.toml (Foundation layer, depends_on = ["protocols"]), run_mypy.sh, docs layer table + selfdoc gen, per-project ci.yml, rlsbl monorepo sync, uv lock.
+
+Verify: `from orxtra.notification import __version__`; check_imports green; check_layer_docs green; CI router includes notification.
+
+### 3.2 — Schema + codegen
+`schema/notification.toml`: notification_deliveries table (id uuidv7, target_principal_id FK RESTRICT principals, source_ref text, payload jsonb, created_at timestamp, acknowledged_at nullable timestamp). Indexes: (target_principal_id, created_at) WHERE acknowledged_at IS NULL; source_ref. PG NOTIFY trigger function + trigger on INSERT: channel `orxtra_notifications` (global, following the incoming pattern), payload = JSON with notification_id + target_principal_id. Registered in pgdesign.toml; codegen regenerated.
+
+Verify: check_schema_codegen green; db init/db verify see the table.
+
+### 3.3 — PG + in-memory backends implementing NotificationPort
+PgNotificationBackend: create_delivery (INSERT + return id), list_for_principal (SELECT WHERE target + unacked + optional cursor, ordered by created_at, limited), acknowledge (UPDATE SET acknowledged_at = now(), 0-row = hard error). InMemoryNotificationBackend: dict-backed, same semantics. Shared parametrized test suite running against both backends (the dispatch backend testing pattern). Parity guard covering the protocol methods via signature inspection.
+
+Verify: round-trip tests both backends (create → list → ack → list-returns-empty); parity guard green.
+
+### 3.4 — Wire into lifespan + CRUD capabilities
+api/_lifecycle.py: construct PgNotificationBackend(pool), pass as notification_port on DispatchContext. Service functions in services/_notifications.py: list_deliveries (scoped to caller principal via caller_principal injection — hard error if asking for another principal's deliveries), acknowledge_delivery (scoped — hard error if delivery doesn't belong to caller). Params models. Capability registrations under notifications:read (list) and notifications:manage (ack) with appropriate injects + scopes.
+
+Verify: dispatch of list/ack capabilities works; scoping enforced; registry pins updated.
+
+---
+
+## Phase 4 — NotifyAction
+
+After Phase 3.
+
+### 4.1 — Model + serialization
+NotifyAction model in protocols/_types/_actions.py: target_principal_id (UUID), source_ref (str), payload (dict). Added to the Action union type alias. PG type/class maps ("notify" ↔ NotifyAction) in dispatch/_pg_backend.py. Export through protocols.
+
+Verify: serialization round-trip; Action union type-checks with NotifyAction; mypy clean.
+
+### 4.2 — Execution + dispatch worker wiring
+isinstance branch in execute_action; the handler receives notification_port via a new kwarg and calls port.create_delivery(target, source_ref, payload). Full call chain touched: execute_action signature gains notification_port kwarg → execute_actions_bounded gains it → DispatchWorker._execute_action_immediate passes it → DispatchWorker._flush_action passes it. DispatchWorker.__init__ gains notification_port parameter. The worker factory in services (create_dispatch_worker) passes notification_port from the DispatchContext.
+
+Verify: red-green — a subscription with NotifyAction through the real dispatch worker writes a notification_deliveries row; the NOTIFY trigger fires.
+
+---
+
+## Phase 5 — Self-subscriptions
+
+After Phases 1.1 + 4.
+
+### 5.1 — create_principal gains self_subscription_filter
+The service function create_principal in services/_identity.py gains self_subscription_filter: FilterPredicate | None as a parameter. New inject set constant includes dispatch_backend (position 1 in _INJECT_ORDER, before principal_storage at position 3). The exact new function signature: `create_principal(dispatch_backend, principal_storage, kind_registry, caller_principal, *, kind, external_ref, display_name=None, self_subscription_filter=None)`. Validation: required for kind=consumer and app-registered kinds (hard error if None for those), must be None for run/source/system (hard error if provided). When provided: after minting the principal, create a subscription via the dispatch backend — filter = the provided FilterPredicate (caller should set principal_id=self on it), action = NotifyAction(target_principal_id=self.id, source_ref="self-subscription"). CreatePrincipalParams gains self_subscription_filter as an optional nested model field.
+
+Verify: consumer principal creation with filter → principal + subscription with NotifyAction created atomically; run/source/system creation with None → principal only; consumer creation without filter → hard error; existing tests swept for the positional change.
+
+### 5.2 — Call site sweep
+Every site that creates principals: run minting in services/_run.py passes None; source minting in services/_dispatch.py passes None; consumer minting in auth tests / api lifespan / the Phase 3 wiring passes a FilterPredicate with principal_id set to the new consumer's principal id and a caller-chosen event_types list; system principal seeding in db init / api lifespan passes None. No implicit default event types — the caller decides.
+
+Verify: all call sites updated; full suite green; a newly-created consumer principal has exactly one self-subscription.
+
+---
+
+## Phase 6 — Principal notifications SSE
+
+After Phase 3.
+
+### 6.1 — SSE stream function
+In notification/src/orxtra/notification/_stream.py: replicates the incoming SSE catch-up pattern against notification_deliveries. LISTEN on the global orxtra_notifications channel (the Phase 3.2 trigger's channel); filter NOTIFY JSON payloads by target_principal_id matching the authenticated caller (same pattern as incoming/_stream.py: global channel, client-side filtering, no per-principal channels). Replay unacknowledged deliveries from Last-Event-ID cursor. Deduplicate the overlap window. Heartbeat 15s. The function takes pool + principal_id + optional last_event_id.
+
+Verify: SSE stream receives catch-up notifications then live ones with dedup; heartbeat on idle.
+
+### 6.2 — Compositor mount + auth
+GET /notifications/stream on the api compositor, auth-gated. The handler resolves the caller's principal from AuthContext via the resolver, streams their notifications via 6.1. The caller can only stream their own (derived from auth context → resolver → principal; SYSTEM tier can stream anyone's via a query parameter). REST fallback via Phase 3.4's capabilities already exists.
+
+Verify: authenticated GET returns text/event-stream; different principals see different streams; unauthenticated rejected.
+
+---
+
+## Phase 7 — Worker endpoint
+
+After Phases 1.2 + 2.
+
+### 7.1 — WorkerRegistry in compositor lifespan
+WorkerRegistry() instantiated in the api lifespan, stored in CompositorConfig or app state. The get_worker_bridge callback constructed as a synchronous closure over the registry (returns the bridge for a given root, or None if no worker registered). Passed to DispatchContext as get_worker_bridge.
+
+Verify: the callback is available on the DispatchContext; it is synchronous.
+
+### 7.2 — Real worker WebSocket handler
+Replace the /workers/connect placeholder: read AuthContext from scope["state"]["auth_context"] (Phase 1.2 guarantees it after the middleware extension), accept the WebSocket, receive the WorkerRegistration from the first message, populate WorkerInfo.consumer_id from auth_context.consumer_id, register in the WorkerRegistry, create BrainWorkerBridge(ws, worker_id), run the bridge's message loop until disconnect, unregister on disconnect. The NativeWorker already sends the Authorization header — zero client changes.
+
+Verify: NativeWorker connects, authenticates, registers, heartbeats, unregisters on disconnect; unauthenticated → 4001; one-per-root enforcement; consumer_id populated from auth context.
+
+### 7.3 — Tool routing in the scheduler
+start_run's capability injects gain get_worker_bridge; the service function passes it to the Scheduler constructor (Scheduler.__init__ gains get_worker_bridge: Callable | None = None). In _build_agent_tools (synchronous context — confirmed compatible with the synchronous callback): if task.execution_target is set, call get_worker_bridge(root) to look up the worker; for each tool, resolve_tool_location(tool_entry, task) determines the pipeline; ANYWHERE tools get wrapped via wrap_tool_for_remote using the bridge; LOCAL tools stay local; missing worker = hard error. start_run in services threads get_worker_bridge from DispatchContext to the Scheduler.
+
+Verify: red-green — task with execution_target routes ANYWHERE tools through the bridge; LOCAL stays local; missing worker hard-errors.
+
+---
+
+## Phase 8 — RunManager + AG-UI live streaming
+
+After Phase 0.3 (DispatchContext.run_manager field).
+
+### 8.1 — Session + Scheduler sink management
+Session gains add_sink(sink) and remove_sink(sink) (list append/remove; safe iteration via `for sink in list(self._sinks)` snapshot copy before iterating in _dispatch_to_sinks). Scheduler gains add_overseer_sink/remove_overseer_sink (same snapshot-copy pattern in _dispatch_to_overseer_sinks), plus add_transport_sink/remove_transport_sink (stores a mutable list; add also iterates active sessions and calls session.add_sink; new sessions auto-receive the list via _create_agent_session passing sinks=self._transport_sinks).
+
+Verify: a sink added after session creation receives subsequent events; a sink removed stops receiving; a new session created after a transport sink was registered receives it automatically; safe under concurrent dispatch (snapshot copy).
+
+### 8.2 — RunManager class
+Instance-scoped, held on DispatchContext (constructed in api lifespan). API: register_run(run_id, scheduler), deregister_run(run_id), subscribe(run_id, transport_sink, overseer_sink) → unsubscribe_callback | None. subscribe looks up the scheduler, calls add methods, returns a cleanup closure. Returns None if the run is not active. start_run in services: registers the scheduler in the RunManager BEFORE execute_workflow (critical — start_run blocks during execution; the RunManager must be populated before any SSE client could connect), deregisters in the finally block.
+
+Verify: a running scheduler is findable by run_id; after completion it is gone; subscribe during a live run returns a working unsubscribe handle; subscribe after completion returns None.
+
+### 8.3 — subscribe_run callback + AG-UI wiring
+The compositor builds a subscribe_run callback from the RunManager: given (run_id, transport_sink, overseer_sink), calls run_manager.subscribe(...), returns the unsubscribe handle (or None). Passed to create_agui_router. The AG-UI server's events_handler calls subscribe_run when a client connects; wires the unsubscribe into the _wrapped_generator's finally block alongside registry.unsubscribe. Multiple concurrent clients get independent AGUITranslator instances (per-connection framing state).
+
+Verify: SSE client connecting to an active run receives live transport + overseer events; disconnect cleans up sinks; two concurrent clients get independent event sequences.
+
+### 8.4 — Enriched StateSnapshotEvent for late-joiners + completed runs
+When an SSE client connects: the handler always sends a StateSnapshotEvent as the first event. For active runs: built from StateManager using current trace state, followed by live events. For completed runs (subscribe returns None): the snapshot is enriched with terminal metadata — terminal_status, finished_at, coherence_summary, total_cost_usd, error, per-task summaries (task statuses, attempt counts, final verdicts) — assembled from read_run_report(). After the snapshot, RunFinishedEvent (or RunErrorEvent for failures). Stream closes. No trace replay, no second translation path.
+
+Verify: late-joiner to active run gets snapshot then live events; client to completed run gets enriched snapshot + terminal event only; the snapshot contains task statuses, decisions, cost.
+
+---
+
+## Phase 9 — E2E proof + migration
+
+### 9.1 — Migration delta
+notification_deliveries table delta against the v0.10.1 baseline (CREATE TABLE + FKs + indexes + trigger function + trigger). Harness: apply delta, assert table/constraints/trigger exist.
+
+Verify: both baseline paths green (v0.8.0 chain + v0.10.1 chain).
+
+### 9.2 — Notification delivery E2E
+Consumer principal with self-subscription → fire a matching event → dispatch worker processes → NotifyAction writes delivery → principal SSE stream delivers it within seconds → ack clears it. Full cycle against real PG.
+
+Verify: delivery arrives on SSE; ack clears it from unacknowledged list.
+
+### 9.3 — Worker E2E
+NativeWorker connects, authenticates, registers. Task with execution_target dispatched. ANYWHERE tools route through the bridge; LOCAL stays local. Results return. Worker disconnects → unregistered → subsequent targeted task hard-errors.
+
+Verify: round-trip with remote tool results; disconnect → hard error.
+
+### 9.4 — AG-UI E2E
+Start a run; SSE client subscribes mid-run; receives translated events. Second client connects independently. Run completes; both streams end. Client connecting after completion gets enriched snapshot only.
+
+Verify: live events arrive; two clients independent; post-completion = snapshot-only.
+
+### 9.5 — In-memory parity sweep
+All new protocol methods (NotificationPort, FilterPredicate.principal_id matching, ToolLocation resolver) parity-tested across PG and in-memory backends via shared parametrized test suites.
+
+Verify: parity suite green.
+
+---
+
+## Phase 10 — Docs, changelog, release
+
+### 10.1 — Documentation
+CLAUDE.md/README templates: notification delivery model (subscriptions as universal routing, NotifyAction, self-subscriptions-as-preferences, NotificationPort protocol, global NOTIFY channel with client-side filtering), ToolLocation routing (LOCAL/REMOTE/ANYWHERE, resolve composition, ToolCapability enum), worker lifecycle (connect → auth at WebSocket handshake → register → execute → disconnect), AG-UI live streaming (subscribe_run seam, runtime sinks with snapshot-copy safe iteration, enriched state snapshot for catch-up, snapshot-only for completed runs). selfdoc gen.
+
+Verify: check_layer_docs green; selfdoc check green.
+
+### 10.2 — Changelog + release
+Breaking: TaskSpec.remote → execution_target, WebSocket auth required, FilterPredicate.principal_id new field, create_principal gains required self_subscription_filter with changed positional signature, WorkerRegistration capabilities typed as ToolCapability enum. Features: NotifyAction + notification deliveries, self-subscriptions, principal notifications SSE, worker endpoint live, ToolLocation routing, AG-UI live streaming + enriched snapshots. Release: RLSBL_PUSH_TIMEOUT=300 rlsbl monorepo release run --no-allow-dirty --watch --yes.
+
+Verify: publish gate observed gating; CI router green; PyPI post-gate.
+
+---
+
+## Dependency structure
+
+```
+0 (all parallel)
+  → {1.1, 1.2, 2, 3.1+3.2} all parallel
+    → {3.3+3.4, 4.1+4.2} (after 3)
+      → 5 (after 1.1 + 4)
+    → 6 (after 3)
+    → 7 (after 1.2 + 2)
+  → 8 (after 0.3; independent of 3-7)
+→ 9 (after everything)
+→ 10
+```
+
+Parallelizable waves:
+- Wave A: 0.1, 0.2, 0.3
+- Wave B: 1.1, 1.2, 2.1+2.2, 3.1+3.2
+- Wave C: 3.3+3.4, 4.1+4.2
+- Wave D: 5.1+5.2, 6.1+6.2, 7.1+7.2+7.3
+- Wave E: 8.1+8.2+8.3+8.4
+- Wave F: 9.x
+- Wave G: 10.x
+
+## Out of scope (documented, deferred)
+
+- Event-type registry with traits (the event types are free-form strings today; a structured registry is the correct long-term direction but is its own design round)
+- Unified event ledger / event sourcing (replacing the trace events table with a fine-grained per-run ledger — the rung-10 solution for both AG-UI and delivery; explicitly deferred as a schema-replacement project)
+- Per-run event channel replacing Scheduler sinks with pub/sub (the rung-10 run-registry solution; correct direction, separate round)
+- Per-principal notification channels (the global NOTIFY channel with client-side filtering follows the incoming SSE precedent and scales adequately for single-operator)
+- Multi-tenant / per-object authorization (single-operator model stands)
+- Notification delivery channels beyond in-app (email, webhook, push — future action types in the same subscription chain)
