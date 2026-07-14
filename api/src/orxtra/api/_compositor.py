@@ -86,9 +86,14 @@ def create_compositor(config: CompositorConfig) -> Callable[..., Any]:
     # -- AG-UI SSE routes (under /ag-ui) --
     from orxtra.agui import create_agui_router
 
+    # Build the subscribe_run callback from the RunManager if available.
+    _run_manager = config.dispatch_context.run_manager
+    _subscribe_run_fn = _run_manager.subscribe if _run_manager is not None else None
+
     agui_router, _registry = create_agui_router(
         pool=config.dispatch_context.pool,
         principal_storage=config.dispatch_context.principal_storage,
+        subscribe_run=_subscribe_run_fn,
     )
 
     # Wrap AG-UI routes with the auth wall if an authenticator is provided.

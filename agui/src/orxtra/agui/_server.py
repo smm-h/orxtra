@@ -128,11 +128,10 @@ def create_agui_router(
     owner is loaded via ``pool``. The compositor injects both from the
     dispatch context; they are declared explicitly (no service-locator lookup).
 
-    ``subscribe_run`` is an optional seam for registering per-connection sinks
-    with a live event source; it is unwired today -- nothing pushes run events
-    yet. When provided, it will be called with (run_id, transport_sink,
-    overseer_sink) to register sinks for the active run, and once wired it must
-    deliver through the per-run channel only.
+    ``subscribe_run`` is an optional callable ``(run_id: UUID, transport_sink,
+    overseer_sink) -> Callable[[], None] | None``. When the run is active, it
+    registers both sinks on the scheduler and returns an unsubscribe closure.
+    When the run is not active (completed or unknown), it returns None.
     """
     registry = _BroadcasterRegistry()
     encoder = EventEncoder()
@@ -176,6 +175,8 @@ def create_agui_router(
         # -- Per-run channel --
         run_broadcaster = registry.subscribe(run_uuid)
 
+        # Each SSE connection gets its own translator and sinks so
+        # concurrent clients have independent framing state.
         translator = AGUITranslator(
             thread_id=thread_id,
             run_id=run_id,
@@ -191,13 +192,18 @@ def create_agui_router(
         transport_sink = AGUITransportSink(translator, push_event)
         overseer_sink = AGUIOverseerSink(translator, push_event)
 
+        # Subscribe to live events if the run is active.
+        unsubscribe_run: Any = None
         if subscribe_run is not None:
-            await subscribe_run(run_id, transport_sink, overseer_sink)
+            unsubscribe_run = subscribe_run(
+                run_uuid, transport_sink, overseer_sink,
+            )
 
         log.info(
-            "AG-UI SSE client connected for run_id=%s thread_id=%s",
+            "AG-UI SSE client connected for run_id=%s thread_id=%s active=%s",
             run_id,
             thread_id,
+            unsubscribe_run is not None,
         )
 
         # Wrap the broadcaster's SSE stream to add registry cleanup on
@@ -210,6 +216,16 @@ def create_agui_router(
                     yield chunk
             finally:
                 # -- Cleanup on SSE disconnect --
+                # Unsubscribe live event sinks first.
+                if unsubscribe_run is not None:
+                    try:
+                        unsubscribe_run()
+                    except Exception:  # noqa: BLE001
+                        log.debug(
+                            "unsubscribe_run failed for run %s",
+                            run_uuid,
+                            exc_info=True,
+                        )
                 # Check run status to decide whether the channel is terminal.
                 if pool is not None:
                     try:
