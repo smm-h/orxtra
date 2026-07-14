@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from orxtra.protocols import ToolCapability
 from pydantic import BaseModel, ConfigDict
 
 
@@ -57,4 +58,4 @@ class WorkerRegistration(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     root: str
-    capabilities: list[str] = []
+    capabilities: list[ToolCapability] = []

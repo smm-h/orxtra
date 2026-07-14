@@ -80,6 +80,8 @@ from orxtra.protocols._types._enums import (
     ConstraintTier,
     ErrorCategory,
     Severity,
+    ToolCapability,
+    ToolLocation,
 )
 from orxtra.protocols._types._events import (
     BudgetExhausted,
@@ -259,8 +261,10 @@ __all__ = [
     "TaskSpec",
     "TaskState",
     "Tool",
+    "ToolCapability",
     "ToolDeps",
     "ToolError",
+    "ToolLocation",
     "ToolOutput",
     "TrustTier",
     "UpdateComponents",

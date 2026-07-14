@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import logging
 import re
 import time
@@ -16,7 +17,9 @@ from orxtra.protocols import (
     TaskSpec,
     TaskState,
     Tool,
+    ToolCapability,
     ToolDeps,
+    ToolLocation,
     ToolOutput,
 )
 from orxtra.scheduler._allow_resolver import resolve_allow_list
@@ -1166,6 +1169,8 @@ class AgentExecutionMixin(SchedulerBase):
                 namespace=entry.namespace,
                 tags=entry.tags,
                 deferred=True,
+                location=entry.location,
+                capabilities=entry.capabilities,
             ))
 
         # Git tool (subcommands depend on write access).
@@ -1177,20 +1182,26 @@ class AgentExecutionMixin(SchedulerBase):
                  "changed_files"]
                 + (["commit"] if has_write else []),
             )
-            raw_tools.append(make_git_tool(
+            git_tool = make_git_tool(
                 self._read_root, subcommands,
                 run_context={
                     "run_id": str(self._run_id),
                     "task_id": str(task_id),
                 },
+            )
+            raw_tools.append(dataclasses.replace(
+                git_tool,
+                location=ToolLocation.ANYWHERE,
+                capabilities=frozenset({ToolCapability.GIT}),
             ))
 
         # Consult (needs already-built tools).
+        # LOCAL: uses brain-side transports and trace.
         if "consult" in resolved:
             consult_registry: dict[str, Tool] = {
                 t.name: t for t in raw_tools
             }
-            raw_tools.append(make_consult_tool(
+            consult_tool = make_consult_tool(
                 tool_registry=consult_registry,
                 transport_registry=(
                     self._transport_registry
@@ -1200,6 +1211,9 @@ class AgentExecutionMixin(SchedulerBase):
                 read_root=self._read_root,
                 categories=self._categories,
                 agents=self._agents,
+            )
+            raw_tools.append(dataclasses.replace(
+                consult_tool, location=ToolLocation.LOCAL,
             ))
 
         # Inline tool definitions (per-agent [[tools.define]]).
@@ -1261,8 +1275,9 @@ class AgentExecutionMixin(SchedulerBase):
                     raise TypeError(msg)
                 raw_tools.append(builder(defn, deps))
 
-        # Always add lifecycle tools.
-        raw_tools.extend([
+        # Always add lifecycle tools (LOCAL -- they mutate
+        # scheduler state, never routed to workers).
+        lifecycle_tools = [
             make_start_task_tool(self, session_id),
             make_end_task_tool(self, session_id),
             make_create_task_tool(self, session_id),
@@ -1273,6 +1288,10 @@ class AgentExecutionMixin(SchedulerBase):
                 self, session_id,
             ),
             make_await_task_tool(self, session_id),
+        ]
+        raw_tools.extend([
+            dataclasses.replace(t, location=ToolLocation.LOCAL)
+            for t in lifecycle_tools
         ])
 
         return raw_tools

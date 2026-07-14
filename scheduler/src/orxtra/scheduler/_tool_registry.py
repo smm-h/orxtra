@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from orxtra.protocols import ToolDeps
+from orxtra.protocols import ToolCapability, ToolDeps, ToolLocation
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -24,6 +24,8 @@ class ToolEntry:
     factory: Callable[[ToolDeps], Tool]
     description: str = ""
     deferred: bool = False
+    location: ToolLocation = ToolLocation.ANYWHERE
+    capabilities: frozenset[ToolCapability] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,8 @@ class ToolRegistry:
         factory: Callable[[ToolDeps], Tool],
         description: str = "",
         deferred: bool = False,
+        location: ToolLocation = ToolLocation.ANYWHERE,
+        capabilities: frozenset[ToolCapability] = frozenset(),
     ) -> None:
         """Register a custom tool with full metadata.
 
@@ -90,6 +94,8 @@ class ToolRegistry:
             factory=factory,
             description=description,
             deferred=deferred,
+            location=location,
+            capabilities=capabilities,
         )
 
     def get_metadata(
@@ -155,12 +161,24 @@ class ToolRegistry:
         Unknown names are silently skipped (the allow-list resolver
         may have included names not in the registry, e.g. custom tools
         that were not registered).
+
+        Each built Tool inherits ``location`` and ``capabilities``
+        from its ToolEntry via dataclasses.replace, so factories
+        do not need to know about routing metadata.
         """
+        import dataclasses
+
         tools: list[Tool] = []
         for name in sorted(names):
             entry = self._entries.get(name)
             if entry is not None:
-                tools.append(entry.factory(deps))
+                tool = entry.factory(deps)
+                tool = dataclasses.replace(
+                    tool,
+                    location=entry.location,
+                    capabilities=entry.capabilities,
+                )
+                tools.append(tool)
         return tools
 
     def __contains__(self, name: str) -> bool:
@@ -206,6 +224,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"readonly"}),
         factory=_read_factory,
         description="Read a file's contents.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.READ}),
     ))
 
     def _list_dir_factory(deps: ToolDeps) -> Tool:
@@ -218,6 +238,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"readonly"}),
         factory=_list_dir_factory,
         description="List directory contents.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.READ}),
     ))
 
     def _glob_factory(deps: ToolDeps) -> Tool:
@@ -230,6 +252,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"readonly"}),
         factory=_glob_factory,
         description="Find files matching a glob pattern.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.READ}),
     ))
 
     def _grep_factory(deps: ToolDeps) -> Tool:
@@ -246,6 +270,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"readonly"}),
         factory=_grep_factory,
         description="Search file contents with regex.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.READ}),
     ))
 
     def _stat_factory(deps: ToolDeps) -> Tool:
@@ -258,6 +284,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"readonly"}),
         factory=_stat_factory,
         description="Get file or directory metadata.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.READ}),
     ))
 
     def _diff_factory(deps: ToolDeps) -> Tool:
@@ -270,6 +298,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"readonly"}),
         factory=_diff_factory,
         description="Show differences between two files.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.READ}),
     ))
 
     # -- Write tools (fs.write, mutation) --
@@ -288,6 +318,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_write_factory,
         description="Write content to a file.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     def _edit_factory(deps: ToolDeps) -> Tool:
@@ -304,6 +336,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_edit_factory,
         description="Apply targeted edits to a file.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     def _multi_edit_factory(deps: ToolDeps) -> Tool:
@@ -320,6 +354,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_multi_edit_factory,
         description="Apply multiple targeted edits to a file.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     def _mkdir_factory(deps: ToolDeps) -> Tool:
@@ -332,6 +368,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_mkdir_factory,
         description="Create a directory.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     def _move_factory(deps: ToolDeps) -> Tool:
@@ -348,6 +386,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_move_factory,
         description="Move or rename a file.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     def _copy_factory(deps: ToolDeps) -> Tool:
@@ -364,6 +404,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_copy_factory,
         description="Copy a file.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     def _delete_factory(deps: ToolDeps) -> Tool:
@@ -376,6 +418,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_delete_factory,
         description="Delete a file or directory.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     def _set_executable_factory(deps: ToolDeps) -> Tool:
@@ -390,6 +434,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_set_executable_factory,
         description="Set a file's executable permission.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.WRITE}),
     ))
 
     # -- Notepad (io.notepad, mutation) --
@@ -409,6 +455,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"mutation"}),
         factory=_notepad_factory,
         description="Append entries to the cross-agent notepad.",
+        location=ToolLocation.LOCAL,
+        capabilities=frozenset(),
     ))
 
     # -- HTTP (io.http, readonly+mutation) --
@@ -424,6 +472,8 @@ def _make_builtin_entries() -> list[ToolEntry]:
         tags=frozenset({"readonly", "mutation"}),
         factory=_http_factory,
         description="Make HTTP requests.",
+        location=ToolLocation.ANYWHERE,
+        capabilities=frozenset({ToolCapability.HTTP}),
     ))
 
     return entries

@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
+from orxtra.protocols import ToolCapability
+
 if TYPE_CHECKING:
     from orxtra.worker._brain import BrainWorkerBridge
 
@@ -31,7 +33,7 @@ class WorkerInfo:
     id: UUID
     consumer_id: str
     root: str
-    capabilities: list[str]
+    capabilities: list[ToolCapability]
     bridge: BrainWorkerBridge
     assigned_tasks: set[UUID] = field(default_factory=set)
 
@@ -51,7 +53,7 @@ class WorkerRegistry:
         self,
         consumer_id: str,
         root: str,
-        capabilities: list[str],
+        capabilities: list[ToolCapability],
         bridge: BrainWorkerBridge,
     ) -> UUID:
         """Register a new worker.  Returns the assigned worker ID.

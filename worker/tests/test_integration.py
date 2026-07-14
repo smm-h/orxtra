@@ -16,6 +16,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from orxtra.protocols import ToolCapability
 from orxtra.worker._docker import DockerNotFoundError, DockerWorker
 from orxtra.worker._native import NativeWorker, build_worker_tools
 from orxtra.worker._protocol import (
@@ -94,7 +95,9 @@ class TestProtocolRoundtrip:
             raw = await ws.recv()
             envelope = json.loads(raw)
             assert envelope["type"] == "worker_registration"
-            reg = WorkerRegistration.model_validate(envelope["data"])
+            reg = WorkerRegistration.model_validate_json(
+                json.dumps(envelope["data"]),
+            )
             registration.append(reg)
             worker_connected.set()
 
@@ -127,7 +130,7 @@ class TestProtocolRoundtrip:
                 brain_url=url,
                 root=tmp_path,
                 api_key="test-key",
-                capabilities=["read", "write"],
+                capabilities=[ToolCapability.READ, ToolCapability.WRITE],
             )
 
             # Run worker in background; it will exit when the server
@@ -145,7 +148,7 @@ class TestProtocolRoundtrip:
 
         assert len(registration) == 1
         assert registration[0].root == str(tmp_path.resolve())
-        assert registration[0].capabilities == ["read", "write"]
+        assert registration[0].capabilities == [ToolCapability.READ, ToolCapability.WRITE]
 
         assert len(results) == 1
         assert results[0].error is None

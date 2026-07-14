@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from orxtra.protocols import ToolCapability
 from orxtra.worker._brain import (
     BrainWorkerBridge,
     WorkerDisconnectedError,
@@ -89,13 +90,21 @@ class TestProtocolSerialization:
     def test_worker_registration_roundtrip(self) -> None:
         reg = WorkerRegistration(
             root="/home/user/project",
-            capabilities=["read", "write", "exec"],
+            capabilities=[
+                ToolCapability.READ,
+                ToolCapability.WRITE,
+                ToolCapability.EXEC,
+            ],
         )
         restored = WorkerRegistration.model_validate_json(
             reg.model_dump_json(),
         )
         assert restored.root == "/home/user/project"
-        assert restored.capabilities == ["read", "write", "exec"]
+        assert restored.capabilities == [
+            ToolCapability.READ,
+            ToolCapability.WRITE,
+            ToolCapability.EXEC,
+        ]
 
     def test_worker_registration_defaults(self) -> None:
         reg = WorkerRegistration(root="/tmp/work")
@@ -122,12 +131,14 @@ class TestWorkerRegistry:
     def test_register_and_get(self) -> None:
         registry = WorkerRegistry()
         bridge = self._make_bridge()
-        wid = registry.register("consumer-1", "/project/a", ["read"], bridge)
+        wid = registry.register(
+            "consumer-1", "/project/a", [ToolCapability.READ], bridge,
+        )
         info = registry.get_worker(wid)
         assert info is not None
         assert info.root == "/project/a"
         assert info.consumer_id == "consumer-1"
-        assert info.capabilities == ["read"]
+        assert info.capabilities == [ToolCapability.READ]
 
     def test_get_worker_for_root(self) -> None:
         registry = WorkerRegistry()
@@ -504,18 +515,59 @@ class TestSerializeMessage:
         assert parsed["data"]["timestamp"] == 123.456
 
 
-# ── TaskSpec remote field ──
+# ── TaskSpec execution_target field ──
 
 
-class TestTaskSpecRemoteField:
-    def test_default_false(self) -> None:
+class TestTaskSpecExecutionTarget:
+    def test_default_none(self) -> None:
         from orxtra.protocols import TaskSpec
 
         spec = TaskSpec(name="test")
-        assert spec.remote is False
+        assert spec.execution_target is None
 
-    def test_set_true(self) -> None:
+    def test_set_target(self) -> None:
         from orxtra.protocols import TaskSpec
 
-        spec = TaskSpec(name="test", remote=True)
-        assert spec.remote is True
+        spec = TaskSpec(name="test", execution_target="worker-a")
+        assert spec.execution_target == "worker-a"
+
+    def test_remote_field_removed(self) -> None:
+        """Confirm TaskSpec no longer has a 'remote' field."""
+        from orxtra.protocols import TaskSpec
+
+        spec = TaskSpec(name="test")
+        assert not hasattr(spec, "remote")
+        # Pydantic strict+extra=forbid rejects unknown fields.
+        with pytest.raises(Exception):  # noqa: B017, PT011
+            TaskSpec(name="test", remote=True)  # type: ignore[call-arg]
+
+
+# ── Routing resolver ──
+
+
+class TestShouldRouteToWorker:
+    """should_route_to_worker: every combination of location x target."""
+
+    def test_local_with_target_stays_local(self) -> None:
+        from orxtra.protocols import ToolLocation
+        from orxtra.worker._pipeline_split import should_route_to_worker
+
+        assert should_route_to_worker(ToolLocation.LOCAL, "worker-a") is False
+
+    def test_local_without_target_stays_local(self) -> None:
+        from orxtra.protocols import ToolLocation
+        from orxtra.worker._pipeline_split import should_route_to_worker
+
+        assert should_route_to_worker(ToolLocation.LOCAL, None) is False
+
+    def test_anywhere_with_target_routes_to_worker(self) -> None:
+        from orxtra.protocols import ToolLocation
+        from orxtra.worker._pipeline_split import should_route_to_worker
+
+        assert should_route_to_worker(ToolLocation.ANYWHERE, "worker-a") is True
+
+    def test_anywhere_without_target_stays_local(self) -> None:
+        from orxtra.protocols import ToolLocation
+        from orxtra.worker._pipeline_split import should_route_to_worker
+
+        assert should_route_to_worker(ToolLocation.ANYWHERE, None) is False

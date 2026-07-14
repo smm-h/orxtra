@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from orxtra.protocols import Tool, ToolOutput
+from orxtra.protocols import Tool, ToolCapability, ToolOutput
 from orxtra.tool import (
     make_copy_tool,
     make_delete_tool,
@@ -206,7 +206,7 @@ class NativeWorker:
         brain_url: str,
         root: Path,
         api_key: str,
-        capabilities: list[str] | None = None,
+        capabilities: list[ToolCapability] | None = None,
     ) -> None:
         self._brain_url = brain_url
         self._root = root.resolve()

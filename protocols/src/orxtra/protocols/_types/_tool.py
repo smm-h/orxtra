@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
+from orxtra.protocols._types._enums import ToolCapability, ToolLocation
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
@@ -31,6 +33,8 @@ class Tool:
     namespace: str = ""
     tags: frozenset[str] = frozenset()
     deferred: bool = False
+    location: ToolLocation = ToolLocation.ANYWHERE
+    capabilities: frozenset[ToolCapability] = frozenset()
 
 
 class ToolError(Exception):

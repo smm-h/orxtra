@@ -3,6 +3,23 @@ from __future__ import annotations
 from enum import StrEnum
 
 
+class ToolLocation(StrEnum):
+    """Where a tool must execute relative to the brain."""
+
+    LOCAL = "local"
+    ANYWHERE = "anywhere"
+
+
+class ToolCapability(StrEnum):
+    """What kind of system resource a tool needs."""
+
+    READ = "read"
+    WRITE = "write"
+    EXEC = "exec"
+    HTTP = "http"
+    GIT = "git"
+
+
 class ConstraintTier(StrEnum):
     MECHANICAL = "mechanical"
     ADVISORY = "advisory"

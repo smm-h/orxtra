@@ -17,7 +17,7 @@ import time
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from orxtra.protocols import Tool, ToolOutput
+from orxtra.protocols import Tool, ToolLocation, ToolOutput
 from orxtra.tool import scrub_data, scrub_text
 from orxtra.worker._protocol import ExecuteToolCall, ToolCallResult
 
@@ -100,6 +100,8 @@ def wrap_tool_for_remote(
         namespace=tool.namespace,
         tags=tool.tags,
         deferred=tool.deferred,
+        location=tool.location,
+        capabilities=tool.capabilities,
     )
 
 
@@ -126,3 +128,18 @@ def wrap_tools_for_remote(
         )
         for tool in tools
     ]
+
+
+def should_route_to_worker(
+    tool_location: ToolLocation,
+    execution_target: str | None,
+) -> bool:
+    """Decide whether a tool call should be sent to a worker.
+
+    Returns True only when the task has an execution target set
+    AND the tool's location allows remote execution (ANYWHERE).
+    LOCAL tools always run on the brain regardless of target.
+    """
+    if execution_target is None:
+        return False
+    return tool_location == ToolLocation.ANYWHERE
