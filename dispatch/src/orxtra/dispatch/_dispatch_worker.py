@@ -30,7 +30,12 @@ if TYPE_CHECKING:
     import asyncpg
     from orxtra.dispatch._delivery import SourcePrincipalResolver
     from orxtra.dispatch._pg_backend import PgDispatchBackend
-    from orxtra.protocols import ActionExecutor, FlushScheduler, SubscriptionAction
+    from orxtra.protocols import (
+        ActionExecutor,
+        FlushScheduler,
+        NotificationPort,
+        SubscriptionAction,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +86,7 @@ class DispatchWorker:
         cursor_name: str,
         events_channel: str,
         source_principal_resolver: SourcePrincipalResolver,
+        notification_port: NotificationPort | None = None,
         poll_interval: float = DEFAULT_POLL_INTERVAL,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ) -> None:
@@ -92,6 +98,7 @@ class DispatchWorker:
         self._events_channel = events_channel
         # Resolves a subscription filter's source slugs to source-principal ids.
         self._resolve_source_principals = source_principal_resolver
+        self._notification_port = notification_port
         self._poll_interval = poll_interval
         self._batch_size = batch_size
         self._stop_event = asyncio.Event()
@@ -312,6 +319,7 @@ class DispatchWorker:
                 event_fire_callback=self._make_event_fire_callback(
                     owner_principal_id,
                 ),
+                notification_port=self._notification_port,
             )
         except Exception:
             logger.exception(
@@ -391,6 +399,7 @@ class DispatchWorker:
                 event_fire_callback=self._make_event_fire_callback(
                     owner_principal_id,
                 ),
+                notification_port=self._notification_port,
             )
         except Exception:
             logger.exception(

@@ -10,6 +10,8 @@ from orxtra.protocols import (
     EventAction,
     EventFireCallback,
     LogAction,
+    NotificationPort,
+    NotifyAction,
     ScriptAction,
     WorkflowAction,
 )
@@ -23,6 +25,7 @@ async def execute_action(
     *,
     workflow_executor: ActionExecutor | None = None,
     event_fire_callback: EventFireCallback | None = None,
+    notification_port: NotificationPort | None = None,
 ) -> None:
     """Dispatch a single action by type.
 
@@ -41,6 +44,9 @@ async def execute_action(
     if isinstance(action, EventAction):
         await _run_event(action, event_fire_callback)
         return
+    if isinstance(action, NotifyAction):
+        await _run_notify(action, notification_port)
+        return
     msg = f"Unknown action type: {type(action).__name__}"
     raise TypeError(msg)
 
@@ -51,6 +57,7 @@ async def execute_actions_bounded(
     max_concurrent: int,
     workflow_executor: ActionExecutor | None = None,
     event_fire_callback: EventFireCallback | None = None,
+    notification_port: NotificationPort | None = None,
 ) -> None:
     """Execute multiple actions with bounded concurrency."""
     semaphore = asyncio.Semaphore(max_concurrent)
@@ -62,6 +69,7 @@ async def execute_actions_bounded(
                 evts,
                 workflow_executor=workflow_executor,
                 event_fire_callback=event_fire_callback,
+                notification_port=notification_port,
             )
 
     tasks = [
@@ -132,3 +140,17 @@ async def _run_event(
         )
         raise RuntimeError(msg)
     await callback(action.event_type, action.data or None)
+
+
+async def _run_notify(
+    action: NotifyAction,
+    port: NotificationPort | None,
+) -> None:
+    if port is None:
+        msg = (
+            "NotifyAction requires a notification_port but none was provided"
+        )
+        raise RuntimeError(msg)
+    await port.create_delivery(
+        action.target_principal_id, action.source_ref, action.payload,
+    )

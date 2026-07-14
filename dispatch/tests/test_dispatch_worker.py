@@ -20,7 +20,8 @@ from orxtra.dispatch._types import (
     Subscription,
     SubscriptionAction,
 )
-from orxtra.protocols import LogAction, ScriptAction
+from orxtra.notification import InMemoryNotificationBackend
+from orxtra.protocols import LogAction, NotifyAction, ScriptAction
 from uuid6 import uuid7
 
 # Make _handlers importable for ScriptAction tests.
@@ -114,6 +115,7 @@ def _make_worker(
     action_executor: StubActionExecutor | None = None,
     cursor_name: str = "test",
     poll_interval: float = 0.05,
+    notification_port: InMemoryNotificationBackend | None = None,
 ) -> DispatchWorker:
     return DispatchWorker(
         backend=backend,  # type: ignore[arg-type]
@@ -123,6 +125,7 @@ def _make_worker(
         cursor_name=cursor_name,
         events_channel="test_channel",
         source_principal_resolver=_resolve_sources,
+        notification_port=notification_port,
         poll_interval=poll_interval,
         batch_size=100,
     )
@@ -525,3 +528,92 @@ class TestInboxExpirySweep:
         old_sweep = worker._last_expiry_sweep
         await worker._maybe_sweep_expired_inbox()
         assert worker._last_expiry_sweep > old_sweep
+
+
+# -- Target principal for NotifyAction tests --
+_NOTIFY_TARGET_PID = uuid7()
+
+
+def _add_subscription_with_notify(
+    backend: InMemoryDispatchBackend,
+    event_types: list[str] | None = None,
+    target_principal_id: UUID | None = None,
+    source_ref: str = "dispatch:test",
+    payload: dict[str, Any] | None = None,
+) -> tuple[UUID, UUID]:
+    """Add a subscription + NotifyAction."""
+    sub = Subscription(
+        id=uuid7(),
+        filter=FilterPredicate(event_types=event_types),
+        enabled=True,
+        storage="persistent",
+        principal_id=_SYSTEM_PID,
+        created_at=NOW,
+    )
+    backend._subscriptions[sub.id] = sub
+    action = SubscriptionAction(
+        id=uuid7(),
+        subscription_id=sub.id,
+        position=0,
+        action=NotifyAction(
+            target_principal_id=target_principal_id or _NOTIFY_TARGET_PID,
+            source_ref=source_ref,
+            payload=payload or {"alert": True},
+        ),
+        created_at=NOW,
+    )
+    backend._actions[action.id] = action
+    return sub.id, action.id
+
+
+class TestNotifyActionWorker:
+    """NotifyAction through the dispatch worker."""
+
+    async def test_matching_event_creates_delivery(self) -> None:
+        """A subscription with NotifyAction creates a delivery on the port."""
+        backend = InMemoryDispatchBackend()
+        port = InMemoryNotificationBackend()
+        _add_subscription_with_notify(
+            backend,
+            event_types=["notify.test"],
+            source_ref="dispatch:sub:x",
+            payload={"key": "value"},
+        )
+
+        ev = _make_event("notify.test", {"data": "info"})
+        backend.inject_event(ev)
+
+        worker = _make_worker(backend, notification_port=port)
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.3)
+        await worker.stop()
+        await run_task
+
+        deliveries = await port.list_for_principal(
+            _NOTIFY_TARGET_PID, unacknowledged_only=False,
+        )
+        assert len(deliveries) == 1
+        assert deliveries[0].source_ref == "dispatch:sub:x"
+        assert deliveries[0].payload == {"key": "value"}
+        assert deliveries[0].target_principal_id == _NOTIFY_TARGET_PID
+
+    async def test_no_port_logs_error_without_crash(self) -> None:
+        """NotifyAction without a port logs an error but does not crash the worker."""
+        backend = InMemoryDispatchBackend()
+        _sub_id, _action_id = _add_subscription_with_notify(
+            backend, event_types=["notify.noport"],
+        )
+
+        ev = _make_event("notify.noport")
+        backend.inject_event(ev)
+
+        # notification_port is None (default) -- should log error, not crash.
+        worker = _make_worker(backend)
+        run_task = asyncio.create_task(worker.run())
+        await asyncio.sleep(0.3)
+        await worker.stop()
+        await run_task
+
+        # Worker survives; cursor advances past the event.
+        cursor = await backend.get_cursor_position("test")
+        assert cursor == ev["id"]

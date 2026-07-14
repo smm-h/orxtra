@@ -1,14 +1,22 @@
-"""Tests for action executor: ScriptAction, LogAction, WorkflowAction, EventAction, bounded concurrency."""
+"""Tests for action executor: ScriptAction, LogAction, WorkflowAction, EventAction, NotifyAction, bounded concurrency."""
 
 from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import UUID
 
 import pytest
 from _handlers import script_calls
 from orxtra.dispatch import execute_action, execute_actions_bounded
-from orxtra.protocols import EventAction, LogAction, ScriptAction, WorkflowAction
+from orxtra.notification import InMemoryNotificationBackend
+from orxtra.protocols import (
+    EventAction,
+    LogAction,
+    NotifyAction,
+    ScriptAction,
+    WorkflowAction,
+)
 
 # -- Fixtures and helpers --
 
@@ -164,6 +172,35 @@ class TestEventAction:
     async def test_no_callback_raises(self) -> None:
         action = EventAction(event_type="task.started")
         with pytest.raises(RuntimeError, match="event_fire_callback"):
+            await execute_action(action, [])
+
+
+# -- NotifyAction tests --
+
+
+class TestNotifyAction:
+    async def test_calls_create_delivery(self) -> None:
+        port = InMemoryNotificationBackend()
+        pid = UUID("12345678-1234-5678-1234-567812345678")
+        action = NotifyAction(
+            target_principal_id=pid,
+            source_ref="dispatch:sub:test",
+            payload={"msg": "hello"},
+        )
+        await execute_action(action, [], notification_port=port)
+        deliveries = await port.list_for_principal(pid, unacknowledged_only=False)
+        assert len(deliveries) == 1
+        assert deliveries[0].source_ref == "dispatch:sub:test"
+        assert deliveries[0].payload == {"msg": "hello"}
+
+    async def test_no_port_raises(self) -> None:
+        pid = UUID("12345678-1234-5678-1234-567812345678")
+        action = NotifyAction(
+            target_principal_id=pid,
+            source_ref="test",
+            payload={},
+        )
+        with pytest.raises(RuntimeError, match="notification_port"):
             await execute_action(action, [])
 
 

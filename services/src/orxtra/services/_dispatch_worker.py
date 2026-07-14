@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
     import asyncpg
     from orxtra.dispatch import SourcePrincipalResolver
+    from orxtra.protocols import NotificationPort
 
 
 def _make_source_principal_resolver(
@@ -54,6 +55,7 @@ def _make_source_principal_resolver(
 async def create_dispatch_worker(
     pool: asyncpg.Pool,
     *,
+    notification_port: NotificationPort | None = None,
     cursor_name: str = "main",
     poll_interval: float = 5.0,
     batch_size: int = 100,
@@ -62,6 +64,7 @@ async def create_dispatch_worker(
 
     Args:
         pool: asyncpg connection pool.
+        notification_port: optional notification delivery port for NotifyAction.
         cursor_name: name for the durable cursor (supports multiple workers).
         poll_interval: fallback poll interval in seconds.
         batch_size: max events per poll.
@@ -84,6 +87,7 @@ async def create_dispatch_worker(
         cursor_name=cursor_name,
         events_channel=EVENTS_CHANNEL,
         source_principal_resolver=resolver,
+        notification_port=notification_port,
         poll_interval=poll_interval,
         batch_size=batch_size,
     )

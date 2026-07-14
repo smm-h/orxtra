@@ -71,8 +71,12 @@ def register_dispatch_commands(app: strictcli.App) -> None:
                     print(str(exc), file=sys.stderr)
                     sys.exit(1)
 
+                from orxtra.notification import PgNotificationBackend
+
+                notification_port = PgNotificationBackend(pool)
                 worker = await create_dispatch_worker(
                     pool,
+                    notification_port=notification_port,
                     cursor_name=cursor,
                     poll_interval=poll_interval,
                     batch_size=batch_size,

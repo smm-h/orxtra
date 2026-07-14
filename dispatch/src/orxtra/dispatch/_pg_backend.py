@@ -11,13 +11,21 @@ from orxtra.dispatch._types import (
     Subscription,
     SubscriptionAction,
 )
-from orxtra.protocols import EventAction, LogAction, NotifyAction, ScriptAction, WorkflowAction
+from orxtra.protocols import (
+    EventAction,
+    LogAction,
+    NotifyAction,
+    ScriptAction,
+    WorkflowAction,
+)
 
 if TYPE_CHECKING:
     import asyncpg
     from orxtra.protocols import Action
 
-type _ActionType = type[ScriptAction | LogAction | WorkflowAction | EventAction | NotifyAction]
+type _ActionType = type[
+    ScriptAction | LogAction | WorkflowAction | EventAction | NotifyAction
+]
 
 # Map Action subclass -> DB action_type string.
 _ACTION_TYPE_MAP: dict[_ActionType, str] = {
@@ -33,7 +41,10 @@ _ACTION_CLASS_MAP: dict[str, _ActionType] = {v: k for k, v in _ACTION_TYPE_MAP.i
 
 
 def _serialize_action(
-    action: ScriptAction | LogAction | WorkflowAction | EventAction | NotifyAction,
+    action: (
+        ScriptAction | LogAction | WorkflowAction
+        | EventAction | NotifyAction
+    ),
 ) -> tuple[str, str]:
     """Decompose an Action into (action_type, action_config_json)."""
     action_type = _ACTION_TYPE_MAP.get(type(action))

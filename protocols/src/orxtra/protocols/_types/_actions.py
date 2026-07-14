@@ -3,11 +3,11 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 from orxtra.protocols._types._enums import ConstraintTier
 from orxtra.protocols._types._task import Execution
 from pydantic import BaseModel, ConfigDict
-from uuid import UUID
 
 # -- Action type hierarchy --
 
