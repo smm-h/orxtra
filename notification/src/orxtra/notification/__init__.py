@@ -16,6 +16,7 @@ except PackageNotFoundError:
 
 from orxtra.notification._backend import PgNotificationBackend
 from orxtra.notification._inmemory import InMemoryNotificationBackend
+from orxtra.notification._router import create_notification_router
 from orxtra.notification._stream import (
     NOTIFICATIONS_CHANNEL,
     notification_sse_generator,
@@ -23,10 +24,11 @@ from orxtra.notification._stream import (
 from orxtra.protocols import NotificationDelivery
 
 __all__ = [
-    "InMemoryNotificationBackend",
     "NOTIFICATIONS_CHANNEL",
+    "InMemoryNotificationBackend",
     "NotificationDelivery",
     "PgNotificationBackend",
     "__version__",
+    "create_notification_router",
     "notification_sse_generator",
 ]
