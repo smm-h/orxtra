@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import uuid
 from collections import defaultdict
@@ -88,10 +89,8 @@ class Session:
 
     def remove_sink(self, sink: EventSink[TransportEvent]) -> None:
         """Remove a previously added sink. No-op if not present."""
-        try:
+        with contextlib.suppress(ValueError):
             self._sinks.remove(sink)
-        except ValueError:
-            pass
 
     def _dispatch_to_sinks(self, event: TransportEvent) -> None:
         """Dispatch event to all registered sinks asynchronously."""

@@ -53,14 +53,13 @@ if TYPE_CHECKING:
     import asyncpg
     from orxtra.agent import Agent
     from orxtra.protocols import EventSink, Execution, OverseerEvent
-    from orxtra.transport import TransportEvent
     from orxtra.scheduler._overseer import OverseerInterface
     from orxtra.scheduler._tool_registry import ToolEntry
     from orxtra.scheduler._types import WorkflowConfig
     from orxtra.secrets import SecretRegistry
     from orxtra.session import Session
     from orxtra.trace import StorageBackend, TraceWriter
-    from orxtra.transport import Transport
+    from orxtra.transport import Transport, TransportEvent
 
 _logger = logging.getLogger("orxtra.scheduler")
 
@@ -893,10 +892,8 @@ class Scheduler(
 
     def remove_overseer_sink(self, sink: EventSink[OverseerEvent]) -> None:
         """Remove an overseer event sink. No-op if not present."""
-        try:
+        with contextlib.suppress(ValueError):
             self._overseer_sinks.remove(sink)
-        except ValueError:
-            pass
 
     def add_transport_sink(self, sink: EventSink[TransportEvent]) -> None:
         """Add a transport event sink.
@@ -913,10 +910,8 @@ class Scheduler(
 
         Also removes the sink from all currently active sessions.
         """
-        try:
+        with contextlib.suppress(ValueError):
             self._transport_sinks.remove(sink)
-        except ValueError:
-            pass
         for session in self._task_sessions.values():
             session.remove_sink(sink)
 

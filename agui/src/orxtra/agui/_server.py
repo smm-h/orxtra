@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
@@ -10,6 +11,9 @@ from uuid import UUID
 from ag_ui.core import (
     BaseEvent,
     EventType,
+    RunErrorEvent,
+    RunFinishedEvent,
+    StateSnapshotEvent,
 )
 from ag_ui.encoder import EventEncoder
 from fastware import Router, StreamResponse, TextResponse
@@ -111,6 +115,48 @@ async def _read_run_status(
     )
 
 
+def _now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def _build_snapshot_from_report(report: Any, run_id: str) -> dict[str, Any]:
+    """Build a state snapshot dict from a RunReport for a completed run.
+
+    Uses only fields that exist on RunReport -- no schema additions.
+    Defensive against partial report objects (uses getattr with defaults).
+    """
+    status = getattr(report, "status", None)
+    snapshot: dict[str, Any] = {"run_id": run_id}
+    if status is not None:
+        snapshot["status"] = status
+
+    # Task summaries: per-task status + attempt count
+    tasks = getattr(report, "tasks", None)
+    if tasks:
+        snapshot["tasks"] = [
+            {
+                "id": str(t.id),
+                "name": t.name,
+                "status": t.status,
+                "task_type": t.task_type,
+                "attempt_count": t.attempt_count,
+            }
+            for t in tasks
+        ]
+
+    # Cost
+    total_cost = getattr(report, "total_cost_usd", None)
+    if total_cost is not None:
+        snapshot["total_cost_usd"] = str(total_cost)
+
+    # Coherence summary
+    coherence = getattr(report, "coherence_summary", None)
+    if coherence is not None:
+        snapshot["coherence_summary"] = coherence
+
+    return snapshot
+
+
 def create_agui_router(
     *,
     pool: asyncpg.Pool | None,
@@ -199,11 +245,53 @@ def create_agui_router(
                 run_uuid, transport_sink, overseer_sink,
             )
 
+        is_live = unsubscribe_run is not None
+
         log.info(
             "AG-UI SSE client connected for run_id=%s thread_id=%s active=%s",
             run_id,
             thread_id,
-            unsubscribe_run is not None,
+            is_live,
+        )
+
+        # -- Build the initial StateSnapshotEvent --
+        # For completed runs (subscribe_run returned None): build an enriched
+        # snapshot from the run report, then send a terminal event and close.
+        # For active runs: build a minimal snapshot, then stream live events.
+        snapshot_data: dict[str, Any] = {"run_id": run_id}
+        terminal_events: list[BaseEvent] = []
+
+        if not is_live and pool is not None:
+            # Completed (or unknown) run: try to load the full report.
+            try:
+                report = await get_run(pool, run_uuid)
+            except Exception:  # noqa: BLE001
+                log.debug(
+                    "failed to load run report for snapshot (run %s)",
+                    run_uuid,
+                    exc_info=True,
+                )
+                report = None
+            if report is not None:
+                snapshot_data = _build_snapshot_from_report(report, run_id)
+                report_status = getattr(report, "status", None)
+                if report_status is not None:
+                    ts = _now_ms()
+                    if report_status in ("failed", "aborted"):
+                        terminal_events.append(RunErrorEvent(
+                            message=f"Run {report_status}",
+                            timestamp=ts,
+                        ))
+                    else:
+                        terminal_events.append(RunFinishedEvent(
+                            thread_id=thread_id,
+                            run_id=run_id,
+                            timestamp=ts,
+                        ))
+
+        snapshot_event = StateSnapshotEvent(
+            snapshot=snapshot_data,
+            timestamp=_now_ms(),
         )
 
         # Wrap the broadcaster's SSE stream to add registry cleanup on
@@ -212,6 +300,16 @@ def create_agui_router(
 
         async def _wrapped_generator() -> AsyncGenerator[str, None]:
             try:
+                # Always emit the snapshot first.
+                yield encoder.encode(snapshot_event)
+
+                if terminal_events:
+                    # Completed run: emit terminal events and close.
+                    for t_event in terminal_events:
+                        yield encoder.encode(t_event)
+                    return
+
+                # Live run: stream events from the broadcaster.
                 async for chunk in sse_response.generator:
                     yield chunk
             finally:

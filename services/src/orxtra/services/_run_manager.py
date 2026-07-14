@@ -8,7 +8,7 @@ caller to serve a completed-run snapshot instead.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 if TYPE_CHECKING:
