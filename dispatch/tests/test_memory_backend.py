@@ -405,6 +405,78 @@ class TestSourceCRUD:
 # -- DispatchBackend protocol conformance --
 
 
+class TestFilterPredicateRoundTrip:
+    """In-memory backend stores FilterPredicate as-is inside Subscription
+    objects.  Verify that ``model_dump`` -> ``model_validate`` preserves the
+    ``principal_id`` field (Python-object round-trip, no JSON involved).
+    """
+
+    @pytest.mark.asyncio
+    async def test_round_trip_with_principal_id(
+        self, backend: InMemoryDispatchBackend,
+    ) -> None:
+        pid = uuid7()
+        sub = Subscription(
+            id=uuid7(),
+            filter=FilterPredicate(
+                event_types=["task.completed"],
+                principal_id=pid,
+            ),
+            principal_id=uuid7(),
+            created_at=NOW,
+        )
+        await backend.create_subscription(sub)
+        fetched = await backend.get_subscription(sub.id)
+        assert fetched is not None
+        assert fetched.filter.principal_id == pid
+        assert fetched.filter.event_types == ["task.completed"]
+
+    @pytest.mark.asyncio
+    async def test_round_trip_without_principal_id(
+        self, backend: InMemoryDispatchBackend,
+    ) -> None:
+        sub = Subscription(
+            id=uuid7(),
+            filter=FilterPredicate(event_types=["x"]),
+            principal_id=uuid7(),
+            created_at=NOW,
+        )
+        await backend.create_subscription(sub)
+        fetched = await backend.get_subscription(sub.id)
+        assert fetched is not None
+        assert fetched.filter.principal_id is None
+
+    def test_json_round_trip_preserves_principal_id(self) -> None:
+        """Simulate the PG backend's JSON serialization path: model_dump(mode='json')
+        produces string UUIDs; model_validate(data, strict=False) coerces them back.
+        """
+        import json
+
+        pid = uuid7()
+        fp = FilterPredicate(
+            event_types=["task.completed"],
+            principal_id=pid,
+        )
+        json_str = json.dumps(fp.model_dump(mode="json"))
+        restored = FilterPredicate.model_validate(
+            json.loads(json_str), strict=False,
+        )
+        assert restored.principal_id == pid
+        assert restored.event_types == ["task.completed"]
+
+    def test_json_round_trip_missing_principal_id(self) -> None:
+        """Existing rows serialized before this field was added lack the key.
+        Pydantic fills in the default (None).
+        """
+        import json
+
+        old_data = json.loads(
+            '{"event_types": ["task.completed"], "sources": null, "data_predicates": null}'
+        )
+        restored = FilterPredicate.model_validate(old_data, strict=False)
+        assert restored.principal_id is None
+
+
 class TestDispatchBackendProtocol:
     def test_isinstance_check(self) -> None:
         assert isinstance(InMemoryDispatchBackend(), DispatchBackend)

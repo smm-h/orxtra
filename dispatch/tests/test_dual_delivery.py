@@ -88,3 +88,60 @@ class TestMatchSubscription:
         assert await match_subscription(
             "any", None, None, f, _resolve_sources,
         )
+
+    # -- principal_id filter --
+
+    async def test_principal_id_match(self) -> None:
+        """Event principal matches the filter's principal_id -> True."""
+        target = uuid7()
+        f = FilterPredicate(principal_id=target)
+        assert await match_subscription(
+            "any.event", target, None, f, _resolve_sources,
+        )
+
+    async def test_principal_id_no_match(self) -> None:
+        """Event principal differs from the filter's principal_id -> False."""
+        target = uuid7()
+        other = uuid7()
+        f = FilterPredicate(principal_id=target)
+        assert not await match_subscription(
+            "any.event", other, None, f, _resolve_sources,
+        )
+
+    async def test_principal_id_none_wildcard(self) -> None:
+        """Filter principal_id=None (wildcard) -> any event principal passes."""
+        f = FilterPredicate(principal_id=None)
+        assert await match_subscription(
+            "any.event", uuid7(), None, f, _resolve_sources,
+        )
+        assert await match_subscription(
+            "any.event", None, None, f, _resolve_sources,
+        )
+
+    async def test_principal_id_combined_with_event_types(self) -> None:
+        """Both principal_id and event_types must match (AND semantics)."""
+        target = uuid7()
+        f = FilterPredicate(
+            event_types=["task.completed"],
+            principal_id=target,
+        )
+        # Both match.
+        assert await match_subscription(
+            "task.completed", target, None, f, _resolve_sources,
+        )
+        # event_type matches, principal_id doesn't.
+        assert not await match_subscription(
+            "task.completed", uuid7(), None, f, _resolve_sources,
+        )
+        # principal_id matches, event_type doesn't.
+        assert not await match_subscription(
+            "task.failed", target, None, f, _resolve_sources,
+        )
+
+    async def test_principal_id_event_none_no_match(self) -> None:
+        """Filter has principal_id set, but event has None -> False."""
+        target = uuid7()
+        f = FilterPredicate(principal_id=target)
+        assert not await match_subscription(
+            "any.event", None, None, f, _resolve_sources,
+        )

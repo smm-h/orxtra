@@ -25,6 +25,7 @@ class TestFilterPredicate:
         f = FilterPredicate()
         assert f.event_types is None
         assert f.sources is None
+        assert f.principal_id is None
         assert f.data_predicates is None
 
     def test_event_types_filter(self) -> None:
@@ -34,6 +35,10 @@ class TestFilterPredicate:
     def test_sources_filter(self) -> None:
         f = FilterPredicate(sources=["scheduler", "overseer"])
         assert f.sources == ["scheduler", "overseer"]
+
+    def test_principal_id_filter(self) -> None:
+        f = FilterPredicate(principal_id=PRINCIPAL_ID)
+        assert f.principal_id == PRINCIPAL_ID
 
     def test_frozen(self) -> None:
         f = FilterPredicate()
