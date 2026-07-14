@@ -29,6 +29,8 @@ EXPECTED_TOOL_NAMES: set[str] = {
     "get_principal",
     "list_principals",
     "delete_principal",
+    "list_deliveries",
+    "acknowledge_delivery",
 }
 
 VALIDATION_TOOL_NAMES: set[str] = {
@@ -55,7 +57,7 @@ def test_each_tool_has_required_keys() -> None:
 
 def test_tool_count_matches_spec() -> None:
     tools = get_tool_definitions()
-    assert len(tools) == 24
+    assert len(tools) == 26
 
 
 def test_no_validation_tools_present() -> None:
