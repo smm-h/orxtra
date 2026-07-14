@@ -27,6 +27,7 @@ jobs:
       auth: ${{ steps.changes.outputs.auth }}
       identity: ${{ steps.changes.outputs.identity }}
       a2ui: ${{ steps.changes.outputs.a2ui }}
+      notification: ${{ steps.changes.outputs.notification }}
       scheduler: ${{ steps.changes.outputs.scheduler }}
       dispatch: ${{ steps.changes.outputs.dispatch }}
       overseer: ${{ steps.changes.outputs.overseer }}
@@ -58,6 +59,7 @@ jobs:
           auth: 'auth/**'
           identity: 'identity/**'
           a2ui: 'a2ui/**'
+          notification: 'notification/**'
           scheduler: 'scheduler/**'
           dispatch: 'dispatch/**'
           overseer: 'overseer/**'
@@ -405,6 +407,30 @@ jobs:
     needs:
     - detect
     if: needs.detect.outputs.a2ui == 'true'
+  notification-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # requires-python: >= 3.12
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync --locked
+    - run: uv run python -c "import orxtra"
+    - name: Install gitleaks
+      run: |
+        GITLEAKS_VERSION=8.24.3
+        curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz -C /usr/local/bin gitleaks
+    - run: uv run pytest --rootdir .
+    defaults:
+      run:
+        working-directory: notification
+    name: notification-ci / test
+    needs:
+    - detect
+    if: needs.detect.outputs.notification == 'true'
   scheduler-ci-test:
     runs-on: ubuntu-latest
     strategy:
