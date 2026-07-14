@@ -1427,7 +1427,73 @@ async def test_migration_from_v080_baseline(
 # re-snapshot the baseline. The baseline stays anchored at v0.10.1; the chain
 # grows. When the accumulated chain is large enough to warrant a fresh anchor,
 # capture a new baseline (v0.x.y) and start its own empty chain.
-_MIGRATION_SQL_V0101: list[str] = []
+_MIGRATION_SQL_V0101: list[str] = [
+    # -- notification_deliveries table (Phase 3.2) --
+    # 1. Table: notification_deliveries
+    """CREATE TABLE IF NOT EXISTS notification_deliveries (
+        id uuid NOT NULL DEFAULT uuid_generate_v7(),
+        target_principal_id uuid NOT NULL,
+        source_ref text NOT NULL,
+        payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        acknowledged_at timestamptz,
+        CONSTRAINT pk_notification_deliveries PRIMARY KEY (id)
+    )""",
+
+    # 2. FK: notification_deliveries.target_principal_id -> principals.id
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_notification_deliveries_target_principal'
+        AND conrelid = 'notification_deliveries'::regclass
+      ) THEN
+        ALTER TABLE notification_deliveries
+            ADD CONSTRAINT fk_notification_deliveries_target_principal
+            FOREIGN KEY (target_principal_id) REFERENCES principals (id)
+            ON DELETE RESTRICT;
+      END IF;
+    END $$;""",
+
+    # 3. CHECK: source_ref not empty
+    """DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'chk_notification_deliveries_source_ref_not_empty'
+        AND conrelid = 'notification_deliveries'::regclass
+      ) THEN
+        ALTER TABLE notification_deliveries
+            ADD CONSTRAINT chk_notification_deliveries_source_ref_not_empty
+            CHECK (source_ref <> '');
+      END IF;
+    END $$;""",
+
+    # 4. Index: partial index for unacked queries
+    """CREATE INDEX IF NOT EXISTS idx_notification_deliveries_unacked
+       ON notification_deliveries (target_principal_id, created_at)
+       WHERE acknowledged_at IS NULL""",
+
+    # 5. Index: source_ref for lookup
+    """CREATE INDEX IF NOT EXISTS idx_notification_deliveries_source_ref
+       ON notification_deliveries (source_ref)""",
+
+    # 6. NOTIFY trigger function
+    """CREATE OR REPLACE FUNCTION notify_orxtra_notification() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('orxtra_notifications', json_build_object(
+        'notification_id', NEW.id,
+        'target_principal_id', NEW.target_principal_id::text
+    )::text);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql""",
+
+    # 7. Trigger: fire NOTIFY on INSERT
+    """CREATE OR REPLACE TRIGGER trg_notify_notification_delivery
+       AFTER INSERT ON notification_deliveries
+       FOR EACH ROW EXECUTE FUNCTION notify_orxtra_notification()""",
+]
 
 
 async def test_migration_from_v0101_baseline(
@@ -1441,7 +1507,7 @@ async def test_migration_from_v0101_baseline(
     the schema automatically instead of freezing today's shape:
 
     1. Apply the frozen v0.10.1 baseline executor to an empty database.
-    2. Apply the v0.10.1 delta chain (``_MIGRATION_SQL_V0101`` -- empty today).
+    2. Apply the v0.10.1 delta chain (``_MIGRATION_SQL_V0101``).
     3. Assert the LIVE generated executor's ``verify()`` passes against the
        resulting database (via ``verify_schema``, the same production path used
        by ``orxtra db``, which filters known false positives and raises
@@ -1489,9 +1555,131 @@ async def test_migration_from_v0101_baseline(
             msg = f"v0.10.1 baseline schema creation failed: {err_msg}"
             raise RuntimeError(msg)
 
-        # --- Step 2: Apply the v0.10.1 delta chain (empty today) ---
+        # --- Step 2: Apply the v0.10.1 delta chain ---
         for stmt in _MIGRATION_SQL_V0101:
             await conn.execute(stmt)
+
+        # --- Step 2b: Assert the notification_deliveries delta is correct ---
+        # Table exists.
+        tables = await conn.fetch(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'public' ORDER BY table_name",
+        )
+        table_names = {r["table_name"] for r in tables}
+        assert "notification_deliveries" in table_names, (
+            "notification_deliveries table must exist after migration"
+        )
+
+        # Columns are correct.
+        nd_cols = await conn.fetch(
+            "SELECT column_name, is_nullable FROM information_schema.columns "
+            "WHERE table_name = 'notification_deliveries' "
+            "ORDER BY ordinal_position",
+        )
+        nd_col_map = {c["column_name"]: c["is_nullable"] for c in nd_cols}
+        assert "id" in nd_col_map
+        assert "target_principal_id" in nd_col_map
+        assert nd_col_map["target_principal_id"] == "NO"
+        assert "source_ref" in nd_col_map
+        assert nd_col_map["source_ref"] == "NO"
+        assert "payload" in nd_col_map
+        assert "created_at" in nd_col_map
+        assert "acknowledged_at" in nd_col_map
+        assert nd_col_map["acknowledged_at"] == "YES"
+
+        # FK constraint exists.
+        fk = await conn.fetchrow(
+            "SELECT 1 FROM pg_constraint "
+            "WHERE conname = 'fk_notification_deliveries_target_principal' "
+            "AND conrelid = 'notification_deliveries'::regclass",
+        )
+        assert fk is not None, (
+            "fk_notification_deliveries_target_principal must exist"
+        )
+
+        # CHECK constraint exists.
+        chk = await conn.fetchrow(
+            "SELECT 1 FROM pg_constraint "
+            "WHERE conname = 'chk_notification_deliveries_source_ref_not_empty' "
+            "AND conrelid = 'notification_deliveries'::regclass",
+        )
+        assert chk is not None, (
+            "chk_notification_deliveries_source_ref_not_empty must exist"
+        )
+
+        # Indexes exist.
+        nd_indexes = await conn.fetch(
+            "SELECT indexname FROM pg_indexes "
+            "WHERE tablename = 'notification_deliveries'",
+        )
+        nd_index_names = {r["indexname"] for r in nd_indexes}
+        assert "idx_notification_deliveries_unacked" in nd_index_names, (
+            "the partial unacked index must exist"
+        )
+        assert "idx_notification_deliveries_source_ref" in nd_index_names, (
+            "the source_ref index must exist"
+        )
+
+        # Trigger function exists.
+        fn = await conn.fetchrow(
+            "SELECT 1 FROM pg_proc WHERE proname = 'notify_orxtra_notification'",
+        )
+        assert fn is not None, "notify_orxtra_notification function must exist"
+
+        # Trigger exists.
+        trg = await conn.fetchrow(
+            "SELECT 1 FROM pg_trigger t "
+            "JOIN pg_class c ON c.oid = t.tgrelid "
+            "WHERE c.relname = 'notification_deliveries' "
+            "AND t.tgname = 'trg_notify_notification_delivery'",
+        )
+        assert trg is not None, "trg_notify_notification_delivery must exist"
+
+        # Seed and verify: insert a notification delivery.
+        sys_pid = await conn.fetchval(
+            "SELECT id FROM principals WHERE kind = 'system' "
+            "AND external_ref = '00000000-0000-0000-0000-000000000000'",
+        )
+        if sys_pid is None:
+            # The v0.10.1 baseline seeds the system principal.
+            sys_pid = await conn.fetchval(
+                "INSERT INTO principals (kind, external_ref, display_name) "
+                "VALUES ('system', '00000000-0000-0000-0000-000000000000', 'system') "
+                "ON CONFLICT (kind, external_ref) DO UPDATE "
+                "SET display_name = principals.display_name RETURNING id",
+            )
+
+        nd_id = await conn.fetchval(
+            "INSERT INTO notification_deliveries "
+            "(target_principal_id, source_ref, payload) "
+            "VALUES ($1, 'self-subscription', '{\"k\":\"v\"}'::jsonb) "
+            "RETURNING id",
+            sys_pid,
+        )
+        assert nd_id is not None
+
+        # Verify the row.
+        nd_row = await conn.fetchrow(
+            "SELECT * FROM notification_deliveries WHERE id = $1", nd_id,
+        )
+        assert nd_row is not None
+        assert nd_row["acknowledged_at"] is None
+
+        # Empty source_ref is rejected by CHECK.
+        with pytest.raises(Exception, match="chk_notification_deliveries_source_ref_not_empty"):
+            await conn.execute(
+                "INSERT INTO notification_deliveries "
+                "(target_principal_id, source_ref, payload) "
+                "VALUES ($1, '', '{}'::jsonb)",
+                sys_pid,
+            )
+
+        # FK RESTRICT is enforced: cannot delete a principal with a delivery.
+        with pytest.raises(Exception, match="fk_notification_deliveries_target_principal"):
+            await conn.execute(
+                "DELETE FROM principals WHERE id = $1", sys_pid,
+            )
+
     finally:
         await conn.close()
 
