@@ -1,0 +1,31 @@
+[releasables.orxtra]
+# Version bump type: patch, minor, major, hotfix, or prerelease
+bump = "minor"
+# Short description of this release (required)
+description = "Notification delivery, worker WebSocket endpoint, AG-UI live streaming."
+# Optional context explaining why these changes were made
+context = """
+Three major feature systems land in this release:
+
+1. Notification delivery: NotifyAction as fifth dispatch action type, self-subscriptions
+   for consumer principals, PG + in-memory backends implementing NotificationPort,
+   SSE stream with catch-up replay, CRUD capabilities (list_deliveries,
+   acknowledge_delivery).
+
+2. Worker WebSocket endpoint: authenticated connections (code 4001 on failure),
+   WorkerRegistry, BrainWorkerBridge, ToolLocation routing (LOCAL/ANYWHERE),
+   ToolCapability enum, execution_target on TaskSpec.
+
+3. AG-UI live streaming: RunManager, runtime sink injection via subscribe_run,
+   enriched StateSnapshotEvent for late-joiners and completed runs, snapshot-only
+   mode for historical runs.
+
+Multiple breaking changes: TaskSpec.remote replaced by execution_target,
+FilterPredicate gains principal_id, create_principal gains notification_event_types,
+WorkerRegistration.capabilities typed as ToolCapability enum, WorkerInfo.consumer_id
+changed to UUID | None, WebSocket auth required.
+"""
+# Pre-release identifier: alpha, beta, rc, or stable
+# preid = ""
+include = ["pypi"]
+exclude = []
