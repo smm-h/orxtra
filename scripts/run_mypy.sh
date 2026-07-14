@@ -3,7 +3,7 @@
 # and exits non-zero if any module has errors.
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 failed=0
-for mod in protocols secrets write-safety transport agent tool verify trace notepad session compose scheduler dispatch overseer services auth identity api worker a2a a2ui agui cli mcp incoming; do
+for mod in protocols secrets write-safety transport agent tool verify trace notepad session compose scheduler dispatch overseer services auth identity api worker a2a a2ui agui cli mcp incoming notification; do
   echo "=== $mod ==="
   cd "$REPO_ROOT/$mod"
   if ! MYPYPATH=src uv run --with mypy --with 'pydantic[mypy]' python -m mypy --strict --explicit-package-bases src/orxtra/*/; then

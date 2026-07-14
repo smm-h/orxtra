@@ -127,6 +127,13 @@ depends_on = ["protocols"]
 library = true
 releasable = "orxtra"
 
+[[projects]]
+path = "notification"
+description = "Notification delivery: persisted notifications for principals via the dispatch subscription system."
+depends_on = ["protocols"]
+library = true
+releasable = "orxtra"
+
 # --- Orchestration layer ---
 
 [[projects]]
@@ -223,7 +230,7 @@ releasable = false
 order = ["foundation", "orchestration", "intelligence", "composition", "interfaces"]
 
 [layers.assignments]
-foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session", "compose", "auth", "identity", "a2ui", "worker"]
+foundation = ["protocols", "secrets", "write-safety", "transport", "agent", "tool", "verify", "trace", "notepad", "session", "compose", "auth", "identity", "a2ui", "worker", "notification"]
 orchestration = ["scheduler", "dispatch"]
 intelligence = ["overseer"]
 composition = ["services"]

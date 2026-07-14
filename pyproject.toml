@@ -64,6 +64,7 @@ include = [
     "worker/src/",
     "compose/src/",
     "incoming/src/",
+    "notification/src/",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -98,6 +99,7 @@ members = [
     "worker",
     "compose",
     "incoming",
+    "notification",
 ]
 
 [tool.uv.sources]
@@ -126,6 +128,7 @@ orxtra-api = { workspace = true }
 orxtra-worker = { workspace = true }
 orxtra-compose = { workspace = true }
 orxtra-incoming = { workspace = true }
+orxtra-notification = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -164,6 +167,7 @@ dev = [
     "orxtra-worker",
     "orxtra-compose",
     "orxtra-incoming",
+    "orxtra-notification",
 ]
 
 [tool.ruff]
