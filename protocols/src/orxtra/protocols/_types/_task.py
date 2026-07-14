@@ -69,7 +69,7 @@ class TaskSpec(BaseModel):
     max_concurrency: int | None = None
     output_schema: str | None = None
     budget: Decimal | None = None
-    remote: bool = False
+    execution_target: str | None = None
     write_paths: list[str] | None = None
     on_success: str | None = None
     pre_retry: str | None = None
