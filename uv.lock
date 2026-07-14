@@ -24,6 +24,7 @@ members = [
     "orxtra-incoming",
     "orxtra-mcp",
     "orxtra-notepad",
+    "orxtra-notification",
     "orxtra-overseer",
     "orxtra-protocols",
     "orxtra-scheduler",
@@ -903,6 +904,7 @@ dev = [
     { name = "orxtra-incoming" },
     { name = "orxtra-mcp" },
     { name = "orxtra-notepad" },
+    { name = "orxtra-notification" },
     { name = "orxtra-overseer" },
     { name = "orxtra-protocols" },
     { name = "orxtra-scheduler" },
@@ -956,6 +958,7 @@ dev = [
     { name = "orxtra-incoming", editable = "incoming" },
     { name = "orxtra-mcp", editable = "mcp" },
     { name = "orxtra-notepad", editable = "notepad" },
+    { name = "orxtra-notification", editable = "notification" },
     { name = "orxtra-overseer", editable = "overseer" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-scheduler", editable = "scheduler" },
@@ -1338,6 +1341,31 @@ dev = [
 
 [package.metadata]
 requires-dist = [{ name = "orxtra-trace", editable = "trace" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+
+[[package]]
+name = "orxtra-notification"
+version = "0.10.1"
+source = { editable = "notification" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "orxtra-protocols" },
+    { name = "uuid6" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg" },
+    { name = "orxtra-protocols", editable = "protocols" },
+    { name = "uuid6" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
