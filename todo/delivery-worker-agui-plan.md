@@ -4,10 +4,10 @@
 
 1. FilterPredicate gains `principal_id: UUID | None` for self-subscription filtering; AND-combined with all other predicates.
 2. WebSocket auth extends auth_middleware for websocket scopes; reject with code 4001 before accept. ASGI flow: headers are on scope["headers"] without consuming any message; extract bearer, authenticate; if INVALID then consume websocket.connect and send websocket.close with code 4001; if VALID store auth context and pass through with receive unconsumed so ws.accept() works normally in the handler.
-3. ToolLocation enum (LOCAL/REMOTE/ANYWHERE) and ToolCapability enum on ToolEntry (routing decisions happen before tool construction) and Tool (factory propagates). TaskSpec.execution_target: str | None replaces TaskSpec.remote: bool.
+3. ToolLocation enum (LOCAL/ANYWHERE — REMOTE removed, no tool uses it) and ToolCapability enum on ToolEntry in scheduler/_tool_registry.py (routing decisions happen before tool construction) and Tool (factory propagates). TaskSpec.execution_target: str | None replaces TaskSpec.remote: bool.
 4. New Foundation-layer notification module behind NotificationPort protocol; notification_deliveries table in schema/notification.toml with opaque source_ref (no upward FK); PG NOTIFY trigger on global channel orxtra_notifications with client-side principal filtering (no per-principal channels).
 5. NotifyAction as fifth action type; receives NotificationPort via injection; handler calls port.create_delivery().
-6. Self-subscription filter is a REQUIRED parameter of create_principal (consumer/app-registered → required, run/source/system → must be None); exact new signature: create_principal(dispatch_backend, principal_storage, kind_registry, caller_principal, *, kind, external_ref, display_name=None, self_subscription_filter=None).
+6. Self-subscription filter is a REQUIRED parameter of create_principal (consumer/app-registered → required, run/source/system → must be None); exact new signature: create_principal(dispatch_backend, principal_storage, kind_registry, caller_principal, *, kind, external_ref, display_name=None, self_subscription_filter=None). CRITICAL: the caller passes self_subscription_filter with principal_id=None as a template; create_principal fills in principal_id=minted_principal.id and target_principal_id=minted_principal.id AFTER minting (the id is DB-generated, unknowable to the caller).
 7. Principal notifications SSE endpoint replicating incoming's catch-up pattern against notification_deliveries.
 8. RunManager instance-scoped on DispatchContext; demand-driven subscribe(run_id, sinks) → unsubscribe; Scheduler gains add/remove sink methods; new sessions auto-receive registered transport sinks; safe iteration via list snapshot copy.
 9. Completed runs get enriched StateSnapshotEvent only (terminal metadata from read_run_report); no trace replay, no second translation path.
@@ -22,7 +22,7 @@ Add `SCOPE_NOTIFICATIONS_READ` and `SCOPE_NOTIFICATIONS_MANAGE` to the scope voc
 
 Verify: both constants in ALL_SCOPES; imports resolve; pinning test green.
 
-### 0.2 — All new inject tokens + DispatchContext fields + NotificationPort protocol (merged from prior 0.2+0.3 — both touch the same data structures)
+### 0.2 — All new inject tokens + DispatchContext fields + NotificationPort protocol + PgEventBus lifecycle (merged from prior 0.2+0.3 — both touch the same data structures)
 One pass adding everything to avoid parallel-agent collision on the same files:
 - `VALID_INJECT_TOKENS` gains: `"notification_port"`, `"get_worker_bridge"`, `"run_manager"`.
 - `_INJECT_ORDER` becomes: pool(0), dispatch_backend(1), principal_storage(2), kind_registry(3), notification_port(4), get_worker_bridge(5), run_manager(6), caller_principal(7).
@@ -30,8 +30,10 @@ One pass adding everything to avoid parallel-agent collision on the same files:
 - `DispatchContext` gains: `notification_port: NotificationPort | None = None`, `get_worker_bridge: Callable[[str], Any] | None = None`, `run_manager: Any | None = None`.
 - `NotificationPort` protocol added to `protocols/_contracts.py` (runtime-checkable; methods: `create_delivery`, `list_for_principal`, `acknowledge`). Exported from protocols.
 - `get_worker_bridge` is a synchronous callback (WorkerRegistry is in-memory, no I/O; called from the synchronous _build_agent_tools context).
+- `PgEventBus(pool)` constructed in `api/_lifecycle.py` and set as `event_bus` on DispatchContext — this field exists but is NEVER populated in the current lifecycle (a latent gap; both the notification SSE and the incoming SSE need it for LISTEN/NOTIFY). This is infrastructure, not notification-specific, so it belongs here.
+- The notification module depends on the EventBus PROTOCOL from protocols only, never on PgEventBus (trace) directly.
 
-Verify: Capability declaring any new inject token accepted; DispatchContext(notification_port=mock, get_worker_bridge=fn, run_manager=obj) works; existing dispatch unchanged; protocol importable; existing tests unaffected (all default to None).
+Verify: Capability declaring any new inject token accepted; DispatchContext(notification_port=mock, get_worker_bridge=fn, run_manager=obj, event_bus=mock) works; existing dispatch unchanged; protocol importable; existing tests unaffected (all default to None).
 
 ---
 
@@ -56,12 +58,12 @@ Verify: red-green — authenticated WebSocket passes (AuthContext in scope state
 Parallel with Phases 1 and 3.
 
 ### 2.1 — Enums + ToolEntry/Tool fields
-`ToolLocation` (LOCAL, REMOTE, ANYWHERE) and `ToolCapability` (READ, WRITE, EXEC, HTTP, GIT) as StrEnums in `protocols/_types/_tool.py`. ToolEntry gains `location: ToolLocation = ToolLocation.ANYWHERE` and `capabilities: frozenset[ToolCapability] = frozenset()` — routing decisions happen in `_build_agent_tools` before tool construction, so the metadata must live on ToolEntry. The factory propagates both fields to the constructed Tool (Tool also gains the fields). Every ToolEntry in `tool/_registry.py` declares both: lifecycle tools = LOCAL, filesystem read tools = ANYWHERE + {READ}, filesystem write tools = ANYWHERE + {WRITE}, exec = ANYWHERE + {EXEC}, git = ANYWHERE + {GIT}, http = ANYWHERE + {HTTP}, notepad/trace-mutating = LOCAL. WorkerRegistration gains `capabilities: list[ToolCapability]` replacing `list[str]`. Exports through protocols.
+`ToolLocation` (LOCAL, ANYWHERE — REMOTE removed, no existing tool uses it; add if a use case materializes) and `ToolCapability` (READ, WRITE, EXEC, HTTP, GIT) as StrEnums in `protocols/_types/_tool.py`. ToolEntry (defined in `scheduler/src/orxtra/scheduler/_tool_registry.py`, NOT tool/_registry.py which does not exist) gains `location: ToolLocation = ToolLocation.ANYWHERE` and `capabilities: frozenset[ToolCapability] = frozenset()` — routing decisions happen in `_build_agent_tools` before tool construction, so the metadata must live on ToolEntry. The factory propagates both fields to the constructed Tool (Tool also gains the fields). Every ToolEntry in `scheduler/_tool_registry.py` declares both: lifecycle tools = LOCAL, filesystem read tools = ANYWHERE + {READ}, filesystem write tools = ANYWHERE + {WRITE}, exec = ANYWHERE + {EXEC}, git = ANYWHERE + {GIT}, http = ANYWHERE + {HTTP}, notepad/trace-mutating = LOCAL. WorkerRegistration gains `capabilities: list[ToolCapability]` replacing `list[str]`. Exports through protocols.
 
 Verify: every tool in the registry declares location + capabilities; WorkerRegistration validates capability enum values; existing tests pass (defaults are backward-compatible).
 
 ### 2.2 — TaskSpec.execution_target + resolver + sweep
-Replace `TaskSpec.remote: bool = False` with `execution_target: str | None = None` (the string names a worker root; None = all-local). `execution_target` defaults to None so existing TOML workflow files without the field work unchanged (extra='forbid' only rejects unknown keys, not missing optional ones). Sweep all `TaskSpec.remote` references: `worker/tests/test_worker.py`, plus `examples/*.toml` and test fixture TOMLs (verify none use `remote = true`). `resolve_tool_location(tool_entry, task) -> ToolLocation` composition function: task has no target → LOCAL; tool is LOCAL → LOCAL regardless of target; tool is REMOTE + no target → hard error; tool is ANYWHERE + task has target → REMOTE; else LOCAL.
+Replace `TaskSpec.remote: bool = False` with `execution_target: str | None = None` (the string names a worker root; None = all-local). `execution_target` defaults to None so existing TOML workflow files without the field work unchanged (extra='forbid' only rejects unknown keys, not missing optional ones). Sweep all `TaskSpec.remote` references: `worker/tests/test_worker.py`, plus `examples/*.toml` and test fixture TOMLs (verify none use `remote = true`). `resolve_tool_location(tool_entry, task) -> ToolLocation` composition function (simplified after REMOTE removal): task has no target → LOCAL; tool is LOCAL → LOCAL regardless of target; tool is ANYWHERE + task has target → REMOTE pipeline; else LOCAL.
 
 Verify: resolver tested for every combination; grep zero `.remote` on TaskSpec (excluding the deletion diff itself); examples and fixture TOMLs clean; full suite green.
 
@@ -87,7 +89,7 @@ PgNotificationBackend: create_delivery (INSERT + return id), list_for_principal 
 Verify: round-trip tests both backends (create → list → ack → list-returns-empty); parity guard green.
 
 ### 3.4 — Wire into lifespan + CRUD capabilities
-api/_lifecycle.py: construct PgNotificationBackend(pool), pass as notification_port on DispatchContext. ALSO construct a PgEventBus(pool) and set it as event_bus on DispatchContext — the field exists but is NEVER populated in the current lifecycle (a latent gap; both the notification SSE and the incoming SSE need it for LISTEN/NOTIFY subscription). Service functions in services/_notifications.py: list_deliveries (scoped to caller principal via caller_principal injection — hard error if asking for another principal's deliveries), acknowledge_delivery (scoped — hard error if delivery doesn't belong to caller). Params models. Capability registrations under notifications:read (list) and notifications:manage (ack) with appropriate injects + scopes.
+api/_lifecycle.py: construct PgNotificationBackend(pool), pass as notification_port on DispatchContext. (PgEventBus construction already handled in Phase 0.2.) Service functions in services/_notifications.py: list_deliveries (scoped to caller principal via caller_principal injection — hard error if asking for another principal's deliveries), acknowledge_delivery (scoped — hard error if delivery doesn't belong to caller). Params models. Capability registrations under notifications:read (list) and notifications:manage (ack) with appropriate injects + scopes.
 
 Verify: dispatch of list/ack capabilities works; scoping enforced; registry pins updated.
 
@@ -114,12 +116,12 @@ Verify: red-green — a subscription with NotifyAction through the real dispatch
 After Phases 1.1 + 4.
 
 ### 5.1 — create_principal gains self_subscription_filter
-The service function create_principal in services/_identity.py gains self_subscription_filter: FilterPredicate | None as a parameter. New inject set constant includes dispatch_backend (position 1 in _INJECT_ORDER, before principal_storage at position 2). The exact new function signature: `create_principal(dispatch_backend, principal_storage, kind_registry, caller_principal, *, kind, external_ref, display_name=None, self_subscription_filter=None)`. Validation: required for kind=consumer and app-registered kinds (hard error if None for those), must be None for run/source/system (hard error if provided). When provided: after minting the principal, create a subscription via the dispatch backend — filter = the provided FilterPredicate (caller should set principal_id=self on it), action = NotifyAction(target_principal_id=self.id, source_ref="self-subscription"). CreatePrincipalParams gains self_subscription_filter as an optional nested model field.
+The service function create_principal in services/_identity.py gains self_subscription_filter: FilterPredicate | None as a parameter. New inject set constant (e.g., _INJECT_PRINCIPAL_CREATE) includes {dispatch_backend, principal_storage, kind_registry, caller_principal} — UPDATE the capability registration in _registry.py from _INJECT_PRINCIPAL_STORAGE_AND_KIND_REGISTRY to the new constant. The exact new function signature: `create_principal(dispatch_backend, principal_storage, kind_registry, caller_principal, *, kind, external_ref, display_name=None, self_subscription_filter=None)`. Validation: required for kind=consumer and app-registered kinds (hard error if None for those), must be None for run/source/system (hard error if provided). CRITICAL FLOW: the caller passes self_subscription_filter with principal_id=None as a template (the event_types list is the caller's real input). After minting the principal, create_principal internally fills in filter.principal_id = minted_principal.id and creates a subscription via the dispatch backend — action = NotifyAction(target_principal_id=minted_principal.id, source_ref="self-subscription"). The caller NEVER sets principal_id or target_principal_id — both are derived from the mint result. CreatePrincipalParams gains self_subscription_filter as an optional nested model field.
 
 Verify: consumer principal creation with filter → principal + subscription with NotifyAction created atomically; run/source/system creation with None → principal only; consumer creation without filter → hard error; existing tests swept for the positional change.
 
 ### 5.2 — Call site sweep
-Every site that creates principals: run minting in services/_run.py passes None; source minting in services/_dispatch.py passes None; consumer minting in auth tests / api lifespan / the Phase 3 wiring passes a FilterPredicate with principal_id set to the new consumer's principal id and a caller-chosen event_types list; system principal seeding in db init / api lifespan passes None. No implicit default event types — the caller decides.
+Every site that creates principals: run minting in services/_run.py passes self_subscription_filter=None; source minting in services/_dispatch.py passes None; consumer minting in auth tests / api lifespan / the Phase 3 wiring passes a FilterPredicate with principal_id=None (create_principal fills it after minting) and a caller-chosen event_types list — the caller provides only the event_types; system principal seeding in db init / api lifespan passes None. No implicit default event types — the caller decides.
 
 Verify: all call sites updated; full suite green; a newly-created consumer principal has exactly one self-subscription.
 
@@ -151,12 +153,12 @@ WorkerRegistry() instantiated in the api lifespan, stored in CompositorConfig or
 Verify: the callback is available on the DispatchContext; it is synchronous.
 
 ### 7.2 — Real worker WebSocket handler
-Replace the /workers/connect placeholder: read AuthContext from scope["state"]["auth_context"] (Phase 1.2 guarantees it after the middleware extension), accept the WebSocket, receive the WorkerRegistration from the first message, populate WorkerInfo.consumer_id from auth_context.consumer_id, register in the WorkerRegistry, create BrainWorkerBridge(ws, worker_id), run the bridge's message loop until disconnect, unregister on disconnect. The NativeWorker already sends the Authorization header — zero client changes.
+CRITICAL: /workers/connect is a native route on the root Router, NOT a mounted sub-app — the auth middleware does NOT wrap it (it only wraps sub-apps via _mount_sub_app). Fix: mount the worker handler as a separate sub-app at /workers wrapped with auth_middleware, matching the MCP/A2A/AG-UI pattern. Then: read AuthContext from scope["state"]["auth_context"], accept the WebSocket, receive the WorkerRegistration from the first message, populate WorkerInfo.consumer_id from auth_context.consumer_id, register in the WorkerRegistry, create BrainWorkerBridge(ws, worker_id), run the bridge's message loop until disconnect, unregister on disconnect. The NativeWorker already sends the Authorization header — zero client changes.
 
 Verify: NativeWorker connects, authenticates, registers, heartbeats, unregisters on disconnect; unauthenticated → 4001; one-per-root enforcement; consumer_id populated from auth context.
 
 ### 7.3 — Tool routing in the scheduler
-start_run's capability injects gain get_worker_bridge; the service function passes it to the Scheduler constructor (Scheduler.__init__ gains get_worker_bridge: Callable | None = None). Direct callers of start_run must also be swept with EXACT positional arg updates (a prior critique caught that the inject reordering shifts positional args in direct callers): start_run_from_file (services/_run.py) passes get_worker_bridge=None; ServicesActionExecutor.execute_workflow (services/_actions.py:64) must update its positional call to include None placeholders for the new inject-order positions — the exact updated call shape depends on the final signature and must be spelled out by the implementor in their commit, verified by the auditor. In _build_agent_tools (synchronous context — confirmed compatible with the synchronous callback): if task.execution_target is set, call get_worker_bridge(root) to look up the worker; for each tool, resolve_tool_location(tool_entry, task) determines the pipeline; ANYWHERE tools get wrapped via wrap_tool_for_remote using the bridge; LOCAL tools stay local; missing worker = hard error.
+start_run's capability injects gain get_worker_bridge and run_manager. With _INJECT_ORDER = pool(0), dispatch_backend(1), principal_storage(2), kind_registry(3), notification_port(4), get_worker_bridge(5), run_manager(6), caller_principal(7), and start_run's inject set = {pool, principal_storage, get_worker_bridge, run_manager, caller_principal}, the EXACT new function signature is: `start_run(pool, principal_storage, get_worker_bridge, run_manager, caller_principal, *, intent, config, ...)`. The service function passes get_worker_bridge to the Scheduler constructor (Scheduler.__init__ gains get_worker_bridge: Callable | None = None) and registers in run_manager before execute_workflow. Direct callers swept with EXACT positional updates: start_run_from_file (services/_run.py) calls start_run with get_worker_bridge=None, run_manager=None; ServicesActionExecutor.execute_workflow (services/_actions.py:64) passes None for both new positional args. Also: create_dispatch_worker (services/_dispatch_worker.py) gains a notification_port parameter (it currently receives pool directly, NOT a DispatchContext — the plan's claim of "passes from DispatchContext" was wrong); the CLI/lifecycle code that calls create_dispatch_worker threads notification_port through. In _build_agent_tools (synchronous context — confirmed compatible with the synchronous callback): if task.execution_target is set, call get_worker_bridge(root) to look up the worker; for each tool, resolve_tool_location(tool_entry, task) determines the pipeline; ANYWHERE tools get wrapped via wrap_tool_for_remote using the bridge; LOCAL tools stay local; missing worker = hard error.
 
 Verify: red-green — task with execution_target routes ANYWHERE tools through the bridge; LOCAL stays local; missing worker hard-errors.
 
@@ -164,7 +166,7 @@ Verify: red-green — task with execution_target routes ANYWHERE tools through t
 
 ## Phase 8 — RunManager + AG-UI live streaming
 
-After Phase 0.3 (DispatchContext.run_manager field).
+After Phase 0.2 (DispatchContext.run_manager field). Phase 7.1 must land before Phase 8.3 (both touch the compositor lifespan/config).
 
 ### 8.1 — Session + Scheduler sink management
 Session gains add_sink(sink) and remove_sink(sink) (list append/remove; safe iteration via `for sink in list(self._sinks)` snapshot copy before iterating in _dispatch_to_sinks). Scheduler gains add_overseer_sink/remove_overseer_sink (same snapshot-copy pattern in _dispatch_to_overseer_sinks), plus add_transport_sink/remove_transport_sink. CRITICAL (a prior critique caught a double-add bug): new sessions receive `list(self._transport_sinks)` — a COPY, not a shared reference (Session.__init__ stores the passed list by reference; sharing + explicit add_sink = every sink dispatched twice). Propagation to active sessions is exclusively via session.add_sink/remove_sink (the Scheduler iterates _task_sessions on add/remove). New sessions get a snapshot of current sinks at creation time.
@@ -182,7 +184,7 @@ The compositor builds a subscribe_run callback from the RunManager: given (run_u
 Verify: SSE client connecting to an active run receives live transport + overseer events; disconnect cleans up sinks; two concurrent clients get independent event sequences.
 
 ### 8.4 — Enriched StateSnapshotEvent for late-joiners + completed runs
-When an SSE client connects: the handler always sends a StateSnapshotEvent as the first event. For active runs: built from StateManager using current trace state, followed by live events. For completed runs (subscribe returns None): the snapshot is enriched with terminal metadata — terminal_status, finished_at, coherence_summary, total_cost_usd, error, per-task summaries (task statuses, attempt counts, final verdicts) — assembled from read_run_report(). After the snapshot, RunFinishedEvent (or RunErrorEvent for failures). Stream closes. No trace replay, no second translation path.
+When an SSE client connects: the handler always sends a StateSnapshotEvent as the first event. For active runs: built from StateManager using current trace state, followed by live events. For completed runs (subscribe returns None): the snapshot is enriched with terminal metadata from read_run_report() — using EXISTING fields only (no schema additions): status (completed/failed/aborted — serves as the terminal indicator), finished_at, coherence_summary, total_cost_usd, per-task summaries (TaskSummary: status, attempt_count). No `error` field (status IS the error signal; coherence_summary provides context). No `final_verdicts` (TaskSummary.status is sufficient). After the snapshot, RunFinishedEvent (or RunErrorEvent for failures). Stream closes. No trace replay, no second translation path.
 
 Verify: late-joiner to active run gets snapshot then live events; client to completed run gets enriched snapshot + terminal event only; the snapshot contains task statuses, decisions, cost.
 
@@ -240,7 +242,7 @@ Verify: publish gate observed gating; CI router green; PyPI post-gate.
       → 5 (after 1.1 + 4)
     → 6 (after 3)
     → 7 (after 1.2 + 2)
-  → 8 (after 0.2; independent of 3-7)
+  → 8 (after 0.2; 8.3 depends on 7.1 for compositor wiring)
 → 9 (after everything)
 → 10
 ```
