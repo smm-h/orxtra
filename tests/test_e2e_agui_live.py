@@ -77,6 +77,7 @@ def _make_run_report(
                 name="root",
                 status="completed",
                 task_type="workflow",
+                parent_task_id=None,
                 attempt_count=1,
             ),
         ],
