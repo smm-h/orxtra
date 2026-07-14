@@ -101,6 +101,10 @@ async def lifespan(
 
         event_bus = PgEventBus(pool)
 
+        from orxtra.notification import PgNotificationBackend
+
+        notification_backend = PgNotificationBackend(pool)
+
         dispatch_backend = PgDispatchBackend(pool)
         ctx = DispatchContext(
             pool=pool,
@@ -108,6 +112,7 @@ async def lifespan(
             event_bus=event_bus,
             principal_storage=principal_storage,
             kind_registry=kind_registry,
+            notification_port=notification_backend,
         )
 
         # Build skill registry and agent card.

@@ -162,7 +162,7 @@ releasable = "orxtra"
 [[projects]]
 path = "services"
 description = "Shared business logic for all frontends"
-depends_on = ["agent", "auth", "dispatch", "identity", "overseer", "protocols", "scheduler", "secrets", "session", "tool", "trace", "transport"]
+depends_on = ["agent", "auth", "dispatch", "identity", "notification", "overseer", "protocols", "scheduler", "secrets", "session", "tool", "trace", "transport"]
 releasable = "orxtra"
 
 # --- Interface layer ---
@@ -207,7 +207,7 @@ releasable = "orxtra"
 [[projects]]
 path = "api"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
-depends_on = ["a2a", "agui", "auth", "dispatch", "identity", "incoming", "mcp", "protocols", "secrets", "services"]
+depends_on = ["a2a", "agui", "auth", "dispatch", "identity", "incoming", "mcp", "notification", "protocols", "secrets", "services"]
 releasable = "orxtra"
 
 # --- Infrastructure ---

@@ -38,6 +38,10 @@ from orxtra.services._inbox import (
     respond_to_inbox,
     skip_inbox_item,
 )
+from orxtra.services._notifications import (
+    acknowledge_delivery,
+    list_deliveries,
+)
 from orxtra.services._providers import build_transport_registry
 from orxtra.services._registry import (
     get_capabilities,
@@ -86,6 +90,7 @@ __all__ = [
     "ServicesActionExecutor",
     "__version__",
     "abort_run",
+    "acknowledge_delivery",
     "ask",
     "ask_structured",
     "build_transport_registry",
@@ -110,6 +115,7 @@ __all__ = [
     "get_source_by_slug",
     "get_task_attempts",
     "get_transcript",
+    "list_deliveries",
     "list_inbox",
     "list_principals",
     "list_runs",

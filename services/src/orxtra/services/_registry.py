@@ -12,6 +12,8 @@ from orxtra.protocols import (
     SCOPE_EVENTS_WRITE,
     SCOPE_INBOX_READ,
     SCOPE_INBOX_RESPOND,
+    SCOPE_NOTIFICATIONS_MANAGE,
+    SCOPE_NOTIFICATIONS_READ,
     SCOPE_PRINCIPALS_MANAGE,
     SCOPE_PRINCIPALS_READ,
     SCOPE_RUNS_MANAGE,
@@ -26,6 +28,7 @@ from orxtra.protocols import (
 )
 from orxtra.services._params import (
     AbortRunParams,
+    AcknowledgeDeliveryParams,
     CreatePrincipalParams,
     CreateSourceParams,
     DeletePrincipalParams,
@@ -39,6 +42,7 @@ from orxtra.services._params import (
     GetSourceParams,
     GetTaskAttemptsParams,
     GetTranscriptParams,
+    ListDeliveriesParams,
     ListInboxParams,
     ListPrincipalsParams,
     ListRunsParams,
@@ -112,6 +116,10 @@ _INJECT_POOL_AND_CALLER: frozenset[str] = frozenset({
 # subscribe service fn signature.
 _INJECT_DISPATCH_BACKEND_AND_CALLER: frozenset[str] = frozenset({
     "dispatch_backend",
+    "caller_principal",
+})
+_INJECT_NOTIFICATION_AND_CALLER: frozenset[str] = frozenset({
+    "notification_port",
     "caller_principal",
 })
 _INJECT_NONE: frozenset[str] = frozenset()
@@ -467,6 +475,29 @@ def _build_capabilities() -> list[Capability]:
             required_scope=SCOPE_SOURCES_MANAGE,
             injects=_INJECT_DISPATCH_BACKEND,
         ),
+        # -- Notification --
+        Capability(
+            name="list_deliveries",
+            namespace="notification",
+            description="List notification deliveries for the caller",
+            params_model=ListDeliveriesParams,
+            result_model=None,
+            tags=frozenset({"readonly"}),
+            category="notification",
+            required_scope=SCOPE_NOTIFICATIONS_READ,
+            injects=_INJECT_NOTIFICATION_AND_CALLER,
+        ),
+        Capability(
+            name="acknowledge_delivery",
+            namespace="notification",
+            description="Acknowledge a notification delivery",
+            params_model=AcknowledgeDeliveryParams,
+            result_model=None,
+            tags=frozenset({"mutating"}),
+            category="notification",
+            required_scope=SCOPE_NOTIFICATIONS_MANAGE,
+            injects=_INJECT_NOTIFICATION_AND_CALLER,
+        ),
         # -- Principal --
         Capability(
             name="create_principal",
@@ -560,6 +591,10 @@ def _get_fn_map() -> dict[str, ServiceFn]:
         respond_to_inbox,
         skip_inbox_item,
     )
+    from orxtra.services._notifications import (
+        acknowledge_delivery,
+        list_deliveries,
+    )
     from orxtra.services._run import (
         abort_run,
         get_run,
@@ -614,6 +649,8 @@ def _get_fn_map() -> dict[str, ServiceFn]:
         "get_source_by_slug": get_source_by_slug,
         "list_sources": list_sources,
         "delete_source": delete_source,
+        "list_deliveries": list_deliveries,
+        "acknowledge_delivery": acknowledge_delivery,
         "create_principal": create_principal,
         "get_principal": get_principal,
         "list_principals": list_principals,

@@ -310,3 +310,33 @@ class DeletePrincipalParams(BaseModel):
     principal_id: str = Field(
         description="Principal ID.", json_schema_extra={"format": "uuid"}
     )
+
+
+# -- Notification params --
+
+
+class ListDeliveriesParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    unacknowledged_only: bool = Field(
+        default=True,
+        description="Only show unacknowledged deliveries.",
+    )
+    cursor: str | None = Field(
+        default=None,
+        description="Cursor for pagination (delivery ID).",
+        json_schema_extra={"format": "uuid"},
+    )
+    limit: int = Field(
+        default=50,
+        description="Maximum deliveries to return.",
+    )
+
+
+class AcknowledgeDeliveryParams(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    delivery_id: str = Field(
+        description="Delivery ID.",
+        json_schema_extra={"format": "uuid"},
+    )
