@@ -1,9 +1,10 @@
-"""Parity test: EVENTS_CHANNEL constant matches the trigger DDL.
+"""Parity test: NOTIFY channel constants match the trigger DDL.
 
 The generated trigger DDL in schema/_generated/post_tables.py uses
-pg_notify('orxtra_events', ...). The EVENTS_CHANNEL constant in
-orxtra.trace must match that channel name exactly.  If someone
-changes one without the other, this test catches the drift.
+pg_notify('orxtra_events', ...) and pg_notify('orxtra_notifications', ...).
+The channel constants in orxtra.trace and orxtra.notification must match
+those channel names exactly.  If someone changes one without the other,
+this test catches the drift.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from orxtra.notification import NOTIFICATIONS_CHANNEL
 from orxtra.trace import EVENTS_CHANNEL
 
 # Path to the generated trigger DDL -- relative to the repo root.
@@ -21,28 +23,42 @@ _POST_TABLES = (
     / "post_tables.py"
 )
 
+# All known PG NOTIFY channels and their expected constants.
+_EXPECTED_CHANNELS: dict[str, str] = {
+    "orxtra_events": EVENTS_CHANNEL,
+    "orxtra_notifications": NOTIFICATIONS_CHANNEL,
+}
 
-def test_events_channel_matches_trigger_ddl() -> None:
-    """EVENTS_CHANNEL == the channel argument in pg_notify(...) in the DDL."""
+
+def test_each_known_channel_appears_in_ddl() -> None:
+    """Every known channel constant appears at least once in the DDL."""
     ddl_text = _POST_TABLES.read_text()
+    ddl_channels = set(re.findall(r"pg_notify\('([^']+)'", ddl_text))
 
-    # Extract all pg_notify channel names from the generated DDL.
-    # Each match captures the channel name from a pg_notify call in the DDL.
-    matches = re.findall(r"pg_notify\('([^']+)'", ddl_text)
-
-    assert len(matches) > 0, (
+    assert len(ddl_channels) > 0, (
         f"No pg_notify calls found in {_POST_TABLES}; "
         "the trigger DDL may have changed structure"
     )
 
-    # Every pg_notify call should use the same channel.
-    unique_channels = set(matches)
-    assert len(unique_channels) == 1, (
-        f"Multiple distinct pg_notify channels in DDL: {unique_channels}"
-    )
+    for ddl_name, constant_value in _EXPECTED_CHANNELS.items():
+        assert constant_value == ddl_name, (
+            f"Channel constant {constant_value!r} does not match "
+            f"expected DDL channel {ddl_name!r}"
+        )
+        assert ddl_name in ddl_channels, (
+            f"Expected channel {ddl_name!r} not found in DDL. "
+            f"Found: {ddl_channels}"
+        )
 
-    ddl_channel = unique_channels.pop()
-    assert ddl_channel == EVENTS_CHANNEL, (
-        f"EVENTS_CHANNEL={EVENTS_CHANNEL!r} does not match "
-        f"the trigger DDL channel={ddl_channel!r}"
+
+def test_no_unknown_channels_in_ddl() -> None:
+    """DDL does not introduce channels without a matching constant."""
+    ddl_text = _POST_TABLES.read_text()
+    ddl_channels = set(re.findall(r"pg_notify\('([^']+)'", ddl_text))
+    expected = set(_EXPECTED_CHANNELS.keys())
+    unexpected = ddl_channels - expected
+
+    assert not unexpected, (
+        f"DDL contains pg_notify channels without matching constants: "
+        f"{unexpected}. Add constants and update _EXPECTED_CHANNELS."
     )
