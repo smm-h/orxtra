@@ -16,6 +16,9 @@ class FilterPredicate(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
     event_types: list[str] | None = None
     sources: list[str] | None = None
+    # AND-combined with event_types and sources: if set, only events whose
+    # principal_id equals this value match.  None = wildcard (any principal).
+    principal_id: UUID | None = None
     # Reserved for future jsonb matching.
     data_predicates: dict[str, Any] | None = None
 
