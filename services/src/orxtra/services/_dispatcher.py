@@ -7,6 +7,7 @@ infrastructure dependencies from the DispatchContext.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -40,6 +41,22 @@ class DispatchContext:
     event_bus: EventBus | None = None
     principal_storage: PrincipalStorage | None = None
     kind_registry: KindRegistry | None = None
+    notification_port: Any | None = None
+    """Notification delivery port (NotificationPort protocol).
+
+    Typed as Any because the protocol lives in protocols but services
+    may not import it directly at runtime. Will be narrowed once the
+    notification module is built.
+    """
+    get_worker_bridge: Callable[[str], Any] | None = None
+    """Synchronous callback to resolve a worker bridge by worker ID.
+
+    WorkerRegistry is in-memory, so no I/O is needed.
+    """
+    run_manager: Any | None = None
+    """Run lifecycle manager. Will be typed properly when the RunManager
+    class is built.
+    """
     auth_context: AuthContext | None = None
     """The authenticated caller's ephemeral context.
 
@@ -64,6 +81,9 @@ _INJECT_ORDER: tuple[str, ...] = (
     "dispatch_backend",
     "principal_storage",
     "kind_registry",
+    "notification_port",
+    "get_worker_bridge",
+    "run_manager",
     _CALLER_PRINCIPAL_INJECT,
 )
 _INJECT_LABELS: dict[str, str] = {
@@ -71,6 +91,9 @@ _INJECT_LABELS: dict[str, str] = {
     "dispatch_backend": "a dispatch backend",
     "principal_storage": "a principal storage backend",
     "kind_registry": "a principal kind registry",
+    "notification_port": "a notification port",
+    "get_worker_bridge": "a worker bridge resolver",
+    "run_manager": "a run manager",
 }
 
 # The Authorizer is stateless -- a single module-level instance enforces every

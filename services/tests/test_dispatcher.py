@@ -590,3 +590,162 @@ async def test_dispatch_scoped_capability_with_correct_scope_succeeds(
 
     assert result == []
     mock_fn.assert_awaited_once()
+
+
+# -- New inject token routing tests (notification_port, get_worker_bridge, run_manager) --
+
+# Synthetic capabilities for each new inject token, following the pattern of
+# _CALLER_PRINCIPAL_CAP above.
+
+_NOTIFICATION_PORT_CAP = Capability(
+    name="_notification_port_probe",
+    namespace="test",
+    description="probe",
+    params_model=_NoParams,
+    result_model=None,
+    tags=frozenset(),
+    category="test",
+    required_scope=SCOPE_RUNS_READ,
+    injects=frozenset({"notification_port"}),
+)
+
+_GET_WORKER_BRIDGE_CAP = Capability(
+    name="_get_worker_bridge_probe",
+    namespace="test",
+    description="probe",
+    params_model=_NoParams,
+    result_model=None,
+    tags=frozenset(),
+    category="test",
+    required_scope=SCOPE_RUNS_READ,
+    injects=frozenset({"get_worker_bridge"}),
+)
+
+_RUN_MANAGER_CAP = Capability(
+    name="_run_manager_probe",
+    namespace="test",
+    description="probe",
+    params_model=_NoParams,
+    result_model=None,
+    tags=frozenset(),
+    category="test",
+    required_scope=SCOPE_RUNS_READ,
+    injects=frozenset({"run_manager"}),
+)
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_notification_port_declared_but_none_errors(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock,
+) -> None:
+    """A capability declaring notification_port errors when the context lacks it."""
+    mock_get_cap.return_value = _NOTIFICATION_PORT_CAP
+    mock_get_fn.return_value = AsyncMock()
+    ctx = DispatchContext(
+        auth_context=make_auth_context(frozenset({SCOPE_RUNS_READ})),
+    )
+
+    with pytest.raises(ValueError, match="requires a notification port"):
+        await dispatch(ctx, "_notification_port_probe", {})
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_notification_port_present_passes_through(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock,
+) -> None:
+    """A capability declaring notification_port receives it when present."""
+    mock_get_cap.return_value = _NOTIFICATION_PORT_CAP
+    mock_fn = AsyncMock(return_value="ok")
+    mock_get_fn.return_value = mock_fn
+    mock_port = MagicMock()
+    ctx = DispatchContext(
+        notification_port=mock_port,
+        auth_context=make_auth_context(frozenset({SCOPE_RUNS_READ})),
+    )
+
+    result = await dispatch(ctx, "_notification_port_probe", {})
+
+    assert result == "ok"
+    mock_fn.assert_awaited_once_with(mock_port)
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_get_worker_bridge_declared_but_none_errors(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock,
+) -> None:
+    """A capability declaring get_worker_bridge errors when the context lacks it."""
+    mock_get_cap.return_value = _GET_WORKER_BRIDGE_CAP
+    mock_get_fn.return_value = AsyncMock()
+    ctx = DispatchContext(
+        auth_context=make_auth_context(frozenset({SCOPE_RUNS_READ})),
+    )
+
+    with pytest.raises(ValueError, match="requires a worker bridge resolver"):
+        await dispatch(ctx, "_get_worker_bridge_probe", {})
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_get_worker_bridge_present_passes_through(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock,
+) -> None:
+    """A capability declaring get_worker_bridge receives it when present."""
+    mock_get_cap.return_value = _GET_WORKER_BRIDGE_CAP
+    mock_fn = AsyncMock(return_value="ok")
+    mock_get_fn.return_value = mock_fn
+    mock_bridge_fn = MagicMock()
+    ctx = DispatchContext(
+        get_worker_bridge=mock_bridge_fn,
+        auth_context=make_auth_context(frozenset({SCOPE_RUNS_READ})),
+    )
+
+    result = await dispatch(ctx, "_get_worker_bridge_probe", {})
+
+    assert result == "ok"
+    mock_fn.assert_awaited_once_with(mock_bridge_fn)
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_run_manager_declared_but_none_errors(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock,
+) -> None:
+    """A capability declaring run_manager errors when the context lacks it."""
+    mock_get_cap.return_value = _RUN_MANAGER_CAP
+    mock_get_fn.return_value = AsyncMock()
+    ctx = DispatchContext(
+        auth_context=make_auth_context(frozenset({SCOPE_RUNS_READ})),
+    )
+
+    with pytest.raises(ValueError, match="requires a run manager"):
+        await dispatch(ctx, "_run_manager_probe", {})
+
+
+@pytest.mark.asyncio
+@patch("orxtra.services._dispatcher.get_capability")
+@patch("orxtra.services._dispatcher.get_capability_fn")
+async def test_dispatch_run_manager_present_passes_through(
+    mock_get_fn: MagicMock, mock_get_cap: MagicMock,
+) -> None:
+    """A capability declaring run_manager receives it when present."""
+    mock_get_cap.return_value = _RUN_MANAGER_CAP
+    mock_fn = AsyncMock(return_value="ok")
+    mock_get_fn.return_value = mock_fn
+    mock_manager = MagicMock()
+    ctx = DispatchContext(
+        run_manager=mock_manager,
+        auth_context=make_auth_context(frozenset({SCOPE_RUNS_READ})),
+    )
+
+    result = await dispatch(ctx, "_run_manager_probe", {})
+
+    assert result == "ok"
+    mock_fn.assert_awaited_once_with(mock_manager)

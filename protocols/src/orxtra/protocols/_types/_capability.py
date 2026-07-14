@@ -14,6 +14,9 @@ VALID_INJECT_TOKENS: frozenset[str] = frozenset({
     "dispatch_backend",
     "principal_storage",
     "kind_registry",
+    "notification_port",
+    "get_worker_bridge",
+    "run_manager",
     "caller_principal",
 })
 
@@ -39,7 +42,8 @@ class Capability:
     """The infrastructure dependencies the dispatcher passes to the service function.
 
     Valid tokens today: ``"pool"``, ``"dispatch_backend"``,
-    ``"principal_storage"``, ``"kind_registry"``, ``"caller_principal"`` (see
+    ``"principal_storage"``, ``"kind_registry"``, ``"notification_port"``,
+    ``"get_worker_bridge"``, ``"run_manager"``, ``"caller_principal"`` (see
     ``VALID_INJECT_TOKENS``). Most tokens map to a concrete field on the
     DispatchContext; ``"caller_principal"`` is a derived token -- the
     dispatcher resolves the authenticated caller's ``AuthContext`` to its

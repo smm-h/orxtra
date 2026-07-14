@@ -77,10 +77,12 @@ async def lifespan(
 
     log.info("Starting up: connecting to database")
     pool: asyncpg.Pool = await asyncpg.create_pool(server_config.db_url)
+    event_bus: Any = None
 
     try:
         from orxtra.dispatch import PgDispatchBackend
         from orxtra.services import verify_schema
+        from orxtra.trace import PgEventBus
 
         log.info("Verifying database schema")
         await verify_schema(pool)
@@ -97,10 +99,13 @@ async def lifespan(
 
         kind_registry = KindRegistry(server_config.principal_kinds)
 
+        event_bus = PgEventBus(pool)
+
         dispatch_backend = PgDispatchBackend(pool)
         ctx = DispatchContext(
             pool=pool,
             dispatch_backend=dispatch_backend,
+            event_bus=event_bus,
             principal_storage=principal_storage,
             kind_registry=kind_registry,
         )
@@ -137,6 +142,7 @@ async def lifespan(
                 dispatch_backend=dispatch_backend,
                 authenticator=authenticator,
                 principal_storage=PgPrincipalStorage(pool),
+                event_bus=event_bus,
             )
             log.info("Incoming webhook receiver mounted at /incoming")
 
@@ -154,6 +160,9 @@ async def lifespan(
         yield compositor_config
 
     finally:
+        if event_bus is not None:
+            log.info("Shutting down: closing event bus")
+            await event_bus.close()
         log.info("Shutting down: closing database pool")
         await pool.close()
         log.info("Shutdown complete")

@@ -407,3 +407,52 @@ class PrincipalStorage(Protocol):
         Returns the count of deleted principals.
         """
         ...
+
+
+# ---------------------------------------------------------------------------
+# Notification protocols
+# ---------------------------------------------------------------------------
+
+
+@runtime_checkable
+class NotificationPort(Protocol):
+    """Delivers notifications to principals.
+
+    A notification is a one-way message from any source to a target
+    principal, carrying a ``source_ref`` (opaque origin label) and a
+    free-form JSON payload. Notifications are created, listed, and
+    acknowledged; the port knows nothing about routing policy -- that
+    lives in the notification module itself.
+    """
+
+    async def create_delivery(
+        self,
+        target_principal_id: UUID,
+        source_ref: str,
+        payload: dict[str, Any],
+    ) -> UUID:
+        """Create a notification delivery for the given principal.
+
+        Returns the delivery ID.
+        """
+        ...
+
+    async def list_for_principal(
+        self,
+        principal_id: UUID,
+        *,
+        unacknowledged_only: bool = True,
+        cursor: UUID | None = None,
+        limit: int = 50,
+    ) -> list[Any]:
+        """List notifications for a principal.
+
+        Returns a list of notification deliveries (typed as Any until
+        the NotificationDelivery model is defined in the notification
+        module).
+        """
+        ...
+
+    async def acknowledge(self, delivery_id: UUID) -> None:
+        """Mark a notification delivery as acknowledged."""
+        ...

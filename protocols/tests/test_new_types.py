@@ -301,6 +301,9 @@ class TestCapability:
             "dispatch_backend",
             "principal_storage",
             "kind_registry",
+            "notification_port",
+            "get_worker_bridge",
+            "run_manager",
             "caller_principal",
         }) == VALID_INJECT_TOKENS
 

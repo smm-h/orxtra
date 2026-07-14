@@ -54,7 +54,7 @@ async def test_lifespan_calls_verify_schema() -> None:
 
 
 async def test_lifespan_wires_principal_storage_and_kind_registry() -> None:
-    """The DispatchContext carries the principal_storage and kind_registry."""
+    """The DispatchContext carries the principal_storage, kind_registry, and event_bus."""
     from orxtra.identity import KindRegistry
 
     storage = _storage_mock()
@@ -67,6 +67,9 @@ async def test_lifespan_wires_principal_storage_and_kind_registry() -> None:
     mock_pool = AsyncMock()
     mock_pool.close = AsyncMock()
 
+    mock_event_bus = MagicMock()
+    mock_event_bus.close = AsyncMock()
+
     with (
         patch("asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool),
         patch("orxtra.services.verify_schema", new_callable=AsyncMock),
@@ -74,6 +77,9 @@ async def test_lifespan_wires_principal_storage_and_kind_registry() -> None:
         patch("orxtra.a2a.build_agent_card"),
         patch("orxtra.services.get_capabilities", return_value=[]),
         patch("orxtra.identity.PgPrincipalStorage", return_value=storage),
+        patch(
+            "orxtra.trace.PgEventBus", return_value=mock_event_bus,
+        ),
     ):
         async with lifespan(config) as compositor_config:
             ctx = compositor_config.dispatch_context
@@ -81,6 +87,8 @@ async def test_lifespan_wires_principal_storage_and_kind_registry() -> None:
             assert isinstance(ctx.kind_registry, KindRegistry)
             # App-declared kind flows into the registry.
             assert "user" in ctx.kind_registry.kinds
+            # Event bus is wired into the DispatchContext.
+            assert ctx.event_bus is mock_event_bus
 
 
 def test_principal_kinds_defaults_to_empty_tuple() -> None:
