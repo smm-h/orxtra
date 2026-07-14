@@ -1100,9 +1100,11 @@ dependencies = [
     { name = "orxtra-identity" },
     { name = "orxtra-incoming" },
     { name = "orxtra-mcp" },
+    { name = "orxtra-notification" },
     { name = "orxtra-protocols" },
     { name = "orxtra-secrets" },
     { name = "orxtra-services" },
+    { name = "orxtra-worker" },
     { name = "strictcli" },
 ]
 
@@ -1122,9 +1124,11 @@ requires-dist = [
     { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-incoming", editable = "incoming" },
     { name = "orxtra-mcp", editable = "mcp" },
+    { name = "orxtra-notification", editable = "notification" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-secrets", editable = "secrets" },
     { name = "orxtra-services", editable = "services" },
+    { name = "orxtra-worker", editable = "worker" },
     { name = "strictcli" },
 ]
 
@@ -1351,6 +1355,8 @@ version = "0.10.1"
 source = { editable = "notification" }
 dependencies = [
     { name = "asyncpg" },
+    { name = "fastware" },
+    { name = "orxtra-identity" },
     { name = "orxtra-protocols" },
     { name = "uuid6" },
 ]
@@ -1363,6 +1369,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "asyncpg" },
+    { name = "fastware", specifier = ">=0.5.0" },
+    { name = "orxtra-identity", editable = "identity" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "uuid6" },
 ]
@@ -1506,6 +1514,7 @@ dependencies = [
     { name = "orxtra-auth" },
     { name = "orxtra-dispatch" },
     { name = "orxtra-identity" },
+    { name = "orxtra-notification" },
     { name = "orxtra-overseer" },
     { name = "orxtra-protocols" },
     { name = "orxtra-scheduler" },
@@ -1531,6 +1540,7 @@ requires-dist = [
     { name = "orxtra-auth", editable = "auth" },
     { name = "orxtra-dispatch", editable = "dispatch" },
     { name = "orxtra-identity", editable = "identity" },
+    { name = "orxtra-notification", editable = "notification" },
     { name = "orxtra-overseer", editable = "overseer" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-scheduler", editable = "scheduler" },
