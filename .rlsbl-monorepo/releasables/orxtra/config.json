@@ -1,25 +1,6 @@
 {
   "batch_limits": {
-    "exclusions": [
-      {
-        "reason": "non-user-facing batch",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 1
-          }
-        ]
-      },
-      {
-        "reason": "non-user-facing batch",
-        "entries": [
-          {
-            "version": "unreleased",
-            "line": 26
-          }
-        ]
-      }
-    ]
+    "exclusions": []
   },
   "private": false,
   "targets": [
