@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-incoming"
-version = "0.10.1"
+version = "0.11.0"
 license = "BUSL-1.1"
 description = "Webhook receiver, event replay, and SSE stream. External event ingestion for the event bus."
 requires-python = ">=3.12"
