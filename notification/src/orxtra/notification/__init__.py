@@ -1,7 +1,8 @@
-"""Notification delivery -- persisted notifications for principals via the dispatch subscription system.
+"""Notification delivery -- persisted notifications for principals.
 
-Deliberately minimal: a delivery table, a PG NOTIFY trigger, and backends
-implementing the NotificationPort protocol.
+Uses the dispatch subscription system. Deliberately minimal: a delivery
+table, a PG NOTIFY trigger, and backends implementing the
+NotificationPort protocol.
 """
 
 from __future__ import annotations
