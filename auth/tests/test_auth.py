@@ -532,10 +532,10 @@ async def test_middleware_valid_credential(
 
 
 @pytest.mark.asyncio
-async def test_middleware_non_http_passthrough(
+async def test_middleware_lifespan_passthrough(
     authenticator: Authenticator,
 ) -> None:
-    """Non-HTTP scopes (websocket, lifespan) pass through without auth."""
+    """Lifespan scopes pass through without auth."""
     called = False
 
     async def passthrough_app(
@@ -547,10 +547,175 @@ async def test_middleware_non_http_passthrough(
         called = True
 
     app = auth_middleware(passthrough_app, authenticator)
-    scope = {"type": "websocket", "headers": []}
+    scope = {"type": "lifespan"}
 
     await app(scope, None, None)
     assert called
+
+
+# ---------------------------------------------------------------------------
+# WebSocket middleware
+# ---------------------------------------------------------------------------
+
+
+class _WsSendCapture:
+    """Captures WebSocket ASGI send() calls for assertion."""
+
+    def __init__(self) -> None:
+        self.messages: list[dict[str, object]] = []
+
+    async def __call__(self, message: dict[str, object]) -> None:
+        self.messages.append(message)
+
+
+class _WsReceiveStub:
+    """Stub receive() that returns websocket.connect on first call.
+
+    Tracks how many times receive() was called so tests can verify
+    whether the connect message was consumed by the middleware.
+    """
+
+    def __init__(self) -> None:
+        self.call_count = 0
+
+    async def __call__(self) -> dict[str, object]:
+        self.call_count += 1
+        return {"type": "websocket.connect"}
+
+
+@pytest.mark.asyncio
+async def test_middleware_ws_authenticated(
+    backend: InMemoryAuthBackend,
+    authenticator: Authenticator,
+) -> None:
+    """WebSocket with valid bearer: AuthContext stored, inner app called,
+    receive unconsumed so handler's accept() works."""
+    consumer_id = await _mk_consumer(backend,
+        "ws-user", TrustTier.VERIFIED, ["api"],
+    )
+    await backend.create_credential(
+        consumer_id, "bearer", "ws-valid-token",
+    )
+
+    inner_called = False
+    inner_scope_state: dict[str, object] = {}
+    inner_receive_ref: list[object] = []
+
+    async def ws_app(
+        scope: dict[str, object],
+        receive: object,
+        send: object,
+    ) -> None:
+        nonlocal inner_called
+        inner_called = True
+        inner_scope_state.update(scope.get("state", {}))  # type: ignore[union-attr]
+        inner_receive_ref.append(receive)
+
+    app = auth_middleware(ws_app, authenticator)
+    receive = _WsReceiveStub()
+    send_capture = _WsSendCapture()
+
+    scope: dict[str, object] = {
+        "type": "websocket",
+        "headers": [(b"authorization", b"Bearer ws-valid-token")],
+    }
+    await app(scope, receive, send_capture)
+
+    # Inner app was called.
+    assert inner_called
+
+    # AuthContext was attached.
+    auth_ctx = inner_scope_state.get("auth_context")
+    assert auth_ctx is not None
+    assert isinstance(auth_ctx, AuthContext)
+    assert auth_ctx.consumer_id == consumer_id
+
+    # receive was NOT consumed by the middleware -- the handler gets
+    # the original receive so its accept() can read websocket.connect.
+    assert receive.call_count == 0
+
+    # The receive passed to the inner app is the original one.
+    assert inner_receive_ref[0] is receive
+
+    # Middleware did not send anything (no close, no accept -- that's
+    # the handler's job).
+    assert len(send_capture.messages) == 0
+
+
+@pytest.mark.asyncio
+async def test_middleware_ws_missing_auth(
+    authenticator: Authenticator,
+) -> None:
+    """WebSocket with no Authorization header: close with 4001,
+    inner app NOT called."""
+    inner_called = False
+
+    async def ws_app(
+        scope: dict[str, object],
+        receive: object,
+        send: object,
+    ) -> None:
+        nonlocal inner_called
+        inner_called = True
+
+    app = auth_middleware(ws_app, authenticator)
+    receive = _WsReceiveStub()
+    send_capture = _WsSendCapture()
+
+    scope: dict[str, object] = {
+        "type": "websocket",
+        "headers": [],
+    }
+    await app(scope, receive, send_capture)
+
+    assert not inner_called
+
+    # Middleware consumed websocket.connect before sending close.
+    assert receive.call_count == 1
+
+    # Sent websocket.close with code 4001.
+    assert len(send_capture.messages) == 1
+    close_msg = send_capture.messages[0]
+    assert close_msg["type"] == "websocket.close"
+    assert close_msg["code"] == 4001
+
+
+@pytest.mark.asyncio
+async def test_middleware_ws_invalid_token(
+    authenticator: Authenticator,
+) -> None:
+    """WebSocket with invalid bearer token: close with 4001,
+    inner app NOT called."""
+    inner_called = False
+
+    async def ws_app(
+        scope: dict[str, object],
+        receive: object,
+        send: object,
+    ) -> None:
+        nonlocal inner_called
+        inner_called = True
+
+    app = auth_middleware(ws_app, authenticator)
+    receive = _WsReceiveStub()
+    send_capture = _WsSendCapture()
+
+    scope: dict[str, object] = {
+        "type": "websocket",
+        "headers": [(b"authorization", b"Bearer bad-ws-token")],
+    }
+    await app(scope, receive, send_capture)
+
+    assert not inner_called
+
+    # Middleware consumed websocket.connect before sending close.
+    assert receive.call_count == 1
+
+    # Sent websocket.close with code 4001.
+    assert len(send_capture.messages) == 1
+    close_msg = send_capture.messages[0]
+    assert close_msg["type"] == "websocket.close"
+    assert close_msg["code"] == 4001
 
 
 # ---------------------------------------------------------------------------
