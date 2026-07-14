@@ -13,9 +13,10 @@ from .tables_identity import STATEMENTS as _tables_identity_stmts
 from .tables_trace import STATEMENTS as _tables_trace_stmts
 from .tables_dispatch import STATEMENTS as _tables_dispatch_stmts
 from .tables_auth import STATEMENTS as _tables_auth_stmts
+from .tables_notification import STATEMENTS as _tables_notification_stmts
 from .post_tables import STATEMENTS as _post_stmts
 
-_ALL_STMTS = _ext_stmts + _types_stmts + _tables_identity_stmts + _tables_trace_stmts + _tables_dispatch_stmts + _tables_auth_stmts + _post_stmts
+_ALL_STMTS = _ext_stmts + _types_stmts + _tables_identity_stmts + _tables_trace_stmts + _tables_dispatch_stmts + _tables_auth_stmts + _tables_notification_stmts + _post_stmts
 
 
 @runtime_checkable
@@ -269,6 +270,23 @@ END $$;""", "credential_type"),
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_consumers PRIMARY KEY (id)
 );""", "consumers"),
+            DDLOp("""CREATE TABLE public.notification_deliveries (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    target_principal_id uuid NOT NULL,
+    source_ref text NOT NULL,
+    payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    acknowledged_at timestamptz,
+    CONSTRAINT pk_notification_deliveries PRIMARY KEY (id)
+);""", """CREATE TABLE IF NOT EXISTS public.notification_deliveries (
+    id uuid NOT NULL DEFAULT uuid_generate_v7(),
+    target_principal_id uuid NOT NULL,
+    source_ref text NOT NULL,
+    payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    acknowledged_at timestamptz,
+    CONSTRAINT pk_notification_deliveries PRIMARY KEY (id)
+);""", "notification_deliveries"),
             DDLOp("""CREATE TABLE public.tasks (
     id uuid NOT NULL DEFAULT uuid_generate_v7(),
     run_id uuid NOT NULL,
@@ -716,6 +734,16 @@ BEGIN
     ALTER TABLE public.consumers ADD CONSTRAINT fk_consumers_principal FOREIGN KEY (principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;
   END IF;
 END $$;""", "fk_consumers_principal"),
+            DDLOp("ALTER TABLE public.notification_deliveries ADD CONSTRAINT fk_notification_deliveries_target_principal FOREIGN KEY (target_principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_notification_deliveries_target_principal'
+    AND conrelid = 'public.notification_deliveries'::regclass
+  ) THEN
+    ALTER TABLE public.notification_deliveries ADD CONSTRAINT fk_notification_deliveries_target_principal FOREIGN KEY (target_principal_id) REFERENCES public.principals (id) ON DELETE RESTRICT;
+  END IF;
+END $$;""", "fk_notification_deliveries_target_principal"),
             DDLOp("ALTER TABLE public.tasks ADD CONSTRAINT fk_tasks_parent FOREIGN KEY (parent_task_id) REFERENCES public.tasks (id) ON DELETE CASCADE;", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1138,6 +1166,16 @@ BEGIN
     ALTER TABLE public.consumers ADD CONSTRAINT chk_consumers_name_not_empty CHECK (name <> '');
   END IF;
 END $$;""", "chk_consumers_name_not_empty"),
+            DDLOp("ALTER TABLE public.notification_deliveries ADD CONSTRAINT chk_notification_deliveries_source_ref_not_empty CHECK (source_ref <> '');", """DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_notification_deliveries_source_ref_not_empty'
+    AND conrelid = 'public.notification_deliveries'::regclass
+  ) THEN
+    ALTER TABLE public.notification_deliveries ADD CONSTRAINT chk_notification_deliveries_source_ref_not_empty CHECK (source_ref <> '');
+  END IF;
+END $$;""", "chk_notification_deliveries_source_ref_not_empty"),
             DDLOp("ALTER TABLE public.tasks ADD CONSTRAINT chk_tasks_name_not_empty CHECK (name <> '');", """DO $$
 BEGIN
   IF NOT EXISTS (
@@ -1320,6 +1358,8 @@ END $$;""", "chk_dispatch_completions_status_valid"),
             DDLOp("CREATE INDEX idx_sources_created_by ON public.sources (created_by);", "CREATE INDEX IF NOT EXISTS idx_sources_created_by ON public.sources (created_by);", "idx_sources_created_by"),
             DDLOp("CREATE INDEX idx_consumers_principal_id ON public.consumers (principal_id);", "CREATE INDEX IF NOT EXISTS idx_consumers_principal_id ON public.consumers (principal_id);", "idx_consumers_principal_id"),
             DDLOp("CREATE INDEX idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "CREATE INDEX IF NOT EXISTS idx_consumers_scope_grants_gin ON public.consumers USING gin (scope_grants);", "idx_consumers_scope_grants_gin"),
+            DDLOp("CREATE INDEX idx_notification_deliveries_source_ref ON public.notification_deliveries (source_ref);", "CREATE INDEX IF NOT EXISTS idx_notification_deliveries_source_ref ON public.notification_deliveries (source_ref);", "idx_notification_deliveries_source_ref"),
+            DDLOp("CREATE INDEX idx_notification_deliveries_unacked ON public.notification_deliveries (target_principal_id, created_at) WHERE acknowledged_at IS NULL;", "CREATE INDEX IF NOT EXISTS idx_notification_deliveries_unacked ON public.notification_deliveries (target_principal_id, created_at) WHERE acknowledged_at IS NULL;", "idx_notification_deliveries_unacked"),
             DDLOp("CREATE INDEX idx_tasks_config_gin ON public.tasks USING gin (config);", "CREATE INDEX IF NOT EXISTS idx_tasks_config_gin ON public.tasks USING gin (config);", "idx_tasks_config_gin"),
             DDLOp("CREATE INDEX idx_tasks_parent_id ON public.tasks (parent_task_id);", "CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks (parent_task_id);", "idx_tasks_parent_id"),
             DDLOp("CREATE INDEX idx_tasks_run_id ON public.tasks (run_id);", "CREATE INDEX IF NOT EXISTS idx_tasks_run_id ON public.tasks (run_id);", "idx_tasks_run_id"),
@@ -1415,6 +1455,10 @@ $$ LANGUAGE plpgsql;""", "public.pgdesign_deny_mutation"),
             DDLOp("COMMENT ON COLUMN public.consumers.name IS 'Human-readable consumer name';", None, "column.consumers.name"),
             DDLOp("COMMENT ON COLUMN public.consumers.scope_grants IS 'JSON array of granted scope strings';", None, "column.consumers.scope_grants"),
             DDLOp("COMMENT ON COLUMN public.consumers.disabled_at IS 'Non-null means the consumer is disabled';", None, "column.consumers.disabled_at"),
+            DDLOp("COMMENT ON TABLE public.notification_deliveries IS 'Persisted notifications targeting specific principals. INSERT fires PG NOTIFY for real-time pickup.';", None, "table.notification_deliveries"),
+            DDLOp("COMMENT ON COLUMN public.notification_deliveries.target_principal_id IS 'The principal this notification is addressed to.';", None, "column.notification_deliveries.target_principal_id"),
+            DDLOp("COMMENT ON COLUMN public.notification_deliveries.source_ref IS 'Opaque reference string describing the origin (e.g. ''self-subscription'', ''event:run_completed:UUID''). No upward FK.';", None, "column.notification_deliveries.source_ref"),
+            DDLOp("COMMENT ON COLUMN public.notification_deliveries.payload IS 'Notification content';", None, "column.notification_deliveries.payload"),
             DDLOp("COMMENT ON TABLE public.tasks IS 'Recursive task hierarchy within a run. Replaces the old workflows + steps tables.';", None, "table.tasks"),
             DDLOp("COMMENT ON COLUMN public.tasks.parent_task_id IS 'Parent task for nested task hierarchies';", None, "column.tasks.parent_task_id"),
             DDLOp("COMMENT ON COLUMN public.tasks.config IS 'Task configuration';", None, "column.tasks.config"),
@@ -1532,12 +1576,38 @@ END;
 
 $pgdesign$
 LANGUAGE plpgsql;""", "notify_orxtra_event"),
+            DDLOp("""CREATE OR REPLACE FUNCTION public.notify_orxtra_notification()
+RETURNS trigger
+AS $pgdesign$
+BEGIN
+    PERFORM pg_notify('orxtra_notifications', json_build_object(
+        'notification_id', NEW.id,
+        'target_principal_id', NEW.target_principal_id::text
+    )::text);
+    RETURN NEW;
+END;
+
+$pgdesign$
+LANGUAGE plpgsql;""", """CREATE OR REPLACE FUNCTION public.notify_orxtra_notification()
+RETURNS trigger
+AS $pgdesign$
+BEGIN
+    PERFORM pg_notify('orxtra_notifications', json_build_object(
+        'notification_id', NEW.id,
+        'target_principal_id', NEW.target_principal_id::text
+    )::text);
+    RETURN NEW;
+END;
+
+$pgdesign$
+LANGUAGE plpgsql;""", "notify_orxtra_notification"),
         ],
     ),
     Section(
         kind="triggers",
         transactional=True,
         ops=[
+            DDLOp("CREATE TRIGGER trg_notify_notification_delivery AFTER INSERT ON public.notification_deliveries FOR EACH ROW EXECUTE FUNCTION public.notify_orxtra_notification();", "CREATE OR REPLACE TRIGGER trg_notify_notification_delivery AFTER INSERT ON public.notification_deliveries FOR EACH ROW EXECUTE FUNCTION public.notify_orxtra_notification();", "trg_notify_notification_delivery"),
             DDLOp("CREATE TRIGGER trg_notify_event AFTER INSERT ON public.events FOR EACH ROW EXECUTE FUNCTION public.notify_orxtra_event();", "CREATE OR REPLACE TRIGGER trg_notify_event AFTER INSERT ON public.events FOR EACH ROW EXECUTE FUNCTION public.notify_orxtra_event();", "trg_notify_event"),
         ],
     ),

@@ -36,4 +36,29 @@ END;
 
 $pgdesign$
 LANGUAGE plpgsql;""", "function", "notify_orxtra_event", None, 16, True),
+    DDLStmt("""CREATE OR REPLACE FUNCTION public.notify_orxtra_notification()
+RETURNS trigger
+AS $pgdesign$
+BEGIN
+    PERFORM pg_notify('orxtra_notifications', json_build_object(
+        'notification_id', NEW.id,
+        'target_principal_id', NEW.target_principal_id::text
+    )::text);
+    RETURN NEW;
+END;
+
+$pgdesign$
+LANGUAGE plpgsql;""", """CREATE OR REPLACE FUNCTION public.notify_orxtra_notification()
+RETURNS trigger
+AS $pgdesign$
+BEGIN
+    PERFORM pg_notify('orxtra_notifications', json_build_object(
+        'notification_id', NEW.id,
+        'target_principal_id', NEW.target_principal_id::text
+    )::text);
+    RETURN NEW;
+END;
+
+$pgdesign$
+LANGUAGE plpgsql;""", "function", "notify_orxtra_notification", None, 16, True),
 ]

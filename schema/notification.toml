@@ -1,0 +1,93 @@
+# notification module PostgreSQL schema
+# Single owner: the notification module. No other module writes to these tables
+# directly. Persisted notifications for principals, delivered via the dispatch
+# subscription system.
+#
+# Cross-file FK references: notification_deliveries.target_principal_id ->
+# identity's principals table. pgdesign resolves these when generating from
+# the schema/ directory (topo sort merges all files).
+
+[meta]
+version = 1
+schema = "public"
+extensions = ["pg_uuidv7"]
+
+# ---------------------------------------------------------------------------
+# Tables: Notification deliveries
+# ---------------------------------------------------------------------------
+
+[tables.notification_deliveries]
+comment = "Persisted notifications targeting specific principals. INSERT fires PG NOTIFY for real-time pickup."
+
+[tables.notification_deliveries.columns.id]
+type = "id"
+
+[tables.notification_deliveries.columns.target_principal_id]
+type = "ref"
+comment = "The principal this notification is addressed to."
+
+[tables.notification_deliveries.columns.source_ref]
+type = "str"
+comment = "Opaque reference string describing the origin (e.g. 'self-subscription', 'event:run_completed:UUID'). No upward FK."
+
+[tables.notification_deliveries.columns.payload]
+type = "json"
+comment = "Notification content"
+
+[tables.notification_deliveries.columns.created_at]
+type = "timestamp"
+
+[tables.notification_deliveries.columns.acknowledged_at]
+type = "timestamp_optional"
+
+[tables.notification_deliveries.checks.chk_notification_deliveries_source_ref_not_empty]
+expr = "source_ref <> ''"
+
+# Cross-file FK: notification_deliveries.target_principal_id -> identity's
+# principals table. ON DELETE RESTRICT: a principal with notification history
+# is undeletable (consistent with events.principal_id, runs.created_by, etc.).
+[tables.notification_deliveries.fks.fk_notification_deliveries_target_principal]
+columns = ["target_principal_id"]
+ref_table = "principals"
+ref_columns = ["id"]
+on_delete = "RESTRICT"
+
+# Standalone target_principal_id index omitted: pgdesign flags it as a prefix
+# of the partial unacked index. The partial index covers the hot path (unacked
+# by principal); queries across all notifications fall back to seq scan or the
+# FK constraint. If full-table principal lookups become a bottleneck, revisit.
+
+[tables.notification_deliveries.indexes.idx_notification_deliveries_unacked]
+columns = ["target_principal_id", "created_at"]
+where = "acknowledged_at IS NULL"
+
+[tables.notification_deliveries.indexes.idx_notification_deliveries_source_ref]
+columns = ["source_ref"]
+
+# ---------------------------------------------------------------------------
+# Functions: LISTEN/NOTIFY for real-time notification delivery
+# ---------------------------------------------------------------------------
+
+[functions.notify_orxtra_notification]
+language = "plpgsql"
+returns = "trigger"
+depends_on = ["notification_deliveries"]
+body = """
+BEGIN
+    PERFORM pg_notify('orxtra_notifications', json_build_object(
+        'notification_id', NEW.id,
+        'target_principal_id', NEW.target_principal_id::text
+    )::text);
+    RETURN NEW;
+END;
+"""
+
+# ---------------------------------------------------------------------------
+# Triggers: Notification delivery
+# ---------------------------------------------------------------------------
+
+[tables.notification_deliveries.triggers.trg_notify_notification_delivery]
+function = "notify_orxtra_notification"
+events = ["INSERT"]
+timing = "AFTER"
+for_each = "ROW"

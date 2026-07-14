@@ -1,7 +1,7 @@
 [project]
 name = "orxtra"
 version = "0.1.0"
-schemas = ["trace.toml", "dispatch.toml", "auth.toml", "identity.toml"]
+schemas = ["trace.toml", "dispatch.toml", "auth.toml", "identity.toml", "notification.toml"]
 
 [validate]
 disable = [
