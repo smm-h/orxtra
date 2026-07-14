@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     )
     from orxtra.protocols._types._events import OverseerEvent
     from orxtra.protocols._types._identity import Principal
+    from orxtra.protocols._types._notification import NotificationDelivery
     from orxtra.protocols._types._surfaces import SurfaceSpec
     from orxtra.protocols._types._task import Execution
     from orxtra.protocols._types._tool import Tool
@@ -444,13 +445,8 @@ class NotificationPort(Protocol):
         unacknowledged_only: bool = True,
         cursor: UUID | None = None,
         limit: int = 50,
-    ) -> list[Any]:
-        """List notifications for a principal.
-
-        Returns a list of notification deliveries (typed as Any until
-        the NotificationDelivery model is defined in the notification
-        module).
-        """
+    ) -> list[NotificationDelivery]:
+        """List notifications for a principal."""
         ...
 
     async def acknowledge(self, delivery_id: UUID) -> None:

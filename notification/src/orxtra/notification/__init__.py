@@ -14,6 +14,13 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
+from orxtra.notification._backend import PgNotificationBackend
+from orxtra.notification._inmemory import InMemoryNotificationBackend
+from orxtra.protocols import NotificationDelivery
+
 __all__ = [
+    "InMemoryNotificationBackend",
+    "NotificationDelivery",
+    "PgNotificationBackend",
     "__version__",
 ]
