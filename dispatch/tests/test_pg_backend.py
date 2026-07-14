@@ -21,6 +21,7 @@ from orxtra.dispatch._types import (
 from orxtra.protocols import (
     EventAction,
     LogAction,
+    NotifyAction,
     ScriptAction,
     WorkflowAction,
 )
@@ -271,12 +272,46 @@ class TestActionSerialization:
         with pytest.raises(TypeError, match="Unknown action type"):
             _serialize_action(object())  # type: ignore[arg-type]
 
+    def test_serialize_notify_action(self) -> None:
+        pid = UUID("12345678-1234-5678-1234-567812345678")
+        action = NotifyAction(
+            target_principal_id=pid,
+            source_ref="dispatch:sub:x",
+            payload={"alert": True},
+        )
+        action_type, config_json = _serialize_action(action)
+        assert action_type == "notify"
+        data = json.loads(config_json)
+        assert data["target_principal_id"] == str(pid)
+        assert data["source_ref"] == "dispatch:sub:x"
+        assert data["payload"] == {"alert": True}
+
+    def test_deserialize_notify_action(self) -> None:
+        pid = "12345678-1234-5678-1234-567812345678"
+        result = _deserialize_action(
+            "notify",
+            json.dumps({
+                "target_principal_id": pid,
+                "source_ref": "src",
+                "payload": {"k": "v"},
+            }),
+        )
+        assert isinstance(result, NotifyAction)
+        assert result.target_principal_id == UUID(pid)
+        assert result.source_ref == "src"
+        assert result.payload == {"k": "v"}
+
     def test_roundtrip_all_action_types(self) -> None:
         actions = [
             ScriptAction(callable="a:b"),
             LogAction(message="msg"),
             WorkflowAction(workflow_path="/w"),
             EventAction(event_type="e"),
+            NotifyAction(
+                target_principal_id=UUID("12345678-1234-5678-1234-567812345678"),
+                source_ref="test",
+                payload={"x": 1},
+            ),
         ]
         for original in actions:
             atype, config = _serialize_action(original)

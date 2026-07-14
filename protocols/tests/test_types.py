@@ -11,6 +11,7 @@ from orxtra.protocols import (
     ErrorCategory,
     EventAction,
     LogAction,
+    NotifyAction,
     ScriptAction,
     ScriptExecution,
     Severity,
@@ -338,6 +339,55 @@ class TestEventAction:
             a.event_type = "y"  # type: ignore[misc]
 
 
+class TestNotifyAction:
+    def test_valid(self) -> None:
+        from uuid import UUID
+
+        pid = UUID("12345678-1234-5678-1234-567812345678")
+        a = NotifyAction(
+            target_principal_id=pid,
+            source_ref="dispatch:sub:abc",
+            payload={"msg": "hello"},
+        )
+        assert a.target_principal_id == pid
+        assert a.source_ref == "dispatch:sub:abc"
+        assert a.payload == {"msg": "hello"}
+
+    def test_extra_field_rejected(self) -> None:
+        from uuid import UUID
+
+        with pytest.raises(ValidationError):
+            NotifyAction(
+                target_principal_id=UUID("12345678-1234-5678-1234-567812345678"),
+                source_ref="x",
+                payload={},
+                extra="y",  # type: ignore[call-arg]
+            )
+
+    def test_frozen(self) -> None:
+        from uuid import UUID
+
+        a = NotifyAction(
+            target_principal_id=UUID("12345678-1234-5678-1234-567812345678"),
+            source_ref="x",
+            payload={},
+        )
+        with pytest.raises(ValidationError):
+            a.source_ref = "y"  # type: ignore[misc]
+
+    def test_missing_required_fields(self) -> None:
+        with pytest.raises(ValidationError):
+            NotifyAction(source_ref="x", payload={})  # type: ignore[call-arg]
+
+    def test_wrong_type_for_target_principal_id(self) -> None:
+        with pytest.raises(ValidationError):
+            NotifyAction(
+                target_principal_id="not-a-uuid",  # type: ignore[arg-type]
+                source_ref="x",
+                payload={},
+            )
+
+
 class TestActionTypeAlias:
     def test_isinstance_script(self) -> None:
         a: Action = ScriptAction(callable="mod:fn")
@@ -354,5 +404,15 @@ class TestActionTypeAlias:
     def test_isinstance_event(self) -> None:
         a: Action = EventAction(event_type="evt")
         assert isinstance(a, EventAction)
+
+    def test_isinstance_notify(self) -> None:
+        from uuid import UUID
+
+        a: Action = NotifyAction(
+            target_principal_id=UUID("12345678-1234-5678-1234-567812345678"),
+            source_ref="test",
+            payload={"k": "v"},
+        )
+        assert isinstance(a, NotifyAction)
 
 

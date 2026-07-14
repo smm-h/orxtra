@@ -13,6 +13,7 @@ from orxtra.protocols._types._actions import (
     CreateWorkflowResult,
     EventAction,
     LogAction,
+    NotifyAction,
     RecordAssumptionParams,
     RecordAssumptionResult,
     RecordDecisionParams,
@@ -103,6 +104,9 @@ from orxtra.protocols._types._identity import (
     KIND_SYSTEM,
     SYSTEM_PRINCIPAL_EXTERNAL_REF,
     Principal,
+)
+from orxtra.protocols._types._notification import (
+    NotificationDelivery,
 )
 from orxtra.protocols._types._results import (
     Confirmation,
@@ -234,6 +238,8 @@ __all__ = [
     "LogAction",
     "MacOutcome",
     "MacVerdict",
+    "NotificationDelivery",
+    "NotifyAction",
     "OnSuccessCallback",
     "OverseerEvent",
     "PreRetryCallback",

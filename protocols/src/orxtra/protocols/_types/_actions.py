@@ -7,6 +7,7 @@ from typing import Any
 from orxtra.protocols._types._enums import ConstraintTier
 from orxtra.protocols._types._task import Execution
 from pydantic import BaseModel, ConfigDict
+from uuid import UUID
 
 # -- Action type hierarchy --
 
@@ -35,7 +36,14 @@ class EventAction(BaseModel):
     source: str = "internal"
 
 
-type Action = ScriptAction | LogAction | WorkflowAction | EventAction
+class NotifyAction(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    target_principal_id: UUID
+    source_ref: str
+    payload: dict[str, Any]
+
+
+type Action = ScriptAction | LogAction | WorkflowAction | EventAction | NotifyAction
 
 
 # -- Action tool params/results --

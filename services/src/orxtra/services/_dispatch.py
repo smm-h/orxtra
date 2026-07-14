@@ -10,6 +10,7 @@ from orxtra.protocols import (
     EventAction,
     FilterPredicate,
     LogAction,
+    NotifyAction,
     ScriptAction,
     Source,
     Subscription,
@@ -38,6 +39,8 @@ def _resolve_action_from_dict(action_data: dict[str, Any]) -> Action:
         return WorkflowAction.model_validate(action_data)
     if "event_type" in action_data:
         return EventAction.model_validate(action_data)
+    if "target_principal_id" in action_data:
+        return NotifyAction.model_validate(action_data)
 
     msg = f"Cannot determine action type from keys: {set(action_data.keys())}"
     raise ValueError(msg)

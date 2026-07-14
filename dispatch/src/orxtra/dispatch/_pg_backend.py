@@ -11,13 +11,13 @@ from orxtra.dispatch._types import (
     Subscription,
     SubscriptionAction,
 )
-from orxtra.protocols import EventAction, LogAction, ScriptAction, WorkflowAction
+from orxtra.protocols import EventAction, LogAction, NotifyAction, ScriptAction, WorkflowAction
 
 if TYPE_CHECKING:
     import asyncpg
     from orxtra.protocols import Action
 
-type _ActionType = type[ScriptAction | LogAction | WorkflowAction | EventAction]
+type _ActionType = type[ScriptAction | LogAction | WorkflowAction | EventAction | NotifyAction]
 
 # Map Action subclass -> DB action_type string.
 _ACTION_TYPE_MAP: dict[_ActionType, str] = {
@@ -25,6 +25,7 @@ _ACTION_TYPE_MAP: dict[_ActionType, str] = {
     LogAction: "log",
     WorkflowAction: "workflow",
     EventAction: "event",
+    NotifyAction: "notify",
 }
 
 # Reverse: DB action_type string -> Action subclass.
@@ -32,14 +33,14 @@ _ACTION_CLASS_MAP: dict[str, _ActionType] = {v: k for k, v in _ACTION_TYPE_MAP.i
 
 
 def _serialize_action(
-    action: ScriptAction | LogAction | WorkflowAction | EventAction,
+    action: ScriptAction | LogAction | WorkflowAction | EventAction | NotifyAction,
 ) -> tuple[str, str]:
     """Decompose an Action into (action_type, action_config_json)."""
     action_type = _ACTION_TYPE_MAP.get(type(action))
     if action_type is None:
         msg = f"Unknown action type: {type(action).__name__}"
         raise TypeError(msg)
-    return action_type, json.dumps(action.model_dump())
+    return action_type, json.dumps(action.model_dump(mode="json"))
 
 
 def _deserialize_action(action_type: str, action_config: str) -> Action:
@@ -51,7 +52,8 @@ def _deserialize_action(action_type: str, action_config: str) -> Action:
     data = (
         json.loads(action_config) if isinstance(action_config, str) else action_config
     )
-    return cls.model_validate(data)
+    # strict=False: UUIDs arrive as strings from JSON; coerce str -> UUID.
+    return cls.model_validate(data, strict=False)
 
 
 class PgDispatchBackend:
