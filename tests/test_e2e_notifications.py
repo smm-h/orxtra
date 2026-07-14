@@ -62,7 +62,7 @@ async def test_notification_delivery_full_cycle(
     storage = PgPrincipalStorage(pg_pool)
     backend = PgDispatchBackend(pg_pool)
     notification_backend = PgNotificationBackend(pg_pool)
-    kind_registry = KindRegistry()
+    kind_registry = KindRegistry([])
 
     # Step 1: Create a consumer principal with self-subscription.
     consumer = await create_principal(
