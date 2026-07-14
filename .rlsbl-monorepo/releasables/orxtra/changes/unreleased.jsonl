@@ -27,3 +27,4 @@
 {"id":"18c23466476e1196bdbcee99440c487688c97226d4b056ea","commits":["afc22be449cdb3d8009f3df2a95efed6b5de79ea","707c61bfe961abf2edaed23d9af16b8f763ad486","d0809a1ae74f15abf8219c9f34aa50ed0edf64ef","b80f20bf41317a4e495af1ce9e56f7a8fadeefc8","6d7ae8b6d2786e7e8655f6808f7d142209216a2e"],"user_facing":false,"packages":["agent","cli","mcp","notepad","overseer","protocols","scheduler","secrets","services","session","tool","trace","transport","verify","write-safety"]}
 {"id":"18c23467ba867140a2d9a83b8e1f4f34aaedfd874586eb38","commits":["7768a69ae70149643edb5cedd8c788b91098f196","7de0240f92bf8ea8c21724174de5595efa0653eb"],"user_facing":false,"packages":[".","api","services"]}
 {"id":"18c2346dee07ec383db9af3de28849e6a155a001785c270f","commits":["8bc8b29f00a01a11ed60eb456acf03cadd6a0ae8"],"user_facing":false,"packages":["."]}
+{"id":"18c2351cc6bb92b98761d92566244dceb824a1abc1626e8f","commits":["86364c87886264fd6f953a1549ac5a7395a68043"],"user_facing":false,"packages":["tool"]}
