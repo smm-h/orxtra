@@ -31,7 +31,7 @@ def register_serve_command(app: strictcli.App) -> None:
         default="",
     )
     def cmd_serve(
-        *,
+        ctx, *,
         db: str,
         port: int,
         host: str,

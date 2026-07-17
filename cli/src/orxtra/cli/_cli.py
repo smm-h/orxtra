@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.metadata
 import json
 import sys
 from datetime import UTC, datetime
@@ -123,6 +124,7 @@ def _dispatch_no_pool(
 app = strictcli.App(
     name="orxtra",
     help="Autonomous multi-agent AI workflows.",
+    version=importlib.metadata.version("orxtra"),
     flags=[
         strictcli.Flag(
             name="db",
@@ -154,7 +156,7 @@ run_group = app.group("run", help="Run lifecycle commands.")
 @run_group.command(name="start", help="Start a run from a config file.")
 @strictcli.flag(name="config", type=str, help="Path to run config file.")
 @strictcli.flag(name="intent", type=str, help="Intent description for the run.")
-def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> None:
+def cmd_run_start(ctx, *, db: str, config: str, intent: str, **_kwargs: object) -> None:
     db_url = _require_db(db)
 
     async def _run() -> None:
@@ -179,13 +181,13 @@ def cmd_run_start(*, db: str, config: str, intent: str, **_kwargs: object) -> No
 
 
 @run_group.command(name="list", help="List all runs, newest first.")
-def cmd_run_list(*, db: str, format: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_run_list(ctx, *, db: str, format: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_and_print(_require_db(db), "list_runs", {}, format)
 
 
 @run_group.command(name="show", help="Show a run's full report.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_run_show(ctx, *, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
 
     async def _run() -> None:
@@ -210,7 +212,7 @@ def cmd_run_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> Non
 
 @run_group.command(name="abort", help="Signal a running run to abort.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_run_abort(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
+def cmd_run_abort(ctx, *, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
     _dispatch_quiet(
         _require_db(db), "abort_run", {"run_id": run_id},
         quiet, f"run {run_id} aborted",
@@ -219,7 +221,7 @@ def cmd_run_abort(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> No
 
 @run_group.command(name="pause", help="Pause a running run.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_run_pause(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
+def cmd_run_pause(ctx, *, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
     _dispatch_quiet(
         _require_db(db), "pause_run", {"run_id": run_id},
         quiet, f"run {run_id} paused",
@@ -228,7 +230,7 @@ def cmd_run_pause(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> No
 
 @run_group.command(name="resume", help="Resume a paused run.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_run_resume(*, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
+def cmd_run_resume(ctx, *, db: str, quiet: bool, run_id: str, **_kwargs: object) -> None:
     _dispatch_quiet(
         _require_db(db), "resume_run", {"run_id": run_id},
         quiet, f"run {run_id} resumed",
@@ -244,7 +246,7 @@ inbox_group = app.group("inbox", help="Human inbox commands.")
 @strictcli.flag(name="run", type=str, help="Run ID to filter by.")
 @strictcli.flag(name="status", type=str, help="Status filter.", default="")
 def cmd_inbox_list(
-    *, db: str, format: str, run: str, status: str, **_kwargs: object,  # noqa: A002
+    ctx, *, db: str, format: str, run: str, status: str, **_kwargs: object,  # noqa: A002
 ) -> None:
     args: dict[str, Any] = {"run_id": run}
     if status:
@@ -254,7 +256,7 @@ def cmd_inbox_list(
 
 @inbox_group.command(name="show", help="Show a single inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
-def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_inbox_show(ctx, *, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_and_print(_require_db(db), "get_inbox_item", {"item_id": item_id}, format)
 
 
@@ -262,7 +264,7 @@ def cmd_inbox_show(*, db: str, format: str, item_id: str, **_kwargs: object) -> 
 @strictcli.arg(name="item_id", help="Inbox item ID.")
 @strictcli.arg(name="answer", help="The answer text.")
 def cmd_inbox_respond(
-    *, db: str, format: str, item_id: str, answer: str, **_kwargs: object,  # noqa: A002
+    ctx, *, db: str, format: str, item_id: str, answer: str, **_kwargs: object,  # noqa: A002
 ) -> None:
     _dispatch_and_print(
         _require_db(db), "respond_to_inbox",
@@ -272,7 +274,7 @@ def cmd_inbox_respond(
 
 @inbox_group.command(name="skip", help="Skip an inbox item.")
 @strictcli.arg(name="item_id", help="Inbox item ID.")
-def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_inbox_skip(ctx, *, db: str, format: str, item_id: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_and_print(
         _require_db(db), "skip_inbox_item", {"item_id": item_id}, format,
     )
@@ -282,7 +284,7 @@ def cmd_inbox_skip(*, db: str, format: str, item_id: str, **_kwargs: object) -> 
 @strictcli.arg(name="item_id", help="Inbox item ID.")
 @strictcli.arg(name="reason", help="Reason for rejection.")
 def cmd_inbox_reject(
-    *, db: str, format: str, item_id: str, reason: str, **_kwargs: object,  # noqa: A002
+    ctx, *, db: str, format: str, item_id: str, reason: str, **_kwargs: object,  # noqa: A002
 ) -> None:
     _dispatch_and_print(
         _require_db(db), "reject_inbox_item",
@@ -300,7 +302,7 @@ trace_group = app.group("trace", help="Trace and event query commands.")
 @strictcli.flag(name="type", type=str, help="Filter by event type.", default="")
 @strictcli.flag(name="limit", type=int, help="Maximum events to return.", default=100)
 def cmd_trace_events(
-    *, db: str, format: str, run_id: str, type: str, limit: int, **_kwargs: object,  # noqa: A002
+    ctx, *, db: str, format: str, run_id: str, type: str, limit: int, **_kwargs: object,  # noqa: A002
 ) -> None:
     args: dict[str, Any] = {"run_id": run_id, "limit": limit}
     if type:
@@ -311,7 +313,7 @@ def cmd_trace_events(
 @trace_group.command(name="transcript", help="Show a session's full transcript.")
 @strictcli.arg(name="session_id", help="Session ID.")
 def cmd_trace_transcript(
-    *, db: str, format: str, session_id: str, **_kwargs: object,  # noqa: A002
+    ctx, *, db: str, format: str, session_id: str, **_kwargs: object,  # noqa: A002
 ) -> None:
     _dispatch_and_print(
         _require_db(db), "get_transcript", {"session_id": session_id}, format,
@@ -325,7 +327,7 @@ def cmd_trace_transcript(
 @strictcli.arg(name="session_id", help="Session ID.")
 @strictcli.arg(name="query", help="Search query.")
 def cmd_trace_search(
-    *, db: str, format: str, session_id: str, query: str, **_kwargs: object,  # noqa: A002
+    ctx, *, db: str, format: str, session_id: str, query: str, **_kwargs: object,  # noqa: A002
 ) -> None:
     _dispatch_and_print(
         _require_db(db), "search_transcript",
@@ -335,13 +337,13 @@ def cmd_trace_search(
 
 @trace_group.command(name="tasks", help="Show task statuses and attempt counts.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_trace_tasks(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_trace_tasks(ctx, *, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_and_print(_require_db(db), "list_tasks", {"run_id": run_id}, format)
 
 
 @trace_group.command(name="notepad", help="Show notepad entries.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_trace_notepad(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_trace_notepad(ctx, *, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_and_print(_require_db(db), "get_notepad", {"run_id": run_id}, format)
 
 
@@ -355,7 +357,7 @@ event_group = app.group("event", help="Event firing commands.")
 @strictcli.arg(name="event_name", help="Event name.")
 @strictcli.flag(name="payload", type=str, help="JSON payload.", default="")
 def cmd_event_fire(
-    *, db: str, quiet: bool, run_id: str,
+    ctx, *, db: str, quiet: bool, run_id: str,
     event_name: str, payload: str, **_kwargs: object,
 ) -> None:
     db_url = _require_db(db)
@@ -399,7 +401,7 @@ validate_group = app.group("validate", help="Validate configuration files.")
 
 @validate_group.command(name="agent", help="Validate an agent TOML file.")
 @strictcli.arg(name="path", help="Path to agent TOML file.")
-def cmd_validate_agent(*, quiet: bool, path: str, **_kwargs: object) -> None:
+def cmd_validate_agent(ctx, *, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
         ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_agent", {"path": path})
@@ -415,7 +417,7 @@ def cmd_validate_agent(*, quiet: bool, path: str, **_kwargs: object) -> None:
 
 @validate_group.command(name="workflow", help="Validate a workflow TOML file.")
 @strictcli.arg(name="path", help="Path to workflow TOML file.")
-def cmd_validate_workflow(*, quiet: bool, path: str, **_kwargs: object) -> None:
+def cmd_validate_workflow(ctx, *, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
         ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_workflow", {"path": path})
@@ -431,7 +433,7 @@ def cmd_validate_workflow(*, quiet: bool, path: str, **_kwargs: object) -> None:
 
 @validate_group.command(name="categories", help="Validate a categories TOML file.")
 @strictcli.arg(name="path", help="Path to categories TOML file.")
-def cmd_validate_categories(*, quiet: bool, path: str, **_kwargs: object) -> None:
+def cmd_validate_categories(ctx, *, quiet: bool, path: str, **_kwargs: object) -> None:
     async def _run() -> None:
         ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_categories", {"path": path})
@@ -452,7 +454,7 @@ config_group = app.group("config", help="Configuration commands.")
 
 @config_group.command(name="show", help="Show the config snapshot for a run.")
 @strictcli.arg(name="run_id", help="Run ID.")
-def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_config_show(ctx, *, db: str, format: str, run_id: str, **_kwargs: object) -> None:  # noqa: A002
     db_url = _require_db(db)
 
     async def _run() -> None:
@@ -476,7 +478,7 @@ def cmd_config_show(*, db: str, format: str, run_id: str, **_kwargs: object) -> 
 
 
 @config_group.command(name="pricing", help="Show the current internal pricing table.")
-def cmd_config_pricing(*, format: str, **_kwargs: object) -> None:  # noqa: A002
+def cmd_config_pricing(ctx, *, format: str, **_kwargs: object) -> None:  # noqa: A002
     _dispatch_no_pool("show_pricing", {}, format)
 
 

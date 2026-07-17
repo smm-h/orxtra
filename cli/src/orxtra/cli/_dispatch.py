@@ -43,7 +43,7 @@ def register_dispatch_commands(app: strictcli.App) -> None:
         default=100,
     )
     def cmd_dispatch_run(
-        *,
+        ctx, *,
         db: str,
         cursor: str,
         **kwargs: object,

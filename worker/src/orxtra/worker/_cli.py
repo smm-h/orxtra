@@ -26,7 +26,7 @@ def register_worker_commands(app: strictcli.App) -> None:
     @strictcli.flag(name="root", type=str, help="Project root directory.")
     @strictcli.flag(name="key", type=str, help="API key for authentication.")
     def cmd_worker_connect(
-        *, brain: str, root: str, key: str, **_kwargs: object,
+        ctx, *, brain: str, root: str, key: str, **_kwargs: object,
     ) -> None:
         worker = NativeWorker(
             brain_url=brain,
@@ -44,7 +44,7 @@ def register_worker_commands(app: strictcli.App) -> None:
     @strictcli.flag(name="root", type=str, help="Project root directory.")
     @strictcli.flag(name="key", type=str, help="API key for authentication.")
     def cmd_worker_docker(
-        *, brain: str, image: str, root: str, key: str, **_kwargs: object,
+        ctx, *, brain: str, image: str, root: str, key: str, **_kwargs: object,
     ) -> None:
         worker = DockerWorker(
             brain_url=brain,
