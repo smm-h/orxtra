@@ -1,0 +1,1 @@
+{"id":"18c32eede839b9d019568c6fa84c4de0b664897c9a5f1073","commits":["308c99e219d55834200ada56d590c24f491a236c"],"user_facing":true,"description":"**Breaking: strictcli v0.29.0 migration.** All CLI command handlers now receive ctx as first parameter. App constructor includes explicit version=.","type":"breaking","packages":["api","cli","worker"]}
