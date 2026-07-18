@@ -2,7 +2,7 @@
   "batch_limits": {
     "exclusions": []
   },
-  "private": false,
+  "publish_mode": "ci",
   "targets": [
     "pypi"
   ],
