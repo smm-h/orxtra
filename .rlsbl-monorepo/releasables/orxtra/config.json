@@ -9,7 +9,8 @@
   "pipelines": {
     "pypi": {
       "type": "pypi",
-      "local": false
+      "local": false,
+      "target": "pypi"
     }
   },
   "coverage_unit": "commit",

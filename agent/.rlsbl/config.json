@@ -2,11 +2,12 @@
   "targets": [
     "pypi"
   ],
-  "private": false,
+  "publish_mode": "ci",
   "pipelines": {
     "pypi": {
       "type": "pypi",
-      "local": false
+      "local": false,
+      "target": "pypi"
     }
   }
 }
