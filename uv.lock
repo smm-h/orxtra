@@ -986,6 +986,7 @@ dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
     { name = "orxtra-protocols" },
     { name = "orxtra-services" },
+    { name = "strictspec" },
 ]
 
 [package.dev-dependencies]
@@ -998,6 +999,7 @@ requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"] },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-services", editable = "services" },
+    { name = "strictspec", specifier = ">=0.1.0" },
 ]
 
 [package.metadata.requires-dev]

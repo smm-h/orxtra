@@ -6,6 +6,7 @@ description = "A2A (Agent-to-Agent) protocol server for orxtra"
 requires-python = ">=3.12"
 dependencies = [
     "a2a-sdk[http-server]",
+    "strictspec>=0.1.0",
     "orxtra-services",
     "orxtra-protocols",
 ]

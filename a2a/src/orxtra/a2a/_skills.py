@@ -6,10 +6,16 @@ import tomllib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from orxtra.a2a._gen_skill import validate_bytes as _validate_skill_document
+
 if TYPE_CHECKING:
     from pathlib import Path
 
     from orxtra.protocols import Capability
+
+
+class SkillValidationError(ValueError):
+    """A skill document failed strictspec validation at the load boundary."""
 
 # Namespaces excluded from A2A exposure -- same filter as MCP.
 _EXCLUDED_NAMESPACES: frozenset[str] = frozenset({
@@ -67,8 +73,18 @@ class SkillRegistry:
         """Load skill definitions from TOML files."""
         skills: list[Skill] = []
         for path in toml_files:
-            with path.open("rb") as f:
-                data = tomllib.load(f)
+            text = path.read_text()
+            # strictspec document gate: enforces integer format_version and the
+            # required id/name/description/capability_name shape (formerly
+            # implicit KeyErrors). Capability existence stays consumer-native below.
+            _root, diags = _validate_skill_document(text.encode("utf-8"), "toml")
+            if diags:
+                detail = "\n".join(
+                    f"  {d.code} at {d.path}: {d.message}" for d in diags
+                )
+                msg = f"Invalid skill document ({path}):\n{detail}"
+                raise SkillValidationError(msg)
+            data = tomllib.loads(text)
 
             capability_name = data["capability_name"]
             if capability_name not in self._capabilities_by_name:

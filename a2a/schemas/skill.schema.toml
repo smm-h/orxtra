@@ -1,0 +1,41 @@
+name = "skill"
+meta_version = 1
+format_version = 1
+document_syntax = "toml"
+role = "schema"
+root = "Skill"
+targets = ["python"]
+description = "An A2A skill descriptor: maps an A2A skill id to an orxtra capability, with optional input/output MIME modes."
+# Source of truth: orxtra/a2a/_skills.py (SkillRegistry._load_from_toml). id/name/description/
+# capability_name are required; input_modes/output_modes are optional (the loader supplies defaults).
+# Capability EXISTENCE (capability_name resolves to a registered capability) is a cross-document
+# check that stays consumer-native in _load_from_toml.
+
+[types.Skill]
+type = "record"
+[types.Skill.fields.id]
+type = "string"
+required = true
+non_empty = true
+[types.Skill.fields.name]
+type = "string"
+required = true
+non_empty = true
+[types.Skill.fields.description]
+type = "string"
+required = true
+non_empty = true
+[types.Skill.fields.capability_name]
+type = "string"
+required = true
+non_empty = true
+[types.Skill.fields.input_modes]
+type = "array"
+required = false
+[types.Skill.fields.input_modes.item]
+type = "string"
+[types.Skill.fields.output_modes]
+type = "array"
+required = false
+[types.Skill.fields.output_modes.item]
+type = "string"

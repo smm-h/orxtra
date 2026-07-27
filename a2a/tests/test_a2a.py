@@ -233,6 +233,7 @@ class TestSkillRegistry:
     ) -> None:
         skill_file = tmp_path / "bad_skill.toml"
         skill_file.write_text(
+            'format_version = 1\n\n'
             'id = "bad"\n'
             'name = "Bad"\n'
             'description = "Bad skill"\n'
@@ -244,11 +245,26 @@ class TestSkillRegistry:
         ):
             SkillRegistry(caps, skills_dir=tmp_path)
 
+    def test_toml_missing_format_version_is_hard_error(
+        self, tmp_path: Path,
+    ) -> None:
+        skill_file = tmp_path / "no_gate.toml"
+        skill_file.write_text(
+            'id = "s"\n'
+            'name = "S"\n'
+            'description = "no gate"\n'
+            'capability_name = "real_cap"\n'
+        )
+        caps = [_make_capability("real_cap")]
+        with pytest.raises(ValueError, match="format_version"):
+            SkillRegistry(caps, skills_dir=tmp_path)
+
     def test_toml_loading_success(
         self, tmp_path: Path,
     ) -> None:
         skill_file = tmp_path / "my_skill.toml"
         skill_file.write_text(
+            'format_version = 1\n\n'
             'id = "my_skill"\n'
             'name = "My Skill"\n'
             'description = "A skill from TOML"\n'

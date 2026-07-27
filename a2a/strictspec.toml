@@ -1,0 +1,11 @@
+# strictspec manifest for orxtra-a2a.
+# `strictspec gen` emits the committed validator (chmod 444) imported at the
+# skill document boundary in orxtra/a2a/_skills.py.
+format_version = 1
+
+[[schemas]]
+path = "schemas/skill.schema.toml"
+[[schemas.targets]]
+lang = "python"
+output = "src/orxtra/a2a/_gen_skill.py"
+module = "orxtra.a2a._gen_skill"
