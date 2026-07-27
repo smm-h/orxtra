@@ -1,6 +1,16 @@
 {
   "batch_limits": {
-    "exclusions": []
+    "exclusions": [
+      {
+        "reason": "**Breaking: spec documents now require an integer `format_version` and are hard-error validated by strictspec.** Workflow, agent, categories, skill, data-tool, knowledge, and run-config TOML files are validated against generated strictspec schemas at their load boundary; unknown keys, wrong types, missing required fields, bad enum arms, and invalid execution-mode/routing/discriminator combinations are now hard errors at load. Every such document must carry `format_version = 1` at the top level -- stamp existing files (e.g. `strictspec migrate --to 1 <paths>`, or add the key by hand) to upgrade.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 2
+          }
+        ]
+      }
+    ]
   },
   "publish_mode": "ci",
   "targets": [
