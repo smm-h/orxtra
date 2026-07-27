@@ -395,7 +395,7 @@ class TestAgentLoaderDeferred:
 
         toml_path = tmp_path / "test.toml"
         toml_path.write_text(
-            '[agent]\n'
+            'format_version = 1\n\n[agent]\n'
             'name = "test"\n'
             'description = "Test"\n'
             'prompt = "prompt.md"\n'
@@ -421,7 +421,7 @@ class TestAgentLoaderDeferred:
 
         toml_path = tmp_path / "test.toml"
         toml_path.write_text(
-            '[agent]\n'
+            'format_version = 1\n\n[agent]\n'
             'name = "test"\n'
             'description = "Test"\n'
             'prompt = "prompt.md"\n'
@@ -445,7 +445,7 @@ class TestAgentLoaderDeferred:
 
         toml_path = tmp_path / "test.toml"
         toml_path.write_text(
-            '[agent]\n'
+            'format_version = 1\n\n[agent]\n'
             'name = "test"\n'
             'description = "Test"\n'
             'prompt = "prompt.md"\n'
