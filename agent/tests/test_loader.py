@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from orxtra.agent import load_agent, load_agents
-from pydantic import ValidationError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -21,7 +20,7 @@ def _write_agent(
 ) -> Path:
     allow_str = ", ".join(f'"{a}"' for a in allow)
     toml_content = (
-        f'[agent]\nname = "{name}"\ndescription = "{description}"\n'
+        f'format_version = 1\n\n[agent]\nname = "{name}"\ndescription = "{description}"\n'
         f'prompt = "{prompt_file}"\ncategory = "{category}"\n\n'
         f"[tools]\nallow = [{allow_str}]\n"
     )
@@ -61,11 +60,13 @@ class TestLoadAgent:
         (tmp_path / "prompt.md").write_text("p")
         toml_path = tmp_path / "bad.toml"
         toml_path.write_text(
-            '[agent]\nname = "a"\ndescription = "d"\n'
+            'format_version = 1\n\n[agent]\nname = "a"\ndescription = "d"\n'
             'prompt = "prompt.md"\ncategory = "c"\n'
             'extra_field = "bad"\n\n[tools]\nallow = []\n'
         )
-        with pytest.raises(ValidationError):
+        # Unknown [agent] key is now rejected by the strictspec gate (a
+        # ValueError) before pydantic construction.
+        with pytest.raises(ValueError, match="extra_field"):
             load_agent(toml_path)
 
     def test_missing_prompt_file_raises(self, tmp_path: Path) -> None:
@@ -87,38 +88,38 @@ class TestLoadAgent:
         (tmp_path / "prompt.md").write_text("p")
         toml_path = tmp_path / "a.toml"
         toml_path.write_text(
-            '[agent]\nname = "a"\ndescription = "d"\n'
+            'format_version = 1\n\n[agent]\nname = "a"\ndescription = "d"\n'
             'prompt = "prompt.md"\ncategory = "c"\n'
         )
-        with pytest.raises(ValueError, match="Missing \\[tools\\] section"):
+        with pytest.raises(ValueError, match="tools"):
             load_agent(toml_path)
 
     def test_missing_allow_key_raises(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("p")
         toml_path = tmp_path / "a.toml"
         toml_path.write_text(
-            '[agent]\nname = "a"\ndescription = "d"\n'
+            'format_version = 1\n\n[agent]\nname = "a"\ndescription = "d"\n'
             'prompt = "prompt.md"\ncategory = "c"\n\n'
             "[tools]\n"
         )
-        with pytest.raises(ValueError, match="Missing 'allow' key"):
+        with pytest.raises(ValueError, match="allow"):
             load_agent(toml_path)
 
     def test_unknown_keys_in_tools_raises(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("p")
         toml_path = tmp_path / "a.toml"
         toml_path.write_text(
-            '[agent]\nname = "a"\ndescription = "d"\n'
+            'format_version = 1\n\n[agent]\nname = "a"\ndescription = "d"\n'
             'prompt = "prompt.md"\ncategory = "c"\n\n'
             "[tools]\nallow = []\nunknown = true\n"
         )
-        with pytest.raises(ValueError, match="Unknown keys in \\[tools\\] section"):
+        with pytest.raises(ValueError, match="unknown"):
             load_agent(toml_path)
 
     def test_agent_with_inline_tools(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("Do the thing")
         toml_content = (
-            '[agent]\nname = "builder"\ndescription = "Builds"\n'
+            'format_version = 1\n\n[agent]\nname = "builder"\ndescription = "Builds"\n'
             'prompt = "prompt.md"\ncategory = "fast"\n\n'
             '[tools]\nallow = ["read", "custom.*"]\n\n'
             '[[tools.define]]\nname = "pytest"\n'
@@ -137,7 +138,7 @@ class TestLoadAgent:
     def test_agent_with_multiple_inline_tools(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("Do the thing")
         toml_content = (
-            '[agent]\nname = "builder"\ndescription = "Builds"\n'
+            'format_version = 1\n\n[agent]\nname = "builder"\ndescription = "Builds"\n'
             'prompt = "prompt.md"\ncategory = "fast"\n\n'
             '[tools]\nallow = ["read", "custom.*"]\n\n'
             '[[tools.define]]\nname = "pytest"\n'
@@ -161,7 +162,7 @@ class TestLoadAgent:
     def test_inline_tool_duplicate_name_raises(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("Do the thing")
         toml_content = (
-            '[agent]\nname = "builder"\ndescription = "Builds"\n'
+            'format_version = 1\n\n[agent]\nname = "builder"\ndescription = "Builds"\n'
             'prompt = "prompt.md"\ncategory = "fast"\n\n'
             '[tools]\nallow = ["read", "custom.*"]\n\n'
             '[[tools.define]]\nname = "pytest"\n'
@@ -193,7 +194,7 @@ class TestLoadAgent:
     def test_agent_with_provider_model(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("Do the thing")
         toml_content = (
-            '[agent]\nname = "direct"\ndescription = "Direct routing"\n'
+            'format_version = 1\n\n[agent]\nname = "direct"\ndescription = "Direct routing"\n'
             'prompt = "prompt.md"\nprovider = "anthropic"\n'
             'model = "claude-sonnet-4-6"\n\n'
             '[tools]\nallow = ["read"]\n'
@@ -204,6 +205,29 @@ class TestLoadAgent:
         assert agent.provider == "anthropic"
         assert agent.model == "claude-sonnet-4-6"
         assert agent.category is None
+
+    def test_missing_format_version_is_hard_error(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("p")
+        toml_path = tmp_path / "a.toml"
+        toml_path.write_text(
+            '[agent]\nname = "a"\ndescription = "d"\n'
+            'prompt = "prompt.md"\ncategory = "c"\n\n'
+            '[tools]\nallow = ["read"]\n'
+        )
+        with pytest.raises(ValueError, match="format_version"):
+            load_agent(toml_path)
+
+    def test_conflicting_routing_is_hard_error(self, tmp_path: Path) -> None:
+        (tmp_path / "prompt.md").write_text("p")
+        toml_path = tmp_path / "a.toml"
+        toml_path.write_text(
+            'format_version = 1\n\n[agent]\nname = "a"\ndescription = "d"\n'
+            'prompt = "prompt.md"\ncategory = "c"\n'
+            'provider = "anthropic"\nmodel = "x"\n\n'
+            '[tools]\nallow = ["read"]\n'
+        )
+        with pytest.raises(ValueError, match="mutual"):
+            load_agent(toml_path)
 
     def test_self_circular_include_raises(self, tmp_path: Path) -> None:
         (tmp_path / "prompt.md").write_text("{include:prompt.md}")

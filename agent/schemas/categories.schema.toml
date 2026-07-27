@@ -1,0 +1,22 @@
+name = "categories"
+meta_version = 1
+format_version = 1
+document_syntax = "toml"
+role = "schema"
+root = "Categories"
+targets = ["python"]
+description = "orxtra category-to-model mapping: a [categories] table of category name -> 'provider/model' string."
+# Source of truth: orxtra/agent/_categories.py (load_categories). The loader returns data["categories"]
+# as a dict[str, str]. Cross-document resolution (agent.category must appear here) stays consumer-native
+# in resolve_category.
+
+[types.Categories]
+type = "record"
+[types.Categories.fields.categories]
+type = "map"
+required = true
+key_pattern = "^[A-Za-z0-9_.-]+$"
+order = "incidental"
+[types.Categories.fields.categories.value]
+type = "string"
+non_empty = true

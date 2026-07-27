@@ -1,0 +1,131 @@
+name = "agent"
+meta_version = 1
+format_version = 1
+document_syntax = "toml"
+role = "schema"
+root = "AgentDef"
+targets = ["python"]
+description = "An orxtra agent definition: [agent] identity/routing plus a [tools] allow-list and optional inline [[tools.define]] tool declarations."
+# Source of truth: orxtra/agent/_loader.py (load_agent) and orxtra/agent/_types.py (Agent,
+# InlineToolDefinition). In the DOCUMENT, `prompt` is a path (relative to the file) that the loader
+# resolves and replaces with the composed prompt text. Inline-tool `params`/`execution`/`output` are
+# opaque at agent-load time: they are validated later against the DataToolDefinition schema at build
+# time (the loader defers them), so this schema treats them as declared blind spots.
+
+[types.AgentDef]
+type = "record"
+
+[types.AgentDef.fields.agent]
+type = "AgentIdentity"
+required = true
+
+[types.AgentIdentity]
+type = "record"
+description = "The [agent] identity/routing block."
+[types.AgentIdentity.fields.name]
+type = "string"
+required = true
+non_empty = true
+[types.AgentIdentity.fields.description]
+type = "string"
+required = true
+non_empty = true
+[types.AgentIdentity.fields.prompt]
+type = "string"
+required = true
+non_empty = true
+[types.AgentIdentity.fields.category]
+type = "string"
+required = false
+[types.AgentIdentity.fields.provider]
+type = "string"
+required = false
+[types.AgentIdentity.fields.model]
+type = "string"
+required = false
+[types.AgentIdentity.fields.budget]
+type = "number"
+required = false
+min = 0
+[types.AgentIdentity.fields.write_paths]
+type = "array"
+required = false
+[types.AgentIdentity.fields.write_paths.item]
+type = "string"
+[types.AgentIdentity.fields.timeout]
+type = "integer"
+required = false
+min = 1
+
+# ---- routing constraints (Agent._validate_routing) ----
+# category XOR (provider AND model), and at least one of the two forms must be present.
+[[types.AgentIdentity.constraints]]
+form = "co-presence"
+fields = ["provider", "model"]
+[[types.AgentIdentity.constraints]]
+form = "mutual-exclusion"
+fields = ["category", "provider"]
+[[types.AgentIdentity.constraints]]
+form = "mutual-exclusion"
+fields = ["category", "model"]
+[[types.AgentIdentity.constraints]]
+form = "at-least-one-of"
+fields = ["category", "provider"]
+
+[types.AgentDef.fields.tools]
+type = "record"
+required = true
+[types.AgentDef.fields.tools.fields.allow]
+type = "array"
+required = true
+[types.AgentDef.fields.tools.fields.allow.item]
+type = "string"
+[types.AgentDef.fields.tools.fields.deferred]
+type = "array"
+required = false
+[types.AgentDef.fields.tools.fields.deferred.item]
+type = "string"
+[types.AgentDef.fields.tools.fields.define]
+type = "array"
+required = false
+[types.AgentDef.fields.tools.fields.define.item]
+type = "InlineTool"
+
+[types.InlineTool]
+type = "record"
+description = "An inline [[tools.define]] tool declaration. Shape-checked here; full param/execution/output validation is deferred to the DataToolDefinition schema at build time."
+[types.InlineTool.fields.name]
+type = "string"
+required = true
+non_empty = true
+[types.InlineTool.fields.description]
+type = "string"
+required = true
+non_empty = true
+[types.InlineTool.fields.namespace]
+type = "string"
+required = true
+non_empty = true
+[types.InlineTool.fields.deferred]
+type = "boolean"
+required = true
+[types.InlineTool.fields.tags]
+type = "array"
+required = false
+[types.InlineTool.fields.tags.item]
+type = "string"
+[types.InlineTool.fields.params]
+type = "opaque"
+required = false
+unchecked = true
+unchecked_reason = "Inline-tool params are validated at build time against the DataToolDefinition schema, not at agent load."
+[types.InlineTool.fields.execution]
+type = "opaque"
+required = true
+unchecked = true
+unchecked_reason = "Inline-tool execution is validated at build time against the DataToolDefinition schema, not at agent load."
+[types.InlineTool.fields.output]
+type = "opaque"
+required = false
+unchecked = true
+unchecked_reason = "Inline-tool output is validated at build time against the DataToolDefinition schema, not at agent load."

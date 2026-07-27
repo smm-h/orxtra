@@ -4,6 +4,8 @@
 # Each [[tools.define]] entry defines one purpose-built command tool;
 # the "custom.*" wildcard in the allow list gates them.
 
+format_version = 1
+
 [agent]
 name = "coder"
 description = "Agent that writes code, runs tests, and commits changes."

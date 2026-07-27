@@ -1,0 +1,18 @@
+# strictspec manifest for orxtra-agent.
+# `strictspec gen` emits the committed validators (chmod 444) imported at the
+# document boundary in orxtra/agent/_loader.py and orxtra/agent/_categories.py.
+format_version = 1
+
+[[schemas]]
+path = "schemas/agent.schema.toml"
+[[schemas.targets]]
+lang = "python"
+output = "src/orxtra/agent/_gen_agent.py"
+module = "orxtra.agent._gen_agent"
+
+[[schemas]]
+path = "schemas/categories.schema.toml"
+[[schemas.targets]]
+lang = "python"
+output = "src/orxtra/agent/_gen_categories.py"
+module = "orxtra.agent._gen_categories"

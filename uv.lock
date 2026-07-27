@@ -1033,6 +1033,7 @@ source = { editable = "agent" }
 dependencies = [
     { name = "orxtra-compose" },
     { name = "pydantic" },
+    { name = "strictspec" },
 ]
 
 [package.dev-dependencies]
@@ -1044,6 +1045,7 @@ dev = [
 requires-dist = [
     { name = "orxtra-compose", editable = "compose" },
     { name = "pydantic", specifier = ">=2" },
+    { name = "strictspec", specifier = ">=0.1.0" },
 ]
 
 [package.metadata.requires-dev]

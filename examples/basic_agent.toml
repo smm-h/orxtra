@@ -1,6 +1,8 @@
 # Minimal agent definition for orxtra.
 # Load with: orxtra.agent.load_agent(Path("examples/basic_agent.toml"))
 
+format_version = 1
+
 [agent]
 name = "basic-agent"
 description = "A minimal agent that reads and writes files."

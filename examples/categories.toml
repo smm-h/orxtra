@@ -1,6 +1,8 @@
 # Category-to-model mapping for multi-provider setups.
 # Categories assign agents to specific LLM providers and models.
 
+format_version = 1
+
 [categories]
 default = "anthropic/claude-sonnet-4-6"
 reasoning = "anthropic/claude-opus-4-6"

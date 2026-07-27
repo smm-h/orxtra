@@ -13,6 +13,7 @@ class TestLoadCategories:
     def test_valid_toml(self, tmp_path: Path) -> None:
         path = tmp_path / "categories.toml"
         path.write_text(
+            'format_version = 1\n\n'
             '[categories]\nfast = "claude-3-haiku"\nsmart = "claude-3-opus"\n'
         )
         result = load_categories(path)
@@ -24,8 +25,14 @@ class TestLoadCategories:
 
     def test_missing_categories_section_raises(self, tmp_path: Path) -> None:
         path = tmp_path / "bad.toml"
-        path.write_text("[other]\nkey = 'value'\n")
-        with pytest.raises(ValueError, match=r"Missing.*categories.*section"):
+        path.write_text("format_version = 1\n\n[other]\nkey = 'value'\n")
+        with pytest.raises(ValueError, match="categories"):
+            load_categories(path)
+
+    def test_missing_format_version_is_hard_error(self, tmp_path: Path) -> None:
+        path = tmp_path / "cat.toml"
+        path.write_text('[categories]\nfast = "claude-3-haiku"\n')
+        with pytest.raises(ValueError, match="format_version"):
             load_categories(path)
 
 
