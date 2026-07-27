@@ -1,0 +1,13 @@
+# strictspec manifest for orxtra-scheduler.
+# Generation is file-driven: `strictspec gen` reads this and emits the validators.
+# The generated module is committed (chmod 444) and imported at the document boundary
+# in orxtra/scheduler/_loader.py.
+format_version = 1
+
+[[schemas]]
+path = "schemas/workflow.schema.toml"
+
+[[schemas.targets]]
+lang = "python"
+output = "src/orxtra/scheduler/_gen_workflow.py"
+module = "orxtra.scheduler._gen_workflow"

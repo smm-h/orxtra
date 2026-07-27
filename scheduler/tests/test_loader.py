@@ -14,6 +14,8 @@ class TestLoadWorkflow:
     def test_minimal_valid_workflow(self, tmp_path: Path) -> None:
         toml_file = tmp_path / "workflow.toml"
         toml_file.write_text("""
+format_version = 1
+
 [workflow]
 name = "minimal"
 description = "A minimal workflow"
@@ -37,6 +39,8 @@ context_refinement = true
     ) -> None:
         toml_file = tmp_path / "workflow.toml"
         toml_file.write_text("""
+format_version = 1
+
 [workflow]
 name = "pipeline"
 description = "Pipeline with deps"
@@ -70,6 +74,8 @@ generate = ["research"]
     ) -> None:
         toml_file = tmp_path / "workflow.toml"
         toml_file.write_text("""
+format_version = 1
+
 [workflow]
 name = "checked"
 description = "Workflow with postchecks"
@@ -97,6 +103,8 @@ agents = [{agent = "reviewer", task = "Code review", block_threshold = "minor"}]
 
     def test_load_from_string(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 name = "inline"
 description = "Loaded from string"
@@ -111,17 +119,19 @@ callable = "module:run"
 
     def test_missing_workflow_section(self) -> None:
         toml_str = """
+format_version = 1
+
 [[tasks]]
 name = "task1"
 callable = "module:run"
 """
-        with pytest.raises(
-            ValueError, match="Missing \\[workflow\\] section"
-        ):
+        with pytest.raises(ValueError, match="workflow"):
             load_workflow(toml_str)
 
     def test_missing_name(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 description = "no name"
 
@@ -129,20 +139,24 @@ description = "no name"
 name = "task1"
 callable = "module:run"
 """
-        with pytest.raises(ValueError, match="Missing 'name'"):
+        with pytest.raises(ValueError, match="name"):
             load_workflow(toml_str)
 
     def test_empty_tasks(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 name = "empty"
 description = "no tasks"
 """
-        with pytest.raises(ValueError, match="at least one task"):
+        with pytest.raises(ValueError, match="tasks"):
             load_workflow(toml_str)
 
     def test_dependency_references_nonexistent_task(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 name = "bad"
 description = "bad deps"
@@ -161,6 +175,8 @@ task1 = ["nonexistent"]
 
     def test_dependency_source_nonexistent(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 name = "bad"
 description = "bad source"
@@ -180,6 +196,8 @@ ghost = ["task1"]
     def test_complex_workflow(self, tmp_path: Path) -> None:
         toml_file = tmp_path / "complex.toml"
         toml_file.write_text("""
+format_version = 1
+
 [workflow]
 name = "complex"
 description = "Five tasks, mixed deps"
@@ -227,6 +245,8 @@ publish = ["review"]
 
     def test_task_with_subtasks(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 name = "nested"
 description = "Has subtasks"
@@ -249,6 +269,8 @@ callable = "mod:func2"
 
     def test_postchecks_scripts_only(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 name = "scripts-only"
 description = "Postchecks with only scripts"
@@ -269,6 +291,8 @@ scripts = ["mod:check1", "mod:check2"]
 
     def test_postchecks_agents_only(self) -> None:
         toml_str = """
+format_version = 1
+
 [workflow]
 name = "agents-only"
 description = "Postchecks with only agents"
@@ -289,3 +313,93 @@ agents = [
             isinstance(p, AgentExecution)
             for p in config.tasks[0].postchecks
         )
+
+
+class TestWorkflowDocumentValidation:
+    """The strictspec document gate at the load_workflow boundary.
+
+    Workflow documents must carry an integer `format_version` and pass the
+    generated strictspec validator (shape + intra-document constraints) before
+    the loader builds any typed object. These assert the breaking-change
+    behavior: absent gate, unknown keys, type errors, and execution-mode
+    violations are hard errors at load time.
+    """
+
+    def test_missing_format_version_is_hard_error(self) -> None:
+        toml_str = """
+[workflow]
+name = "no-gate"
+description = "missing format_version"
+
+[[tasks]]
+name = "task1"
+callable = "mod:run"
+"""
+        with pytest.raises(ValueError, match="format_version"):
+            load_workflow(toml_str)
+
+    def test_unknown_task_key_is_hard_error(self) -> None:
+        toml_str = """
+format_version = 1
+
+[workflow]
+name = "unknown-key"
+description = "task carries an unknown key"
+
+[[tasks]]
+name = "task1"
+callable = "mod:run"
+bogus_key = "x"
+"""
+        with pytest.raises(ValueError, match="bogus_key"):
+            load_workflow(toml_str)
+
+    def test_wrong_type_is_hard_error(self) -> None:
+        toml_str = """
+format_version = 1
+
+[workflow]
+name = "wrong-type"
+description = "timeout is a string"
+
+[[tasks]]
+name = "task1"
+agent = "a"
+task_prompt = "p"
+timeout = "not-an-int"
+context_refinement = true
+"""
+        with pytest.raises(ValueError, match="timeout"):
+            load_workflow(toml_str)
+
+    def test_multiple_execution_modes_is_hard_error(self) -> None:
+        toml_str = """
+format_version = 1
+
+[workflow]
+name = "two-modes"
+description = "callable and wait_for both present"
+
+[[tasks]]
+name = "task1"
+callable = "mod:run"
+wait_for = "other"
+"""
+        with pytest.raises(ValueError, match="agent"):
+            load_workflow(toml_str)
+
+    def test_dangling_depends_on_is_hard_error(self) -> None:
+        toml_str = """
+format_version = 1
+
+[workflow]
+name = "dangling"
+description = "depends_on references a ghost sibling"
+
+[[tasks]]
+name = "task1"
+callable = "mod:run"
+depends_on = ["ghost"]
+"""
+        with pytest.raises(ValueError, match="ghost"):
+            load_workflow(toml_str)

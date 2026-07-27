@@ -11,7 +11,16 @@ from orxtra.protocols import (
     Severity,
     TaskSpec,
 )
+from orxtra.scheduler._gen_workflow import validate_bytes as _validate_workflow_document
 from orxtra.scheduler._types import EscalationPolicy, ServiceConfig, WorkflowConfig
+
+
+class WorkflowValidationError(ValueError):
+    """A workflow document failed strictspec validation at the load boundary.
+
+    Subclasses ValueError so existing ``except ValueError`` handlers keep
+    working. Carries the rendered strictspec diagnostics.
+    """
 
 
 def _parse_postchecks(raw: dict[str, Any]) -> list[Execution]:
@@ -79,31 +88,34 @@ def _parse_task(raw: dict[str, Any]) -> TaskSpec:
     return TaskSpec(**fields)
 
 
-def _parse_toml(source: Path | str) -> dict[str, Any]:
-    """Parse TOML from a file path or raw string."""
+def _document_text(source: Path | str) -> str:
+    """Return the TOML text for a file path or a raw TOML string."""
     if isinstance(source, Path):
-        return tomllib.loads(source.read_text())
-    return tomllib.loads(source)
+        return source.read_text()
+    return source
 
 
-def _validate_structure(data: dict[str, Any]) -> None:
-    """Validate the top-level TOML structure."""
-    if "workflow" not in data:
-        msg = "Missing [workflow] section"
-        raise ValueError(msg)
+def _gate_document(text: str, source: Path | str) -> None:
+    """Run the strictspec document gate at the load boundary.
 
-    workflow_section = data["workflow"]
-    if "name" not in workflow_section:
-        msg = "Missing 'name' in [workflow] section"
-        raise ValueError(msg)
-
-    if "description" not in workflow_section:
-        msg = "Missing 'description' in [workflow] section"
-        raise ValueError(msg)
-
-    if not data.get("tasks"):
-        msg = "Workflow must have at least one task"
-        raise ValueError(msg)
+    The generated validator enforces the document shape (required
+    [workflow] name/description, at least one task, per-task field types,
+    unknown-key rejection) and the intra-document constraints (exactly-one
+    execution mode, agent-mode co-presence, conditional-required retry and
+    for_each fields, depends_on reference resolution). A failing document is
+    a hard error. This subsumes the former hand-rolled ``_validate_structure``
+    and the execution-mode/agent/conditional shape checks. Cross-document and
+    graph-shaped checks (top-level dependency-map resolution, DAG acyclicity,
+    variable collisions, headless mode) stay consumer-native downstream.
+    """
+    _root, diags = _validate_workflow_document(text.encode("utf-8"), "toml")
+    if diags:
+        where = f" ({source})" if isinstance(source, Path) else ""
+        detail = "\n".join(
+            f"  {d.code} at {d.path}: {d.message}" for d in diags
+        )
+        msg = f"Invalid workflow document{where}:\n{detail}"
+        raise WorkflowValidationError(msg)
 
 
 def _validate_dependencies(
@@ -138,8 +150,9 @@ def load_workflow(source: Path | str) -> WorkflowConfig:
     Raises:
         ValueError: If the TOML is invalid or fails validation.
     """
-    data = _parse_toml(source)
-    _validate_structure(data)
+    text = _document_text(source)
+    _gate_document(text, source)
+    data = tomllib.loads(text)
 
     workflow_section = data["workflow"]
     raw_tasks: list[dict[str, Any]] = data["tasks"]
@@ -178,5 +191,6 @@ def load_workflow(source: Path | str) -> WorkflowConfig:
 
 
 __all__ = [
+    "WorkflowValidationError",
     "load_workflow",
 ]

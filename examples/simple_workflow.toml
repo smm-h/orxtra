@@ -2,6 +2,8 @@
 # Workflows define a DAG of tasks that the scheduler executes.
 # Load with: orxtra.scheduler.load_workflow(Path("examples/simple_workflow.toml"))
 
+format_version = 1
+
 [workflow]
 name = "feature-pipeline"
 description = "Implement a feature with tests and lint check."
@@ -10,12 +12,16 @@ description = "Implement a feature with tests and lint check."
 name = "implement"
 agent = "coder"
 task_prompt = "Implement the feature described in the project spec."
+timeout = 600
+context_refinement = true
 
 [[tasks]]
 name = "test"
 agent = "coder"
 task_prompt = "Write tests for the implementation."
 depends_on = ["implement"]
+timeout = 600
+context_refinement = true
 
 # Postchecks gate task exit: scripts are "module:callable" references,
 # and agents are read-only reviewer agents with a blocking threshold.
@@ -27,6 +33,8 @@ name = "lint"
 agent = "coder"
 task_prompt = "Fix any lint issues found by ruff."
 depends_on = ["implement"]
+timeout = 600
+context_refinement = true
 
 [tasks.postchecks]
 scripts = ["myproject.checks:ruff_passes"]
