@@ -1,0 +1,11 @@
+# strictspec manifest for orxtra-tool.
+# `strictspec gen` emits the committed validator (chmod 444) imported at the
+# data-tool document boundary in orxtra/tool/_data_tool_loader.py.
+format_version = 1
+
+[[schemas]]
+path = "schemas/data_tool.schema.toml"
+[[schemas.targets]]
+lang = "python"
+output = "src/orxtra/tool/_gen_data_tool.py"
+module = "orxtra.tool._gen_data_tool"

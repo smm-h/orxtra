@@ -23,6 +23,8 @@ from orxtra.tool._data_tool_types import (
 # ---------------------------------------------------------------------------
 
 _VALID_HTTP_TOML = """\
+format_version = 1
+
 [tool]
 name = "fetch_weather"
 description = "Fetch weather data from an API"
@@ -51,6 +53,8 @@ schema = { type = "object", properties = { temp = { type = "number" } } }
 """
 
 _VALID_MONTY_TOML = """\
+format_version = 1
+
 [tool]
 name = "transform_data"
 description = "Transform data using a monty script"
@@ -74,6 +78,8 @@ max_allocations = 1000
 """
 
 _VALID_COMMAND_TOML = """\
+format_version = 1
+
 [tool]
 name = "run_linter"
 description = "Run a linter on the codebase"
@@ -93,6 +99,8 @@ timeout_ceiling = 120
 """
 
 _VALID_HTTP_WITH_SECRETS_TOML = """\
+format_version = 1
+
 [tool]
 name = "secure_api"
 description = "Call a secured API"
@@ -211,6 +219,8 @@ class TestValidLoading:
 
     def test_load_http_with_headers_and_body(self, tmp_path: Path) -> None:
         toml_content = """\
+format_version = 1
+
 [tool]
 name = "post_data"
 description = "Post data to an endpoint"
@@ -258,7 +268,7 @@ class TestNamespaceEnforcement:
 
         with pytest.raises(
             ValueError,
-            match=r"must start with 'custom\.'.*got 'ext\.weather'",
+            match="namespace",
         ):
             load_tool_definition(toml_file)
 
@@ -270,7 +280,7 @@ class TestNamespaceEnforcement:
         toml_file = tmp_path / "bad_ns.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match=r"must start with 'custom\.'"):
+        with pytest.raises(ValueError, match="namespace"):
             load_tool_definition(toml_file)
 
     def test_empty_namespace_rejected(self, tmp_path: Path) -> None:
@@ -281,7 +291,7 @@ class TestNamespaceEnforcement:
         toml_file = tmp_path / "bad_ns.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match=r"must start with 'custom\.'"):
+        with pytest.raises(ValueError, match="namespace"):
             load_tool_definition(toml_file)
 
 
@@ -342,7 +352,7 @@ class TestUnknownKeys:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="unknown_field"):
             load_tool_definition(toml_file)
 
     def test_unknown_execution_key(self, tmp_path: Path) -> None:
@@ -353,7 +363,7 @@ class TestUnknownKeys:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="retries"):
             load_tool_definition(toml_file)
 
     def test_unknown_top_level_section(self, tmp_path: Path) -> None:
@@ -361,7 +371,7 @@ class TestUnknownKeys:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Unknown top-level sections"):
+        with pytest.raises(ValueError, match="metadata"):
             load_tool_definition(toml_file)
 
     def test_unknown_param_key(self, tmp_path: Path) -> None:
@@ -372,7 +382,7 @@ class TestUnknownKeys:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="min_length"):
             load_tool_definition(toml_file)
 
 
@@ -387,6 +397,8 @@ class TestMissingFields:
     def test_missing_tool_section(self, tmp_path: Path) -> None:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text("""\
+format_version = 1
+
 [execution]
 type = "command"
 executable = "echo"
@@ -394,12 +406,14 @@ arg_validation = true
 timeout_ceiling = 30
 """)
 
-        with pytest.raises(ValueError, match="Missing \\[tool\\] section"):
+        with pytest.raises(ValueError, match="required field tool"):
             load_tool_definition(toml_file)
 
     def test_missing_execution_section(self, tmp_path: Path) -> None:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text("""\
+format_version = 1
+
 [tool]
 name = "test"
 description = "test tool"
@@ -407,7 +421,7 @@ namespace = "custom.test"
 deferred = false
 """)
 
-        with pytest.raises(ValueError, match="Missing \\[execution\\] section"):
+        with pytest.raises(ValueError, match="execution"):
             load_tool_definition(toml_file)
 
     def test_missing_name(self, tmp_path: Path) -> None:
@@ -415,7 +429,7 @@ deferred = false
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="required field name"):
             load_tool_definition(toml_file)
 
     def test_missing_deferred(self, tmp_path: Path) -> None:
@@ -423,11 +437,13 @@ deferred = false
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="deferred"):
             load_tool_definition(toml_file)
 
     def test_missing_monty_limits(self, tmp_path: Path) -> None:
         bad_toml = """\
+format_version = 1
+
 [tool]
 name = "test"
 description = "test"
@@ -442,7 +458,7 @@ capabilities = []
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="limits"):
             load_tool_definition(toml_file)
 
     def test_missing_command_arg_validation(self, tmp_path: Path) -> None:
@@ -450,7 +466,7 @@ capabilities = []
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="arg_validation"):
             load_tool_definition(toml_file)
 
     def test_missing_command_timeout_ceiling(self, tmp_path: Path) -> None:
@@ -458,7 +474,7 @@ capabilities = []
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="timeout_ceiling"):
             load_tool_definition(toml_file)
 
 
@@ -524,7 +540,7 @@ class TestParamValidation:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="not one of"):
             load_tool_definition(toml_file)
 
 
@@ -571,7 +587,7 @@ class TestExecutionDiscrimination:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Invalid tool definition"):
+        with pytest.raises(ValueError, match="unknown_engine"):
             load_tool_definition(toml_file)
 
 
@@ -591,7 +607,7 @@ class TestEmptyName:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="Tool name must not be empty"):
+        with pytest.raises(ValueError, match="tool.name"):
             load_tool_definition(toml_file)
 
     def test_whitespace_only_name(self, tmp_path: Path) -> None:

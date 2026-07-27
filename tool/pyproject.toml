@@ -10,6 +10,7 @@ dependencies = [
     "pathspec",
     "pydantic>=2",
     "pydantic-monty==0.0.18",
+    "strictspec>=0.1.0",
     "orxtra-protocols",
     "orxtra-secrets",
     "orxtra-write-safety",

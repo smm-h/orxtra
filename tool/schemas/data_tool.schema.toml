@@ -1,0 +1,157 @@
+name = "data_tool"
+meta_version = 1
+format_version = 1
+document_syntax = "toml"
+role = "schema"
+root = "DataTool"
+targets = ["python"]
+description = "A data-defined tool TOML: [tool] identity, optional [params], a discriminated [execution] block (http/monty/command), and an optional [output] JSON-Schema."
+# Source of truth: orxtra/tool/_data_tool_types.py (DataToolDefinition, ParamDef, ResourceLimits,
+# HttpExecution, MontyExecution, CommandExecution, OutputConfig) and _data_tool_loader.py. The
+# execution block is a discriminated union on `type`. The [output] `schema` is an arbitrary JSON
+# Schema dict (a declared blind spot). Secret-reference validation stays consumer-native.
+
+[types.DataTool]
+type = "record"
+
+[types.DataTool.fields.tool]
+type = "ToolIdentity"
+required = true
+[types.DataTool.fields.params]
+type = "map"
+required = false
+key_pattern = "^[A-Za-z_][A-Za-z0-9_]*$"
+order = "incidental"
+[types.DataTool.fields.params.value]
+type = "ParamDef"
+[types.DataTool.fields.execution]
+type = "discriminated-union"
+required = true
+discriminator = "type"
+[types.DataTool.fields.execution.arms.http]
+type = "HttpExecution"
+[types.DataTool.fields.execution.arms.monty]
+type = "MontyExecution"
+[types.DataTool.fields.execution.arms.command]
+type = "CommandExecution"
+[types.DataTool.fields.output]
+type = "OutputConfig"
+required = false
+
+[types.ToolIdentity]
+type = "record"
+description = "The [tool] identity block."
+[types.ToolIdentity.fields.name]
+type = "string"
+required = true
+non_empty = true
+[types.ToolIdentity.fields.description]
+type = "string"
+required = true
+non_empty = true
+[types.ToolIdentity.fields.namespace]
+type = "string"
+required = true
+regex = "^custom\\."
+[types.ToolIdentity.fields.deferred]
+type = "boolean"
+required = true
+[types.ToolIdentity.fields.tags]
+type = "array"
+required = false
+[types.ToolIdentity.fields.tags.item]
+type = "string"
+
+[types.ParamDef]
+type = "record"
+[types.ParamDef.fields.type]
+type = "enum"
+required = true
+values = ["string", "integer", "number", "boolean"]
+[types.ParamDef.fields.description]
+type = "string"
+required = true
+[types.ParamDef.fields.required]
+type = "boolean"
+required = true
+[types.ParamDef.fields.pattern]
+type = "string"
+required = false
+
+[types.HttpExecution]
+type = "record"
+[types.HttpExecution.fields.type]
+type = "literal"
+value = "http"
+[types.HttpExecution.fields.method]
+type = "enum"
+required = true
+values = ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"]
+[types.HttpExecution.fields.url]
+type = "string"
+required = true
+non_empty = true
+[types.HttpExecution.fields.headers]
+type = "map"
+required = false
+key_pattern = "^.+$"
+order = "incidental"
+[types.HttpExecution.fields.headers.value]
+type = "string"
+[types.HttpExecution.fields.body_template]
+type = "string"
+required = false
+
+[types.MontyExecution]
+type = "record"
+[types.MontyExecution.fields.type]
+type = "literal"
+value = "monty"
+[types.MontyExecution.fields.code]
+type = "string"
+required = true
+non_empty = true
+[types.MontyExecution.fields.capabilities]
+type = "array"
+required = true
+[types.MontyExecution.fields.capabilities.item]
+type = "string"
+[types.MontyExecution.fields.limits]
+type = "ResourceLimits"
+required = true
+
+[types.ResourceLimits]
+type = "record"
+[types.ResourceLimits.fields.max_duration_secs]
+type = "integer"
+required = true
+[types.ResourceLimits.fields.max_allocations]
+type = "integer"
+required = false
+[types.ResourceLimits.fields.max_memory]
+type = "integer"
+required = false
+
+[types.CommandExecution]
+type = "record"
+[types.CommandExecution.fields.type]
+type = "literal"
+value = "command"
+[types.CommandExecution.fields.executable]
+type = "string"
+required = true
+non_empty = true
+[types.CommandExecution.fields.arg_validation]
+type = "boolean"
+required = true
+[types.CommandExecution.fields.timeout_ceiling]
+type = "integer"
+required = true
+
+[types.OutputConfig]
+type = "record"
+[types.OutputConfig.fields.schema]
+type = "opaque"
+required = true
+unchecked = true
+unchecked_reason = "The output schema is an arbitrary JSON Schema dict validated by jsonschema at tool-execution time, not structurally here."

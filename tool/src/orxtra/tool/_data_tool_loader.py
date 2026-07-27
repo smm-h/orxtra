@@ -11,12 +11,17 @@ import tomllib
 from typing import TYPE_CHECKING, Any
 
 from orxtra.tool._data_tool_types import DataToolDefinition
+from orxtra.tool._gen_data_tool import validate_bytes as _validate_data_tool_document
 from pydantic import ValidationError
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from orxtra.secrets import SecretRegistry
+
+
+class DataToolValidationError(ValueError):
+    """A data-tool document failed strictspec validation at the load boundary."""
 
 
 def load_tool_definition(
@@ -42,44 +47,35 @@ def load_tool_definition(
         msg = f"Tool definition file not found: {path}"
         raise FileNotFoundError(msg)
 
-    with path.open("rb") as f:
-        raw = tomllib.load(f)
+    text = path.read_text()
+    # strictspec document gate: enforces integer format_version, the [tool]
+    # identity shape (incl. the custom.* namespace pattern), optional [params],
+    # the discriminated [execution] union (http/monty/command), and the optional
+    # [output] block, plus unknown-key rejection in every section. Subsumes the
+    # hand-rolled missing-[tool], missing-[execution], and unknown-top-level-
+    # section checks. Secret-reference validation stays consumer-native below.
+    _root, diags = _validate_data_tool_document(text.encode("utf-8"), "toml")
+    if diags:
+        detail = "\n".join(f"  {d.code} at {d.path}: {d.message}" for d in diags)
+        msg = f"Invalid data-tool document ({path}):\n{detail}"
+        raise DataToolValidationError(msg)
+    raw = tomllib.loads(text)
 
     # The TOML structure uses section headers that map to nested dicts:
     #   [tool] -> name, description, namespace, deferred, tags
     #   [params] -> { param_name: { type, description, ... } }
     #   [execution] -> { type, ... }
     #   [output] -> { schema: ... }
-    # Flatten into the model's expected shape.
-    tool_section = raw.get("tool")
-    if tool_section is None:
-        msg = f"Missing [tool] section in {path}"
-        raise ValueError(msg)
-
-    # Build the model input dict from sections.
-    model_input: dict[str, Any] = dict(tool_section)
-    if "params" in raw:
-        model_input["params"] = raw["params"]
-    else:
-        model_input["params"] = {}
-    if "execution" in raw:
-        model_input["execution"] = raw["execution"]
-    else:
-        msg = f"Missing [execution] section in {path}"
-        raise ValueError(msg)
+    # Flatten into the model's expected shape (shape already gate-validated).
+    model_input: dict[str, Any] = dict(raw["tool"])
+    model_input["params"] = raw.get("params", {})
+    model_input["execution"] = raw["execution"]
     if "output" in raw:
         output_section = dict(raw["output"])
         # Map the TOML key "schema" to the pydantic field "schema_".
         if "schema" in output_section:
             output_section["schema_"] = output_section.pop("schema")
         model_input["output"] = output_section
-    # Check for unknown top-level sections.
-    known_sections = {"tool", "params", "execution", "output"}
-    unknown = set(raw.keys()) - known_sections
-    if unknown:
-        names = ", ".join(sorted(unknown))
-        msg = f"Unknown top-level sections in {path}: {names}"
-        raise ValueError(msg)
 
     try:
         definition = DataToolDefinition(**model_input)

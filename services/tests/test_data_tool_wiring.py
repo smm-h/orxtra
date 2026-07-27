@@ -51,6 +51,8 @@ def _caller() -> Principal:
 # ---------------------------------------------------------------------------
 
 _VALID_HTTP_TOML = """\
+format_version = 1
+
 [tool]
 name = "my_api_tool"
 description = "A custom API tool"
@@ -181,6 +183,8 @@ class TestLoadCustomTools:
         tools_dir = tmp_path / "tools"
         tools_dir.mkdir()
         monty_toml = """\
+format_version = 1
+
 [tool]
 name = "my_monty_tool"
 description = "A monty tool"

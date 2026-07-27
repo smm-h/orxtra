@@ -1609,6 +1609,7 @@ dependencies = [
     { name = "pathspec" },
     { name = "pydantic" },
     { name = "pydantic-monty" },
+    { name = "strictspec" },
 ]
 
 [package.dev-dependencies]
@@ -1627,6 +1628,7 @@ requires-dist = [
     { name = "pathspec" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pydantic-monty", specifier = "==0.0.18" },
+    { name = "strictspec", specifier = ">=0.1.0" },
 ]
 
 [package.metadata.requires-dev]
