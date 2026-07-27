@@ -1,0 +1,72 @@
+name = "run_config"
+meta_version = 1
+format_version = 1
+document_syntax = "toml"
+role = "schema"
+root = "RunConfig"
+targets = ["python"]
+description = "An orxtra run configuration file for start_run_from_file: paths, db_url, provider configs, budget, and autonomy policy."
+# Source of truth: orxtra/services/_run.py (RunConfig, start_run_from_file). In the DOCUMENT, the
+# *_path/*_dir fields are strings (the loader coerces them to Path afterward) and budget is a string
+# (the loader coerces it to Decimal via Decimal(str(...)), the money-precision convention).
+
+[types.RunConfig]
+type = "record"
+[types.RunConfig.fields.workflow_path]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.agents_dir]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.knowledge_dir]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.categories_path]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.read_root]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.db_url]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.provider_configs]
+type = "map"
+required = true
+key_pattern = "^[A-Za-z0-9_.-]+$"
+order = "incidental"
+[types.RunConfig.fields.provider_configs.value]
+type = "map"
+key_pattern = "^[A-Za-z0-9_.-]+$"
+order = "incidental"
+[types.RunConfig.fields.provider_configs.value.value]
+type = "string"
+[types.RunConfig.fields.budget]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.autonomy_level]
+type = "string"
+required = true
+non_empty = true
+[types.RunConfig.fields.budget_exhaustion_policy]
+type = "enum"
+required = false
+values = ["block_new", "cancel_all", "timeout_grace", "unlimited"]
+[types.RunConfig.fields.secrets_env]
+type = "map"
+required = false
+key_pattern = "^.+$"
+order = "incidental"
+[types.RunConfig.fields.secrets_env.value]
+type = "string"
+[types.RunConfig.fields.tools_dir]
+type = "string"
+required = false
+non_empty = true

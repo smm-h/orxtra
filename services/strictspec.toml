@@ -1,0 +1,11 @@
+# strictspec manifest for orxtra-services.
+# `strictspec gen` emits the committed validator (chmod 444) imported at the
+# run-config document boundary in orxtra/services/_run.py.
+format_version = 1
+
+[[schemas]]
+path = "schemas/run_config.schema.toml"
+[[schemas.targets]]
+lang = "python"
+output = "src/orxtra/services/_gen_run_config.py"
+module = "orxtra.services._gen_run_config"

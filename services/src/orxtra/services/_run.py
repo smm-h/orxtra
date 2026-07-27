@@ -13,6 +13,9 @@ from orxtra.overseer import load_knowledge_files
 from orxtra.protocols import KIND_RUN, BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, ToolEntry, load_workflow
 from orxtra.secrets import create_secret_registry
+from orxtra.services._gen_run_config import (
+    validate_bytes as _validate_run_config_document,
+)
 from orxtra.services._injection import (
     build_constraints_refresher,
     build_lessons_refresher,
@@ -367,8 +370,18 @@ async def start_run_from_file(
     if not config_path.is_file():  # noqa: ASYNC240
         msg = f"Config file not found: {config_path}"
         raise FileNotFoundError(msg)
-    with config_path.open("rb") as f:
-        raw = tomllib.load(f)
+    text = config_path.read_text()  # noqa: ASYNC240
+    # strictspec document gate: enforces integer format_version and the
+    # RunConfig document shape (required path/db_url strings, provider_configs
+    # map-of-map, budget/autonomy strings, optional policy enum). Runtime
+    # coercions (str -> Path, str -> Decimal) stay below.
+    _root, diags = _validate_run_config_document(text.encode("utf-8"), "toml")
+    if diags:
+        detail = "\n".join(f"  {d.code} at {d.path}: {d.message}" for d in diags)
+        msg = f"Invalid run-config document ({config_path}):\n{detail}"
+        raise ValueError(msg)
+    raw = tomllib.loads(text)
+    raw.pop("format_version", None)  # gate-only key; not a RunConfig field
     path_keys = (
         "workflow_path",
         "agents_dir",

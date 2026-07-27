@@ -1532,6 +1532,7 @@ dependencies = [
     { name = "orxtra-trace" },
     { name = "orxtra-transport" },
     { name = "pydantic" },
+    { name = "strictspec" },
     { name = "uuid6" },
 ]
 
@@ -1558,6 +1559,7 @@ requires-dist = [
     { name = "orxtra-trace", editable = "trace" },
     { name = "orxtra-transport", editable = "transport" },
     { name = "pydantic", specifier = ">=2" },
+    { name = "strictspec", specifier = ">=0.1.0" },
     { name = "uuid6" },
 ]
 

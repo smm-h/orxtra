@@ -109,6 +109,7 @@ async def test_start_run_from_file(
 ) -> None:
     config_file = tmp_path / "config.toml"
     config_file.write_text(
+        'format_version = 1\n'
         'workflow_path = "/workflow.toml"\n'
         'agents_dir = "/agents"\n'
         'knowledge_dir = "/knowledge"\n'
@@ -549,6 +550,7 @@ async def test_start_run_from_file_with_workflow_path(
 ) -> None:
     config_file = tmp_path / "config.toml"
     config_file.write_text(
+        'format_version = 1\n'
         'workflow_path = "/my/workflow.toml"\n'
         'agents_dir = "/agents"\n'
         'knowledge_dir = "/knowledge"\n'
