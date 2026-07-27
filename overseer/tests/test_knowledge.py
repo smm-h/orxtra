@@ -49,7 +49,7 @@ async def test_load_toml_with_constraints(
     tmp_path: Path, tw: MockTraceWriter, run_id: UUID,
 ) -> None:
     (tmp_path / "rules.toml").write_text(
-        '[[constraints]]\n'
+        'format_version = 1\n\n[[constraints]]\n'
         'text = "All tests must pass"\n'
         'tier = "mechanical"\n'
         'kind = "knowledge_file"\n',
@@ -77,7 +77,7 @@ async def test_mixed_md_and_toml(
 ) -> None:
     (tmp_path / "a.md").write_text("lesson a", encoding="utf-8")
     (tmp_path / "b.toml").write_text(
-        '[[constraints]]\n'
+        'format_version = 1\n\n[[constraints]]\n'
         'text = "constraint b"\n'
         'tier = "advisory"\n'
         'kind = "knowledge_file"\n',
@@ -131,7 +131,7 @@ async def test_constraint_tier_preserved(
     tmp_path: Path, tw: MockTraceWriter, run_id: UUID,
 ) -> None:
     toml_content = (
-        '[[constraints]]\ntext = "mech"\ntier = "mechanical"\nkind = "knowledge_file"\n\n'
+        'format_version = 1\n\n[[constraints]]\ntext = "mech"\ntier = "mechanical"\nkind = "knowledge_file"\n\n'
         '[[constraints]]\ntext = "adv"\ntier = "advisory"\nkind = "knowledge_file"\n'
     )
     (tmp_path / "rules.toml").write_text(
@@ -198,7 +198,7 @@ async def test_knowledge_hashes_persisted_in_backend(
     run_id = await backend.create_run("test", {}, "high", run_id=uuid6.uuid7(), created_by=_CREATED_BY)
     (tmp_path / "a.md").write_text("content a", encoding="utf-8")
     (tmp_path / "b.toml").write_text(
-        '[[constraints]]\ntext = "c"\ntier = "advisory"\nkind = "knowledge_file"\n',
+        'format_version = 1\n\n[[constraints]]\ntext = "c"\ntier = "advisory"\nkind = "knowledge_file"\n',
         encoding="utf-8",
     )
     await load_knowledge_files(tmp_path, backend, run_id)
@@ -230,14 +230,28 @@ async def test_toml_missing_tier_raises(
 ) -> None:
     """Constraint without explicit tier is a hard error."""
     (tmp_path / "bad.toml").write_text(
-        '[[constraints]]\n'
+        'format_version = 1\n\n[[constraints]]\n'
         'text = "no tier"\n'
         'kind = "knowledge_file"\n',
         encoding="utf-8",
     )
-    with pytest.raises(
-        ValueError, match="missing required key 'tier'",
-    ):
+    with pytest.raises(ValueError, match="tier"):
+        await load_knowledge_files(tmp_path, tw, run_id)
+
+
+@pytest.mark.asyncio
+async def test_toml_missing_format_version_raises(
+    tmp_path: Path, tw: MockTraceWriter, run_id: UUID,
+) -> None:
+    """A constraint file without integer format_version is a hard error."""
+    (tmp_path / "bad.toml").write_text(
+        '[[constraints]]\n'
+        'text = "no gate"\n'
+        'tier = "advisory"\n'
+        'kind = "knowledge_file"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="format_version"):
         await load_knowledge_files(tmp_path, tw, run_id)
 
 
@@ -247,12 +261,10 @@ async def test_toml_missing_kind_raises(
 ) -> None:
     """Constraint without explicit kind is a hard error."""
     (tmp_path / "bad.toml").write_text(
-        '[[constraints]]\n'
+        'format_version = 1\n\n[[constraints]]\n'
         'text = "no kind"\n'
         'tier = "advisory"\n',
         encoding="utf-8",
     )
-    with pytest.raises(
-        ValueError, match="missing required key 'kind'",
-    ):
+    with pytest.raises(ValueError, match="kind"):
         await load_knowledge_files(tmp_path, tw, run_id)

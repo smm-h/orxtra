@@ -1391,6 +1391,7 @@ dependencies = [
     { name = "orxtra-trace" },
     { name = "orxtra-transport" },
     { name = "pydantic" },
+    { name = "strictspec" },
 ]
 
 [package.dev-dependencies]
@@ -1408,6 +1409,7 @@ requires-dist = [
     { name = "orxtra-trace", editable = "trace" },
     { name = "orxtra-transport", editable = "transport" },
     { name = "pydantic", specifier = ">=2" },
+    { name = "strictspec", specifier = ">=0.1.0" },
 ]
 
 [package.metadata.requires-dev]

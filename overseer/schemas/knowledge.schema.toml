@@ -1,0 +1,34 @@
+name = "knowledge"
+meta_version = 1
+format_version = 1
+document_syntax = "toml"
+role = "schema"
+root = "KnowledgeFile"
+targets = ["python"]
+description = "An orxtra knowledge constraint file: a list of [[constraints]] with text, tier, and kind. Loaded into the run's constraint memory."
+# Source of truth: orxtra/overseer/_knowledge.py (_load_toml). The loader reads data["constraints"]
+# and requires text/tier/kind on each. tier/kind VALUES are not validated by the loader (passed
+# through to write_constraint), so they are required strings here, not enums.
+
+[types.KnowledgeFile]
+type = "record"
+[types.KnowledgeFile.fields.constraints]
+type = "array"
+required = false
+[types.KnowledgeFile.fields.constraints.item]
+type = "Constraint"
+
+[types.Constraint]
+type = "record"
+[types.Constraint.fields.text]
+type = "string"
+required = true
+non_empty = true
+[types.Constraint.fields.tier]
+type = "string"
+required = true
+non_empty = true
+[types.Constraint.fields.kind]
+type = "string"
+required = true
+non_empty = true

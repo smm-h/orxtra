@@ -1,0 +1,11 @@
+# strictspec manifest for orxtra-overseer.
+# `strictspec gen` emits the committed validator (chmod 444) imported at the
+# knowledge document boundary in orxtra/overseer/_knowledge.py.
+format_version = 1
+
+[[schemas]]
+path = "schemas/knowledge.schema.toml"
+[[schemas.targets]]
+lang = "python"
+output = "src/orxtra/overseer/_gen_knowledge.py"
+module = "orxtra.overseer._gen_knowledge"

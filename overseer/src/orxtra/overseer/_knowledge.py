@@ -5,6 +5,10 @@ import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from orxtra.overseer._gen_knowledge import (
+    validate_bytes as _validate_knowledge_document,
+)
+
 if TYPE_CHECKING:
     from uuid import UUID
 
@@ -85,22 +89,19 @@ async def _load_toml(
     if loaded_hashes.get(cache_key) == file_hash:
         return
     raw = path.read_text(encoding="utf-8")  # noqa: ASYNC240
+    # strictspec document gate: enforces integer format_version, TOML parse
+    # validity, and per-constraint required text/tier/kind. Subsumes the
+    # hand-rolled per-constraint tier/kind presence checks. tier/kind VALUES
+    # stay unvalidated (passed through to write_constraint) as before.
+    _root, diags = _validate_knowledge_document(raw.encode("utf-8"), "toml")
+    if diags:
+        detail = "\n".join(f"  {d.code} at {d.path}: {d.message}" for d in diags)
+        msg = f"Invalid knowledge document ({path}):\n{detail}"
+        raise ValueError(msg)
     data: dict[str, Any] = tomllib.loads(raw)
     constraints: list[dict[str, Any]] = data.get("constraints", [])
-    for idx, constraint in enumerate(constraints):
+    for constraint in constraints:
         text: str = constraint["text"]
-        if "tier" not in constraint:
-            msg = (
-                f"Constraint #{idx} in {path} missing"
-                f" required key 'tier'"
-            )
-            raise ValueError(msg)
-        if "kind" not in constraint:
-            msg = (
-                f"Constraint #{idx} in {path} missing"
-                f" required key 'kind'"
-            )
-            raise ValueError(msg)
         tier: str = constraint["tier"]
         kind: str = constraint["kind"]
         await trace_writer.write_constraint(
