@@ -1,4 +1,4 @@
-{"commits":["128b69ef65de5c854424ed38aca56c9fc43680f5"],"user_facing":true,"description":"**Single-package distribution.** orxtra is now published as a single `orxtra` package on PyPI instead of 16 separate `orxtra-*` packages. All sub-modules are included in one wheel.","type":"breaking","packages":["agent","cli","knowledge-module","mcp","notepad","overseer","protocols","scheduler","secrets","services","session","tool","trace","transport","verify","write-safety"]}
-{"commits":["bae8cfded435492e64a23215d47ce7b9ca585d7c","5c31c866b7b3b51f06edd54570a89877f0a1cabc","c25b7d594ccf0a2de09b40c1e1ae8dd77b902d38"],"user_facing":false}
-{"commits":["27860952a22ec4ca76c3e08f3e2b80fd4199b222"],"user_facing":false}
-{"commits":["45ab6e059550de92bfae6d06d124d424ade7dd06"],"user_facing":false}
+{"format_version":1,"commits":["128b69ef65de5c854424ed38aca56c9fc43680f5"],"user_facing":true,"description":"**Single-package distribution.** orxtra is now published as a single `orxtra` package on PyPI instead of 16 separate `orxtra-*` packages. All sub-modules are included in one wheel.","type":"breaking","packages":["agent","cli","knowledge-module","mcp","notepad","overseer","protocols","scheduler","secrets","services","session","tool","trace","transport","verify","write-safety"]}
+{"format_version":1,"commits":["bae8cfded435492e64a23215d47ce7b9ca585d7c","5c31c866b7b3b51f06edd54570a89877f0a1cabc","c25b7d594ccf0a2de09b40c1e1ae8dd77b902d38"],"user_facing":false}
+{"format_version":1,"commits":["27860952a22ec4ca76c3e08f3e2b80fd4199b222"],"user_facing":false}
+{"format_version":1,"commits":["45ab6e059550de92bfae6d06d124d424ade7dd06"],"user_facing":false}

@@ -1,1 +1,1 @@
-{"commits":["da090e9163f1cc4b7e15cb3829aba45aea2bf05c"],"user_facing":true,"description":"**Fix.** Package build includes overseer prompt files.","type":"fix"}
+{"format_version":1,"commits":["da090e9163f1cc4b7e15cb3829aba45aea2bf05c"],"user_facing":true,"description":"**Fix.** Package build includes overseer prompt files.","type":"fix"}
