@@ -2,6 +2,50 @@
   "version": "0.11.0",
   "source": [
     {
+      "path": "trace/src/orxtra/trace/",
+      "language": "python"
+    },
+    {
+      "path": "tool/src/orxtra/tool/",
+      "language": "python"
+    },
+    {
+      "path": "scheduler/src/orxtra/scheduler/",
+      "language": "python"
+    },
+    {
+      "path": "services/src/orxtra/services/",
+      "language": "python"
+    },
+    {
+      "path": "protocols/src/orxtra/protocols/",
+      "language": "python"
+    },
+    {
+      "path": "dispatch/src/orxtra/dispatch/",
+      "language": "python"
+    },
+    {
+      "path": "overseer/src/orxtra/overseer/",
+      "language": "python"
+    },
+    {
+      "path": "transport/src/orxtra/transport/",
+      "language": "python"
+    },
+    {
+      "path": "worker/src/orxtra/worker/",
+      "language": "python"
+    },
+    {
+      "path": "auth/src/orxtra/auth/",
+      "language": "python"
+    },
+    {
+      "path": "cli/src/orxtra/cli/",
+      "language": "python"
+    },
+    {
       "path": "tests/",
       "language": "python"
     }
@@ -32,7 +76,7 @@
   },
   "gen": {
     "exclude": [
-      "*"
+      "tests/"
     ]
   },
   "topology": {
