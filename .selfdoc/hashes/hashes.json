@@ -1,9 +1,14 @@
 {
   "_hash_version": 3,
+  "en/architecture.md": {
+    "content": "501e24ddb9a19880bcaafc1851579f0c0561d9d8e65cd3784bc9d2b7e25c3dde",
+    "description": "a8ecf9576d62f1c3054d01599596a39b59ba8d223502883453b230d17c881ff5"
+  },
   "en/auth-src-orxtra-auth-_authenticator.md": {
     "content": "f5d89a8290b04cc99f26d167c1dfbbc7874a380fe3d0769e15f0ed80434ddd1f",
     "description": "ef539f7fe319e74439b2facb533b695fa46f2510c35e56406e74acbefc5cea2a",
-    "seed_hash": "ef539f7fe319e74439b2facb533b695fa46f2510c35e56406e74acbefc5cea2a"
+    "seed_hash": "ef539f7fe319e74439b2facb533b695fa46f2510c35e56406e74acbefc5cea2a",
+    "source_docstring": "e9a3a6f9c7adfe62a91d3c9d79d69279b1d357f0825f44da66e180727fcd964c"
   },
   "en/auth-src-orxtra-auth-_authorizer.md": {
     "content": "61d18979de8cba52ac24f679ea74cc0b66e29972cda4946216255807243f622e",
@@ -33,7 +38,8 @@
   "en/auth-src-orxtra-auth-_verifiers.md": {
     "content": "5e5ccb44c4604c43dc1665ffe6af1a1fc542c44364a00eb85e177975839a6a14",
     "description": "54b4abd6bf31a2b8e584ddf2a3463a0a669205c1819823b872c7cedb7a10e97b",
-    "seed_hash": "54b4abd6bf31a2b8e584ddf2a3463a0a669205c1819823b872c7cedb7a10e97b"
+    "seed_hash": "54b4abd6bf31a2b8e584ddf2a3463a0a669205c1819823b872c7cedb7a10e97b",
+    "source_docstring": "8a23f47d57625ebc8bd11f12db33d52499bc217e99ed5ee1db46705fe2c57f57"
   },
   "en/auth-src-orxtra-auth.md": {
     "content": "78e8416e27d3964d8398b4358994e283977e25d460894faa4cf4680546906866",
@@ -95,12 +101,14 @@
   "en/cli-src-orxtra-cli-_db.md": {
     "content": "7d29597f7262e4e5b344b36e8a6d327fdd31d77c89f7496bf1f6b277ff8b030a",
     "description": "2320c746a4083ce384fae99074045e0d1214e5e96fca40bc3d456e6655d16e7b",
-    "seed_hash": "2320c746a4083ce384fae99074045e0d1214e5e96fca40bc3d456e6655d16e7b"
+    "seed_hash": "2320c746a4083ce384fae99074045e0d1214e5e96fca40bc3d456e6655d16e7b",
+    "source_docstring": "1e08b8e96814ef6832fac56dacf5da81d4665aa68120370e3ae5c37ee89b1764"
   },
   "en/cli-src-orxtra-cli-_dispatch.md": {
     "content": "180eb295e9a8ed2851d80113642e92716a52e7cfd1a722efc8ceeb3c0d366872",
     "description": "c59843276b9cdaebd9107f3ad104f7b11b248a6525011119bea53327858c9414",
-    "seed_hash": "c59843276b9cdaebd9107f3ad104f7b11b248a6525011119bea53327858c9414"
+    "seed_hash": "c59843276b9cdaebd9107f3ad104f7b11b248a6525011119bea53327858c9414",
+    "source_docstring": "b40011bf439df12e3c5fa019f740217b1755ec2d8ca71e56e1590d4b7d11a880"
   },
   "en/cli-src-orxtra-cli-_formatters.md": {
     "content": "8f0428d0937aa75acdcaa15161772aee64e430fc4abb8af2729710231f88e4a8",
@@ -130,6 +138,18 @@
     "schema_hash": "28153f30d8da01c3535b4109b46dad29a727bc443e514dacfb705ade60814544",
     "seed_hash": "f1b48a4e373ddff4f3f0d072294c8765d18284f60193ad230d5a5f688023a95c"
   },
+  "en/concepts.md": {
+    "content": "903029aa72d4dea00419301e56504bc533ea9a70c2c7bb49b37a368ae65704df",
+    "description": "d0bdc99fdd5019d0a32fc9b3e849edd8d804dddccda4bd4647b8dc36ee7c0479"
+  },
+  "en/configuration.md": {
+    "content": "3ec0ebe7b46e24e50fa7f4f571044f243a940a7e4de28cda9f26be06ca05cdef",
+    "description": "10ba1c1f13ab85ca192e80f5f6a4044633fd171d0848d5b0075d1bb50552b129"
+  },
+  "en/deployment.md": {
+    "content": "84751da7af7c233623763e2e1a9ba3bb0edc51eccd2e6e78529f47ea37d8f0da",
+    "description": "c5cfea4cecd8733b08bc94b000044ef108cb73dc7451226b4a9270c99dd3eee4"
+  },
   "en/dispatch-src-orxtra-dispatch-_action_executor.md": {
     "content": "a74e831ea9986255803c73087ac4552b7a97dc00e64928efc5c21d50c83d5d99",
     "description": "088e872c9966be6c299f08fbb6d8a7b03a357449bbd78d1c48d5288b12381251",
@@ -143,7 +163,8 @@
   "en/dispatch-src-orxtra-dispatch-_dispatch_worker.md": {
     "content": "03ada517cd4ed577b34ab9f2b5bf94db88b7f358c98156a218a34802fa52d8f0",
     "description": "8bc317a15d199fdfe425d4583613cd75e816c3758d7b9e5e0c4d2c3208e05176",
-    "seed_hash": "8bc317a15d199fdfe425d4583613cd75e816c3758d7b9e5e0c4d2c3208e05176"
+    "seed_hash": "8bc317a15d199fdfe425d4583613cd75e816c3758d7b9e5e0c4d2c3208e05176",
+    "source_docstring": "f448e8a6a5652b7e10fb9742caa4482885250edafbedda33d6fd5cbb676a81be"
   },
   "en/dispatch-src-orxtra-dispatch-_memory_backend.md": {
     "content": "117640b864044e29147cb5f79a5420340c4fbf5a69d810fbadd4202f4a71e005",
@@ -158,12 +179,14 @@
   "en/dispatch-src-orxtra-dispatch-_protocols.md": {
     "content": "e0a76364e73946479bc47fc8e585bf8b9a94df015df8aa5fe31311d026b4fc25",
     "description": "fd2df9c5b94d1697e64368dded745fccf24df1f7ccd4035974c9a5312917187c",
-    "seed_hash": "fd2df9c5b94d1697e64368dded745fccf24df1f7ccd4035974c9a5312917187c"
+    "seed_hash": "fd2df9c5b94d1697e64368dded745fccf24df1f7ccd4035974c9a5312917187c",
+    "source_docstring": "fd2df9c5b94d1697e64368dded745fccf24df1f7ccd4035974c9a5312917187c"
   },
   "en/dispatch-src-orxtra-dispatch-_types.md": {
     "content": "28980fffacfc88b485dcdc8d8baea9a41badee823372d8931f169c15f5bbe934",
     "description": "fac57cc43c6bcd90b811028ce9ff02af1decf9976d0716ef8d3dc3b3775ffb85",
-    "seed_hash": "fac57cc43c6bcd90b811028ce9ff02af1decf9976d0716ef8d3dc3b3775ffb85"
+    "seed_hash": "fac57cc43c6bcd90b811028ce9ff02af1decf9976d0716ef8d3dc3b3775ffb85",
+    "source_docstring": "fac57cc43c6bcd90b811028ce9ff02af1decf9976d0716ef8d3dc3b3775ffb85"
   },
   "en/dispatch-src-orxtra-dispatch.md": {
     "content": "479bea2612ebcbe102dc8918f1aff3557e3d2b4dfb4f70b266570807302f6004",
@@ -175,6 +198,10 @@
     "description": "5bf57300b37ba99fad49cb178840c1c5074311ea15421f92f37654cdfb43b1cd",
     "seed_hash": "5bf57300b37ba99fad49cb178840c1c5074311ea15421f92f37654cdfb43b1cd"
   },
+  "en/getting-started.md": {
+    "content": "bf1492a698f77186d94491b50188fe5423a289e7c99e3a898aebed078eb5b67d",
+    "description": "0c868d7262c03314c6d6487dd696c91553972b98ba941ba028aabd643fd9880b"
+  },
   "en/index.md": {
     "content": "9e9f8818e938607995d24e75d2b1debb8d1a8771d72244f9438053ac5f2caaf3",
     "description": "62c3f02fd5d7efc043b184615bb04029df42567752b51fa517d2e15750bb38e0"
@@ -182,7 +209,8 @@
   "en/overseer-src-orxtra-overseer-_autonomy.md": {
     "content": "c560ece365de83002d276aa9465e8381203139b5930d016f638ab715a9f432a3",
     "description": "8973d7286e90356c03d9a1d78b8f03e3624129b65b3d20a2617053b78e255824",
-    "seed_hash": "8973d7286e90356c03d9a1d78b8f03e3624129b65b3d20a2617053b78e255824"
+    "seed_hash": "8973d7286e90356c03d9a1d78b8f03e3624129b65b3d20a2617053b78e255824",
+    "source_docstring": "8973d7286e90356c03d9a1d78b8f03e3624129b65b3d20a2617053b78e255824"
   },
   "en/overseer-src-orxtra-overseer-_format.md": {
     "content": "98eb5471c04ba853c6a1a0d3ff5eee91923ea896a5cb65daed0a5b1c3cb4d243",
@@ -342,12 +370,14 @@
   "en/scheduler-src-orxtra-scheduler-_allow_resolver.md": {
     "content": "829d439b9be634fecb10537dd82f79924fb3254131b50ebe92c75bc03b07cd79",
     "description": "3191453beefa5d3f3221dc3bdf9e5cd59f598a8e6d2e01104b412e2f49de2427",
-    "seed_hash": "3191453beefa5d3f3221dc3bdf9e5cd59f598a8e6d2e01104b412e2f49de2427"
+    "seed_hash": "3191453beefa5d3f3221dc3bdf9e5cd59f598a8e6d2e01104b412e2f49de2427",
+    "source_docstring": "3191453beefa5d3f3221dc3bdf9e5cd59f598a8e6d2e01104b412e2f49de2427"
   },
   "en/scheduler-src-orxtra-scheduler-_base.md": {
     "content": "118b53ccd5edc4118fd056455d094dd2e139e5609086e5dccb9cf0e4334bb408",
     "description": "5fdd98ee1c41ee00f495ea162c74fe2b4e4b619b07cf5ccfd5bbd153b48821a8",
-    "seed_hash": "5fdd98ee1c41ee00f495ea162c74fe2b4e4b619b07cf5ccfd5bbd153b48821a8"
+    "seed_hash": "5fdd98ee1c41ee00f495ea162c74fe2b4e4b619b07cf5ccfd5bbd153b48821a8",
+    "source_docstring": "c68fd4f1160fa08dde5e2b0a2c80cc36137047ada8ed7c9630538e5591fccd63"
   },
   "en/scheduler-src-orxtra-scheduler-_enforcement.md": {
     "content": "f684a8e539ee9e0f5a367ecc91912da3b459e00ce87f91297093df7e54d8c12d",
@@ -392,12 +422,14 @@
   "en/scheduler-src-orxtra-scheduler-_prompt_providers.md": {
     "content": "7e833a58c7fa44c940a10ca4ab1fb479e8d18a12da4bc9b15b83cdfb9fa8f356",
     "description": "f88dde0aafd6627586ec69c06eed39c1aab8761bb08fd5801870cab7e552f47f",
-    "seed_hash": "f88dde0aafd6627586ec69c06eed39c1aab8761bb08fd5801870cab7e552f47f"
+    "seed_hash": "f88dde0aafd6627586ec69c06eed39c1aab8761bb08fd5801870cab7e552f47f",
+    "source_docstring": "15309731376a010f8971da20cecbb70dfe61c8b05df12dab3537455d79b35f7b"
   },
   "en/scheduler-src-orxtra-scheduler-_prompt_templates.md": {
     "content": "1067ed26d802be57cdd9e6a8ce584fc7760ad9d880311469155a1e132a5ba202",
     "description": "b898e06159330c56b33fa22ae214dfc94b3a3eceeee9647bfa360a039fa4b04f",
-    "seed_hash": "b898e06159330c56b33fa22ae214dfc94b3a3eceeee9647bfa360a039fa4b04f"
+    "seed_hash": "b898e06159330c56b33fa22ae214dfc94b3a3eceeee9647bfa360a039fa4b04f",
+    "source_docstring": "3e5e107becfe51ebfd344e02cc547c8e0d142c8f7412a21b2a82f106ddf11055"
   },
   "en/scheduler-src-orxtra-scheduler-_services.md": {
     "content": "9a1c48c607c2c390f50d3825b5ecfcb351d3ee11be6cb21cb55041a10cdfdd61",
@@ -412,7 +444,8 @@
   "en/scheduler-src-orxtra-scheduler-_tool_registry.md": {
     "content": "146e22ac89f531646e6746004edc0084f9050508d2c9673ee7ffaed7adf72f82",
     "description": "684f32cda0fcaebc8e53cabfa658db964bafdc8fd1f003266dce72fba1d0805a",
-    "seed_hash": "684f32cda0fcaebc8e53cabfa658db964bafdc8fd1f003266dce72fba1d0805a"
+    "seed_hash": "684f32cda0fcaebc8e53cabfa658db964bafdc8fd1f003266dce72fba1d0805a",
+    "source_docstring": "684f32cda0fcaebc8e53cabfa658db964bafdc8fd1f003266dce72fba1d0805a"
   },
   "en/scheduler-src-orxtra-scheduler-_types.md": {
     "content": "d4b494830d594b7d6b11e3c38188b1b68da5ba55b7509237ae4067474baaf365",
@@ -428,6 +461,10 @@
     "content": "d7810c9e745059613810c6768b33f2b02b91f0d2f4a1da003104fedf10740b85",
     "description": "0ec30164a08dbad3fc7de11832d4b0903e551908497b7ea617cf029624cff760",
     "seed_hash": "0ec30164a08dbad3fc7de11832d4b0903e551908497b7ea617cf029624cff760"
+  },
+  "en/security.md": {
+    "content": "313f6c79c8f41ecca674fa072740bfbd8f4ac4fd3da44e8d4895e4071b306a29",
+    "description": "58ff6ca7e3e40a3a411dd710e66e19fcb27472d03a49c0693bcdb1d7e8efca23"
   },
   "en/services-src-orxtra-services-_actions.md": {
     "content": "7e58c34fc8635ad6f1bde10d5c29048a8deacf5a1314dbaf47c6eead92365be8",
@@ -452,12 +489,14 @@
   "en/services-src-orxtra-services-_dispatch_worker.md": {
     "content": "e3ff03f1c60f33fb153acf24fc46b048433fa7751b25072c00086227b84d5b70",
     "description": "3522e0526809e3f17d7f74dd2da96fdba99805cb20e2881f110e64e67fc47404",
-    "seed_hash": "3522e0526809e3f17d7f74dd2da96fdba99805cb20e2881f110e64e67fc47404"
+    "seed_hash": "3522e0526809e3f17d7f74dd2da96fdba99805cb20e2881f110e64e67fc47404",
+    "source_docstring": "85c0322f08bb0adb6e4a6aee0d7ea8ae54570722191695a940e76fb012cea84f"
   },
   "en/services-src-orxtra-services-_dispatcher.md": {
     "content": "0e92aadddb03aa7101abcb52f11c96967197521f9fdcd33849231cfcb22af7de",
     "description": "39628bc0f37318dbe3c671d0fd7afb753b0dbaee6bd5d9cfe92d8285f3cb784b",
-    "seed_hash": "39628bc0f37318dbe3c671d0fd7afb753b0dbaee6bd5d9cfe92d8285f3cb784b"
+    "seed_hash": "39628bc0f37318dbe3c671d0fd7afb753b0dbaee6bd5d9cfe92d8285f3cb784b",
+    "source_docstring": "747bb58bcd004306d1b7283cbbf0806f372d930501c7c84132b32ef90fa9d417"
   },
   "en/services-src-orxtra-services-_events.md": {
     "content": "43601d28ccdcfcab8df466d3955ebb0236159d26bd26b59875cfc21ca726da92",
@@ -477,7 +516,8 @@
   "en/services-src-orxtra-services-_identity.md": {
     "content": "b9f48e34b2e53889d0e0fc1f6ac42a9b69c46aea0b22cbafda07ea572cdb7144",
     "description": "98763f5f9583c87dcb41e963ea5aa6f1084822a15d4830962e97dce3233354e3",
-    "seed_hash": "98763f5f9583c87dcb41e963ea5aa6f1084822a15d4830962e97dce3233354e3"
+    "seed_hash": "98763f5f9583c87dcb41e963ea5aa6f1084822a15d4830962e97dce3233354e3",
+    "source_docstring": "47527b85d04c8b0d03e728effbe166d984bd0243fbce0670d7cae8e372fbcfb0"
   },
   "en/services-src-orxtra-services-_inbox.md": {
     "content": "9fd8fd31847ff100920726f64b14c4ecb3fdb67f9b142323023e95338a172acf",
@@ -487,17 +527,20 @@
   "en/services-src-orxtra-services-_injection.md": {
     "content": "0334148534081fbac54cb02951eb83cc82d46948e4e5315db1b3aa3b9ab10684",
     "description": "6d2a475a0a2dbeaf8ab1147d1999a48a1100d5bc9041108b28dcbbdbed580e8e",
-    "seed_hash": "6d2a475a0a2dbeaf8ab1147d1999a48a1100d5bc9041108b28dcbbdbed580e8e"
+    "seed_hash": "6d2a475a0a2dbeaf8ab1147d1999a48a1100d5bc9041108b28dcbbdbed580e8e",
+    "source_docstring": "0eb26531bab7f366d63b93821e7b10e6d34de64c36b33c11dbbca880de475964"
   },
   "en/services-src-orxtra-services-_notifications.md": {
     "content": "ba9be07ac9127bacfaea3284fd3e3fd7b998c56b7b0b6b591d83bcae158e0073",
     "description": "1e561f7508b6bba7ad79939a1e641c03b736e06a7efbbf8afe66f7dcffaae4ac",
-    "seed_hash": "1e561f7508b6bba7ad79939a1e641c03b736e06a7efbbf8afe66f7dcffaae4ac"
+    "seed_hash": "1e561f7508b6bba7ad79939a1e641c03b736e06a7efbbf8afe66f7dcffaae4ac",
+    "source_docstring": "9b192e5c1663279072e84829361d0f208be3b5e0aa523a324c2dea93971083dd"
   },
   "en/services-src-orxtra-services-_params.md": {
     "content": "9f3334587c31ea47a06b76639797298ad82e485c020818ccad089948f28e080c",
     "description": "57139dc5fbe0723f823d1120a99ee63ce53bdaa124a5461c368a906bce0dd75a",
-    "seed_hash": "57139dc5fbe0723f823d1120a99ee63ce53bdaa124a5461c368a906bce0dd75a"
+    "seed_hash": "57139dc5fbe0723f823d1120a99ee63ce53bdaa124a5461c368a906bce0dd75a",
+    "source_docstring": "a8040bcbe7fd7e8dfaa50a8c468cf453dfde7f2e9680da6d0e7afe5870556682"
   },
   "en/services-src-orxtra-services-_providers.md": {
     "content": "fe36536e8de007c2d3c93978cc27213c2f23a5d9426a1dd08deb71beecad2880",
@@ -507,7 +550,8 @@
   "en/services-src-orxtra-services-_registry.md": {
     "content": "27565635447cdaba61c5a244e3f2fa10a5ba72fa064413fc571a8fe431bf88dc",
     "description": "17f297f1868556f363a1a3d55161c5c46a2c7f7ee554ec63f14c4c097372d421",
-    "seed_hash": "17f297f1868556f363a1a3d55161c5c46a2c7f7ee554ec63f14c4c097372d421"
+    "seed_hash": "17f297f1868556f363a1a3d55161c5c46a2c7f7ee554ec63f14c4c097372d421",
+    "source_docstring": "17f297f1868556f363a1a3d55161c5c46a2c7f7ee554ec63f14c4c097372d421"
   },
   "en/services-src-orxtra-services-_run.md": {
     "content": "29172288f4f40ee6287be57a95fc1c8afdca2c6ef28739fd4981a672809bdba1",
@@ -517,12 +561,14 @@
   "en/services-src-orxtra-services-_run_manager.md": {
     "content": "b4efb6373b3a5cb3fc5a95882d87f1b423ece50ec48ec6bd9968c09627d03033",
     "description": "fcafe219358da76651cb0ca42000a87aff798599fdee130a62c677be93d024fd",
-    "seed_hash": "fcafe219358da76651cb0ca42000a87aff798599fdee130a62c677be93d024fd"
+    "seed_hash": "fcafe219358da76651cb0ca42000a87aff798599fdee130a62c677be93d024fd",
+    "source_docstring": "d8e5e155cb0df0a0077b3400cfde0e32c80ab162d5101c687b796cc6860d3c4c"
   },
   "en/services-src-orxtra-services-_schema.md": {
     "content": "803e95a627660fcb99821ae45246e32a38f3669d9efae913d62f9985e0417b68",
     "description": "2fd6d16936ff2d11363b6ff393505b4a30129a88a4b22eb063ad37b3feef2d13",
-    "seed_hash": "2fd6d16936ff2d11363b6ff393505b4a30129a88a4b22eb063ad37b3feef2d13"
+    "seed_hash": "2fd6d16936ff2d11363b6ff393505b4a30129a88a4b22eb063ad37b3feef2d13",
+    "source_docstring": "e18b6a46ab647a9f9dd66da4e4b8a70b6e2cbe38dfd0336bfc60985b7cc61ec9"
   },
   "en/services-src-orxtra-services-_trace.md": {
     "content": "063fb78425aa23ef188f5d81184a26c855385185db69cf1fa88ee912cf661c62",
@@ -632,7 +678,8 @@
   "en/tests-pg_fixtures.md": {
     "content": "054cc2cf92150cb200bbdef4f55fc04841a6bdf2f3d299217d5baa6ddb6f0f43",
     "description": "1f248ed2bc561bfd9c342254775abc34911ea41492581cbd4d7785cf0f527738",
-    "seed_hash": "1f248ed2bc561bfd9c342254775abc34911ea41492581cbd4d7785cf0f527738"
+    "seed_hash": "1f248ed2bc561bfd9c342254775abc34911ea41492581cbd4d7785cf0f527738",
+    "source_docstring": "fd361e03641c117b9a66e78579174581c4294fee360449ca66e50475c7a2b6f3"
   },
   "en/tests-shared_mocks.md": {
     "content": "54f2acfad5f9f9f080d633c0abbe00fec4fc712eaf6570bb5c51140c4b216cd2",
@@ -652,37 +699,44 @@
   "en/tool-src-orxtra-tool-_data_tool_http.md": {
     "content": "f9d0ad68e8aed675f9919d7c6b321f8f49d57e7c9dd2429b21b22109279dd32d",
     "description": "b3250d8ead88bbfb321d5a65b83a2341f5aa6700d94cb1bbcd0f79fc204a1832",
-    "seed_hash": "b3250d8ead88bbfb321d5a65b83a2341f5aa6700d94cb1bbcd0f79fc204a1832"
+    "seed_hash": "b3250d8ead88bbfb321d5a65b83a2341f5aa6700d94cb1bbcd0f79fc204a1832",
+    "source_docstring": "24512fce5cda57ada7fb1d2dc0b2f9008e6909edec5b7e11606cc48425648488"
   },
   "en/tool-src-orxtra-tool-_data_tool_loader.md": {
     "content": "7aca2acca964d61096b926e3e68d2f648a386f290fda450684d2700f6bc38782",
     "description": "c2a5b90e7fac917d31dd2a4b7980682749bd42f3d991c4ed3dd539d689ad36f5",
-    "seed_hash": "c2a5b90e7fac917d31dd2a4b7980682749bd42f3d991c4ed3dd539d689ad36f5"
+    "seed_hash": "c2a5b90e7fac917d31dd2a4b7980682749bd42f3d991c4ed3dd539d689ad36f5",
+    "source_docstring": "f77b669bef85d569fef6052794b65fb4b3d844390bd4db85fd355bf6d7e7f701"
   },
   "en/tool-src-orxtra-tool-_data_tool_monty.md": {
     "content": "3041e9f3339bd25254326f126b023f221a0e339e99544f1539e9c1ddca53bce5",
     "description": "ee9a66dac4ea28a0fb2c7a1cabaafa877a99540b8b3b7fb9a6ef3990dc304cf9",
-    "seed_hash": "ee9a66dac4ea28a0fb2c7a1cabaafa877a99540b8b3b7fb9a6ef3990dc304cf9"
+    "seed_hash": "ee9a66dac4ea28a0fb2c7a1cabaafa877a99540b8b3b7fb9a6ef3990dc304cf9",
+    "source_docstring": "45664af12bb84c13b68809035f3428840dde654bdd839135143614636650c203"
   },
   "en/tool-src-orxtra-tool-_data_tool_shared.md": {
     "content": "b55d63a153ec7158e3b36cf4c0b07c6315b7575c8e3fd2a9516b30f8b0328568",
     "description": "1f75e160490cf1ace641f0071a94d0c3f872245441103d96823e8446fa7ba620",
-    "seed_hash": "1f75e160490cf1ace641f0071a94d0c3f872245441103d96823e8446fa7ba620"
+    "seed_hash": "1f75e160490cf1ace641f0071a94d0c3f872245441103d96823e8446fa7ba620",
+    "source_docstring": "593687be6d3393ec911779359997c64804e6253e7910f7a54f73425e8161f03e"
   },
   "en/tool-src-orxtra-tool-_data_tool_types.md": {
     "content": "af70051729ecbf80fe7671593cf3e37e31d7842a2ac3ecc38383a9e332b1b850",
     "description": "c383b9e80090991638c552b65bac78a3853975d9ef10222c5570604424110c12",
-    "seed_hash": "c383b9e80090991638c552b65bac78a3853975d9ef10222c5570604424110c12"
+    "seed_hash": "c383b9e80090991638c552b65bac78a3853975d9ef10222c5570604424110c12",
+    "source_docstring": "60175d6b6f97270ec9a0cb6b192524c4c9aaaa32798038df1086cf85b410e63a"
   },
   "en/tool-src-orxtra-tool-_decorator.md": {
     "content": "7fb494420a37dd37b34eec5252df0add63ceec1aa7d4bb5efd2ee637c5ee5512",
     "description": "63b63b6d4f1c7abe477fb295555444ce6f4299bc9378ad61ad8ae188ef5606e1",
-    "seed_hash": "63b63b6d4f1c7abe477fb295555444ce6f4299bc9378ad61ad8ae188ef5606e1"
+    "seed_hash": "63b63b6d4f1c7abe477fb295555444ce6f4299bc9378ad61ad8ae188ef5606e1",
+    "source_docstring": "4de07b38696f7fbd8354796bbf46848ff60a317df83ef7592d33f44bc408f583"
   },
   "en/tool-src-orxtra-tool-_discovery.md": {
     "content": "7c8ea7af697e896872bf446875d854913103f3acf413668f8f3133ae58fb7020",
     "description": "d60878a1e25847b835acc93febc29fdd1942eb4199dcc9cb21b1800ca4d3c4f0",
-    "seed_hash": "d60878a1e25847b835acc93febc29fdd1942eb4199dcc9cb21b1800ca4d3c4f0"
+    "seed_hash": "d60878a1e25847b835acc93febc29fdd1942eb4199dcc9cb21b1800ca4d3c4f0",
+    "source_docstring": "d60878a1e25847b835acc93febc29fdd1942eb4199dcc9cb21b1800ca4d3c4f0"
   },
   "en/tool-src-orxtra-tool-_gen_data_tool.md": {
     "content": "789f16956a06be085b34b9ad04f589d1e4783e16109af97d35dd9a77f8f4288f",
@@ -697,12 +751,14 @@
   "en/tool-src-orxtra-tool-_http_tool.md": {
     "content": "d22f07920c8508dd5eb8ef13d22f955d1dd302168f21d809c5032108bda3c565",
     "description": "691de1b04cc5b5d78466d4821aa32619cdb75395071586a0939673c3c408be39",
-    "seed_hash": "691de1b04cc5b5d78466d4821aa32619cdb75395071586a0939673c3c408be39"
+    "seed_hash": "691de1b04cc5b5d78466d4821aa32619cdb75395071586a0939673c3c408be39",
+    "source_docstring": "691de1b04cc5b5d78466d4821aa32619cdb75395071586a0939673c3c408be39"
   },
   "en/tool-src-orxtra-tool-_load_tools.md": {
     "content": "da0eb7fac3e42624c0646eb4994cdc289092222d3968866805885b77570f78ca",
     "description": "b5578b5ef341c7ec0245e2ff1df4abdcf2017dd9d8c84db826cebb6cd232dca3",
-    "seed_hash": "b5578b5ef341c7ec0245e2ff1df4abdcf2017dd9d8c84db826cebb6cd232dca3"
+    "seed_hash": "b5578b5ef341c7ec0245e2ff1df4abdcf2017dd9d8c84db826cebb6cd232dca3",
+    "source_docstring": "9e7a5d69edf603868bd8e6874d54ec42aa3e6ecfc93f6c67ef34405b19872c74"
   },
   "en/tool-src-orxtra-tool-_notepad_tool.md": {
     "content": "427a9e13fb560634f31c4f2444571697aecc08b6bec511db81de30f1ddc1cf47",
@@ -712,7 +768,8 @@
   "en/tool-src-orxtra-tool-_params.md": {
     "content": "049631f190764644e0d7db2524a4639c9532929987c0b66d4b148dd22926c09a",
     "description": "4c8730d6e8cb5fab1b164512f89127fd7d7e885b2000b9da3ab39f7cd5c8beba",
-    "seed_hash": "4c8730d6e8cb5fab1b164512f89127fd7d7e885b2000b9da3ab39f7cd5c8beba"
+    "seed_hash": "4c8730d6e8cb5fab1b164512f89127fd7d7e885b2000b9da3ab39f7cd5c8beba",
+    "source_docstring": "058168ecf03f1d84f4c973cf2daeb77f0b77297c1bd93e128da7fd7389685aac"
   },
   "en/tool-src-orxtra-tool-_path.md": {
     "content": "c07d196b6e8c7bfc78f20f795cd6ee90b674954d61720c4b2f12cfd6d23b42c8",
@@ -732,7 +789,8 @@
   "en/tool-src-orxtra-tool-_read_tools.md": {
     "content": "8f0020410acd9683ddf19e51d78b6c6dfa6c47e966bf407d6324cba116513d27",
     "description": "2effeb05ad107542f702e212ae6e1fc59dbe7c09f5908d355b897a0b213f4eeb",
-    "seed_hash": "2effeb05ad107542f702e212ae6e1fc59dbe7c09f5908d355b897a0b213f4eeb"
+    "seed_hash": "2effeb05ad107542f702e212ae6e1fc59dbe7c09f5908d355b897a0b213f4eeb",
+    "source_docstring": "2effeb05ad107542f702e212ae6e1fc59dbe7c09f5908d355b897a0b213f4eeb"
   },
   "en/tool-src-orxtra-tool-_renderers.md": {
     "content": "0fdddd2e5594efd8e54a7a0171a387ba64630e5a7ebaec844730f81104a252d2",
@@ -742,12 +800,14 @@
   "en/tool-src-orxtra-tool-_scrub.md": {
     "content": "499602d3d46dc7ae4fc9fe19d0f892ac25bb36672836eecd30c926819e4958e9",
     "description": "7f7797316535f9c34a79fef12ab4756446aeaba59be1fb0bd1b7fa849e818ac1",
-    "seed_hash": "7f7797316535f9c34a79fef12ab4756446aeaba59be1fb0bd1b7fa849e818ac1"
+    "seed_hash": "7f7797316535f9c34a79fef12ab4756446aeaba59be1fb0bd1b7fa849e818ac1",
+    "source_docstring": "ff1844f777d5c57626620fe74ef184f612459621eba38834d7462fee05dd7354"
   },
   "en/tool-src-orxtra-tool-_subprocess.md": {
     "content": "603aaadc08ac6317ab462659d1709c24fd2bac784aba389653e3a420510b7cc1",
     "description": "4d228bc299b768ce050486544c5c08c6c5c97f6d489842b2128fb86a552944cb",
-    "seed_hash": "4d228bc299b768ce050486544c5c08c6c5c97f6d489842b2128fb86a552944cb"
+    "seed_hash": "4d228bc299b768ce050486544c5c08c6c5c97f6d489842b2128fb86a552944cb",
+    "source_docstring": "f240bde38936ddf0f54411ae81ed0cdc38bc8d2d3366fbf7ec9507e182a7ff21"
   },
   "en/tool-src-orxtra-tool-_task_tools.md": {
     "content": "39ccb5a0c51b019b06e165f30e14ce28bad9f5b66c73afb7e1086b41177a1a98",
@@ -762,7 +822,8 @@
   "en/tool-src-orxtra-tool-_write_tools.md": {
     "content": "86115a35c61b8ce9ae2379e20358b2987a3d808c44a211aa8720fe43256cde61",
     "description": "c706b25714f9c5c4e29a6bfeba462323d317616cc96543410914c12bd195855e",
-    "seed_hash": "c706b25714f9c5c4e29a6bfeba462323d317616cc96543410914c12bd195855e"
+    "seed_hash": "c706b25714f9c5c4e29a6bfeba462323d317616cc96543410914c12bd195855e",
+    "source_docstring": "c706b25714f9c5c4e29a6bfeba462323d317616cc96543410914c12bd195855e"
   },
   "en/tool-src-orxtra-tool.md": {
     "content": "2b8be5425eb391773ab24166b6ac0d628eb3083c312a66892219e7dc7d7a36f1",
@@ -807,7 +868,8 @@
   "en/trace-src-orxtra-trace-_trace_sink.md": {
     "content": "79f33addd383df77fe9fcc4a61f7c190a9c8d784cd07125df398afee6f880f7b",
     "description": "d614b8cf5849d3316e4ed35a2a37a20243b1fc6865b37415868f495e479789ce",
-    "seed_hash": "d614b8cf5849d3316e4ed35a2a37a20243b1fc6865b37415868f495e479789ce"
+    "seed_hash": "d614b8cf5849d3316e4ed35a2a37a20243b1fc6865b37415868f495e479789ce",
+    "source_docstring": "db9986ee9b57e0720363702883b30a818f1d75b8145fd7290b19ad16d239878c"
   },
   "en/trace-src-orxtra-trace-_transitions.md": {
     "content": "e98ff5b5df73265a403e39b0df0da11d70c4b4140a506b0d36d7399671f9323e",
@@ -882,37 +944,44 @@
   "en/worker-src-orxtra-worker-_brain.md": {
     "content": "9e972e40cc44b89a4b295d9358efaad17606c46053b695eaaf7985a16118d73b",
     "description": "bdf4402b3692434385a4d8760aea61a9791052cee0b17f2668dbfc2fc6682ec8",
-    "seed_hash": "bdf4402b3692434385a4d8760aea61a9791052cee0b17f2668dbfc2fc6682ec8"
+    "seed_hash": "bdf4402b3692434385a4d8760aea61a9791052cee0b17f2668dbfc2fc6682ec8",
+    "source_docstring": "5b92002c7dbb8b1ec893d0ad4d2593c6ffc4819034a80121a4d0ed5d0a1ad2e7"
   },
   "en/worker-src-orxtra-worker-_cli.md": {
     "content": "7614ecb16168010d9847a5e93e022611cd0d7fe7c402479fafc3e90bfabffb85",
     "description": "dcd29b37e1046fa75c3034a5735bcf4a36ac41082fe2d6b4f672e05582e6513a",
-    "seed_hash": "dcd29b37e1046fa75c3034a5735bcf4a36ac41082fe2d6b4f672e05582e6513a"
+    "seed_hash": "dcd29b37e1046fa75c3034a5735bcf4a36ac41082fe2d6b4f672e05582e6513a",
+    "source_docstring": "9462fd7dd093942a66ac538de33db3fd714a40649f54ab7bf76825b0700b4efc"
   },
   "en/worker-src-orxtra-worker-_docker.md": {
     "content": "a3ddbffea1f70660c04baea08aad4c9c08871d3a63b26fa7753b477ae68f3127",
     "description": "0dc6bb3780b67c6a81e048a8adee59b8cccd8c784bd64a0c51f8e59808ac1678",
-    "seed_hash": "0dc6bb3780b67c6a81e048a8adee59b8cccd8c784bd64a0c51f8e59808ac1678"
+    "seed_hash": "0dc6bb3780b67c6a81e048a8adee59b8cccd8c784bd64a0c51f8e59808ac1678",
+    "source_docstring": "63a2a55462414072c2123b7043d22f4ec2f586dafc9aa991580f56a30f56ae30"
   },
   "en/worker-src-orxtra-worker-_native.md": {
     "content": "ee46e1e42544174f076d983f4243544e5f9d32d7e187607c0a8162aea32ef1a1",
     "description": "01c89e671222b28f3893e9fce1748a7e9f0f2d5f11137c94dfc28f8c915750ee",
-    "seed_hash": "01c89e671222b28f3893e9fce1748a7e9f0f2d5f11137c94dfc28f8c915750ee"
+    "seed_hash": "01c89e671222b28f3893e9fce1748a7e9f0f2d5f11137c94dfc28f8c915750ee",
+    "source_docstring": "aebd0990795c840aa071d62b1051760174f5287bca78d8c80edcbd7270c522ab"
   },
   "en/worker-src-orxtra-worker-_pipeline_split.md": {
     "content": "341fedb137942d43750920a77ac10512bb885069cc75afbba3a24d424af5844f",
     "description": "319ba0084af74c26caf268c4cf50b3020f4c94765a292a8becc29450aed3c36d",
-    "seed_hash": "319ba0084af74c26caf268c4cf50b3020f4c94765a292a8becc29450aed3c36d"
+    "seed_hash": "319ba0084af74c26caf268c4cf50b3020f4c94765a292a8becc29450aed3c36d",
+    "source_docstring": "51b850c1126a1c61614eb30ba937fa059b5ac95b96060f20dedd66642d8c63b7"
   },
   "en/worker-src-orxtra-worker-_protocol.md": {
     "content": "cfaf0d4f44a69c3d5f46b33aa02b622e55f2788ff8fc40c9efa64656179baf50",
     "description": "b235e016a900990bf83fa38406b7101a632904ab78b15418f26d1711ced90262",
-    "seed_hash": "b235e016a900990bf83fa38406b7101a632904ab78b15418f26d1711ced90262"
+    "seed_hash": "b235e016a900990bf83fa38406b7101a632904ab78b15418f26d1711ced90262",
+    "source_docstring": "0d4e5b7aee1546e5822f1fae0c950efb3066aceb67f74f9b2c7dd0553d37f635"
   },
   "en/worker-src-orxtra-worker-_registry.md": {
     "content": "16e5657d69728f9e8d2a76efa8ede856f29a86a2693bf6fa19793f9f837e33f6",
     "description": "cb589d089e65792714f237d6dd7eed389e7d5632b5ccccdf46f545d748a7bb98",
-    "seed_hash": "cb589d089e65792714f237d6dd7eed389e7d5632b5ccccdf46f545d748a7bb98"
+    "seed_hash": "cb589d089e65792714f237d6dd7eed389e7d5632b5ccccdf46f545d748a7bb98",
+    "source_docstring": "bed86dceb292667784a5136f5e147f6493e54484897fc04fdf989c10a1ec916f"
   },
   "en/worker-src-orxtra-worker.md": {
     "content": "6db84d52600b2d9268c2211336b492f66f3a8cc6427dec7748a716490cfc63ed",
