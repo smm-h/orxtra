@@ -38,7 +38,7 @@ Display the full status report for a specific run.
 
 ## run abort
 
-Send an abort signal to a running workflow run.
+Send an abort signal to stop a currently running workflow.
 
 ### Arguments
 

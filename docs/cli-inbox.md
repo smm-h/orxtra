@@ -24,7 +24,7 @@ List pending human-in-the-loop inbox items, optionally filtered.
 
 ## inbox show
 
-Display the full details of a single inbox item.
+Display the full details of a single inbox item by ID.
 
 ### Arguments
 
@@ -40,7 +40,7 @@ Submit an answer to a pending inbox item from a workflow run.
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `answer` | yes | The answer text to submit for this inbox item. |
+| `answer` | yes | The answer text to submit as a response to this item. |
 | `item_id` | yes | Unique identifier of the inbox item to respond to (UUID format). |
 
 ## inbox skip

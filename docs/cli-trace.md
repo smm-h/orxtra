@@ -13,7 +13,7 @@ Query trace data: events, transcripts, tasks, and notepad entries for runs.
 
 ## trace events
 
-Query the event log for a specific workflow run.
+Query the stored event log for a specific workflow run.
 
 ### Flags
 
