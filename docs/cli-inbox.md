@@ -2,7 +2,6 @@
 title: orxtra inbox
 description: "Reference for the orxtra inbox command group — subcommands, flags, arguments, and usage details for the inbox group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 5
 ---
@@ -10,57 +9,57 @@ nav_order: 5
 
 # orxtra inbox
 
-Human inbox commands.
+Manage human-in-the-loop inbox items (list, show, respond, skip, reject).
 
 ## inbox list
 
-List inbox items.
+List pending human-in-the-loop inbox items, optionally filtered.
 
 ### Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--run` |  | str |  |  | Run ID to filter by. |
-| `--status` |  | str |  |  | Status filter. |
+| `--run` |  | str |  |  | Filter inbox items by run ID (only show items for this run). |
+| `--status` |  | str |  |  | Filter inbox items by status (e.g. pending, answered, skipped). |
 
 ## inbox show
 
-Show a single inbox item.
+Display the full details of a single inbox item.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `item_id` | yes | Inbox item ID. |
+| `item_id` | yes | Unique identifier of the inbox item to display (UUID format). |
 
 ## inbox respond
 
-Answer an inbox item.
+Submit an answer to a pending inbox item from a workflow run.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `answer` | yes | The answer text. |
-| `item_id` | yes | Inbox item ID. |
+| `answer` | yes | The answer text to submit for this inbox item. |
+| `item_id` | yes | Unique identifier of the inbox item to respond to (UUID format). |
 
 ## inbox skip
 
-Skip an inbox item.
+Skip a pending inbox item without providing an answer.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `item_id` | yes | Inbox item ID. |
+| `item_id` | yes | Unique identifier of the inbox item to skip (UUID format). |
 
 ## inbox reject
 
-Reject an inbox item (options insufficient).
+Reject a pending inbox item, indicating the provided options are insufficient.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `reason` | yes | Reason for rejection. |
-| `item_id` | yes | Inbox item ID. |
+| `reason` | yes | Explanation of why the inbox item is being rejected. |
+| `item_id` | yes | Unique identifier of the inbox item to reject (UUID format). |

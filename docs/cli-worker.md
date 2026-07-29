@@ -2,7 +2,6 @@
 title: orxtra worker
 description: "Reference for the orxtra worker command group — subcommands, flags, arguments, and usage details for the worker group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 10
 ---
@@ -10,29 +9,29 @@ nav_order: 10
 
 # orxtra worker
 
-Worker process commands.
+Manage remote worker processes that execute tool calls for the brain.
 
 ## worker connect
 
-Connect a native worker to a brain.
+Connect a native worker process to a brain via WebSocket.
 
 ### Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--brain` |  | str |  |  | Brain WebSocket URL. |
-| `--root` |  | str |  |  | Project root directory. |
-| `--key` |  | str |  |  | API key for authentication. |
+| `--brain` |  | str |  |  | WebSocket URL of the brain to connect to (e.g. ws://host:port). |
+| `--root` |  | str |  |  | Filesystem path to the project root directory for tool execution. |
+| `--key` |  | str |  |  | API key for authenticating with the brain server. |
 
 ## worker docker
 
-Run a worker inside a Docker container.
+Run a worker inside a Docker container connected to a brain.
 
 ### Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--brain` |  | str |  |  | Brain WebSocket URL. |
-| `--image` |  | str |  |  | Docker image name. |
-| `--root` |  | str |  |  | Project root directory. |
-| `--key` |  | str |  |  | API key for authentication. |
+| `--brain` |  | str |  |  | WebSocket URL of the brain to connect to (e.g. ws://host:port). |
+| `--image` |  | str |  |  | Docker image name to use for the worker container. |
+| `--root` |  | str |  |  | Filesystem path to the project root directory for tool execution. |
+| `--key` |  | str |  |  | API key for authenticating with the brain server. |

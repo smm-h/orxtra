@@ -17,16 +17,16 @@ Version: 0.11.0
 
 ## Commands
 
-- [serve](cli-serve.html) -- Start the HTTP API server.
+- [serve](cli-serve.html) -- Start the HTTP API server (MCP, A2A, AG-UI, native routes).
 
 ## Command Groups
 
-- [run](cli-run.html) -- Run lifecycle commands.
-- [inbox](cli-inbox.html) -- Human inbox commands.
-- [trace](cli-trace.html) -- Trace and event query commands.
-- [event](cli-event.html) -- Event firing commands.
-- [validate](cli-validate.html) -- Validate configuration files.
-- [config](cli-config.html) -- Configuration commands.
-- [db](cli-db.html) -- Database provisioning and migration commands.
-- [dispatch](cli-dispatch.html) -- Dispatch worker commands.
-- [worker](cli-worker.html) -- Worker process commands.
+- [run](cli-run.html) -- Manage autonomous workflow run lifecycle (start, list, show, abort, pause, resume).
+- [inbox](cli-inbox.html) -- Manage human-in-the-loop inbox items (list, show, respond, skip, reject).
+- [trace](cli-trace.html) -- Query trace data: events, transcripts, tasks, and notepad entries for runs.
+- [event](cli-event.html) -- Fire named events to wake wait-for tasks in running workflows.
+- [validate](cli-validate.html) -- Validate agent, workflow, and category configuration TOML files.
+- [config](cli-config.html) -- Inspect run configuration snapshots and internal pricing tables.
+- [db](cli-db.html) -- Database provisioning, schema verification, and migration commands.
+- [dispatch](cli-dispatch.html) -- Manage the persistent event dispatch worker process.
+- [worker](cli-worker.html) -- Manage remote worker processes that execute tool calls for the brain.

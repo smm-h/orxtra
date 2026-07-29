@@ -2,7 +2,6 @@
 title: orxtra serve
 description: "Reference for the orxtra serve command — usage, flags, arguments, and examples for the serve subcommand of the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 7
 ---
@@ -10,12 +9,12 @@ nav_order: 7
 
 # orxtra serve
 
-Start the HTTP API server.
+Start the HTTP API server (MCP, A2A, AG-UI, native routes).
 
 ## Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--port` |  | int |  |  | Port to listen on. |
-| `--host` |  | str | 0.0.0.0 |  | Host to bind to. |
+| `--port` |  | int |  |  | TCP port number for the HTTP server to listen on. |
+| `--host` |  | str | 0.0.0.0 |  | Network interface address to bind the server to. |
 | `--secrets-env` |  | str |  |  | JSON object mapping secret names to env var names for auth. |

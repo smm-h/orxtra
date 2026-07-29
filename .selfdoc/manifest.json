@@ -8,6 +8,11 @@
   "base_url": "https://orxtra.smmh.dev",
   "pages": [
     {
+      "path": "architecture.md",
+      "title": "Architecture",
+      "type": "doc"
+    },
+    {
       "path": "auth-src-orxtra-auth-_authenticator.md",
       "title": "auth.src.orxtra.auth._authenticator",
       "type": "doc"
@@ -128,6 +133,21 @@
       "type": "doc"
     },
     {
+      "path": "concepts.md",
+      "title": "Key Concepts",
+      "type": "doc"
+    },
+    {
+      "path": "configuration.md",
+      "title": "Configuration Reference",
+      "type": "doc"
+    },
+    {
+      "path": "deployment.md",
+      "title": "Deployment",
+      "type": "doc"
+    },
+    {
       "path": "dispatch-src-orxtra-dispatch-_action_executor.md",
       "title": "dispatch.src.orxtra.dispatch._action_executor",
       "type": "doc"
@@ -170,6 +190,11 @@
     {
       "path": "gen-index.md",
       "title": "API Reference",
+      "type": "doc"
+    },
+    {
+      "path": "getting-started.md",
+      "title": "Getting Started",
       "type": "doc"
     },
     {
@@ -425,6 +450,11 @@
     {
       "path": "scheduler-src-orxtra-scheduler.md",
       "title": "scheduler.src.orxtra.scheduler",
+      "type": "doc"
+    },
+    {
+      "path": "security.md",
+      "title": "Security Model",
       "type": "doc"
     },
     {
@@ -919,5 +949,5 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-07-29T15:01:58.761713+00:00"
+  "last_gen": "2026-07-29T15:22:49.082166+00:00"
 }

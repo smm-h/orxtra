@@ -2,7 +2,6 @@
 title: orxtra trace
 description: "Reference for the orxtra trace command group — subcommands, flags, arguments, and usage details for the trace group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 8
 ---
@@ -10,62 +9,62 @@ nav_order: 8
 
 # orxtra trace
 
-Trace and event query commands.
+Query trace data: events, transcripts, tasks, and notepad entries for runs.
 
 ## trace events
 
-Query events for a run.
+Query the event log for a specific workflow run.
 
 ### Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--type` |  | str |  |  | Filter by event type. |
-| `--limit` |  | int | 100 |  | Maximum events to return. |
+| `--type` |  | str |  |  | Filter events by type (e.g. task_started, tool_call). |
+| `--limit` |  | int | 100 |  | Maximum number of events to return from the query. |
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run to query events for (UUID format). |
 
 ## trace transcript
 
-Show a session's full transcript.
+Display the full message transcript for an agent session.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `session_id` | yes | Session ID. |
+| `session_id` | yes | Unique identifier of the session to show the transcript for. |
 
 ## trace search
 
-Search a transcript (case-insensitive substring).
+Search a session transcript for matching text (case-insensitive).
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `query` | yes | Search query. |
-| `session_id` | yes | Session ID. |
+| `query` | yes | Case-insensitive substring to search for in the transcript. |
+| `session_id` | yes | Unique identifier of the session whose transcript to search. |
 
 ## trace tasks
 
-Show task statuses and attempt counts.
+Show task statuses, attempt counts, and hierarchy for a run.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run to list tasks for (UUID format). |
 
 ## trace notepad
 
-Show notepad entries.
+Show cross-agent notepad entries for a workflow run.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run to show notepad entries for (UUID format). |

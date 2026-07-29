@@ -2,7 +2,6 @@
 title: orxtra validate
 description: "Reference for the orxtra validate command group — subcommands, flags, arguments, and usage details for the validate group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 9
 ---
@@ -10,34 +9,34 @@ nav_order: 9
 
 # orxtra validate
 
-Validate configuration files.
+Validate agent, workflow, and category configuration TOML files.
 
 ## validate agent
 
-Validate an agent TOML file.
+Validate an agent definition TOML file for schema errors.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `path` | yes | Path to agent TOML file. |
+| `path` | yes | Filesystem path to the agent TOML file to validate. |
 
 ## validate workflow
 
-Validate a workflow TOML file.
+Validate a workflow definition TOML file for schema errors.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `path` | yes | Path to workflow TOML file. |
+| `path` | yes | Filesystem path to the workflow TOML file to validate. |
 
 ## validate categories
 
-Validate a categories TOML file.
+Validate a model categories TOML file for schema errors.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `path` | yes | Path to categories TOML file. |
+| `path` | yes | Filesystem path to the categories TOML file to validate. |

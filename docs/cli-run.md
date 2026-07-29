@@ -2,7 +2,6 @@
 title: orxtra run
 description: "Reference for the orxtra run command group — subcommands, flags, arguments, and usage details for the run group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 6
 ---
@@ -10,59 +9,59 @@ nav_order: 6
 
 # orxtra run
 
-Run lifecycle commands.
+Manage autonomous workflow run lifecycle (start, list, show, abort, pause, resume).
 
 ## run start
 
-Start a run from a config file.
+Start a new autonomous workflow run from a configuration file.
 
 ### Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--config` |  | str |  |  | Path to run config file. |
-| `--intent` |  | str |  |  | Intent description for the run. |
+| `--config` |  | str |  |  | Filesystem path to the run configuration TOML file. |
+| `--intent` |  | str |  |  | Natural-language description of what the run should accomplish. |
 
 ## run list
 
-List all runs, newest first.
+List all runs in the database, ordered newest first.
 
 ## run show
 
-Show a run's full report.
+Display the full status report for a specific run.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run to display (UUID format). |
 
 ## run abort
 
-Signal a running run to abort.
+Send an abort signal to a running workflow run.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run to abort (UUID format). |
 
 ## run pause
 
-Pause a running run.
+Pause a running workflow run, suspending task execution.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run to pause (UUID format). |
 
 ## run resume
 
-Resume a paused run.
+Resume a previously paused workflow run, restarting task execution.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run to resume (UUID format). |

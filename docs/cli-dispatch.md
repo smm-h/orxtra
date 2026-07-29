@@ -2,7 +2,6 @@
 title: orxtra dispatch
 description: "Reference for the orxtra dispatch command group — subcommands, flags, arguments, and usage details for the dispatch group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 3
 ---
@@ -10,16 +9,16 @@ nav_order: 3
 
 # orxtra dispatch
 
-Dispatch worker commands.
+Manage the persistent event dispatch worker process.
 
 ## dispatch run
 
-Run the persistent dispatch worker.
+Start the persistent dispatch worker that processes event subscriptions.
 
 ### Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--cursor` |  | str | main |  | Cursor name for this worker instance. |
-| `--poll-interval` |  | float | 5.0 |  | Fallback poll interval in seconds. |
-| `--batch-size` |  | int | 100 |  | Max events per polling batch. |
+| `--cursor` |  | str | main |  | Named cursor for this worker instance (enables multiple workers). |
+| `--poll-interval` |  | float | 5.0 |  | Fallback polling interval in seconds when LISTEN/NOTIFY is idle. |
+| `--batch-size` |  | int | 100 |  | Maximum number of events to process in a single polling batch. |

@@ -2,7 +2,6 @@
 title: orxtra config
 description: "Reference for the orxtra config command group — subcommands, flags, arguments, and usage details for the config group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 1
 ---
@@ -10,18 +9,18 @@ nav_order: 1
 
 # orxtra config
 
-Configuration commands.
+Inspect run configuration snapshots and internal pricing tables.
 
 ## config show
 
-Show the config snapshot for a run.
+Display the frozen configuration snapshot stored for a run.
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `run_id` | yes | Run ID. |
+| `run_id` | yes | Unique identifier of the run whose config to display (UUID format). |
 
 ## config pricing
 
-Show the current internal pricing table.
+Display the current internal pricing table for all supported models.

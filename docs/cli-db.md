@@ -2,7 +2,6 @@
 title: orxtra db
 description: "Reference for the orxtra db command group — subcommands, flags, arguments, and usage details for the db group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 2
 ---
@@ -10,11 +9,11 @@ nav_order: 2
 
 # orxtra db
 
-Database provisioning and migration commands.
+Database provisioning, schema verification, and migration commands.
 
 ## db init
 
-Create the database schema (idempotent).
+Create the database schema and seed the system principal (idempotent).
 
 ### Flags
 
@@ -24,4 +23,4 @@ Create the database schema (idempotent).
 
 ## db verify
 
-Verify the database schema is complete.
+Verify that all expected database schema objects are present.

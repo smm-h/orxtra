@@ -2,7 +2,6 @@
 title: orxtra event
 description: "Reference for the orxtra event command group — subcommands, flags, arguments, and usage details for the event group in the orxtra CLI."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 4
 ---
@@ -10,21 +9,21 @@ nav_order: 4
 
 # orxtra event
 
-Event firing commands.
+Fire named events to wake wait-for tasks in running workflows.
 
 ## event fire
 
-Fire a named event for wait-for tasks.
+Fire a named event to wake wait-for tasks in a running workflow.
 
 ### Flags
 
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--payload` |  | str |  |  | JSON payload. |
+| `--payload` |  | str |  |  | Optional JSON object payload to attach to the event. |
 
 ### Arguments
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `event_name` | yes | Event name. |
-| `run_id` | yes | Run ID. |
+| `event_name` | yes | Name of the event to fire (must match a wait-for task's event name). |
+| `run_id` | yes | Unique identifier of the run to fire the event into (UUID format). |
