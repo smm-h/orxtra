@@ -2,11 +2,51 @@
   "schema_version": 1,
   "name": "orxtra",
   "slug": "orxtra",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "",
   "language": "python",
   "base_url": "https://orxtra.smmh.dev",
   "pages": [
+    {
+      "path": "auth-src-orxtra-auth-_authenticator.md",
+      "title": "auth.src.orxtra.auth._authenticator",
+      "type": "doc"
+    },
+    {
+      "path": "auth-src-orxtra-auth-_authorizer.md",
+      "title": "auth.src.orxtra.auth._authorizer",
+      "type": "doc"
+    },
+    {
+      "path": "auth-src-orxtra-auth-_backend.md",
+      "title": "auth.src.orxtra.auth._backend",
+      "type": "doc"
+    },
+    {
+      "path": "auth-src-orxtra-auth-_exceptions.md",
+      "title": "auth.src.orxtra.auth._exceptions",
+      "type": "doc"
+    },
+    {
+      "path": "auth-src-orxtra-auth-_inmemory.md",
+      "title": "auth.src.orxtra.auth._inmemory",
+      "type": "doc"
+    },
+    {
+      "path": "auth-src-orxtra-auth-_middleware.md",
+      "title": "auth.src.orxtra.auth._middleware",
+      "type": "doc"
+    },
+    {
+      "path": "auth-src-orxtra-auth-_verifiers.md",
+      "title": "auth.src.orxtra.auth._verifiers",
+      "type": "doc"
+    },
+    {
+      "path": "auth-src-orxtra-auth.md",
+      "title": "auth.src.orxtra.auth",
+      "type": "doc"
+    },
     {
       "path": "cli-config.md",
       "title": "orxtra config",
@@ -48,6 +88,31 @@
       "type": "doc"
     },
     {
+      "path": "cli-src-orxtra-cli-_cli.md",
+      "title": "cli.src.orxtra.cli._cli",
+      "type": "doc"
+    },
+    {
+      "path": "cli-src-orxtra-cli-_db.md",
+      "title": "cli.src.orxtra.cli._db",
+      "type": "doc"
+    },
+    {
+      "path": "cli-src-orxtra-cli-_dispatch.md",
+      "title": "cli.src.orxtra.cli._dispatch",
+      "type": "doc"
+    },
+    {
+      "path": "cli-src-orxtra-cli-_formatters.md",
+      "title": "cli.src.orxtra.cli._formatters",
+      "type": "doc"
+    },
+    {
+      "path": "cli-src-orxtra-cli.md",
+      "title": "cli.src.orxtra.cli",
+      "type": "doc"
+    },
+    {
       "path": "cli-trace.md",
       "title": "orxtra trace",
       "type": "doc"
@@ -63,6 +128,46 @@
       "type": "doc"
     },
     {
+      "path": "dispatch-src-orxtra-dispatch-_action_executor.md",
+      "title": "dispatch.src.orxtra.dispatch._action_executor",
+      "type": "doc"
+    },
+    {
+      "path": "dispatch-src-orxtra-dispatch-_delivery.md",
+      "title": "dispatch.src.orxtra.dispatch._delivery",
+      "type": "doc"
+    },
+    {
+      "path": "dispatch-src-orxtra-dispatch-_dispatch_worker.md",
+      "title": "dispatch.src.orxtra.dispatch._dispatch_worker",
+      "type": "doc"
+    },
+    {
+      "path": "dispatch-src-orxtra-dispatch-_memory_backend.md",
+      "title": "dispatch.src.orxtra.dispatch._memory_backend",
+      "type": "doc"
+    },
+    {
+      "path": "dispatch-src-orxtra-dispatch-_pg_backend.md",
+      "title": "dispatch.src.orxtra.dispatch._pg_backend",
+      "type": "doc"
+    },
+    {
+      "path": "dispatch-src-orxtra-dispatch-_protocols.md",
+      "title": "dispatch.src.orxtra.dispatch._protocols",
+      "type": "doc"
+    },
+    {
+      "path": "dispatch-src-orxtra-dispatch-_types.md",
+      "title": "dispatch.src.orxtra.dispatch._types",
+      "type": "doc"
+    },
+    {
+      "path": "dispatch-src-orxtra-dispatch.md",
+      "title": "dispatch.src.orxtra.dispatch",
+      "type": "doc"
+    },
+    {
       "path": "gen-index.md",
       "title": "API Reference",
       "type": "doc"
@@ -71,8 +176,748 @@
       "path": "index.md",
       "title": "orxtra",
       "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_autonomy.md",
+      "title": "overseer.src.orxtra.overseer._autonomy",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_format.md",
+      "title": "overseer.src.orxtra.overseer._format",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_gen_knowledge.md",
+      "title": "overseer.src.orxtra.overseer._gen_knowledge",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_handoff.md",
+      "title": "overseer.src.orxtra.overseer._handoff",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_health.md",
+      "title": "overseer.src.orxtra.overseer._health",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_inbox.md",
+      "title": "overseer.src.orxtra.overseer._inbox",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_knowledge.md",
+      "title": "overseer.src.orxtra.overseer._knowledge",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_learning.md",
+      "title": "overseer.src.orxtra.overseer._learning",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_memory.md",
+      "title": "overseer.src.orxtra.overseer._memory",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_overseer.md",
+      "title": "overseer.src.orxtra.overseer._overseer",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer-_tools.md",
+      "title": "overseer.src.orxtra.overseer._tools",
+      "type": "doc"
+    },
+    {
+      "path": "overseer-src-orxtra-overseer.md",
+      "title": "overseer.src.orxtra.overseer",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_autonomy.md",
+      "title": "protocols.src.orxtra.protocols._autonomy",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_contracts.md",
+      "title": "protocols.src.orxtra.protocols._contracts",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_sync.md",
+      "title": "protocols.src.orxtra.protocols._sync",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_actions.md",
+      "title": "protocols.src.orxtra.protocols._types._actions",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_auth.md",
+      "title": "protocols.src.orxtra.protocols._types._auth",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_capability.md",
+      "title": "protocols.src.orxtra.protocols._types._capability",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_checks.md",
+      "title": "protocols.src.orxtra.protocols._types._checks",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_dispatch.md",
+      "title": "protocols.src.orxtra.protocols._types._dispatch",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_enums.md",
+      "title": "protocols.src.orxtra.protocols._types._enums",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_events.md",
+      "title": "protocols.src.orxtra.protocols._types._events",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_identity.md",
+      "title": "protocols.src.orxtra.protocols._types._identity",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_notification.md",
+      "title": "protocols.src.orxtra.protocols._types._notification",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_results.md",
+      "title": "protocols.src.orxtra.protocols._types._results",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_surfaces.md",
+      "title": "protocols.src.orxtra.protocols._types._surfaces",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_task.md",
+      "title": "protocols.src.orxtra.protocols._types._task",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_tool.md",
+      "title": "protocols.src.orxtra.protocols._types._tool",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types-_tool_deps.md",
+      "title": "protocols.src.orxtra.protocols._types._tool_deps",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols-_types.md",
+      "title": "protocols.src.orxtra.protocols._types",
+      "type": "doc"
+    },
+    {
+      "path": "protocols-src-orxtra-protocols.md",
+      "title": "protocols.src.orxtra.protocols",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_agent_execution.md",
+      "title": "scheduler.src.orxtra.scheduler._agent_execution",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_allow_resolver.md",
+      "title": "scheduler.src.orxtra.scheduler._allow_resolver",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_base.md",
+      "title": "scheduler.src.orxtra.scheduler._base",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_enforcement.md",
+      "title": "scheduler.src.orxtra.scheduler._enforcement",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_executor.md",
+      "title": "scheduler.src.orxtra.scheduler._executor",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_gen_workflow.md",
+      "title": "scheduler.src.orxtra.scheduler._gen_workflow",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_graph.md",
+      "title": "scheduler.src.orxtra.scheduler._graph",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_lifecycle_handlers.md",
+      "title": "scheduler.src.orxtra.scheduler._lifecycle_handlers",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_loader.md",
+      "title": "scheduler.src.orxtra.scheduler._loader",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_locks.md",
+      "title": "scheduler.src.orxtra.scheduler._locks",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_overseer.md",
+      "title": "scheduler.src.orxtra.scheduler._overseer",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_prompt_providers.md",
+      "title": "scheduler.src.orxtra.scheduler._prompt_providers",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_prompt_templates.md",
+      "title": "scheduler.src.orxtra.scheduler._prompt_templates",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_services.md",
+      "title": "scheduler.src.orxtra.scheduler._services",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_task_dispatch.md",
+      "title": "scheduler.src.orxtra.scheduler._task_dispatch",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_tool_registry.md",
+      "title": "scheduler.src.orxtra.scheduler._tool_registry",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_types.md",
+      "title": "scheduler.src.orxtra.scheduler._types",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler-_validator.md",
+      "title": "scheduler.src.orxtra.scheduler._validator",
+      "type": "doc"
+    },
+    {
+      "path": "scheduler-src-orxtra-scheduler.md",
+      "title": "scheduler.src.orxtra.scheduler",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_actions.md",
+      "title": "services.src.orxtra.services._actions",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_ask.md",
+      "title": "services.src.orxtra.services._ask",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_config.md",
+      "title": "services.src.orxtra.services._config",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_dispatch.md",
+      "title": "services.src.orxtra.services._dispatch",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_dispatch_worker.md",
+      "title": "services.src.orxtra.services._dispatch_worker",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_dispatcher.md",
+      "title": "services.src.orxtra.services._dispatcher",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_events.md",
+      "title": "services.src.orxtra.services._events",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_flush.md",
+      "title": "services.src.orxtra.services._flush",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_gen_run_config.md",
+      "title": "services.src.orxtra.services._gen_run_config",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_identity.md",
+      "title": "services.src.orxtra.services._identity",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_inbox.md",
+      "title": "services.src.orxtra.services._inbox",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_injection.md",
+      "title": "services.src.orxtra.services._injection",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_notifications.md",
+      "title": "services.src.orxtra.services._notifications",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_params.md",
+      "title": "services.src.orxtra.services._params",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_providers.md",
+      "title": "services.src.orxtra.services._providers",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_registry.md",
+      "title": "services.src.orxtra.services._registry",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_run.md",
+      "title": "services.src.orxtra.services._run",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_run_manager.md",
+      "title": "services.src.orxtra.services._run_manager",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_schema.md",
+      "title": "services.src.orxtra.services._schema",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_trace.md",
+      "title": "services.src.orxtra.services._trace",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services-_validate.md",
+      "title": "services.src.orxtra.services._validate",
+      "type": "doc"
+    },
+    {
+      "path": "services-src-orxtra-services.md",
+      "title": "services.src.orxtra.services",
+      "type": "doc"
+    },
+    {
+      "path": "tests-conftest.md",
+      "title": "tests.conftest",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-extensions.md",
+      "title": "tests.migration_baselines.v0.10.1.extensions",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-post_tables.md",
+      "title": "tests.migration_baselines.v0.10.1.post_tables",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-schema_executor.md",
+      "title": "tests.migration_baselines.v0.10.1.schema_executor",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-tables_auth.md",
+      "title": "tests.migration_baselines.v0.10.1.tables_auth",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-tables_dispatch.md",
+      "title": "tests.migration_baselines.v0.10.1.tables_dispatch",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-tables_identity.md",
+      "title": "tests.migration_baselines.v0.10.1.tables_identity",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-tables_trace.md",
+      "title": "tests.migration_baselines.v0.10.1.tables_trace",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1-types.md",
+      "title": "tests.migration_baselines.v0.10.1.types",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-10-1.md",
+      "title": "tests.migration_baselines.v0.10.1",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0-extensions.md",
+      "title": "tests.migration_baselines.v0.8.0.extensions",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0-post_tables.md",
+      "title": "tests.migration_baselines.v0.8.0.post_tables",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0-schema_executor.md",
+      "title": "tests.migration_baselines.v0.8.0.schema_executor",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0-tables_auth.md",
+      "title": "tests.migration_baselines.v0.8.0.tables_auth",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0-tables_dispatch.md",
+      "title": "tests.migration_baselines.v0.8.0.tables_dispatch",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0-tables_trace.md",
+      "title": "tests.migration_baselines.v0.8.0.tables_trace",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0-types.md",
+      "title": "tests.migration_baselines.v0.8.0.types",
+      "type": "doc"
+    },
+    {
+      "path": "tests-migration_baselines-v0-8-0.md",
+      "title": "tests.migration_baselines.v0.8.0",
+      "type": "doc"
+    },
+    {
+      "path": "tests-pg_fixtures.md",
+      "title": "tests.pg_fixtures",
+      "type": "doc"
+    },
+    {
+      "path": "tests-shared_mocks.md",
+      "title": "tests.shared_mocks",
+      "type": "doc"
+    },
+    {
+      "path": "tests-tool_test_helpers.md",
+      "title": "tests.tool_test_helpers",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_consult_tool.md",
+      "title": "tool.src.orxtra.tool._consult_tool",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_data_tool_http.md",
+      "title": "tool.src.orxtra.tool._data_tool_http",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_data_tool_loader.md",
+      "title": "tool.src.orxtra.tool._data_tool_loader",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_data_tool_monty.md",
+      "title": "tool.src.orxtra.tool._data_tool_monty",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_data_tool_shared.md",
+      "title": "tool.src.orxtra.tool._data_tool_shared",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_data_tool_types.md",
+      "title": "tool.src.orxtra.tool._data_tool_types",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_decorator.md",
+      "title": "tool.src.orxtra.tool._decorator",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_discovery.md",
+      "title": "tool.src.orxtra.tool._discovery",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_gen_data_tool.md",
+      "title": "tool.src.orxtra.tool._gen_data_tool",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_git_tool.md",
+      "title": "tool.src.orxtra.tool._git_tool",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_http_tool.md",
+      "title": "tool.src.orxtra.tool._http_tool",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_load_tools.md",
+      "title": "tool.src.orxtra.tool._load_tools",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_notepad_tool.md",
+      "title": "tool.src.orxtra.tool._notepad_tool",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_params.md",
+      "title": "tool.src.orxtra.tool._params",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_path.md",
+      "title": "tool.src.orxtra.tool._path",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_pipeline.md",
+      "title": "tool.src.orxtra.tool._pipeline",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_preview.md",
+      "title": "tool.src.orxtra.tool._preview",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_read_tools.md",
+      "title": "tool.src.orxtra.tool._read_tools",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_renderers.md",
+      "title": "tool.src.orxtra.tool._renderers",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_scrub.md",
+      "title": "tool.src.orxtra.tool._scrub",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_subprocess.md",
+      "title": "tool.src.orxtra.tool._subprocess",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_task_tools.md",
+      "title": "tool.src.orxtra.tool._task_tools",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_write_integration.md",
+      "title": "tool.src.orxtra.tool._write_integration",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool-_write_tools.md",
+      "title": "tool.src.orxtra.tool._write_tools",
+      "type": "doc"
+    },
+    {
+      "path": "tool-src-orxtra-tool.md",
+      "title": "tool.src.orxtra.tool",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_lock.md",
+      "title": "trace.src.orxtra.trace._lock",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_memory_backend.md",
+      "title": "trace.src.orxtra.trace._memory_backend",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_pg_backend.md",
+      "title": "trace.src.orxtra.trace._pg_backend",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_pg_event_bus.md",
+      "title": "trace.src.orxtra.trace._pg_event_bus",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_protocols.md",
+      "title": "trace.src.orxtra.trace._protocols",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_reader.md",
+      "title": "trace.src.orxtra.trace._reader",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_recovery.md",
+      "title": "trace.src.orxtra.trace._recovery",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_trace_sink.md",
+      "title": "trace.src.orxtra.trace._trace_sink",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_transitions.md",
+      "title": "trace.src.orxtra.trace._transitions",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_types.md",
+      "title": "trace.src.orxtra.trace._types",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace-_writer.md",
+      "title": "trace.src.orxtra.trace._writer",
+      "type": "doc"
+    },
+    {
+      "path": "trace-src-orxtra-trace.md",
+      "title": "trace.src.orxtra.trace",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-_events.md",
+      "title": "transport.src.orxtra.transport._events",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-_liveness.md",
+      "title": "transport.src.orxtra.transport._liveness",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-_provider.md",
+      "title": "transport.src.orxtra.transport._provider",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-_state_machine.md",
+      "title": "transport.src.orxtra.transport._state_machine",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-_transport.md",
+      "title": "transport.src.orxtra.transport._transport",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-providers-_anthropic.md",
+      "title": "transport.src.orxtra.transport.providers._anthropic",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-providers-_google.md",
+      "title": "transport.src.orxtra.transport.providers._google",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-providers-_openai.md",
+      "title": "transport.src.orxtra.transport.providers._openai",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport-providers.md",
+      "title": "transport.src.orxtra.transport.providers",
+      "type": "doc"
+    },
+    {
+      "path": "transport-src-orxtra-transport.md",
+      "title": "transport.src.orxtra.transport",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker-_brain.md",
+      "title": "worker.src.orxtra.worker._brain",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker-_cli.md",
+      "title": "worker.src.orxtra.worker._cli",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker-_docker.md",
+      "title": "worker.src.orxtra.worker._docker",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker-_native.md",
+      "title": "worker.src.orxtra.worker._native",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker-_pipeline_split.md",
+      "title": "worker.src.orxtra.worker._pipeline_split",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker-_protocol.md",
+      "title": "worker.src.orxtra.worker._protocol",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker-_registry.md",
+      "title": "worker.src.orxtra.worker._registry",
+      "type": "doc"
+    },
+    {
+      "path": "worker-src-orxtra-worker.md",
+      "title": "worker.src.orxtra.worker",
+      "type": "doc"
     }
   ],
   "posts": [],
-  "last_gen": "2026-07-14T16:33:49.497480+00:00"
+  "last_gen": "2026-07-29T15:01:58.761713+00:00"
 }
