@@ -16,12 +16,12 @@ from orxtra.api._lifecycle import ServerConfig, build_app
 def register_serve_command(app: strictcli.App) -> None:
     """Register the `serve` command on the given strictcli App."""
 
-    @app.command(name="serve", help="Start the HTTP API server.")
-    @strictcli.flag(name="port", type=int, help="Port to listen on.")
+    @app.command(name="serve", help="Start the HTTP API server (MCP, A2A, AG-UI, native routes).")
+    @strictcli.flag(name="port", type=int, help="TCP port number for the HTTP API server to listen on.")
     @strictcli.flag(
         name="host",
         type=str,
-        help="Host to bind to.",
+        help="Network interface address to bind the HTTP server to.",
         default="0.0.0.0",  # noqa: S104
     )
     @strictcli.flag(

@@ -78,17 +78,17 @@
   "commands": {
     "serve": {
       "name": "serve",
-      "help": "Start the HTTP API server.",
+      "help": "Start the HTTP API server (MCP, A2A, AG-UI, native routes).",
       "flags": [
         {
           "name": "port",
           "type": "int",
-          "help": "Port to listen on."
+          "help": "TCP port number for the HTTP API server to listen on."
         },
         {
           "name": "host",
           "type": "str",
-          "help": "Host to bind to.",
+          "help": "Network interface address to bind the HTTP server to.",
           "default": "0.0.0.0"
         },
         {
@@ -103,65 +103,65 @@
   "groups": {
     "run": {
       "name": "run",
-      "help": "Run lifecycle commands.",
+      "help": "Manage autonomous workflow run lifecycle (start, list, show, abort, pause, resume).",
       "commands": {
         "start": {
           "name": "start",
-          "help": "Start a run from a config file.",
+          "help": "Start a new autonomous workflow run from a configuration file.",
           "flags": [
             {
               "name": "config",
               "type": "str",
-              "help": "Path to run config file."
+              "help": "Filesystem path to the run configuration TOML file."
             },
             {
               "name": "intent",
               "type": "str",
-              "help": "Intent description for the run."
+              "help": "Natural-language description of what the run should accomplish."
             }
           ]
         },
         "list": {
           "name": "list",
-          "help": "List all runs, newest first."
+          "help": "List all runs in the database, ordered newest first."
         },
         "show": {
           "name": "show",
-          "help": "Show a run's full report.",
+          "help": "Display the full status report for a specific run.",
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to display (UUID format)."
             }
           ]
         },
         "abort": {
           "name": "abort",
-          "help": "Signal a running run to abort.",
+          "help": "Send an abort signal to stop a currently running workflow.",
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to abort (UUID format)."
             }
           ]
         },
         "pause": {
           "name": "pause",
-          "help": "Pause a running run.",
+          "help": "Pause a running workflow run, suspending task execution.",
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to pause (UUID format)."
             }
           ]
         },
         "resume": {
           "name": "resume",
-          "help": "Resume a paused run.",
+          "help": "Resume a previously paused workflow run, restarting task execution.",
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to resume (UUID format)."
             }
           ]
         }
@@ -169,70 +169,70 @@
     },
     "inbox": {
       "name": "inbox",
-      "help": "Human inbox commands.",
+      "help": "Manage human-in-the-loop inbox items (list, show, respond, skip, reject).",
       "commands": {
         "list": {
           "name": "list",
-          "help": "List inbox items.",
+          "help": "List pending human-in-the-loop inbox items, optionally filtered.",
           "flags": [
             {
               "name": "run",
               "type": "str",
-              "help": "Run ID to filter by."
+              "help": "Filter inbox items by run ID (only show items for this run)."
             },
             {
               "name": "status",
               "type": "str",
-              "help": "Status filter.",
+              "help": "Filter inbox items by status (e.g. pending, answered, skipped).",
               "default": ""
             }
           ]
         },
         "show": {
           "name": "show",
-          "help": "Show a single inbox item.",
+          "help": "Display the full details of a single inbox item by ID.",
           "args": [
             {
               "name": "item_id",
-              "help": "Inbox item ID."
+              "help": "Unique identifier of the inbox item to display (UUID format)."
             }
           ]
         },
         "respond": {
           "name": "respond",
-          "help": "Answer an inbox item.",
+          "help": "Submit an answer to a pending inbox item from a workflow run.",
           "args": [
             {
               "name": "answer",
-              "help": "The answer text."
+              "help": "The answer text to submit as a response to this item."
             },
             {
               "name": "item_id",
-              "help": "Inbox item ID."
+              "help": "Unique identifier of the inbox item to respond to (UUID format)."
             }
           ]
         },
         "skip": {
           "name": "skip",
-          "help": "Skip an inbox item.",
+          "help": "Skip a pending inbox item without providing an answer.",
           "args": [
             {
               "name": "item_id",
-              "help": "Inbox item ID."
+              "help": "Unique identifier of the inbox item to skip (UUID format)."
             }
           ]
         },
         "reject": {
           "name": "reject",
-          "help": "Reject an inbox item (options insufficient).",
+          "help": "Reject a pending inbox item, indicating the provided options are insufficient.",
           "args": [
             {
               "name": "reason",
-              "help": "Reason for rejection."
+              "help": "Explanation of why the inbox item is being rejected."
             },
             {
               "name": "item_id",
-              "help": "Inbox item ID."
+              "help": "Unique identifier of the inbox item to reject (UUID format)."
             }
           ]
         }
@@ -240,73 +240,73 @@
     },
     "trace": {
       "name": "trace",
-      "help": "Trace and event query commands.",
+      "help": "Query trace data: events, transcripts, tasks, and notepad entries for runs.",
       "commands": {
         "events": {
           "name": "events",
-          "help": "Query events for a run.",
+          "help": "Query the stored event log for a specific workflow run.",
           "flags": [
             {
               "name": "type",
               "type": "str",
-              "help": "Filter by event type.",
+              "help": "Filter events by type (e.g. task_started, tool_call).",
               "default": ""
             },
             {
               "name": "limit",
               "type": "int",
-              "help": "Maximum events to return.",
+              "help": "Maximum number of events to return from the query.",
               "default": 100
             }
           ],
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to query events for (UUID format)."
             }
           ]
         },
         "transcript": {
           "name": "transcript",
-          "help": "Show a session's full transcript.",
+          "help": "Display the full message transcript for an agent session.",
           "args": [
             {
               "name": "session_id",
-              "help": "Session ID."
+              "help": "Unique identifier of the session to show the transcript for."
             }
           ]
         },
         "search": {
           "name": "search",
-          "help": "Search a transcript (case-insensitive substring).",
+          "help": "Search a session transcript for matching text (case-insensitive).",
           "args": [
             {
               "name": "query",
-              "help": "Search query."
+              "help": "Case-insensitive substring to search for in the transcript."
             },
             {
               "name": "session_id",
-              "help": "Session ID."
+              "help": "Unique identifier of the session whose transcript to search."
             }
           ]
         },
         "tasks": {
           "name": "tasks",
-          "help": "Show task statuses and attempt counts.",
+          "help": "Show task statuses, attempt counts, and hierarchy for a run.",
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to list tasks for (UUID format)."
             }
           ]
         },
         "notepad": {
           "name": "notepad",
-          "help": "Show notepad entries.",
+          "help": "Show cross-agent notepad entries for a workflow run.",
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to show notepad entries for (UUID format)."
             }
           ]
         }
@@ -314,27 +314,27 @@
     },
     "event": {
       "name": "event",
-      "help": "Event firing commands.",
+      "help": "Fire named events to wake wait-for tasks in running workflows.",
       "commands": {
         "fire": {
           "name": "fire",
-          "help": "Fire a named event for wait-for tasks.",
+          "help": "Fire a named event to wake wait-for tasks in a running workflow.",
           "flags": [
             {
               "name": "payload",
               "type": "str",
-              "help": "JSON payload.",
+              "help": "Optional JSON object payload to attach to the event.",
               "default": ""
             }
           ],
           "args": [
             {
               "name": "event_name",
-              "help": "Event name."
+              "help": "Name of the event to fire (must match a wait-for task's event name)."
             },
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run to fire the event into (UUID format)."
             }
           ]
         }
@@ -342,35 +342,35 @@
     },
     "validate": {
       "name": "validate",
-      "help": "Validate configuration files.",
+      "help": "Validate agent, workflow, and category configuration TOML files.",
       "commands": {
         "agent": {
           "name": "agent",
-          "help": "Validate an agent TOML file.",
+          "help": "Validate an agent definition TOML file for schema errors.",
           "args": [
             {
               "name": "path",
-              "help": "Path to agent TOML file."
+              "help": "Filesystem path to the agent TOML file to validate."
             }
           ]
         },
         "workflow": {
           "name": "workflow",
-          "help": "Validate a workflow TOML file.",
+          "help": "Validate a workflow definition TOML file for schema errors.",
           "args": [
             {
               "name": "path",
-              "help": "Path to workflow TOML file."
+              "help": "Filesystem path to the workflow TOML file to validate."
             }
           ]
         },
         "categories": {
           "name": "categories",
-          "help": "Validate a categories TOML file.",
+          "help": "Validate a model categories TOML file for schema errors.",
           "args": [
             {
               "name": "path",
-              "help": "Path to categories TOML file."
+              "help": "Filesystem path to the categories TOML file to validate."
             }
           ]
         }
@@ -378,31 +378,31 @@
     },
     "config": {
       "name": "config",
-      "help": "Configuration commands.",
+      "help": "Inspect run configuration snapshots and internal pricing tables.",
       "commands": {
         "show": {
           "name": "show",
-          "help": "Show the config snapshot for a run.",
+          "help": "Display the frozen configuration snapshot stored for a run.",
           "args": [
             {
               "name": "run_id",
-              "help": "Run ID."
+              "help": "Unique identifier of the run whose config to display (UUID format)."
             }
           ]
         },
         "pricing": {
           "name": "pricing",
-          "help": "Show the current internal pricing table."
+          "help": "Display the current internal pricing table for all supported models."
         }
       }
     },
     "db": {
       "name": "db",
-      "help": "Database provisioning and migration commands.",
+      "help": "Database provisioning, schema verification, and migration commands.",
       "commands": {
         "init": {
           "name": "init",
-          "help": "Create the database schema (idempotent).",
+          "help": "Create the database schema and seed the system principal (idempotent).",
           "flags": [
             {
               "name": "use-extension-stub",
@@ -415,7 +415,7 @@
         },
         "verify": {
           "name": "verify",
-          "help": "Verify the database schema is complete."
+          "help": "Verify that all expected database schema objects are present."
         }
       },
       "groups": {
@@ -450,28 +450,28 @@
     },
     "dispatch": {
       "name": "dispatch",
-      "help": "Dispatch worker commands.",
+      "help": "Manage the persistent event dispatch worker process.",
       "commands": {
         "run": {
           "name": "run",
-          "help": "Run the persistent dispatch worker.",
+          "help": "Start the persistent dispatch worker that processes event subscriptions.",
           "flags": [
             {
               "name": "cursor",
               "type": "str",
-              "help": "Cursor name for this worker instance.",
+              "help": "Named cursor for this worker instance (enables multiple workers).",
               "default": "main"
             },
             {
               "name": "poll-interval",
               "type": "float",
-              "help": "Fallback poll interval in seconds.",
+              "help": "Fallback polling interval in seconds when LISTEN/NOTIFY is idle.",
               "default": 5.0
             },
             {
               "name": "batch-size",
               "type": "int",
-              "help": "Max events per polling batch.",
+              "help": "Maximum number of events to process in a single polling batch.",
               "default": 100
             }
           ]
@@ -480,52 +480,52 @@
     },
     "worker": {
       "name": "worker",
-      "help": "Worker process commands.",
+      "help": "Manage remote worker processes that execute tool calls for the brain.",
       "commands": {
         "connect": {
           "name": "connect",
-          "help": "Connect a native worker to a brain.",
+          "help": "Connect a native worker process to a brain via WebSocket.",
           "flags": [
             {
               "name": "brain",
               "type": "str",
-              "help": "Brain WebSocket URL."
+              "help": "WebSocket URL of the brain to connect to (e.g. ws://host:port)."
             },
             {
               "name": "root",
               "type": "str",
-              "help": "Project root directory."
+              "help": "Filesystem path to the project root directory for tool execution."
             },
             {
               "name": "key",
               "type": "str",
-              "help": "API key for authentication."
+              "help": "API key used for authenticating with the brain server."
             }
           ]
         },
         "docker": {
           "name": "docker",
-          "help": "Run a worker inside a Docker container.",
+          "help": "Run a worker inside a Docker container connected to a brain.",
           "flags": [
             {
               "name": "brain",
               "type": "str",
-              "help": "Brain WebSocket URL."
+              "help": "WebSocket URL of the brain to connect to (e.g. ws://host:port)."
             },
             {
               "name": "image",
               "type": "str",
-              "help": "Docker image name."
+              "help": "Docker image name to use for the worker container."
             },
             {
               "name": "root",
               "type": "str",
-              "help": "Project root directory."
+              "help": "Filesystem path to the project root directory for tool execution."
             },
             {
               "name": "key",
               "type": "str",
-              "help": "API key for authentication."
+              "help": "API key used for authenticating with the brain server."
             }
           ]
         }

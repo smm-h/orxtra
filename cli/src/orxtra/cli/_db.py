@@ -122,12 +122,12 @@ def register_db_commands(app: strictcli.App) -> None:
     """Register the ``db`` command group on the orxtra CLI."""
     db_group = app.group(
         "db",
-        help="Database provisioning and migration commands.",
+        help="Database provisioning, schema verification, and migration commands.",
     )
 
     @db_group.command(
         name="init",
-        help="Create the database schema (idempotent).",
+        help="Create the database schema and seed the system principal (idempotent).",
     )
     @strictcli.flag(
         name="use-extension-stub",
@@ -205,7 +205,7 @@ def register_db_commands(app: strictcli.App) -> None:
 
     @db_group.command(
         name="verify",
-        help="Verify the database schema is complete.",
+        help="Verify that all expected database schema objects are present.",
     )
     def cmd_db_verify(
         ctx, *, db: str, quiet: bool, **_kwargs: object,
