@@ -24,6 +24,5 @@
       "target": "pypi"
     }
   },
-  "coverage_unit": "commit",
   "publish_gate_check_regex": "^(test \\(3\\.\\d+\\)|lint|mypy|import-check|dep-declarations|layer-docs|schema-codegen)$"
 }
