@@ -1,8 +1,7 @@
 ---
 title: tests.tool_test_helpers
-description: "API reference for the tests.tool_test_helpers module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "MockRenderer for recording render() calls and make_test_tool() for building a Tool that returns a fixed ToolOutput, both used across the tool test suite."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 114
 ---

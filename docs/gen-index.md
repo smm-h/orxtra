@@ -1,8 +1,7 @@
 ---
 title: API Reference
-description: "API reference index covering 169 modules"
+description: "Auto-generated index linking to every module's API reference page across auth, cli, dispatch, overseer, protocols, scheduler, services, tests, tool, trace, transport, and worker."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 0
 order: 90

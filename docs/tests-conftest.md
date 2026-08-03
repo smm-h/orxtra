@@ -1,8 +1,7 @@
 ---
 title: tests.conftest
-description: "API reference for the tests.conftest module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Shared scheduler-integration fixtures: AgentTurn-driven mock transports (single- and multi-agent) that execute real tools, plus agent/workflow/scheduler builders and trace_writer/run_id fixtures."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 94
 ---

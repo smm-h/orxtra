@@ -1,8 +1,7 @@
 ---
 title: tests.shared_mocks
-description: "API reference for the tests.shared_mocks module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Shared test doubles: make_auth_context() for scoped AuthContexts, MockTraceWriter for recording trace calls, and MockTransport, a configurable event-sequence/LLM-simulation transport mock."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 113
 ---

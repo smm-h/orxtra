@@ -1,8 +1,7 @@
 ---
 title: tests.pg_fixtures
-description: "PostgreSQL test fixtures using testcontainers."
+description: "Session-scoped Postgres 16 testcontainer and per-test asyncpg pool with the full trace+dispatch+auth schema applied via the pgdesign-generated executor; skips gracefully without Docker."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 112
 ---
