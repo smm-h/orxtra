@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport._liveness
-description: "API reference for the transport.src.orxtra.transport._liveness module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "LivenessMonitor: tracks time since the last streaming SSE event and reports healthy/warning/stuck against configurable thresholds, so callers can detect a stalled API stream."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 154
 ---

@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport.providers._anthropic
-description: "API reference for the transport.src.orxtra.transport.providers._anthropic module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "AnthropicProvider: Provider implementation for the Anthropic Messages API -- builds streaming requests, parses SSE deltas and tool_use blocks, formats tool results for Claude models."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 159
 ---

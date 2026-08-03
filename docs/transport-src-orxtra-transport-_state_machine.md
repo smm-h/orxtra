@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport._state_machine
-description: "API reference for the transport.src.orxtra.transport._state_machine module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "TransportState enum (calling_api/executing_tools/suspended/done) driving Transport's step loop, plus Continuation -- the captured state for resuming a suspended session."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 156
 ---

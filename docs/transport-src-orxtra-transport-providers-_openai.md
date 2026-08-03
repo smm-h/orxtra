@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport.providers._openai
-description: "API reference for the transport.src.orxtra.transport.providers._openai module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "OpenAIProvider: Provider implementation for the OpenAI chat completions API -- builds requests, accumulates streamed tool-call deltas, and formats tool results."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 161
 ---

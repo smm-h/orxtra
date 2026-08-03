@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport.providers
-description: "API reference for the transport.src.orxtra.transport.providers module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Concrete Provider implementations -- AnthropicProvider, GoogleProvider, OpenAIProvider -- each translating orxtra's internal message/tool format to and from its API's wire format."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 158
 ---

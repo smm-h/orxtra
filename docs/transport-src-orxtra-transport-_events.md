@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport._events
-description: "API reference for the transport.src.orxtra.transport._events module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Frozen dataclasses for every transport event kind -- Text, ToolUse, StepFinish, ApiRetry, Result, SessionSuspended, RateLimit, UnknownEvent, etc. -- and the TransportEvent union."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 153
 ---

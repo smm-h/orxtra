@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport.providers._google
-description: "API reference for the transport.src.orxtra.transport.providers._google module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "GoogleProvider: Provider implementation for the Gemini API -- converts orxtra's Anthropic-style messages and tool specs to Gemini's contents/functionDeclaration format and back."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 160
 ---

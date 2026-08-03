@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport._transport
-description: "API reference for the transport.src.orxtra.transport._transport module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Transport: drives the send/resume state machine over a Provider -- streams API calls, executes tool_use blocks, suspends on suspending tools, retries transient errors, tracks liveness."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 157
 ---

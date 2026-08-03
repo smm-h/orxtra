@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport
-description: "API reference for the transport.src.orxtra.transport module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Standalone typed LLM client: the Provider protocol, the Transport send/execute-tools/resume state machine, LivenessMonitor stall detection, and automatic retry with backoff."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 152
 ---

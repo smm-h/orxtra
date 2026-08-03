@@ -1,8 +1,7 @@
 ---
 title: transport.src.orxtra.transport._provider
-description: "API reference for the transport.src.orxtra.transport._provider module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Provider protocol every LLM backend implements (build_request, parse_response, parse_stream, extract_usage, tool-result formatting) plus the RetryPolicy backoff config dataclass."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 155
 ---
