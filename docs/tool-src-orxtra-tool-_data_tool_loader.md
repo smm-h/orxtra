@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._data_tool_loader
-description: "Loader for data-defined tool TOML definitions."
+description: "Loads and validates data-defined tool TOML files into DataToolDefinition via the strictspec-generated document gate, enforces the custom. namespace root, and validates {{secret:NAME}} references against the registry."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 118
 ---

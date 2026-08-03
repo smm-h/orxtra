@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._write_tools
-description: "File write tool constructors for the orxtra tool module."
+description: "Write tool constructors: write, edit, multi_edit, mkdir, move, copy, delete (wraps saferm), and set_executable -- all enforcing write-scope containment, with write/edit routed through write-safety's queue and stale-write tracker."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 139
 ---

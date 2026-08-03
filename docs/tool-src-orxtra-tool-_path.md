@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._path
-description: "API reference for the tool.src.orxtra.tool._path module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Path containment enforcement: resolve_and_check canonicalizes a path and rejects escapes past the read root, and check_write_scope further restricts writes to an allowed scope list. Both raise PathError."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 130
 ---

@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._renderers
-description: "API reference for the tool.src.orxtra.tool._renderers module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Renderers the @tool decorator applies when a function returns raw data instead of a ToolOutput: TextRenderer, JsonRenderer (dataclass/pydantic-aware, indented), and TableRenderer (tab-separated rows)."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 134
 ---

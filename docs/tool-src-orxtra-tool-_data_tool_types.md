@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._data_tool_types
-description: "Pydantic models for data-defined tool TOML definitions."
+description: "Strict pydantic models for data-defined tool TOML: ParamDef, ResourceLimits, the discriminated ExecutionConfig union (HttpExecution/MontyExecution/CommandExecution), OutputConfig, and the top-level DataToolDefinition."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 121
 ---

@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._data_tool_http
-description: "Factory for building Tool instances from HttpExecution definitions."
+description: "Builds a Tool from an HttpExecution definition: substitutes {{secret:NAME}} placeholders at call time, interpolates {param} in the URL, issues the httpx request, and validates the response against the output schema."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 117
 ---

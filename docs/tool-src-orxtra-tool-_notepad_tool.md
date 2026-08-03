@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._notepad_tool
-description: "API reference for the tool.src.orxtra.tool._notepad_tool module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "The notepad tool: records a typed entry (learning, decision, or issue) to the run's shared notepad via trace_writer, visible to every agent in the run across task boundaries."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 128
 ---

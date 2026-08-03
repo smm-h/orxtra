@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._consult_tool
-description: "API reference for the tool.src.orxtra.tool._consult_tool module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Builds the consult tool, which delegates a read-only question to another agent. should_strip_for_consult strips mutation-tagged and lifecycle/git tools from the sub-agent's tool set, while preserving notepad."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 116
 ---

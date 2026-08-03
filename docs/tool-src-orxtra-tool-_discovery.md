@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._discovery
-description: "Auto-discovery of Tool instances in a module."
+description: "collect_tools scans a module's attributes for Tool instances and returns them keyed by name -- the auto-discovery mechanism for module-defined tool sets."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 123
 ---

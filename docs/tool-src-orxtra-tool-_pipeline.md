@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._pipeline
-description: "API reference for the tool.src.orxtra.tool._pipeline module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "wrap_tool_with_pipeline layers active-task checks, secret substitution, transient-retry execution, secret scrubbing, mutation tracking, and trace callbacks around a Tool; compose bypasses the pipeline for tool-calling-tool."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 131
 ---

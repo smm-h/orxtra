@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._params
-description: "Pydantic input models for all tool parameter schemas."
+description: "Strict pydantic input models (extra=forbid, no coercion) for every built-in tool's parameters: read/write/edit/git/http/notepad and the task-lifecycle tools (start_task, create_task, create_workflow, create_wait_for, etc.)."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 129
 ---

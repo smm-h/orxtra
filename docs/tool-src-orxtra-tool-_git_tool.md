@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._git_tool
-description: "API reference for the tool.src.orxtra.tool._git_tool module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "The git tool: read-only subcommands (status, diff, log, show, blame, branches, changed_files) run directly, while commit shells out to safegit for concurrency-safe mutation from a message-plus-file-paths args array."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 125
 ---

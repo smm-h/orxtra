@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._write_integration
-description: "API reference for the tool.src.orxtra.tool._write_integration module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Bridges tool writes to write-safety: safe_write locks the per-path queue, checks for stale writes, performs the atomic write, and records the new hash; safe_read_for_write does the matching locked read for edit's read-modify-write."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 138
 ---

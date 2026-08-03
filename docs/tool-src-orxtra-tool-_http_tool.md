@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._http_tool
-description: "HTTP tool constructor for the orxtra tool module."
+description: "The http tool: GET/POST/PUT/DELETE/PATCH/HEAD requests with hostname allow-listing and a timeout ceiling; consult mode restricts it to GET/HEAD only and previews oversized response bodies."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 126
 ---

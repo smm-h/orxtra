@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._task_tools
-description: "API reference for the tool.src.orxtra.tool._task_tools module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Task lifecycle tool constructors -- start_task, end_task, create_task, create_workflow, create_wait_for, and the suspending await_task -- all delegating to a TaskSchedulerRef bound to the active session."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 137
 ---

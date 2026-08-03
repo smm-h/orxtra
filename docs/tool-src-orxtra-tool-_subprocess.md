@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._subprocess
-description: "Reusable subprocess execution machinery."
+description: "run_subprocess forks a pinned executable with timeout enforcement (SIGTERM then SIGKILL) and preview-truncated stdout/stderr capture; validate_exec_arg rejects shell metacharacters and path escapes. Shared by exec and monty command."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 136
 ---

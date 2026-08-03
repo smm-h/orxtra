@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._data_tool_monty
-description: "Factory for building Tool instances from MontyExecution definitions."
+description: "Builds a Tool from a MontyExecution definition: compiles the monty script once, wires capability host functions (read, write, edit, http, command, etc.) through the standard tool pipeline, and runs with resource limits."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 119
 ---

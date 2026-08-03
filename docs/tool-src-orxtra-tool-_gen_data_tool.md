@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._gen_data_tool
-description: "API reference for the tool.src.orxtra.tool._gen_data_tool module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Strictspec-generated validator for the data_tool TOML schema (do not edit; regenerate via strictspec gen). Provides validate_bytes/validate_value plus frozen typed bindings: DataTool, ToolIdentity, HttpExecution, MontyExecution, CommandExecution."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 124
 ---

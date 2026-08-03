@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._preview
-description: "API reference for the tool.src.orxtra.tool._preview module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "check_and_preview truncates oversized tool output to a head/tail preview; FullRetrievalGuard tracks which paths a session has already previewed, so full=true is only honored after a prior preview was returned."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 132
 ---

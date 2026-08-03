@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._decorator
-description: "Decorator-based tool definition infrastructure."
+description: "The @tool decorator wraps a typed async function (first parameter a Pydantic model) into a ToolTemplate; ToolTemplate.bind() supplies dependencies and produces a ready-to-use Tool with input validation and rendering."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 122
 ---

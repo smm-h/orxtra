@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._read_tools
-description: "File read tool constructors for the orxtra tool module."
+description: "Read tool constructors: read (line-numbered, preview/full-retrieval gated), list_dir (gitignore-aware), glob, grep (content/files_only/count modes), stat, and diff -- all path-contained via resolve_and_check."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 133
 ---

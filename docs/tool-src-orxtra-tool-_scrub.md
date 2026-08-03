@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._scrub
-description: "Shared secret scrubbing for tool execution pipelines."
+description: "Shared secret scrubbing used by both the local and remote worker pipelines: scrub_text/scrub_data/scrub_tool_output replace real secret values with placeholders in text and structured data via SecretRegistry.scrub."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 135
 ---

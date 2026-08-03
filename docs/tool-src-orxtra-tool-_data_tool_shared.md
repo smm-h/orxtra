@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._data_tool_shared
-description: "Shared utilities for data-defined tool execution factories."
+description: "Shared helpers for data-defined tool factories: build_json_schema_params derives the LLM-visible schema from ParamDef entries, validate_args checks required/unexpected arguments, validate_output_schema checks responses via jsonschema."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 120
 ---

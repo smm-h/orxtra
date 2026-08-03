@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool._load_tools
-description: "Meta-tool that lets agents request full tool schemas on demand."
+description: "The load_tools meta-tool: lets an agent request full schemas for tools currently present only as deferred stubs, replacing each stub in the session tool set with a fully pipeline-wrapped Tool built lazily on demand."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 127
 ---

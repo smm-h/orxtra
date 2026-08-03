@@ -1,8 +1,7 @@
 ---
 title: tool.src.orxtra.tool
-description: "API reference for the tool.src.orxtra.tool module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Public API of the tool package: constructors for read/write/git/http/task-lifecycle tools, the @tool decorator, data-defined tool builders, and the pipeline wrappers (secret substitution, scrubbing, write safety)."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 115
 ---
