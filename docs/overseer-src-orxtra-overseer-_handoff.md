@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._handoff
-description: "API reference for the overseer.src.orxtra.overseer._handoff module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Session handoff: check_handoff_needed flags when token usage nears the model's context limit; perform_handoff summarizes the old session and starts a fresh one seeded with that summary."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 26
 ---

@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._inbox
-description: "API reference for the overseer.src.orxtra.overseer._inbox module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "create_escalation_inbox writes an escalation-type inbox item -- question, options, assumed default, and the impact if that assumption is wrong -- via the TraceWriter."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 28
 ---

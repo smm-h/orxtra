@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._autonomy
-description: "Autonomy types -- re-exported from protocols."
+description: "Autonomy types -- re-exports AutonomyLevel from protocols, so overseer and scheduler share the type without importing each other directly."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 23
 ---

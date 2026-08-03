@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._overseer
-description: "API reference for the overseer.src.orxtra.overseer._overseer module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Overseer: wraps a Session with memory tools (record_decision, add_constraint, write_lesson, etc.), read-only file tools, and notepad access; get_tools() assembles the full toolset each turn."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 32
 ---

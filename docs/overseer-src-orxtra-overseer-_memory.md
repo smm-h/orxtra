@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._memory
-description: "API reference for the overseer.src.orxtra.overseer._memory module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Read-only memory query functions (query_decisions, query_constraints, query_assumptions, query_lessons, query_workflow_status) that shape trace rows into JSON-safe dicts for tool consumption."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 31
 ---

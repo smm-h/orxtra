@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._gen_knowledge
-description: "API reference for the overseer.src.orxtra.overseer._gen_knowledge module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Strictspec-generated validator for the knowledge TOML schema (do not edit; regenerate via strictspec gen). Provides validate_bytes/validate_value plus frozen typed bindings: KnowledgeFile, Constraint."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 25
 ---

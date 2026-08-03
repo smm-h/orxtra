@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer
-description: "API reference for the overseer.src.orxtra.overseer module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "The Overseer: a persistent LLM agent with memory tools (record_decision, add_constraint, write_lesson), HealthMonitor degradation detection, and knowledge-file loading. The root task's agent."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 22
 ---

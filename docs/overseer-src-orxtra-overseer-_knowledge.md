@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._knowledge
-description: "API reference for the overseer.src.orxtra.overseer._knowledge module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "load_knowledge_files loads .md lessons and strictspec-validated .toml constraint files from a knowledge directory into a run, skipping files unchanged since the last load via content hashing."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 29
 ---

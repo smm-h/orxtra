@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._format
-description: "API reference for the overseer.src.orxtra.overseer._format module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "format_event serializes event dataclasses -- including nested UUIDs, Decimals, and dataclasses -- to JSON strings for feeding overseer events into the LLM's context."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 24
 ---

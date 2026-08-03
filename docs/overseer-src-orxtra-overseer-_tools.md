@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._tools
-description: "API reference for the overseer.src.orxtra.overseer._tools module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Tool factories wrapping TraceWriter memory writes as agent-callable tools: record_decision, add_constraint, record_assumption, create_inbox_item, write_lesson, update_workflow_status."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 33
 ---

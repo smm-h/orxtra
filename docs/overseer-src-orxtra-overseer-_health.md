@@ -1,8 +1,7 @@
 ---
 title: overseer.src.orxtra.overseer._health
-description: "API reference for the overseer.src.orxtra.overseer._health module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "HealthMonitor tracks per-event-type sliding windows of postcheck failures, repetitions, and tool errors, flagging a run as degraded once any rate exceeds a configurable threshold."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 27
 ---
