@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._tool_deps
-description: "API reference for the protocols.src.orxtra.protocols._types._tool_deps module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines ToolDeps, the session-scoped dependency bundle (write queue, stale-write tracker, trace writer, transport registry, categories, agents, secret registry) that tool factories receive to build bound tool instances."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 52
 ---

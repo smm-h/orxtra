@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._events
-description: "API reference for the protocols.src.orxtra.protocols._types._events module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Frozen dataclasses for events routed to the Overseer -- RunStarted, TaskFailed, TaskEscalated, BudgetThresholdCrossed, BudgetExhausted, InboxAnswered/Rejected, StructuralAdvisory, HealthDegraded -- unioned as OverseerEvent."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 45
 ---

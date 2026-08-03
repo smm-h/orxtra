@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._results
-description: "API reference for the protocols.src.orxtra.protocols._types._results module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Frozen dataclasses for tool results: FileContent, DirEntry/DirListing, GrepMatch/GrepResult, FileStat/StatResult, GlobResult, DiffResult, GitOutput, ExecResult, HttpResponse, Confirmation, and TaskLifecycleResult."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 48
 ---

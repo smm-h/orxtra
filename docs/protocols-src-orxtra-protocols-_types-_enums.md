@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._enums
-description: "API reference for the protocols.src.orxtra.protocols._types._enums module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Shared StrEnums used across layers: ToolLocation, ToolCapability, ConstraintTier/ConstraintKind, ErrorCategory, and Severity, plus SEVERITY_ORDER, EXPENSIVE_CONSTRAINTS, and ALWAYS_ACTIVE_CONSTRAINTS groupings."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 44
 ---

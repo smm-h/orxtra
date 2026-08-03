@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._dispatch
-description: "API reference for the protocols.src.orxtra.protocols._types._dispatch module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Dispatch domain models: FilterPredicate (event-type/source/principal matching), Subscription and SubscriptionAction (action chains with accumulator config), Source (webhook origins), and AccumulatorEntry for buffered delivery."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 43
 ---

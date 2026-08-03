@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._autonomy
-description: "API reference for the protocols.src.orxtra.protocols._autonomy module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines AutonomyLevel (low/medium/high/max), a StrEnum gating which Overseer action types run without approval. is_autonomous()/requires_approval() check an action type against per-level allowed-action rules."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 35
 ---

@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._auth
-description: "API reference for the protocols.src.orxtra.protocols._types._auth module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Auth domain types: TrustTier, MacVerdict/MacOutcome for keyed-MAC verification, ConsumerRecord and CredentialRecord for storage, the ephemeral per-request AuthContext, and the scope vocabulary (SCOPE_RUNS_READ, ALL_SCOPES, etc.)."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 40
 ---

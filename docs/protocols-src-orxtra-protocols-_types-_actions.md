@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._actions
-description: "API reference for the protocols.src.orxtra.protocols._types._actions module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines the Action union (ScriptAction, LogAction, WorkflowAction, EventAction, NotifyAction) dispatched by subscriptions, plus the params/result pairs for Overseer action tools like CreateWorkflowParams and AddConstraintParams."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 39
 ---

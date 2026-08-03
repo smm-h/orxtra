@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._contracts
-description: "API reference for the protocols.src.orxtra.protocols._contracts module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Structural Protocol definitions (ActionExecutor, EventBus, DispatchBackend, PrincipalStorage, NotificationPort, OverseerProtocol, SessionProtocol, AuthStorage, KeyedMacProvider) that let layers depend on shapes, not imports."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 36
 ---

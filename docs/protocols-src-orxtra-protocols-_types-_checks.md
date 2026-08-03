@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._checks
-description: "API reference for the protocols.src.orxtra.protocols._types._checks module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Check-execution types: ScriptExecution and AgentExecution (the two check kinds), CheckVerdict/CheckIssue/CriterionReview for structured agent verdicts, and CheckResult/CheckContext used by pre/post-check runners."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 42
 ---

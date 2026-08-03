@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._identity
-description: "API reference for the protocols.src.orxtra.protocols._types._identity module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines Principal, the durable identity row shared by every actor (run, consumer, source, system), the built-in kind constants in BUILTIN_KINDS, and the system principal's sentinel external_ref."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 46
 ---

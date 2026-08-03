@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._capability
-description: "API reference for the protocols.src.orxtra.protocols._types._capability module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines Capability, the dataclass describing a dispatchable action's name, required_scope, and injects (infrastructure tokens like pool or caller_principal); VALID_INJECT_TOKENS enumerates valid tokens, rejected in __post_init__."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 41
 ---

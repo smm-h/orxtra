@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._tool
-description: "API reference for the protocols.src.orxtra.protocols._types._tool module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines Tool (name, description, parameters, execute, location, capabilities) and the generic ToolOutput[T] wrapper pairing structured data with its LLM-readable text; ToolError is the tool-layer exception base."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 51
 ---

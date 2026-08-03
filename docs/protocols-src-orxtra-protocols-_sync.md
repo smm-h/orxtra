@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._sync
-description: "API reference for the protocols.src.orxtra.protocols._sync module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Provides run_sync(), which runs an async coroutine from sync code: asyncio.run() when no loop is running, run_coroutine_threadsafe() when the loop lives on another thread, and a hard RuntimeError from the loop's own thread."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 37
 ---

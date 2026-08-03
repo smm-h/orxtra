@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols
-description: "API reference for the protocols.src.orxtra.protocols module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Foundation package of shared types and behavioral contracts -- Tool, TaskSpec, Principal, AuthContext, DispatchBackend, EventBus -- plus run_sync(). The seam the Overseer and scheduler share without importing each other."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 34
 ---

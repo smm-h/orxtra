@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._surfaces
-description: "API reference for the protocols.src.orxtra.protocols._types._surfaces module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "A2UI surface types: SurfaceSpec describes a rendered surface; CreateSurface, UpdateComponents, UpdateDataModel, and DeleteSurface are the mutating operations unioned as SurfaceOperation."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 49
 ---

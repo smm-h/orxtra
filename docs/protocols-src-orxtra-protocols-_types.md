@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types
-description: "API reference for the protocols.src.orxtra.protocols._types module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Barrel module re-exporting every shared dataclass, enum, and Pydantic model in the protocols package -- actions, auth, capability, checks, dispatch, enums, events, identity, notification, results, surfaces, task, and tool types."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 38
 ---

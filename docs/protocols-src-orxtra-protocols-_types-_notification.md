@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._notification
-description: "API reference for the protocols.src.orxtra.protocols._types._notification module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines NotificationDelivery, the frozen dataclass mirroring a notification_deliveries row -- target principal, source_ref, payload, and acknowledgement timestamp -- returned by NotificationPort.list_for_principal."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 47
 ---

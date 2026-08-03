@@ -1,8 +1,7 @@
 ---
 title: protocols.src.orxtra.protocols._types._task
-description: "API reference for the protocols.src.orxtra.protocols._types._task module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Core task/workflow types: TaskSpec and WorkflowExecution (declarative shapes), TaskState (the lifecycle enum), TaskContext/TaskResult/AttemptSummary, and EscalationPayload for failures bubbling to the parent."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 50
 ---
