@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._writer
-description: "API reference for the trace.src.orxtra.trace._writer module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "TraceWriter is the PG write path for every trace-owned table: run/task transitions, events, transcripts, inbox items, decisions/constraints/assumptions/lessons, iterations, and workflow status."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 151
 ---

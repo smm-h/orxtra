@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._types
-description: "API reference for the trace.src.orxtra.trace._types module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Frozen, strict pydantic read models returned by StorageReader: IterationResult, TaskSummary, TaskAttempt, RunSummary, RunReport, InboxItem, and NotepadEntry."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 150
 ---

@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._lock
-description: "API reference for the trace.src.orxtra.trace._lock module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "PG advisory-lock helpers keyed by run UUID (pg_try_advisory_lock/unlock) plus heartbeat tracking; is_lock_stale reports whether a run heartbeat is overdue, for crash detection."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 141
 ---

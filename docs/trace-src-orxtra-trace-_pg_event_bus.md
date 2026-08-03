@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._pg_event_bus
-description: "API reference for the trace.src.orxtra.trace._pg_event_bus module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "PgEventBus implements EventBus via asyncpg LISTEN/NOTIFY, sharing one connection per channel across all subscribed callbacks and releasing it once the last callback unsubscribes."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 144
 ---

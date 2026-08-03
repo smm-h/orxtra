@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._recovery
-description: "API reference for the trace.src.orxtra.trace._recovery module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Crash-recovery operations: reclaim_interrupted cancels stuck tasks, reevaluate_blocked finds unblocked tasks, and clean_orphaned fails runs whose lock holder crashed, attributed to the system principal."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 147
 ---

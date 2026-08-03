@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._memory_backend
-description: "API reference for the trace.src.orxtra.trace._memory_backend module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Dict-based InMemoryBackend implementing StorageBackend for tests, plus InMemoryEventBus. Deliberately enforces no foreign keys -- a documented parity boundary with PgBackend."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 142
 ---

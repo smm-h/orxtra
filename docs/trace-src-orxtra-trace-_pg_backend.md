@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._pg_backend
-description: "API reference for the trace.src.orxtra.trace._pg_backend module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "PgBackend, the PostgreSQL StorageBackend implementation: delegates every method to TraceWriter, the reader query functions, lock, and recovery -- no SQL of its own beyond knowledge_hashes."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 143
 ---

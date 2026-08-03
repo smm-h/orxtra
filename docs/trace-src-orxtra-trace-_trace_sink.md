@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._trace_sink
-description: "TraceSink -- EventSink[OverseerEvent] that writes events to trace."
+description: "TraceSink adapts OverseerEvent dataclasses (RunStarted, TaskEscalated, etc.) into trace events: converts the class name to snake_case as event_type and serializes fields via write_event."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 148
 ---

@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._reader
-description: "API reference for the trace.src.orxtra.trace._reader module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Read-only PG query functions backing StorageReader: list_tasks, read_run_report, read_inbox, query_events, replay (cursor-paginated), query_lessons, and other lookups over the event-store tables."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 146
 ---

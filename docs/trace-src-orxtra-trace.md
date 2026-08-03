@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace
-description: "API reference for the trace.src.orxtra.trace module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Package entry point re-exporting the trace public API: PgBackend/InMemoryBackend, TraceWriter, reader functions, lock and recovery helpers, plus the EVENTS_CHANNEL and TABLE_NAMES constants."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 140
 ---

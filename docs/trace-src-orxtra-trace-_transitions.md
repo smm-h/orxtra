@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._transitions
-description: "API reference for the trace.src.orxtra.trace._transitions module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines the task and run state machines (TASK_TRANSITIONS, RUN_TRANSITIONS, terminal states) and validate_task_transition/validate_run_transition, raising InvalidTransitionError on disallowed edges."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 149
 ---

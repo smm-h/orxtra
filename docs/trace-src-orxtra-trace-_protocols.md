@@ -1,8 +1,7 @@
 ---
 title: trace.src.orxtra.trace._protocols
-description: "API reference for the trace.src.orxtra.trace._protocols module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines the StorageBackend protocol family: TaskStorage, EventStorage, RunStorage, RunControlStorage, OverseerStorage, InboxStorage, NotepadStorage, StorageReader, StorageLock, RecoveryOperations."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 145
 ---
