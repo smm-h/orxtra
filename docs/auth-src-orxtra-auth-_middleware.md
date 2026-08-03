@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth._middleware
-description: "API reference for the auth.src.orxtra.auth._middleware module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "auth_middleware wraps an ASGI app to authenticate every HTTP and WebSocket request via the Authorization header, attaching AuthContext to scope state or rejecting with 401 / close code 4001."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 7
 ---

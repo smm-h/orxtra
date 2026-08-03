@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth._inmemory
-description: "API reference for the auth.src.orxtra.auth._inmemory module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "InMemoryAuthBackend: dict-backed test double for AuthBackend, mirroring its pool-free async API for consumers and credentials, plus test-only helpers for direct scope-grant injection."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 6
 ---

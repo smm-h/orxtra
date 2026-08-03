@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth._authenticator
-description: "Authenticator: thin dispatcher over a CredentialVerifier registry."
+description: "Authenticator dispatches raw credentials to per-type CredentialVerifiers via hash lookup, emits an AuthAuditEvent per attempt, and raises AuthenticationError for unregistered types or failures."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 2
 ---

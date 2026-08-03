@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth._exceptions
-description: "API reference for the auth.src.orxtra.auth._exceptions module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines AuthenticationError (bad credential, disabled consumer) and AuthorizationError (authenticated but missing a required scope), the two exceptions raised throughout the auth module."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 5
 ---

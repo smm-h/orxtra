@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth._backend
-description: "API reference for the auth.src.orxtra.auth._backend module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "AuthBackend: asyncpg-backed storage for consumers and credentials. Persists consumers with caller-supplied ids, hashes credentials with SHA-256, and looks them up by id, hash, or consumer."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 4
 ---

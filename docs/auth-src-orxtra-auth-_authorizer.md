@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth._authorizer
-description: "API reference for the auth.src.orxtra.auth._authorizer module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Authorizer.authorize checks that an AuthContext's scopes contain a required_scope, raising AuthorizationError when the consumer lacks it -- the scope check enforced at dispatch's choke point."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 3
 ---

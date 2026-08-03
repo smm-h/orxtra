@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth._verifiers
-description: "Per-credential-type verification strategies."
+description: "Per-credential-type verification: HashCredentialVerifier compares SHA-256 hashes for bearer/api_key tokens; HmacCredentialVerifier delegates to a KeyedMacProvider without seeing raw key material."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 8
 ---

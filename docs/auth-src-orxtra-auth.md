@@ -1,8 +1,7 @@
 ---
 title: auth.src.orxtra.auth
-description: "API reference for the auth.src.orxtra.auth module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Package root re-exporting the auth public API: Authenticator, Authorizer, AuthBackend, InMemoryAuthBackend, auth_middleware, credential verifiers, and the auth exception types."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 1
 ---
