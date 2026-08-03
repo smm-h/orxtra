@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._notifications
-description: "Notification CRUD service functions."
+description: "Caller-scoped notification delivery CRUD: list_deliveries() and acknowledge_delivery() enforce that a principal can only see or acknowledge its own NotificationPort deliveries."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 85
 ---

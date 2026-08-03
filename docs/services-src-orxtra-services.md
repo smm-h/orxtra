@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services
-description: "API reference for the services.src.orxtra.services module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Composition-layer package: re-exports service functions and concrete implementations (ServicesActionExecutor, AsyncioFlushScheduler, RunManager, DispatchContext) as the public surface."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 72
 ---

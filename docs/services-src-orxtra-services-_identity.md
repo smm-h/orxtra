@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._identity
-description: "Principal CRUD service functions."
+description: "Principal CRUD with the service-layer policy storage omits: kind validation, refusal to mint or delete the system singleton, and self-subscription creation for consumer/app-registered kinds."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 82
 ---

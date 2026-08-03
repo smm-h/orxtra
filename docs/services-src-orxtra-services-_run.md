@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._run
-description: "API reference for the services.src.orxtra.services._run module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Run lifecycle: RunConfig plus start_run()/start_run_from_file() mint the run principal, assemble the Scheduler, and execute the workflow; abort/pause/resume_run() drive trace state transitions."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 89
 ---

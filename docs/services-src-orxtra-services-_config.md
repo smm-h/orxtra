@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._config
-description: "API reference for the services.src.orxtra.services._config module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Thin read-only wrappers: show_config() returns a run's persisted config snapshot, show_pricing() returns the internal per-model pricing table as plain strings."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 75
 ---

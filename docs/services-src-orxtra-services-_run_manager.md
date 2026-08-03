@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._run_manager
-description: "RunManager -- maps active run IDs to their Scheduler instances."
+description: "RunManager maps active run IDs to their Scheduler instances so AG-UI's SSE clients can subscribe transport/overseer sinks to a live run; subscribing to an inactive run returns None."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 90
 ---

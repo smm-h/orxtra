@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._schema
-description: "Shared schema verification and asyncpg adapter for the generated executor."
+description: "AsyncpgAdapter/AsyncpgTx bridge asyncpg to the generated schema executor's protocols; verify_schema() runs its verify() and raises SchemaError with an actionable message if DB objects are missing."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 91
 ---

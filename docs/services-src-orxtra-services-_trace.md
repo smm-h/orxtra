@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._trace
-description: "API reference for the services.src.orxtra.services._trace module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Thin read-only wrappers over orxtra.trace queries: task lists, task attempts, transcripts (with search), events, and notepad entries scoped to a run or session."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 92
 ---

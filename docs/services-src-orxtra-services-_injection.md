@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._injection
-description: "Refresh-callback factories for scheduler injection points."
+description: "Refresh-callback factories bridging trace readers and overseer staleness logic into the scheduler's in-memory constraint, lesson, and notepad lists, without the scheduler ever importing overseer."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 84
 ---

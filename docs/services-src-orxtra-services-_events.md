@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._events
-description: "API reference for the services.src.orxtra.services._events module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Event ingestion and streaming: fire_event() writes to the trace store attributed to a caller principal, fire_blocking() is its sync wrapper, event_stream() yields parsed events from an EventBus."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 79
 ---

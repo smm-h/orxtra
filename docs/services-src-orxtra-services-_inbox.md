@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._inbox
-description: "API reference for the services.src.orxtra.services._inbox module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Inbox item queries and resolution: respond_to_inbox(), skip_inbox_item(), and reject_inbox_item() wrap TraceWriter's resolution methods, attributing the resolving actor as resolved_by."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 83
 ---

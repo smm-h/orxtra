@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._validate
-description: "API reference for the services.src.orxtra.services._validate module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Static validation for agent, workflow, and category TOML files: loads each through its normal loader and returns a list of human-readable error strings, empty on success."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 93
 ---

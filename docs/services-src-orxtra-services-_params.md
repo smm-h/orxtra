@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._params
-description: "Pydantic parameter models for capability-eligible service functions."
+description: "Strict pydantic (extra='forbid') parameter models for every capability-eligible service function, covering only user-facing arguments -- injected infrastructure like pool or backend is excluded."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 86
 ---

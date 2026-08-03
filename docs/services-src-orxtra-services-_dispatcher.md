@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._dispatcher
-description: "Generic capability dispatcher."
+description: "The single dispatch choke point: DispatchContext carries injectable infrastructure, and dispatch() authorizes, validates params, resolves injected dependencies, and calls the service function."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 78
 ---

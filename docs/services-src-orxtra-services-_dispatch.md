@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._dispatch
-description: "API reference for the services.src.orxtra.services._dispatch module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Subscription and event-source CRUD: subscribe()/unsubscribe() manage principal-owned dispatch subscriptions and their action chains; create_source() and friends register and manage event sources."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 76
 ---

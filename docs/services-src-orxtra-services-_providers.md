@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._providers
-description: "API reference for the services.src.orxtra.services._providers module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "build_transport_registry() turns provider_configs dicts into a name-keyed registry of Transport instances, resolving each entry's 'type' field against the anthropic/google/openai provider classes."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 87
 ---

@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._actions
-description: "API reference for the services.src.orxtra.services._actions module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "ServicesActionExecutor bridges dispatch to services, routing WorkflowAction to start_run_from_file and EventAction to fire_event, both attributed to the system principal."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 73
 ---

@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._dispatch_worker
-description: "Factory for constructing a DispatchWorker with concrete implementations."
+description: "create_dispatch_worker() wires a DispatchWorker with PgDispatchBackend, ServicesActionExecutor, and AsyncioFlushScheduler, plus a resolver mapping source slugs to their minted principals."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 77
 ---

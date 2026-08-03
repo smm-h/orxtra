@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._ask
-description: "API reference for the services.src.orxtra.services._ask module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "One-shot LLM convenience functions, no PG or scheduler involved: ask() sends a single prompt, ask_structured() validates the reply against a JSON schema, sync_ask() wraps it for non-async callers."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 74
 ---

@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._registry
-description: "Capability registry: maps every capability-eligible service function to a Capability descriptor and its implementation function."
+description: "The capability registry: maps every capability-eligible service function to a Capability descriptor (scope, params model, inject tokens), resolved lazily to dodge circular imports."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 88
 ---

@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._flush
-description: "API reference for the services.src.orxtra.services._flush module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "AsyncioFlushScheduler: the concrete FlushScheduler implementation, using asyncio's call_later() to demand-schedule dispatch accumulator flush callbacks with a cancellable handle."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 80
 ---

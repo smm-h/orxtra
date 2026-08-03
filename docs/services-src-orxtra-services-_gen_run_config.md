@@ -1,8 +1,7 @@
 ---
 title: services.src.orxtra.services._gen_run_config
-description: "API reference for the services.src.orxtra.services._gen_run_config module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Strictspec-generated validator for the run_config document schema (workflow/agents/knowledge paths, db_url, provider configs, budget, autonomy policy) -- machine-generated, never hand-edited."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 81
 ---
