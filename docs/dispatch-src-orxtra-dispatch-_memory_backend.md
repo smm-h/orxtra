@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch._memory_backend
-description: "API reference for the dispatch.src.orxtra.dispatch._memory_backend module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "InMemoryDispatchBackend, a dict-based DispatchBackend for tests: sources, subscriptions, actions, accumulator buffering with claim/confirm semantics, cursor tracking, and completion records."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 18
 ---

@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch._action_executor
-description: "API reference for the dispatch.src.orxtra.dispatch._action_executor module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Dispatches a single Action by isinstance (ScriptAction, LogAction, WorkflowAction, EventAction, NotifyAction); execute_actions_bounded fans out multiple actions under a concurrency semaphore."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 15
 ---

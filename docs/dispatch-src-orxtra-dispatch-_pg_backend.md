@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch._pg_backend
-description: "API reference for the dispatch.src.orxtra.dispatch._pg_backend module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "PgDispatchBackend, the asyncpg-backed DispatchBackend over dispatch-owned tables (sources, subscriptions, subscription_actions, accumulator_buffer, dispatch_cursor), with Action (de)serialization."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 19
 ---

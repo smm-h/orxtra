@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch._protocols
-description: "Dispatch protocols -- re-exported from protocols."
+description: "Thin re-export of the dispatch storage protocols (AccumulatorStorage, ActionStorage, DispatchBackend, SourceStorage, SubscriptionStorage) defined in orxtra.protocols, under dispatch's namespace."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 20
 ---

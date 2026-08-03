@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch._delivery
-description: "API reference for the dispatch.src.orxtra.dispatch._delivery module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "TransientEventDelivery implements EventDelivery via asyncio Futures for wait_for/fire with no replay; match_subscription evaluates a FilterPredicate against an incoming event."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 16
 ---

@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch
-description: "API reference for the dispatch.src.orxtra.dispatch module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Package entry point re-exporting the dispatch public API: execute_action, TransientEventDelivery, DispatchWorker, InMemoryDispatchBackend/PgDispatchBackend, and the Subscription/Source types."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 14
 ---

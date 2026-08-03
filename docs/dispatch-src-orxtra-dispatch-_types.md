@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch._types
-description: "Dispatch types -- re-exported from protocols."
+description: "Thin re-export of dispatch data types (AccumulatorEntry, FilterPredicate, Source, Subscription, SubscriptionAction) defined in orxtra.protocols, under dispatch's namespace."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 21
 ---

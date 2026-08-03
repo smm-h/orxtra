@@ -1,8 +1,7 @@
 ---
 title: dispatch.src.orxtra.dispatch._dispatch_worker
-description: "Dispatcher worker: durable event-processing loop."
+description: "DispatchWorker is the durable at-least-once dispatch loop: polls events past a cursor, matches persistent subscriptions, executes or accumulator-buffers actions, and records completions."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 17
 ---
