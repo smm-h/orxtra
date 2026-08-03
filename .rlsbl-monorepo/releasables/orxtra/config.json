@@ -10,6 +10,15 @@
             "line": 2
           }
         ]
+      },
+      {
+        "reason": "**Documentation site build-out.** New long-form guides: getting started, concepts, architecture, configuration reference, deployment, and security model. Generated API reference pages are now published for the protocols, transport, trace, tool, scheduler, services, dispatch, overseer, auth, cli, and worker packages.",
+        "entries": [
+          {
+            "version": "unreleased",
+            "line": 6
+          }
+        ]
       }
     ]
   },
