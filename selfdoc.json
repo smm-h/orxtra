@@ -76,7 +76,7 @@
   },
   "gen": {
     "exclude": [
-      "tests/"
+      "tests.migration_baselines.*"
     ]
   },
   "topology": {
