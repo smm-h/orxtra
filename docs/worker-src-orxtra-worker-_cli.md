@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker._cli
-description: "CLI entry points for worker commands."
+description: "register_worker_commands wires the 'worker connect' and 'worker docker' strictcli subcommands into the orxtra CLI, launching a NativeWorker or DockerWorker against a brain WebSocket URL."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 164
 ---

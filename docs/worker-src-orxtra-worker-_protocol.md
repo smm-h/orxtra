@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker._protocol
-description: "Wire protocol models for brain-worker communication."
+description: "Pydantic wire-protocol models for brain-worker WebSocket communication: ExecuteToolCall, ToolCallResult, Heartbeat/HeartbeatAck, and WorkerRegistration (root plus ToolCapability list)."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 168
 ---

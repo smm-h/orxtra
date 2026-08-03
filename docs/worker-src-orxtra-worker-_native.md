@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker._native
-description: "Native worker: standalone process that executes tools locally."
+description: "NativeWorker connects to a brain over WebSocket and executes tool calls against the local filesystem via build_worker_tools (file, git, and exec tools), reconnecting with exponential backoff."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 166
 ---

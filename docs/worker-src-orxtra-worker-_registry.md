@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker._registry
-description: "Worker registry: tracks connected workers and enforces one-per-root."
+description: "WorkerRegistry tracks connected workers in memory and enforces one worker per project root, providing cross-process write safety by assignment; raises WorkerConflictError on a competing registration."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 169
 ---

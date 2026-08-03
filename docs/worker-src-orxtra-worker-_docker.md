@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker._docker
-description: "Docker worker: runs a native worker inside a Docker container."
+description: "DockerWorker launches a native worker inside a Docker container, volume-mounting the project root at /project and passing the brain URL and API key as environment variables."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 165
 ---

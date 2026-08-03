@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker._brain
-description: "Brain-worker bridge: manages a single worker WebSocket connection."
+description: "BrainWorkerBridge manages one worker's WebSocket connection on the brain side: sends ExecuteToolCall, matches results by call_id via per-call Futures, and runs heartbeat ping/pong for liveness."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 163
 ---

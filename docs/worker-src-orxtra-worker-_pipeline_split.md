@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker._pipeline_split
-description: "Pipeline split for remote tool execution."
+description: "Splits the 7-step tool pipeline between brain and worker: wrap_tool_for_remote handles scheduler checks, secret substitution/scrubbing, and tracing on the brain; the worker only executes."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 167
 ---

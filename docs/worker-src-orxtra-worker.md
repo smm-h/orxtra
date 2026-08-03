@@ -1,8 +1,7 @@
 ---
 title: worker.src.orxtra.worker
-description: "API reference for the worker.src.orxtra.worker module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Package root re-exporting the worker public API: BrainWorkerBridge, NativeWorker, DockerWorker, WorkerRegistry, the wire-protocol models, and pipeline-split helpers for remote tool execution."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 162
 ---
