@@ -37,6 +37,7 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── .rlsbl-monorepo/
 ├── .ruff_cache/
 ├── .selfdoc/
+├── .spotcheck_before/
 ├── .strictcli/
 ├── .venv/
 ├── CHANGELOG.md
