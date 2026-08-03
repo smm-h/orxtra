@@ -1,8 +1,7 @@
 ---
 title: cli.src.orxtra.cli._db
-description: "CLI db command group for database provisioning and migration."
+description: "Registers db init, db verify, and db migrate (plan/apply/status), wrapping the pgdesign-generated schema executor and the pgdesign migrate CLI."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 11
 ---

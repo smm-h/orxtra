@@ -1,8 +1,7 @@
 ---
 title: cli.src.orxtra.cli._dispatch
-description: "CLI entry points for dispatch commands."
+description: "Registers `dispatch run`, which starts the persistent event dispatch worker with configurable cursor, poll interval, and batch size, and graceful SIGINT/SIGTERM shutdown."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 12
 ---

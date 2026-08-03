@@ -1,8 +1,7 @@
 ---
 title: orxtra CLI Reference
-description: "Complete CLI reference for orxtra — all available commands, subcommands, flags, arguments, and usage examples with detailed descriptions."
+description: "Index of every orxtra CLI command group -- serve, run, inbox, trace, event, validate, config, db, dispatch, worker -- each linking to its own flags and subcommand reference."
 generated: true
-seeded: true
 nav_group: "CLI Reference"
 nav_order: 0
 order: 91

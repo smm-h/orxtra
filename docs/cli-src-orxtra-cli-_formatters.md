@@ -1,8 +1,7 @@
 ---
 title: cli.src.orxtra.cli._formatters
-description: "API reference for the cli.src.orxtra.cli._formatters module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Renders dispatch results as aligned text tables or indented JSON, with UUID/datetime/Decimal-aware serialization and truncation of long cell values."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 13
 ---

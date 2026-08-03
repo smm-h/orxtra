@@ -1,8 +1,7 @@
 ---
 title: cli.src.orxtra.cli
-description: "API reference for the cli.src.orxtra.cli module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Package init that resolves the installed orxtra-cli version via importlib.metadata, falling back to 0.0.0 when the package isn't installed."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 9
 ---

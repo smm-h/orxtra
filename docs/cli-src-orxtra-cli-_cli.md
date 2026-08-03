@@ -1,8 +1,7 @@
 ---
 title: cli.src.orxtra.cli._cli
-description: "API reference for the cli.src.orxtra.cli._cli module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Defines the strictcli App and its run/inbox/trace/event/validate/config command groups, the local-trust operator AuthContext, and dispatch/print helper wrappers."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 10
 ---
