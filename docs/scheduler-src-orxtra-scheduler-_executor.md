@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._executor
-description: "API reference for the scheduler.src.orxtra.scheduler._executor module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Scheduler, the task executor: runs workflows via execute_workflow, drives topological task groups, handles crash recovery, PG LISTEN/NOTIFY, pause/resume/abort, and Overseer/transport event sinks."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 58
 ---

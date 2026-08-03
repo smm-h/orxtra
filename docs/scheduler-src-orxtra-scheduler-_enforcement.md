@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._enforcement
-description: "API reference for the scheduler.src.orxtra.scheduler._enforcement module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "EnforcementMixin: cost accumulation and budget events, pre/post-check execution, and mechanical constraints — tests pass, lint clean, no new deps, no removed exports, no changed signatures."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 57
 ---

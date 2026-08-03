@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._gen_workflow
-description: "API reference for the scheduler.src.orxtra.scheduler._gen_workflow module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Strictspec-generated validator (do not edit; regenerate via `strictspec gen`) that parses and validates workflow TOML/JSON documents into typed Workflow/Task/ServiceConfig bindings."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 59
 ---

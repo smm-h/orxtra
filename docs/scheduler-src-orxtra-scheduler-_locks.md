@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._locks
-description: "API reference for the scheduler.src.orxtra.scheduler._locks module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "FileLockRegistry claims and releases write-path sets per workflow, detecting path overlap (prefix containment) so concurrent workflows can't write to conflicting file trees."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 63
 ---

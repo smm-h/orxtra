@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler
-description: "API reference for the scheduler.src.orxtra.scheduler module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Public scheduler API surface: the Scheduler class, workflow graph utilities (build_graph, topological_sort, find_parallel_groups), load_workflow, FileLockRegistry, and OverseerAdapter."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 53
 ---

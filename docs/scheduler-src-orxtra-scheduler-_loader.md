@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._loader
-description: "API reference for the scheduler.src.orxtra.scheduler._loader module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "load_workflow parses a workflow TOML file or string into a WorkflowConfig: gates the document through the strictspec validator, then parses tasks, pre/postchecks, services, and dependencies."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 62
 ---

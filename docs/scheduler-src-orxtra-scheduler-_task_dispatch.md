@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._task_dispatch
-description: "API reference for the scheduler.src.orxtra.scheduler._task_dispatch module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "TaskDispatchMixin executes non-agent task types: decision points, callable/function tasks, composite (subtask tree) tasks, wait_for tasks, and for_each fan-out with concurrency limits."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 68
 ---

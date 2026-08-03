@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._types
-description: "API reference for the scheduler.src.orxtra.scheduler._types module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Core scheduler data models: WorkflowConfig (parsed workflow TOML), ServiceConfig (long-running process declaration), and EscalationPolicy (continue_independent, halt, abort_all)."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 70
 ---

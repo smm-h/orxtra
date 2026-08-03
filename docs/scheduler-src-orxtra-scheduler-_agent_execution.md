@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._agent_execution
-description: "API reference for the scheduler.src.orxtra.scheduler._agent_execution module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "AgentExecutionMixin runs orchestrator and agent tasks end-to-end: session creation, prompt assembly, context-window checks, agent handoff, tool building, and attempt completion/timeout handling."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 54
 ---

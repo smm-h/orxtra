@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._tool_registry
-description: "Data-driven tool registry for building agent tool sets."
+description: "ToolRegistry builds an agent's tool set from data-driven ToolEntry records and advisory Edges between tools; create_builtin_registry seeds it and validate_allow_lists checks allow-list references."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 69
 ---

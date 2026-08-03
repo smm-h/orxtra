@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._prompt_templates
-description: "Packaged .md template loader for scheduler prompt strings."
+description: "Loads scheduler prompt text from .md files packaged under prompts/ and renders them via the compose engine's strict variable substitution; render_template_lenient exists only for migration."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 66
 ---

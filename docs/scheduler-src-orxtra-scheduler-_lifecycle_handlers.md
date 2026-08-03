@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._lifecycle_handlers
-description: "API reference for the scheduler.src.orxtra.scheduler._lifecycle_handlers module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "LifecycleHandlersMixin implements the task lifecycle tools agents call directly: start_task, end_task, create_task, create_workflow, create_wait_for, and await_task."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 61
 ---

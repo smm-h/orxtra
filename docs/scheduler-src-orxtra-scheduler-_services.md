@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._services
-description: "API reference for the scheduler.src.orxtra.scheduler._services module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Manages long-running service processes declared in a workflow: start_service spawns and polls health checks until ready, stop_service terminates, check_health probes liveness."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 67
 ---

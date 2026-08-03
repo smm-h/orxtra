@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._base
-description: "Abstract base class for Scheduler mixins."
+description: "SchedulerBase declares every attribute and cross-mixin abstract method (execute_task, handle_start_task, _run_postchecks, etc.) so mypy resolves references across the Scheduler's mixins."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 56
 ---

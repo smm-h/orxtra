@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._prompt_providers
-description: "Fragment providers for scheduler prompt assembly."
+description: "Fragment providers assembling the agent prompt: task preamble, task prompt, constraints, notepad entries, verified/stale lessons, and prior-failure context, each at a fixed priority."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 65
 ---

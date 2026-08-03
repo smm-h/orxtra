@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._graph
-description: "API reference for the scheduler.src.orxtra.scheduler._graph module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "Workflow dependency graph utilities: build_graph, topological_sort (Kahn's algorithm, raises CycleError on cycles), and find_parallel_groups for same-depth concurrent tasks."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 60
 ---

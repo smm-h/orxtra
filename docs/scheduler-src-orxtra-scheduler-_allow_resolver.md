@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._allow_resolver
-description: "Resolve agent allow-lists with wildcards and tag filters."
+description: "resolve_allow_list expands an agent's allow-list into concrete tool names: exact matches, `namespace.*` wildcards, `#tag` filters, and the universal `*`."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 55
 ---

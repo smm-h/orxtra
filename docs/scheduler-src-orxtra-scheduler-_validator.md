@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._validator
-description: "API reference for the scheduler.src.orxtra.scheduler._validator module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "validate_task_tree checks a WorkflowConfig for structural errors: execution-mode conflicts, missing conditional fields, headless-mode Overseer restrictions, dependency cycles, variable collisions."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 71
 ---

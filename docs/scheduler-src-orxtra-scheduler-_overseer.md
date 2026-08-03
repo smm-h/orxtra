@@ -1,8 +1,7 @@
 ---
 title: scheduler.src.orxtra.scheduler._overseer
-description: "API reference for the scheduler.src.orxtra.scheduler._overseer module — auto-generated documentation covering public functions, classes, and type signatures."
+description: "OverseerInterface is the protocol the Scheduler uses to reach the Overseer; OverseerAdapter bridges it to the real Overseer, with degraded-mode fallbacks (trace-only, log-only, escalate-to-inbox)."
 generated: true
-seeded: true
 nav_group: "API Reference"
 nav_order: 64
 ---
