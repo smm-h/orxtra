@@ -13,7 +13,7 @@ order: 91
 
 Autonomous multi-agent AI workflows.
 
-Version: 0.11.0
+Version: :-: var key="project.version"
 
 ## Commands
 
