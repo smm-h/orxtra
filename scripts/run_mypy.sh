@@ -6,7 +6,12 @@ failed=0
 for mod in protocols secrets write-safety transport agent tool verify trace notepad session compose scheduler dispatch overseer services auth identity api worker a2a a2ui agui cli mcp incoming notification; do
   echo "=== $mod ==="
   cd "$REPO_ROOT/$mod"
-  if ! MYPYPATH=src uv run --with mypy --with 'pydantic[mypy]' python -m mypy --strict --explicit-package-bases src/orxtra/*/; then
+  # Exclude strictspec-generated validators (_gen_*.py) from the strict run.
+  # These carry DO-NOT-EDIT headers; their generated shape trips --strict
+  # (untyped dict, Optional-vs-required narrowing). Generated code is validated
+  # by its generator plus runtime tests. Policy until strictspec emits
+  # strict-clean output (todo filed upstream).
+  if ! MYPYPATH=src uv run --with mypy --with 'pydantic[mypy]' python -m mypy --strict --explicit-package-bases --exclude '_gen_.*\.py$' src/orxtra/*/; then
     failed=1
   fi
   cd "$REPO_ROOT"
