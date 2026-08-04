@@ -45,32 +45,84 @@ jobs:
       id: changes
       with:
         filters: |
-          protocols: 'protocols/**'
-          secrets: 'secrets/**'
-          write-safety: 'write-safety/**'
-          transport: 'transport/**'
-          agent: 'agent/**'
-          tool: 'tool/**'
-          verify: 'verify/**'
-          trace: 'trace/**'
-          notepad: 'notepad/**'
-          session: 'session/**'
-          compose: 'compose/**'
-          auth: 'auth/**'
-          identity: 'identity/**'
-          a2ui: 'a2ui/**'
-          notification: 'notification/**'
-          scheduler: 'scheduler/**'
-          dispatch: 'dispatch/**'
-          overseer: 'overseer/**'
-          services: 'services/**'
-          cli: 'cli/**'
-          mcp: 'mcp/**'
-          a2a: 'a2a/**'
-          agui: 'agui/**'
-          worker: 'worker/**'
-          incoming: 'incoming/**'
-          api: 'api/**'
+          protocols:
+            - 'protocols/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          secrets:
+            - 'secrets/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          write-safety:
+            - 'write-safety/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          transport:
+            - 'transport/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          agent:
+            - 'agent/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          tool:
+            - 'tool/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          verify:
+            - 'verify/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          trace:
+            - 'trace/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          notepad:
+            - 'notepad/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          session:
+            - 'session/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          compose:
+            - 'compose/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          auth:
+            - 'auth/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          identity:
+            - 'identity/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          a2ui:
+            - 'a2ui/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          notification:
+            - 'notification/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          scheduler:
+            - 'scheduler/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          dispatch:
+            - 'dispatch/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          overseer:
+            - 'overseer/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          services:
+            - 'services/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          cli:
+            - 'cli/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          mcp:
+            - 'mcp/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          a2a:
+            - 'a2a/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          agui:
+            - 'agui/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          worker:
+            - 'worker/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          incoming:
+            - 'incoming/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          api:
+            - 'api/**'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
   protocols-ci-test:
     runs-on: ubuntu-latest
     strategy:
