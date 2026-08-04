@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-13T14:53:08Z",
-  "package_count": 28,
+  "generated_at": "2026-08-04T08:15:49Z",
+  "package_count": 29,
   "packages": {
     ".": {
       "path": ".",
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Root package \u2014 single publishable wheel aggregating all sub-projects",
       "deps": [
         "mcp"
@@ -23,7 +23,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Shared types: Execution, task lifecycle, event descriptors, action tool schemas",
       "deps": [],
       "rdeps": [
@@ -31,17 +31,23 @@
         "transport",
         "tool",
         "verify",
+        "trace",
         "session",
         "auth",
         "identity",
         "a2ui",
+        "notification",
         "scheduler",
         "dispatch",
         "overseer",
         "services",
+        "cli",
+        "mcp",
         "a2a",
+        "agui",
         "worker",
-        "incoming"
+        "incoming",
+        "api"
       ],
       "library": true,
       "dev_only": false,
@@ -53,7 +59,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Secret registry, substitution, and scrubbing",
       "deps": [
         "protocols"
@@ -61,8 +67,10 @@
       "rdeps": [
         "tool",
         "scheduler",
+        "services",
         "worker",
-        "incoming"
+        "incoming",
+        "api"
       ],
       "library": true,
       "dev_only": false,
@@ -74,7 +82,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Write queue, stale-write detection, atomic replace, transient replay",
       "deps": [],
       "rdeps": [
@@ -92,7 +100,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Typed LLM client via Provider protocol",
       "deps": [
         "protocols"
@@ -101,7 +109,8 @@
         "session",
         "scheduler",
         "overseer",
-        "services"
+        "services",
+        "agui"
       ],
       "library": true,
       "dev_only": false,
@@ -113,7 +122,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Agent definition loader (TOML + composable .md prompts)",
       "deps": [
         "compose"
@@ -132,7 +141,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Tool registry with granular constructors",
       "deps": [
         "protocols",
@@ -142,6 +151,7 @@
       "rdeps": [
         "scheduler",
         "overseer",
+        "services",
         "worker"
       ],
       "library": true,
@@ -154,7 +164,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Check runner (pre/post-check Execution dispatch)",
       "deps": [
         "protocols"
@@ -172,16 +182,18 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "PG schema owner (events, task results, transcripts, inbox, state machines)",
-      "deps": [],
+      "deps": [
+        "protocols"
+      ],
       "rdeps": [
         "notepad",
         "session",
         "scheduler",
+        "dispatch",
         "overseer",
         "services",
-        "cli",
         "incoming"
       ],
       "library": true,
@@ -194,7 +206,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Append-only cross-agent context sharing",
       "deps": [
         "trace"
@@ -212,12 +224,12 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Session lifecycle, token tracking, cross-restart resumption",
       "deps": [
         "protocols",
-        "transport",
-        "trace"
+        "trace",
+        "transport"
       ],
       "rdeps": [
         "scheduler",
@@ -234,7 +246,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Fragment-based prompt composition engine. Strict variable substitution, include resolution, priority ordering.",
       "deps": [],
       "rdeps": [
@@ -251,7 +263,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Authentication and authorization. Consumer registry, credential hashing, ASGI middleware.",
       "deps": [
         "protocols"
@@ -272,12 +284,13 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Identity model: persisted principals for durable actor identity.",
       "deps": [
         "protocols"
       ],
       "rdeps": [
+        "notification",
         "services",
         "cli",
         "agui",
@@ -293,7 +306,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Agent-to-UI surface rendering. Template registry, fragment library, data-bound component engine.",
       "deps": [
         "protocols"
@@ -304,12 +317,32 @@
       "releasable_flag": true,
       "test_only": false
     },
+    "notification": {
+      "path": "notification",
+      "targets": [
+        "pypi"
+      ],
+      "version": "0.12.0",
+      "description": "Notification delivery: persisted notifications for principals via the dispatch subscription system.",
+      "deps": [
+        "protocols",
+        "identity"
+      ],
+      "rdeps": [
+        "services",
+        "api"
+      ],
+      "library": true,
+      "dev_only": false,
+      "releasable_flag": true,
+      "test_only": false
+    },
     "scheduler": {
       "path": "scheduler",
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Task executor (recursive hierarchy, budgets, constraints)",
       "deps": [
         "protocols",
@@ -338,10 +371,11 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Event delivery: subscriptions, action dispatch, accumulator flush",
       "deps": [
-        "protocols"
+        "protocols",
+        "trace"
       ],
       "rdeps": [
         "scheduler",
@@ -359,7 +393,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Persistent LLM with action tools, PG memory, session handoff",
       "deps": [
         "protocols",
@@ -381,17 +415,20 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Shared business logic for all frontends",
       "deps": [
         "agent",
         "auth",
         "dispatch",
         "identity",
+        "notification",
+        "overseer",
         "protocols",
         "scheduler",
+        "secrets",
         "session",
-        "overseer",
+        "tool",
         "trace",
         "transport"
       ],
@@ -413,13 +450,14 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "strictcli CLI frontend (agents are the primary users)",
       "deps": [
-        "services",
         "api",
         "identity",
-        "trace"
+        "protocols",
+        "services",
+        "worker"
       ],
       "rdeps": [],
       "library": false,
@@ -432,9 +470,10 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "MCP server (human interface via dashboard/AI client)",
       "deps": [
+        "protocols",
         "services"
       ],
       "rdeps": [
@@ -451,7 +490,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "A2A (Agent-to-Agent) protocol server",
       "deps": [
         "services",
@@ -470,11 +509,13 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "AG-UI streaming protocol for human frontends. Event translation, SSE server, state snapshots.",
       "deps": [
         "identity",
-        "services"
+        "protocols",
+        "services",
+        "transport"
       ],
       "rdeps": [
         "api"
@@ -489,16 +530,19 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Brain-worker protocol: remote tool execution over WebSocket.",
       "deps": [
-        "protocols",
-        "tool",
-        "write-safety",
         "auth",
-        "secrets"
+        "protocols",
+        "secrets",
+        "tool",
+        "write-safety"
       ],
-      "rdeps": [],
+      "rdeps": [
+        "cli",
+        "api"
+      ],
       "library": true,
       "dev_only": false,
       "releasable_flag": true,
@@ -509,7 +553,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "Webhook receiver, event replay, and SSE stream. External event ingestion for the event bus.",
       "deps": [
         "protocols",
@@ -532,17 +576,21 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.10.1",
+      "version": "0.12.0",
       "description": "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app.",
       "deps": [
-        "auth",
-        "identity",
-        "dispatch",
-        "mcp",
         "a2a",
         "agui",
+        "auth",
+        "dispatch",
+        "identity",
+        "incoming",
+        "mcp",
+        "notification",
+        "protocols",
+        "secrets",
         "services",
-        "incoming"
+        "worker"
       ],
       "rdeps": [
         "cli"
@@ -587,7 +635,6 @@
       "npm",
       "protocols",
       "schema",
-      "trace",
       "write-safety"
     ],
     "root_nodes": [
@@ -595,8 +642,7 @@
       "a2ui",
       "cli",
       "npm",
-      "schema",
-      "worker"
+      "schema"
     ],
     "max_depth": 7,
     "topological_order": [
@@ -606,11 +652,12 @@
       "protocols",
       "a2ui",
       "auth",
-      "dispatch",
       "identity",
+      "notification",
       "schema",
       "secrets",
       "trace",
+      "dispatch",
       "notepad",
       "transport",
       "session",
@@ -625,9 +672,9 @@
       "incoming",
       "mcp",
       ".",
+      "worker",
       "api",
-      "cli",
-      "worker"
+      "cli"
     ]
   }
 }
