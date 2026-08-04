@@ -1,3 +1,4 @@
+format_version = 1
 # notification module PostgreSQL schema
 # Single owner: the notification module. No other module writes to these tables
 # directly. Persisted notifications for principals, delivered via the dispatch

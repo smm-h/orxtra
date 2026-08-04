@@ -1,3 +1,4 @@
+format_version = 1
 # dispatch module PostgreSQL schema
 # Single owner: the dispatch module. Event sources, subscriptions, actions,
 # and accumulator buffering.

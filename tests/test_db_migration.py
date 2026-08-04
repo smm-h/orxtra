@@ -1762,23 +1762,25 @@ async def test_pgdesign_migrate_generate_succeeds(
             "migrate", "generate",
             str(schema_dir),
             "--db", url,
-            "--version", "0.1.0",
             "--dir", str(migrations_dir),
-            "--config", str(schema_dir / "pgdesign.toml"),
+            "--project-config", str(schema_dir / "pgdesign.toml"),
         ])
         assert gen.returncode == 0, (
             f"generate failed: {gen.stderr}"
         )
 
-        migration_files = list(migrations_dir.glob("*.toml"))
-        assert len(migration_files) == 1
-        assert migration_files[0].name == "0.1.0.toml"
+        # pgdesign's content-addressed chain kernel writes migration edge
+        # files under the migrations directory (no semver file naming).
+        migration_files = [
+            p for p in migrations_dir.rglob("*.toml") if p.is_file()
+        ]
+        assert migration_files, "no migration files were generated"
 
         # The generated migration should reference key tables.
-        content = migration_files[0].read_text()
-        assert "runs" in content
-        assert "events" in content
-        assert "subscriptions" in content
+        combined = "\n".join(p.read_text() for p in migration_files)
+        assert "runs" in combined
+        assert "events" in combined
+        assert "subscriptions" in combined
 
 
 @pytest.mark.skipif(

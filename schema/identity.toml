@@ -1,3 +1,4 @@
+format_version = 1
 # identity module PostgreSQL schema
 # Single owner: the identity module. No other module writes to the principals
 # table directly -- other modules (dispatch, trace, etc.) FK into it to attribute

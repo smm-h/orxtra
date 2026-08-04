@@ -1,3 +1,4 @@
+format_version = 1
 # auth module PostgreSQL schema
 # Single owner: the auth module. No other module writes to these tables directly.
 # Consumers are API clients; credentials link to consumers for authentication.

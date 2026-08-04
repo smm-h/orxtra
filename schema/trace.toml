@@ -1,3 +1,4 @@
+format_version = 1
 # trace module PostgreSQL schema
 # Single owner: the trace module. No other module writes to these tables directly.
 # All primary keys use the built-in `id` type (uuid, NOT NULL).
@@ -34,7 +35,7 @@ comment = "Nullable text column"
 
 [types.amount]
 kind = "scalar"
-base_type = "numeric(12, 6)"
+base_type = "numeric(12,6)"
 default = "0"
 comment = "Numeric amount (USD cost, budget)"
 
