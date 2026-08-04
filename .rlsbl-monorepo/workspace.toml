@@ -130,7 +130,7 @@ releasable = "orxtra"
 [[projects]]
 path = "notification"
 description = "Notification delivery: persisted notifications for principals via the dispatch subscription system."
-depends_on = ["protocols"]
+depends_on = ["identity", "protocols"]
 library = true
 releasable = "orxtra"
 
@@ -139,7 +139,7 @@ releasable = "orxtra"
 [[projects]]
 path = "scheduler"
 description = "Task executor (recursive hierarchy, budgets, constraints)"
-depends_on = ["protocols", "agent", "compose", "tool", "write-safety", "session", "trace", "verify", "notepad", "secrets", "transport", "dispatch"]
+depends_on = ["protocols", "agent", "compose", "tool", "write-safety", "session", "trace", "verify", "notepad", "secrets", "transport", "dispatch", "worker"]
 releasable = "orxtra"
 
 [[projects]]
@@ -170,7 +170,7 @@ releasable = "orxtra"
 [[projects]]
 path = "cli"
 description = "strictcli CLI frontend (agents are the primary users)"
-depends_on = ["api", "identity", "protocols", "services", "worker"]
+depends_on = ["api", "identity", "notification", "protocols", "services", "worker"]
 releasable = "orxtra"
 
 [[projects]]
@@ -207,7 +207,7 @@ releasable = "orxtra"
 [[projects]]
 path = "api"
 description = "HTTP compositor: mounts MCP, A2A, AG-UI, and native routes on a single ASGI app."
-depends_on = ["a2a", "agui", "auth", "dispatch", "identity", "incoming", "mcp", "notification", "protocols", "secrets", "services", "worker"]
+depends_on = ["a2a", "agui", "auth", "dispatch", "identity", "incoming", "mcp", "notification", "protocols", "secrets", "services", "trace", "worker"]
 releasable = "orxtra"
 
 # --- Infrastructure ---

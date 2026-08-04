@@ -1108,6 +1108,7 @@ dependencies = [
     { name = "orxtra-protocols" },
     { name = "orxtra-secrets" },
     { name = "orxtra-services" },
+    { name = "orxtra-trace" },
     { name = "orxtra-worker" },
     { name = "strictcli" },
 ]
@@ -1132,6 +1133,7 @@ requires-dist = [
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-secrets", editable = "secrets" },
     { name = "orxtra-services", editable = "services" },
+    { name = "orxtra-trace", editable = "trace" },
     { name = "orxtra-worker", editable = "worker" },
     { name = "strictcli" },
 ]
@@ -1151,6 +1153,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "orxtra-secrets" },
     { name = "pytest-asyncio" },
 ]
 
@@ -1162,7 +1165,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+dev = [
+    { name = "orxtra-secrets", editable = "secrets" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
+]
 
 [[package]]
 name = "orxtra-cli"
@@ -1172,6 +1178,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "orxtra-api" },
     { name = "orxtra-identity" },
+    { name = "orxtra-notification" },
     { name = "orxtra-protocols" },
     { name = "orxtra-services" },
     { name = "orxtra-worker" },
@@ -1188,6 +1195,7 @@ requires-dist = [
     { name = "asyncpg" },
     { name = "orxtra-api", editable = "api" },
     { name = "orxtra-identity", editable = "identity" },
+    { name = "orxtra-notification", editable = "notification" },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-services", editable = "services" },
     { name = "orxtra-worker", editable = "worker" },
@@ -1229,6 +1237,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "orxtra-notification" },
     { name = "pytest-asyncio" },
 ]
 
@@ -1241,7 +1250,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
+dev = [
+    { name = "orxtra-notification", editable = "notification" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
+]
 
 [[package]]
 name = "orxtra-identity"
@@ -1457,6 +1469,7 @@ dependencies = [
     { name = "orxtra-trace" },
     { name = "orxtra-transport" },
     { name = "orxtra-verify" },
+    { name = "orxtra-worker" },
     { name = "orxtra-write-safety" },
     { name = "pydantic" },
     { name = "strictspec" },
@@ -1482,6 +1495,7 @@ requires-dist = [
     { name = "orxtra-trace", editable = "trace" },
     { name = "orxtra-transport", editable = "transport" },
     { name = "orxtra-verify", editable = "verify" },
+    { name = "orxtra-worker", editable = "worker" },
     { name = "orxtra-write-safety", editable = "write-safety" },
     { name = "pydantic", specifier = ">=2" },
     { name = "strictspec", specifier = ">=0.1.0" },
@@ -1652,6 +1666,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "orxtra-notification" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
 ]
@@ -1666,6 +1681,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "orxtra-notification", editable = "notification" },
     { name = "pytest", specifier = ">=9.1.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
 ]

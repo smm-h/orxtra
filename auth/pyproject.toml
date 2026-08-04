@@ -12,7 +12,7 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [dependency-groups]
-dev = ["pytest-asyncio>=1.4.0"]
+dev = ["pytest-asyncio>=1.4.0", "orxtra-secrets"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -27,3 +27,4 @@ packages = ["src/orxtra"]
 
 [tool.uv.sources]
 orxtra-protocols = { workspace = true }
+orxtra-secrets = { workspace = true }

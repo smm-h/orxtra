@@ -117,11 +117,23 @@ def _check_member(
     with pyproject_path.open("rb") as f:
         data = tomllib.load(f)
 
-    # Extract declared internal deps
+    # Extract declared internal runtime deps
     deps = data.get("project", {}).get("dependencies", [])
     declared_deps = sorted(
         _dep_name_to_pkg(d) for d in deps if d.startswith("orxtra-")
     )
+
+    # Extract dev-group internal deps (test-only workspace members). These
+    # are not runtime dependencies -- they never appear in workspace.toml
+    # depends_on -- but they DO need a [tool.uv.sources] entry so uv
+    # resolves them from the workspace instead of PyPI.
+    dev_deps = sorted(
+        _dep_name_to_pkg(d)
+        for group in data.get("dependency-groups", {}).values()
+        for d in group
+        if isinstance(d, str) and d.startswith("orxtra-")
+    )
+    all_declared = sorted(set(declared_deps) | set(dev_deps))
 
     # Extract uv.sources
     sources = sorted(
@@ -132,10 +144,11 @@ def _check_member(
     # Normalize workspace.toml depends_on (hyphens to underscores)
     ws_normalized = sorted(d.replace("-", "_") for d in ws_depends_on)
 
-    # Reconciliation check: all three sites must agree
-    if declared_deps != sources:
+    # Reconciliation check: uv.sources must cover runtime + dev-group deps;
+    # workspace.toml depends_on tracks runtime deps only.
+    if all_declared != sources:
         errors.append(
-            f"{member}: pyproject deps {declared_deps} != "
+            f"{member}: pyproject deps (runtime+dev) {all_declared} != "
             f"uv.sources {sources}"
         )
     if declared_deps != ws_normalized:

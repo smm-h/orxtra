@@ -9,6 +9,7 @@ dependencies = [
     "strictcli",
     "orxtra-api",
     "orxtra-identity",
+    "orxtra-notification",
     "orxtra-protocols",
     "orxtra-services",
     "orxtra-worker",
@@ -34,6 +35,7 @@ packages = ["src/orxtra"]
 [tool.uv.sources]
 orxtra-api = { workspace = true }
 orxtra-identity = { workspace = true }
+orxtra-notification = { workspace = true }
 orxtra-protocols = { workspace = true }
 orxtra-services = { workspace = true }
 orxtra-worker = { workspace = true }

@@ -20,6 +20,7 @@ dependencies = [
     "orxtra-notepad",
     "orxtra-secrets",
     "orxtra-transport",
+    "orxtra-worker",
 ]
 keywords = ["rlsbl"]
 
@@ -53,3 +54,4 @@ orxtra-verify = { workspace = true }
 orxtra-notepad = { workspace = true }
 orxtra-secrets = { workspace = true }
 orxtra-transport = { workspace = true }
+orxtra-worker = { workspace = true }

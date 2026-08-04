@@ -16,6 +16,7 @@ keywords = ["rlsbl"]
 dev = [
     "pytest>=9.1.0",
     "pytest-asyncio>=1.4.0",
+    "orxtra-notification",
 ]
 
 [tool.pytest.ini_options]
@@ -30,4 +31,5 @@ build-backend = "hatchling.build"
 packages = ["src/orxtra"]
 
 [tool.uv.sources]
+orxtra-notification = { workspace = true }
 orxtra-protocols = { workspace = true }

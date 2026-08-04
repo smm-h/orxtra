@@ -19,6 +19,7 @@ dependencies = [
     "orxtra-protocols",
     "orxtra-secrets",
     "orxtra-services",
+    "orxtra-trace",
     "orxtra-worker",
 ]
 keywords = ["rlsbl"]
@@ -49,4 +50,5 @@ orxtra-notification = { workspace = true }
 orxtra-protocols = { workspace = true }
 orxtra-secrets = { workspace = true }
 orxtra-services = { workspace = true }
+orxtra-trace = { workspace = true }
 orxtra-worker = { workspace = true }
