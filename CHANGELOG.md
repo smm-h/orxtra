@@ -2,34 +2,38 @@
 
 # orxtra
 
-## 0.11.0
+## 0.12.0
 
-Notification delivery, worker WebSocket endpoint, AG-UI live streaming.
+Unified delivery and notifications, live worker WebSocket endpoint, AG-UI live streaming, strictspec validation gate, and a published documentation site.
 
 <details>
 <summary>Context</summary>
 
-Three major feature systems land in this release:
+This release carries the content originally cut as v0.11.0 together with the
+strictspec validation gate and the documentation build-out.
 
-1. Notification delivery: NotifyAction as fifth dispatch action type, self-subscriptions
-   for consumer principals, PG + in-memory backends implementing NotificationPort,
-   SSE stream with catch-up replay, CRUD capabilities (list_deliveries,
-   acknowledge_delivery).
+v0.11.0 was cut under the pre-CI-gate release flow and could never pass the
+modern publish gate: CI cannot run retroactively on a stale release commit, so
+that version had no path to publication. Rather than attempt to resurrect it,
+its content ships here as 0.12.0 under the modern flow, which pushes the branch,
+verifies CI, and only then finalizes and tags.
 
-2. Worker WebSocket endpoint: authenticated connections (code 4001 on failure),
-   WorkerRegistry, BrainWorkerBridge, ToolLocation routing (LOCAL/ANYWHERE),
-   ToolCapability enum, execution_target on TaskSpec.
-
-3. AG-UI live streaming: RunManager, runtime sink injection via subscribe_run,
-   enriched StateSnapshotEvent for late-joiners and completed runs, snapshot-only
-   mode for historical runs.
-
-Multiple breaking changes: TaskSpec.remote replaced by execution_target,
-FilterPredicate gains principal_id, create_principal gains notification_event_types,
-WorkerRegistration.capabilities typed as ToolCapability enum, WorkerInfo.consumer_id
-changed to UUID | None, WebSocket auth required.
+v0.11.0 remains a sealed, never-published version: its tag and its finalized
+changelog stay as historical record and are not reused.
 
 </details>
+
+### Breaking
+
+- [api, cli, worker] **Breaking: strictcli v0.29.0 migration.** All CLI command handlers now receive ctx as first parameter. App constructor includes explicit version=.
+- [., a2a, agent, overseer, scheduler, services, tool] **Breaking: spec documents now require an integer `format_version` and are hard-error validated by strictspec.** Workflow, agent, categories, skill, data-tool, knowledge, and run-config TOML files are validated against generated strictspec schemas at their load boundary; unknown keys, wrong types, missing required fields, bad enum arms, and invalid execution-mode/routing/discriminator combinations are now hard errors at load. Every such document must carry `format_version = 1` at the top level -- stamp existing files (e.g. `strictspec migrate --to 1 <paths>`, or add the key by hand) to upgrade.
+
+### Features
+
+- [.] **Documentation site build-out.** New long-form guides: getting started, concepts, architecture, configuration reference, deployment, and security model. Generated API reference pages are now published for the protocols, transport, trace, tool, scheduler, services, dispatch, overseer, auth, cli, and worker packages.
+- [api, cli, worker] **Clearer CLI help text.** Command groups, commands, flags, and positional arguments across the `orxtra`, `orxtra-api`, and `orxtra-worker` CLIs now carry descriptive help text explaining what each does, replacing terse one-liners.
+
+## 0.11.0
 
 ### Breaking
 

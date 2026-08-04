@@ -869,7 +869,7 @@ wheels = [
 
 [[package]]
 name = "orxtra"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "." }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
@@ -980,7 +980,7 @@ dev = [
 
 [[package]]
 name = "orxtra-a2a"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "a2a" }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
@@ -1007,7 +1007,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-a2ui"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "a2ui" }
 dependencies = [
     { name = "orxtra-protocols" },
@@ -1030,7 +1030,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-agent"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "agent" }
 dependencies = [
     { name = "orxtra-compose" },
@@ -1055,7 +1055,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxtra-agui"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "agui" }
 dependencies = [
     { name = "ag-ui-protocol" },
@@ -1092,7 +1092,7 @@ dev = [
 
 [[package]]
 name = "orxtra-api"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "api" }
 dependencies = [
     { name = "asyncpg" },
@@ -1141,7 +1141,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-auth"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "auth" }
 dependencies = [
     { name = "asyncpg" },
@@ -1166,7 +1166,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-cli"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "cli" }
 dependencies = [
     { name = "asyncpg" },
@@ -1199,7 +1199,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxtra-compose"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "compose" }
 dependencies = [
     { name = "pydantic" },
@@ -1218,7 +1218,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxtra-dispatch"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "dispatch" }
 dependencies = [
     { name = "asyncpg" },
@@ -1245,7 +1245,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-identity"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "identity" }
 dependencies = [
     { name = "asyncpg" },
@@ -1270,7 +1270,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-incoming"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "incoming" }
 dependencies = [
     { name = "fastware" },
@@ -1309,7 +1309,7 @@ dev = [
 
 [[package]]
 name = "orxtra-mcp"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "mcp" }
 dependencies = [
     { name = "mcp" },
@@ -1336,7 +1336,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-notepad"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "notepad" }
 dependencies = [
     { name = "orxtra-trace" },
@@ -1355,7 +1355,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-notification"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "notification" }
 dependencies = [
     { name = "asyncpg" },
@@ -1384,7 +1384,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-overseer"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "overseer" }
 dependencies = [
     { name = "orxtra-protocols" },
@@ -1423,7 +1423,7 @@ dev = [
 
 [[package]]
 name = "orxtra-protocols"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "protocols" }
 dependencies = [
     { name = "pydantic" },
@@ -1442,7 +1442,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxtra-scheduler"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "scheduler" }
 dependencies = [
     { name = "jsonschema" },
@@ -1495,7 +1495,7 @@ dev = [
 
 [[package]]
 name = "orxtra-secrets"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "secrets" }
 dependencies = [
     { name = "orxtra-protocols" },
@@ -1514,7 +1514,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.0" }]
 
 [[package]]
 name = "orxtra-services"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "services" }
 dependencies = [
     { name = "asyncpg" },
@@ -1571,7 +1571,7 @@ dev = [
 
 [[package]]
 name = "orxtra-session"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "session" }
 dependencies = [
     { name = "orxtra-protocols" },
@@ -1600,7 +1600,7 @@ dev = [
 
 [[package]]
 name = "orxtra-tool"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "tool" }
 dependencies = [
     { name = "httpx" },
@@ -1641,7 +1641,7 @@ dev = [
 
 [[package]]
 name = "orxtra-trace"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "trace" }
 dependencies = [
     { name = "asyncpg" },
@@ -1672,7 +1672,7 @@ dev = [
 
 [[package]]
 name = "orxtra-transport"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "transport" }
 dependencies = [
     { name = "httpx" },
@@ -1703,7 +1703,7 @@ dev = [
 
 [[package]]
 name = "orxtra-verify"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "verify" }
 dependencies = [
     { name = "orxtra-protocols" },
@@ -1722,7 +1722,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-worker"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "worker" }
 dependencies = [
     { name = "fastware" },
@@ -1759,7 +1759,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-write-safety"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "write-safety" }
 
 [package.dev-dependencies]
