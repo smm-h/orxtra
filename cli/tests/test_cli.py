@@ -107,6 +107,31 @@ def test_no_command_shows_help() -> None:
     assert "orxtra" in stdout.lower()
 
 
+def test_app_version_reads_orxtra_cli_distribution() -> None:
+    """Regression: the App version must resolve from the ``orxtra-cli``
+    distribution, not the ``orxtra`` umbrella. In isolated member CI the
+    umbrella package is not installed, so ``version("orxtra")`` raises
+    ``PackageNotFoundError`` and the entire CLI fails to import.
+    """
+    source = inspect.getsource(_cli_module)
+    tree = ast.parse(source)
+    app_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "App"
+    ]
+    assert len(app_calls) == 1
+    version_kw = next(kw for kw in app_calls[0].keywords if kw.arg == "version")
+    # version=importlib.metadata.version("orxtra-cli")
+    assert isinstance(version_kw.value, ast.Call), ast.dump(version_kw.value)
+    assert len(version_kw.value.args) == 1
+    dist_arg = version_kw.value.args[0]
+    assert isinstance(dist_arg, ast.Constant)
+    assert dist_arg.value == "orxtra-cli"
+
+
 # -- Structure: all groups exist --------------------------------------------------
 
 

@@ -124,7 +124,7 @@ def _dispatch_no_pool(
 app = strictcli.App(
     name="orxtra",
     help="Autonomous multi-agent AI workflows.",
-    version=importlib.metadata.version("orxtra"),
+    version=importlib.metadata.version("orxtra-cli"),
     flags=[
         strictcli.Flag(
             name="db",
