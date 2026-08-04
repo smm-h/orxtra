@@ -87,7 +87,7 @@ def _register_migrate_commands(
         help="Preview schema changes without generating files.",
     )
     def cmd_db_migrate_plan(
-        ctx, *, db: str, **_kwargs: object,
+        _ctx: strictcli.Context, *, db: str, **_kwargs: object,
     ) -> None:
         _run_pgdesign("plan", _require_db(db))
 
@@ -102,7 +102,7 @@ def _register_migrate_commands(
         help="Preview migration SQL without executing.",
     )
     def cmd_db_migrate_apply(
-        ctx, *, db: str, **kwargs: object,
+        _ctx: strictcli.Context, *, db: str, **kwargs: object,
     ) -> None:
         dry_run: bool = kwargs.get("dry_run", False)  # type: ignore[assignment]
         extra = ["--dry-run"] if dry_run else ["--no-dry-run"]
@@ -113,7 +113,7 @@ def _register_migrate_commands(
         help="Show applied and pending migration status.",
     )
     def cmd_db_migrate_status(
-        ctx, *, db: str, **_kwargs: object,
+        _ctx: strictcli.Context, *, db: str, **_kwargs: object,
     ) -> None:
         _run_pgdesign("status", _require_db(db))
 
@@ -139,7 +139,7 @@ def register_db_commands(app: strictcli.App) -> None:
         ),
     )
     def cmd_db_init(
-        ctx, *, db: str, quiet: bool, **kwargs: object,
+        _ctx: strictcli.Context, *, db: str, quiet: bool, **kwargs: object,
     ) -> None:
         db_url = _require_db(db)
         use_stub: bool = kwargs.get(  # type: ignore[assignment]
@@ -208,7 +208,7 @@ def register_db_commands(app: strictcli.App) -> None:
         help="Verify that all expected database schema objects are present.",
     )
     def cmd_db_verify(
-        ctx, *, db: str, quiet: bool, **_kwargs: object,
+        _ctx: strictcli.Context, *, db: str, quiet: bool, **_kwargs: object,
     ) -> None:
         db_url = _require_db(db)
 

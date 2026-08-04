@@ -607,7 +607,7 @@ class TestEmptyName:
         toml_file = tmp_path / "bad.toml"
         toml_file.write_text(bad_toml)
 
-        with pytest.raises(ValueError, match="tool.name"):
+        with pytest.raises(ValueError, match=r"tool.name"):
             load_tool_definition(toml_file)
 
     def test_whitespace_only_name(self, tmp_path: Path) -> None:

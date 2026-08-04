@@ -18,7 +18,10 @@ import strictcli
 
 def register_dispatch_commands(app: strictcli.App) -> None:
     """Register the ``dispatch`` command group on the orxtra CLI."""
-    dispatch_group = app.group("dispatch", help="Manage the persistent event dispatch worker process.")
+    dispatch_group = app.group(
+        "dispatch",
+        help="Manage the persistent event dispatch worker process.",
+    )
 
     @dispatch_group.command(
         name="run",
@@ -43,7 +46,7 @@ def register_dispatch_commands(app: strictcli.App) -> None:
         default=100,
     )
     def cmd_dispatch_run(
-        ctx, *,
+        _ctx: strictcli.Context, *,
         db: str,
         cursor: str,
         **kwargs: object,

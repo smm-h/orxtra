@@ -124,7 +124,7 @@ def test_app_version_reads_orxtra_cli_distribution() -> None:
     ]
     assert len(app_calls) == 1
     version_kw = next(kw for kw in app_calls[0].keywords if kw.arg == "version")
-    # version=importlib.metadata.version("orxtra-cli")
+    # The value must be a call resolving the orxtra-cli distribution version.
     assert isinstance(version_kw.value, ast.Call), ast.dump(version_kw.value)
     assert len(version_kw.value.args) == 1
     dist_arg = version_kw.value.args[0]

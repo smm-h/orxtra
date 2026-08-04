@@ -242,6 +242,15 @@ ignore = [
     "BLE001",   # blind except: generated error handling
     "INP001",   # implicit namespace package: _generated is a standalone package
 ]
+# strictspec-generated validators (_gen_*.py): machine-generated, marked
+# DO NOT EDIT, and carry a blanket `# ruff: noqa` (which suppresses every other
+# rule in the file). ruff still flags the blanket directive itself as PGH004.
+# The generated file is owned by strictspec -- editing it is reverted on the next
+# `strictspec gen` and flagged stale by `strictspec check` -- so the correct
+# scope for this suppression is the ruff config, not the file. Generated code is
+# validated by its generator plus runtime tests; policy until strictspec emits
+# targeted `# ruff: noqa: <codes>` output (todo filed upstream).
+"**/_gen_*.py" = ["PGH004"]
 
 [tool.mypy]
 python_version = "3.12"
