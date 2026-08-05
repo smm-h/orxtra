@@ -47,6 +47,25 @@ requirement is enforced at install time rather than discovered at runtime.
 
 ## 0.12.0
 
+Unified delivery and notifications, live worker WebSocket endpoint, AG-UI live streaming, strictspec validation gate, and a published documentation site.
+
+<details>
+<summary>Context</summary>
+
+This release carries the content originally cut as v0.11.0 together with the
+strictspec validation gate and the documentation build-out.
+
+v0.11.0 was cut under the pre-CI-gate release flow and could never pass the
+modern publish gate: CI cannot run retroactively on a stale release commit, so
+that version had no path to publication. Rather than attempt to resurrect it,
+its content ships here as 0.12.0 under the modern flow, which pushes the branch,
+verifies CI, and only then finalizes and tags.
+
+v0.11.0 remains a sealed, never-published version: its tag and its finalized
+changelog stay as historical record and are not reused.
+
+</details>
+
 ### Breaking
 
 - [api, cli, worker] **Breaking: strictcli v0.29.0 migration.** All CLI command handlers now receive ctx as first parameter. App constructor includes explicit version=.
