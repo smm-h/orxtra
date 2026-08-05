@@ -86,13 +86,13 @@ for _mod in _MOCK_MODS:
         sys.modules[_mod] = MagicMock()
         _installed_mocks.append(_mod)
 
-from orxtra.cli._cli import app  # noqa: E402
+from orxtra.cli._cli import app
 
 for _mod in _installed_mocks:
     if isinstance(sys.modules.get(_mod), MagicMock):
         del sys.modules[_mod]
 
-import importlib as _importlib  # noqa: E402
+import importlib as _importlib
 
 for _parent in ("orxtra.worker",):
     if _parent in sys.modules:

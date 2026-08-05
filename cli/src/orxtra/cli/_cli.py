@@ -645,6 +645,9 @@ def cmd_event_fire(
     event_name: str, payload: str, **_kwargs: object,
 ) -> None:
     db_url = _require_db(db)
+    # Read the framework value before the closure: `ctx` is rebound inside
+    # _run() to a DispatchContext, which has no quiet.
+    quiet = ctx.quiet
     parsed_payload: dict[str, Any] | None = None
     if payload:
         try:
@@ -670,7 +673,7 @@ def cmd_event_fire(
                 "event_name": event_name,
                 "payload": parsed_payload,
             })
-            if not ctx.quiet:
+            if not quiet:
                 print(f"event {event_name!r} fired for run {run_id} (id={event_id})")
         finally:
             await pool.close()
@@ -699,6 +702,10 @@ def cmd_validate_agent(
     path: str,
     **_kwargs: object,
 ) -> None:
+    # Read the framework value before the closure: `ctx` is rebound inside
+    # _run() to a DispatchContext, which has no quiet.
+    quiet = ctx.quiet
+
     async def _run() -> None:
         ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_agent", {"path": path})
@@ -706,7 +713,7 @@ def cmd_validate_agent(
             for err in errors:
                 print(err, file=sys.stderr)
             sys.exit(1)
-        if not ctx.quiet:
+        if not quiet:
             print("valid")
 
     asyncio.run(_run())
@@ -728,6 +735,10 @@ def cmd_validate_workflow(
     path: str,
     **_kwargs: object,
 ) -> None:
+    # Read the framework value before the closure: `ctx` is rebound inside
+    # _run() to a DispatchContext, which has no quiet.
+    quiet = ctx.quiet
+
     async def _run() -> None:
         ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_workflow", {"path": path})
@@ -735,7 +746,7 @@ def cmd_validate_workflow(
             for err in errors:
                 print(err, file=sys.stderr)
             sys.exit(1)
-        if not ctx.quiet:
+        if not quiet:
             print("valid")
 
     asyncio.run(_run())
@@ -757,6 +768,10 @@ def cmd_validate_categories(
     path: str,
     **_kwargs: object,
 ) -> None:
+    # Read the framework value before the closure: `ctx` is rebound inside
+    # _run() to a DispatchContext, which has no quiet.
+    quiet = ctx.quiet
+
     async def _run() -> None:
         ctx = DispatchContext(auth_context=_operator_auth_context())
         errors = await dispatch(ctx, "validate_categories", {"path": path})
@@ -764,7 +779,7 @@ def cmd_validate_categories(
             for err in errors:
                 print(err, file=sys.stderr)
             sys.exit(1)
-        if not ctx.quiet:
+        if not quiet:
             print("valid")
 
     asyncio.run(_run())

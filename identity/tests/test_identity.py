@@ -369,7 +369,10 @@ class _FakeTxn:
 class _FakeConn:
     """Connection stub whose execute() raises a chosen constraint violation."""
 
-    def __init__(self, exc_class: type[Exception] = asyncpg.ForeignKeyViolationError):
+    def __init__(
+        self,
+        exc_class: type[Exception] = asyncpg.ForeignKeyViolationError,
+    ) -> None:
         self._exc_class = exc_class
 
     def transaction(self) -> _FakeTxn:
