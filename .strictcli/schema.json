@@ -66,19 +66,13 @@
         "table",
         "json"
       ]
-    },
-    {
-      "name": "quiet",
-      "type": "bool",
-      "help": "Suppress non-essential output.",
-      "default": false,
-      "negatable": true
     }
   ],
   "commands": {
     "serve": {
       "name": "serve",
       "help": "Start the HTTP API server (MCP, A2A, AG-UI, native routes).",
+      "effect": "mutating",
       "flags": [
         {
           "name": "port",
@@ -97,7 +91,10 @@
           "help": "JSON object mapping secret names to env var names for auth.",
           "default": ""
         }
-      ]
+      ],
+      "forwarding": {
+        "reason": "absorbs app-level global flag values the handler does not name"
+      }
     }
   },
   "groups": {
@@ -108,6 +105,7 @@
         "start": {
           "name": "start",
           "help": "Start a new autonomous workflow run from a configuration file.",
+          "effect": "mutating",
           "flags": [
             {
               "name": "config",
@@ -119,51 +117,74 @@
               "type": "str",
               "help": "Natural-language description of what the run should accomplish."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "list": {
           "name": "list",
-          "help": "List all runs in the database, ordered newest first."
+          "help": "List all runs in the database, ordered newest first.",
+          "effect": "read_only",
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "show": {
           "name": "show",
           "help": "Display the full status report for a specific run.",
+          "effect": "read_only",
           "args": [
             {
               "name": "run_id",
               "help": "Unique identifier of the run to display (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "abort": {
           "name": "abort",
           "help": "Send an abort signal to stop a currently running workflow.",
+          "effect": "mutating",
           "args": [
             {
               "name": "run_id",
               "help": "Unique identifier of the run to abort (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "pause": {
           "name": "pause",
           "help": "Pause a running workflow run, suspending task execution.",
+          "effect": "mutating",
           "args": [
             {
               "name": "run_id",
               "help": "Unique identifier of the run to pause (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "resume": {
           "name": "resume",
           "help": "Resume a previously paused workflow run, restarting task execution.",
+          "effect": "mutating",
           "args": [
             {
               "name": "run_id",
               "help": "Unique identifier of the run to resume (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     },
@@ -174,6 +195,7 @@
         "list": {
           "name": "list",
           "help": "List pending human-in-the-loop inbox items, optionally filtered.",
+          "effect": "read_only",
           "flags": [
             {
               "name": "run",
@@ -186,21 +208,29 @@
               "help": "Filter inbox items by status (e.g. pending, answered, skipped).",
               "default": ""
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "show": {
           "name": "show",
           "help": "Display the full details of a single inbox item by ID.",
+          "effect": "read_only",
           "args": [
             {
               "name": "item_id",
               "help": "Unique identifier of the inbox item to display (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "respond": {
           "name": "respond",
           "help": "Submit an answer to a pending inbox item from a workflow run.",
+          "effect": "mutating",
           "args": [
             {
               "name": "answer",
@@ -210,21 +240,29 @@
               "name": "item_id",
               "help": "Unique identifier of the inbox item to respond to (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "skip": {
           "name": "skip",
           "help": "Skip a pending inbox item without providing an answer.",
+          "effect": "mutating",
           "args": [
             {
               "name": "item_id",
               "help": "Unique identifier of the inbox item to skip (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "reject": {
           "name": "reject",
           "help": "Reject a pending inbox item, indicating the provided options are insufficient.",
+          "effect": "mutating",
           "args": [
             {
               "name": "reason",
@@ -234,7 +272,10 @@
               "name": "item_id",
               "help": "Unique identifier of the inbox item to reject (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     },
@@ -245,6 +286,7 @@
         "events": {
           "name": "events",
           "help": "Query the stored event log for a specific workflow run.",
+          "effect": "read_only",
           "flags": [
             {
               "name": "type",
@@ -264,21 +306,29 @@
               "name": "run_id",
               "help": "Unique identifier of the run to query events for (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "transcript": {
           "name": "transcript",
           "help": "Display the full message transcript for an agent session.",
+          "effect": "read_only",
           "args": [
             {
               "name": "session_id",
               "help": "Unique identifier of the session to show the transcript for."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "search": {
           "name": "search",
           "help": "Search a session transcript for matching text (case-insensitive).",
+          "effect": "read_only",
           "args": [
             {
               "name": "query",
@@ -288,27 +338,38 @@
               "name": "session_id",
               "help": "Unique identifier of the session whose transcript to search."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "tasks": {
           "name": "tasks",
           "help": "Show task statuses, attempt counts, and hierarchy for a run.",
+          "effect": "read_only",
           "args": [
             {
               "name": "run_id",
               "help": "Unique identifier of the run to list tasks for (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "notepad": {
           "name": "notepad",
           "help": "Show cross-agent notepad entries for a workflow run.",
+          "effect": "read_only",
           "args": [
             {
               "name": "run_id",
               "help": "Unique identifier of the run to show notepad entries for (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     },
@@ -319,6 +380,7 @@
         "fire": {
           "name": "fire",
           "help": "Fire a named event to wake wait-for tasks in a running workflow.",
+          "effect": "mutating",
           "flags": [
             {
               "name": "payload",
@@ -336,7 +398,10 @@
               "name": "run_id",
               "help": "Unique identifier of the run to fire the event into (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     },
@@ -347,32 +412,44 @@
         "agent": {
           "name": "agent",
           "help": "Validate an agent definition TOML file for schema errors.",
+          "effect": "read_only",
           "args": [
             {
               "name": "path",
               "help": "Filesystem path to the agent TOML file to validate."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "workflow": {
           "name": "workflow",
           "help": "Validate a workflow definition TOML file for schema errors.",
+          "effect": "read_only",
           "args": [
             {
               "name": "path",
               "help": "Filesystem path to the workflow TOML file to validate."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "categories": {
           "name": "categories",
           "help": "Validate a model categories TOML file for schema errors.",
+          "effect": "read_only",
           "args": [
             {
               "name": "path",
               "help": "Filesystem path to the categories TOML file to validate."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     },
@@ -383,16 +460,24 @@
         "show": {
           "name": "show",
           "help": "Display the frozen configuration snapshot stored for a run.",
+          "effect": "read_only",
           "args": [
             {
               "name": "run_id",
               "help": "Unique identifier of the run whose config to display (UUID format)."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "pricing": {
           "name": "pricing",
-          "help": "Display the current internal pricing table for all supported models."
+          "help": "Display the current internal pricing table for all supported models.",
+          "effect": "read_only",
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     },
@@ -403,19 +488,18 @@
         "init": {
           "name": "init",
           "help": "Create the database schema and seed the system principal (idempotent).",
-          "flags": [
-            {
-              "name": "use-extension-stub",
-              "type": "bool",
-              "help": "Use a gen_random_uuid() stub instead of pg_uuidv7 extension.",
-              "default": false,
-              "negatable": true
-            }
-          ]
+          "effect": "mutating",
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "verify": {
           "name": "verify",
-          "help": "Verify that all expected database schema objects are present."
+          "help": "Verify that all expected database schema objects are present.",
+          "effect": "read_only",
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       },
       "groups": {
@@ -425,24 +509,28 @@
           "commands": {
             "plan": {
               "name": "plan",
-              "help": "Preview schema changes without generating files."
+              "help": "Preview schema changes without generating files.",
+              "effect": "read_only",
+              "forwarding": {
+                "reason": "absorbs app-level global flag values the handler does not name"
+              }
             },
             "apply": {
               "name": "apply",
               "help": "Apply pending migrations to the database.",
-              "flags": [
-                {
-                  "name": "dry-run",
-                  "type": "bool",
-                  "help": "Preview migration SQL without executing.",
-                  "default": false,
-                  "negatable": true
-                }
-              ]
+              "effect": "mutating",
+              "consequential": true,
+              "forwarding": {
+                "reason": "absorbs app-level global flag values the handler does not name"
+              }
             },
             "status": {
               "name": "status",
-              "help": "Show applied and pending migration status."
+              "help": "Show applied and pending migration status.",
+              "effect": "read_only",
+              "forwarding": {
+                "reason": "absorbs app-level global flag values the handler does not name"
+              }
             }
           }
         }
@@ -455,6 +543,7 @@
         "run": {
           "name": "run",
           "help": "Start the persistent dispatch worker that processes event subscriptions.",
+          "effect": "mutating",
           "flags": [
             {
               "name": "cursor",
@@ -474,7 +563,10 @@
               "help": "Maximum number of events to process in a single polling batch.",
               "default": 100
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     },
@@ -485,6 +577,7 @@
         "connect": {
           "name": "connect",
           "help": "Connect a native worker process to a brain via WebSocket.",
+          "effect": "mutating",
           "flags": [
             {
               "name": "brain",
@@ -501,11 +594,15 @@
               "type": "str",
               "help": "API key used for authenticating with the brain server."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         },
         "docker": {
           "name": "docker",
           "help": "Run a worker inside a Docker container connected to a brain.",
+          "effect": "mutating",
           "flags": [
             {
               "name": "brain",
@@ -527,7 +624,10 @@
               "type": "str",
               "help": "API key used for authenticating with the brain server."
             }
-          ]
+          ],
+          "forwarding": {
+            "reason": "absorbs app-level global flag values the handler does not name"
+          }
         }
       }
     }
