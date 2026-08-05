@@ -96,9 +96,14 @@ def test_format_invalid_choice_fails() -> None:
     assert "xml" in stderr
 
 
-def test_quiet_flag_exists() -> None:
-    quiet_flag = next(f for f in app.flags if f.name == "quiet")
-    assert quiet_flag.type is bool
+def test_quiet_is_not_a_declared_app_flag() -> None:
+    """`quiet` is framework-owned since strictcli 0.36.0.
+
+    The reserved quartet (dry-run, approve-consequential, quiet, verbose) is
+    banned as a user-declared flag name at every level and is delivered on the
+    Context instead. Handlers read ``ctx.quiet``.
+    """
+    assert all(f.name != "quiet" for f in app.flags)
 
 
 def test_no_command_shows_help() -> None:
@@ -418,11 +423,14 @@ def test_db_commands() -> None:
     assert cmds == {"init", "verify"}
 
 
-def test_db_init_has_use_extension_stub_flag() -> None:
+def test_db_init_has_no_flags() -> None:
+    """``db init`` carries no command flags.
+
+    ``--use-extension-stub`` is gone: the schema now uses PostgreSQL 18's
+    native ``uuidv7()``, so there is no extension to stub out.
+    """
     cmd = app._groups["db"].commands["init"]
-    flag = next(f for f in cmd.flags if f.name == "use-extension-stub")
-    assert flag.type is bool
-    assert flag.default is False
+    assert len(cmd.flags) == 0
 
 
 def test_db_verify_no_extra_flags() -> None:
@@ -442,13 +450,15 @@ def test_db_migrate_commands() -> None:
     assert cmds == {"plan", "apply", "status"}
 
 
-def test_db_migrate_apply_has_dry_run_flag() -> None:
+def test_db_migrate_apply_declares_no_dry_run_flag() -> None:
+    """``dry-run`` is framework-owned and must not be declared locally.
+
+    The handler reads ``ctx.dry_run`` and forwards it to pgdesign.
+    """
     db = app._groups["db"]
     migrate = db._groups["migrate"]
     cmd = migrate.commands["apply"]
-    flag = next(f for f in cmd.flags if f.name == "dry-run")
-    assert flag.type is bool
-    assert flag.default is False
+    assert all(f.name != "dry-run" for f in cmd.flags)
 
 
 def test_db_missing_subcommand_shows_help() -> None:
@@ -516,7 +526,7 @@ def test_total_command_count_is_27() -> None:
 
 def test_serve_help_shows_secrets_env_flag() -> None:
     """The serve command exposes --secrets-env in its help output."""
-    stdout, _, code = _test("--no-quiet", "serve", "--help")
+    stdout, _, code = _test("serve", "--help")
     assert code == 0
     assert "--secrets-env" in stdout
 

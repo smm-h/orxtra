@@ -13,6 +13,11 @@ import strictcli
 from orxtra.worker._docker import DockerWorker
 from orxtra.worker._native import NativeWorker
 
+# Handlers absorb the app-level global flag values they do not name.
+_ABSORBS_GLOBALS = strictcli.Forwarding(
+    reason="absorbs app-level global flag values the handler does not name",
+)
+
 
 def register_worker_commands(app: strictcli.App) -> None:
     """Register the ``worker`` command group on the orxtra CLI."""
@@ -24,6 +29,8 @@ def register_worker_commands(app: strictcli.App) -> None:
     @worker_group.command(
         name="connect",
         help="Connect a native worker process to a brain via WebSocket.",
+        effect="mutating",
+        forwarding=_ABSORBS_GLOBALS,
     )
     @strictcli.flag(
         name="brain",
@@ -53,6 +60,8 @@ def register_worker_commands(app: strictcli.App) -> None:
     @worker_group.command(
         name="docker",
         help="Run a worker inside a Docker container connected to a brain.",
+        effect="mutating",
+        forwarding=_ABSORBS_GLOBALS,
     )
     @strictcli.flag(
         name="brain",

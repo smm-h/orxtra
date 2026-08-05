@@ -12,6 +12,11 @@ import sys
 import strictcli
 from orxtra.api._lifecycle import ServerConfig, build_app
 
+# Handlers absorb the app-level global flag values they do not name.
+_ABSORBS_GLOBALS = strictcli.Forwarding(
+    reason="absorbs app-level global flag values the handler does not name",
+)
+
 
 def register_serve_command(app: strictcli.App) -> None:
     """Register the `serve` command on the given strictcli App."""
@@ -19,6 +24,8 @@ def register_serve_command(app: strictcli.App) -> None:
     @app.command(
         name="serve",
         help="Start the HTTP API server (MCP, A2A, AG-UI, native routes).",
+        effect="mutating",
+        forwarding=_ABSORBS_GLOBALS,
     )
     @strictcli.flag(
         name="port",

@@ -15,6 +15,11 @@ import sys
 
 import strictcli
 
+# Handlers absorb the app-level global flag values they do not name.
+_ABSORBS_GLOBALS = strictcli.Forwarding(
+    reason="absorbs app-level global flag values the handler does not name",
+)
+
 
 def register_dispatch_commands(app: strictcli.App) -> None:
     """Register the ``dispatch`` command group on the orxtra CLI."""
@@ -26,6 +31,8 @@ def register_dispatch_commands(app: strictcli.App) -> None:
     @dispatch_group.command(
         name="run",
         help="Start the persistent dispatch worker that processes event subscriptions.",
+        effect="mutating",
+        forwarding=_ABSORBS_GLOBALS,
     )
     @strictcli.flag(
         name="cursor",

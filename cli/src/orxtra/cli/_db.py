@@ -6,8 +6,8 @@ init/verify, and wraps ``pgdesign migrate`` subcommands for migrations.
 
 Layering note: the generated executor lives in ``schema/_generated/`` which
 is a dev_node (not a proper installed package). The shared asyncpg adapter
-and pg_uuidv7 stub live in ``orxtra.services._schema``; importing that
-module adds schema/ to sys.path.
+lives in ``orxtra.services._schema``; importing that module adds schema/ to
+sys.path.
 """
 
 from __future__ import annotations
@@ -20,7 +20,12 @@ from typing import NoReturn
 
 import asyncpg
 import strictcli
-from orxtra.services import PG_UUIDV7_STUB, AsyncpgAdapter
+from orxtra.services import AsyncpgAdapter
+
+# Handlers absorb the app-level global flag values they do not name.
+_ABSORBS_GLOBALS = strictcli.Forwarding(
+    reason="absorbs app-level global flag values the handler does not name",
+)
 
 
 def _die(message: str) -> NoReturn:
@@ -85,6 +90,8 @@ def _register_migrate_commands(
     @migrate_group.command(
         name="plan",
         help="Preview schema changes without generating files.",
+        effect="read_only",
+        forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_migrate_plan(
         _ctx: strictcli.Context, *, db: str, **_kwargs: object,
@@ -94,23 +101,23 @@ def _register_migrate_commands(
     @migrate_group.command(
         name="apply",
         help="Apply pending migrations to the database.",
-    )
-    @strictcli.flag(
-        name="dry-run",
-        type=bool,
-        default=False,
-        help="Preview migration SQL without executing.",
+        effect="mutating",
+        consequential=True,
+        forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_migrate_apply(
-        _ctx: strictcli.Context, *, db: str, **kwargs: object,
+        ctx: strictcli.Context, *, db: str, **_kwargs: object,
     ) -> None:
-        dry_run: bool = kwargs.get("dry_run", False)  # type: ignore[assignment]
-        extra = ["--dry-run"] if dry_run else ["--no-dry-run"]
+        # --dry-run is the framework-owned reserved flag; its value arrives on
+        # the context and is forwarded to pgdesign, which has its own.
+        extra = ["--dry-run"] if ctx.dry_run else ["--no-dry-run"]
         _run_pgdesign("apply", _require_db(db), extra)
 
     @migrate_group.command(
         name="status",
         help="Show applied and pending migration status.",
+        effect="read_only",
+        forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_migrate_status(
         _ctx: strictcli.Context, *, db: str, **_kwargs: object,
@@ -128,43 +135,23 @@ def register_db_commands(app: strictcli.App) -> None:
     @db_group.command(
         name="init",
         help="Create the database schema and seed the system principal (idempotent).",
-    )
-    @strictcli.flag(
-        name="use-extension-stub",
-        type=bool,
-        default=False,
-        help=(
-            "Use a gen_random_uuid() stub instead of "
-            "pg_uuidv7 extension."
-        ),
+        effect="mutating",
+        forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_init(
-        _ctx: strictcli.Context, *, db: str, quiet: bool, **kwargs: object,
+        ctx: strictcli.Context, *, db: str, **_kwargs: object,
     ) -> None:
         db_url = _require_db(db)
-        use_stub: bool = kwargs.get(  # type: ignore[assignment]
-            "use_extension_stub", False,
-        )
 
         async def _run() -> None:
             from _generated.schema_executor import (  # type: ignore[import-not-found]
                 ensure_schema,
-                execute,
             )
 
             conn = await asyncpg.connect(db_url)
             try:
                 adapter = AsyncpgAdapter(conn)
-                if use_stub:
-                    result = await execute(
-                        adapter,
-                        idempotent=True,
-                        extension_stubs={
-                            "pg_uuidv7": PG_UUIDV7_STUB,
-                        },
-                    )
-                else:
-                    result = await ensure_schema(adapter)
+                result = await ensure_schema(adapter)
                 if result.errors:
                     for kind, name, err in result.errors:
                         print(
@@ -172,7 +159,7 @@ def register_db_commands(app: strictcli.App) -> None:
                             file=sys.stderr,
                         )
                     sys.exit(1)
-                if not quiet:
+                if not ctx.quiet:
                     n_exec = len(result.executed)
                     n_skip = len(result.skipped)
                     print(
@@ -198,7 +185,7 @@ def register_db_commands(app: strictcli.App) -> None:
                 )
             finally:
                 await pool.close()
-            if not quiet:
+            if not ctx.quiet:
                 print("System principal seeded.")
 
         asyncio.run(_run())
@@ -206,9 +193,11 @@ def register_db_commands(app: strictcli.App) -> None:
     @db_group.command(
         name="verify",
         help="Verify that all expected database schema objects are present.",
+        effect="read_only",
+        forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_verify(
-        _ctx: strictcli.Context, *, db: str, quiet: bool, **_kwargs: object,
+        ctx: strictcli.Context, *, db: str, **_kwargs: object,
     ) -> None:
         db_url = _require_db(db)
 
@@ -223,14 +212,14 @@ def register_db_commands(app: strictcli.App) -> None:
                 result = await verify(adapter)
                 n_miss = len(result.missing)
                 n_present = len(result.present)
-                if not quiet:
+                if not ctx.quiet:
                     print(
                         f"Schema verification: "
                         f"{n_present} present, "
                         f"{n_miss} missing.",
                     )
                 if result.missing:
-                    if not quiet:
+                    if not ctx.quiet:
                         for kind, name in result.missing:
                             print(f"  MISSING {kind}: {name}")
                         print(

@@ -139,13 +139,13 @@ app = strictcli.App(
             default="table",
             choices=["table", "json"],
         ),
-        strictcli.Flag(
-            name="quiet",
-            type=bool,
-            default=False,
-            help="Suppress non-essential output.",
-        ),
     ],
+)
+
+# Every command handler absorbs the app-level global flag values it does not
+# itself name (--db, --format), so each registration declares forwarding.
+_ABSORBS_GLOBALS = strictcli.Forwarding(
+    reason="absorbs app-level global flag values the handler does not name",
 )
 
 # -- Run group --
@@ -160,6 +160,8 @@ run_group = app.group(
 @run_group.command(
     name="start",
     help="Start a new autonomous workflow run from a configuration file.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.flag(
     name="config",
@@ -205,6 +207,8 @@ def cmd_run_start(
 @run_group.command(
     name="list",
     help="List all runs in the database, ordered newest first.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 def cmd_run_list(
     _ctx: strictcli.Context,
@@ -219,6 +223,8 @@ def cmd_run_list(
 @run_group.command(
     name="show",
     help="Display the full status report for a specific run.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
@@ -257,66 +263,69 @@ def cmd_run_show(
 @run_group.command(
     name="abort",
     help="Send an abort signal to stop a currently running workflow.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to abort (UUID format).",
 )
 def cmd_run_abort(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    quiet: bool,
     run_id: str,
     **_kwargs: object,
 ) -> None:
     _dispatch_quiet(
         _require_db(db), "abort_run", {"run_id": run_id},
-        quiet, f"run {run_id} aborted",
+        ctx.quiet, f"run {run_id} aborted",
     )
 
 
 @run_group.command(
     name="pause",
     help="Pause a running workflow run, suspending task execution.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to pause (UUID format).",
 )
 def cmd_run_pause(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    quiet: bool,
     run_id: str,
     **_kwargs: object,
 ) -> None:
     _dispatch_quiet(
         _require_db(db), "pause_run", {"run_id": run_id},
-        quiet, f"run {run_id} paused",
+        ctx.quiet, f"run {run_id} paused",
     )
 
 
 @run_group.command(
     name="resume",
     help="Resume a previously paused workflow run, restarting task execution.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to resume (UUID format).",
 )
 def cmd_run_resume(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    quiet: bool,
     run_id: str,
     **_kwargs: object,
 ) -> None:
     _dispatch_quiet(
         _require_db(db), "resume_run", {"run_id": run_id},
-        quiet, f"run {run_id} resumed",
+        ctx.quiet, f"run {run_id} resumed",
     )
 
 
@@ -331,6 +340,8 @@ inbox_group = app.group(
 @inbox_group.command(
     name="list",
     help="List pending human-in-the-loop inbox items, optionally filtered.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.flag(
     name="run",
@@ -361,6 +372,8 @@ def cmd_inbox_list(
 @inbox_group.command(
     name="show",
     help="Display the full details of a single inbox item by ID.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="item_id",
@@ -380,6 +393,8 @@ def cmd_inbox_show(
 @inbox_group.command(
     name="respond",
     help="Submit an answer to a pending inbox item from a workflow run.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="item_id",
@@ -407,6 +422,8 @@ def cmd_inbox_respond(
 @inbox_group.command(
     name="skip",
     help="Skip a pending inbox item without providing an answer.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="item_id",
@@ -429,6 +446,8 @@ def cmd_inbox_skip(
     name="reject",
     help="Reject a pending inbox item, indicating the provided options "
     "are insufficient.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="item_id",
@@ -464,6 +483,8 @@ trace_group = app.group(
 @trace_group.command(
     name="events",
     help="Query the stored event log for a specific workflow run.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
@@ -500,6 +521,8 @@ def cmd_trace_events(
 @trace_group.command(
     name="transcript",
     help="Display the full message transcript for an agent session.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="session_id",
@@ -521,6 +544,8 @@ def cmd_trace_transcript(
 @trace_group.command(
     name="search",
     help="Search a session transcript for matching text (case-insensitive).",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="session_id",
@@ -548,6 +573,8 @@ def cmd_trace_search(
 @trace_group.command(
     name="tasks",
     help="Show task statuses, attempt counts, and hierarchy for a run.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
@@ -567,6 +594,8 @@ def cmd_trace_tasks(
 @trace_group.command(
     name="notepad",
     help="Show cross-agent notepad entries for a workflow run.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
@@ -594,6 +623,8 @@ event_group = app.group(
 @event_group.command(
     name="fire",
     help="Fire a named event to wake wait-for tasks in a running workflow.",
+    effect="mutating",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
@@ -610,7 +641,7 @@ event_group = app.group(
     default="",
 )
 def cmd_event_fire(
-    _ctx: strictcli.Context, *, db: str, quiet: bool, run_id: str,
+    ctx: strictcli.Context, *, db: str, run_id: str,
     event_name: str, payload: str, **_kwargs: object,
 ) -> None:
     db_url = _require_db(db)
@@ -639,7 +670,7 @@ def cmd_event_fire(
                 "event_name": event_name,
                 "payload": parsed_payload,
             })
-            if not quiet:
+            if not ctx.quiet:
                 print(f"event {event_name!r} fired for run {run_id} (id={event_id})")
         finally:
             await pool.close()
@@ -658,12 +689,13 @@ validate_group = app.group(
 @validate_group.command(
     name="agent",
     help="Validate an agent definition TOML file for schema errors.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(name="path", help="Filesystem path to the agent TOML file to validate.")
 def cmd_validate_agent(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
-    quiet: bool,
     path: str,
     **_kwargs: object,
 ) -> None:
@@ -674,7 +706,7 @@ def cmd_validate_agent(
             for err in errors:
                 print(err, file=sys.stderr)
             sys.exit(1)
-        if not quiet:
+        if not ctx.quiet:
             print("valid")
 
     asyncio.run(_run())
@@ -683,15 +715,16 @@ def cmd_validate_agent(
 @validate_group.command(
     name="workflow",
     help="Validate a workflow definition TOML file for schema errors.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="path",
     help="Filesystem path to the workflow TOML file to validate.",
 )
 def cmd_validate_workflow(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
-    quiet: bool,
     path: str,
     **_kwargs: object,
 ) -> None:
@@ -702,7 +735,7 @@ def cmd_validate_workflow(
             for err in errors:
                 print(err, file=sys.stderr)
             sys.exit(1)
-        if not quiet:
+        if not ctx.quiet:
             print("valid")
 
     asyncio.run(_run())
@@ -711,15 +744,16 @@ def cmd_validate_workflow(
 @validate_group.command(
     name="categories",
     help="Validate a model categories TOML file for schema errors.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="path",
     help="Filesystem path to the categories TOML file to validate.",
 )
 def cmd_validate_categories(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
-    quiet: bool,
     path: str,
     **_kwargs: object,
 ) -> None:
@@ -730,7 +764,7 @@ def cmd_validate_categories(
             for err in errors:
                 print(err, file=sys.stderr)
             sys.exit(1)
-        if not quiet:
+        if not ctx.quiet:
             print("valid")
 
     asyncio.run(_run())
@@ -747,6 +781,8 @@ config_group = app.group(
 @config_group.command(
     name="show",
     help="Display the frozen configuration snapshot stored for a run.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 @strictcli.arg(
     name="run_id",
@@ -785,6 +821,8 @@ def cmd_config_show(
 @config_group.command(
     name="pricing",
     help="Display the current internal pricing table for all supported models.",
+    effect="read_only",
+    forwarding=_ABSORBS_GLOBALS,
 )
 def cmd_config_pricing(
     _ctx: strictcli.Context,
