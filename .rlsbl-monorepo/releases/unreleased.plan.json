@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "base_version": "0.12.0",
+      "bump": "minor",
+      "name": "orxtra",
+      "registry": "pypi",
+      "tag": "orxtra@v0.13.0",
+      "target_version": "0.13.0"
+    }
+  ],
+  "section_type": "releasables"
+}
