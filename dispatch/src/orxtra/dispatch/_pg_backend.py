@@ -327,7 +327,7 @@ class PgDispatchBackend:
             await conn.execute(
                 "INSERT INTO dispatch_cursor"
                 " (id, cursor_name, last_processed_event_id, last_processed_at)"
-                " VALUES (uuid_generate_v7(), $1, $2, now())"
+                " VALUES (uuidv7(), $1, $2, now())"
                 " ON CONFLICT (cursor_name)"
                 " DO UPDATE SET last_processed_event_id = $2,"
                 "   last_processed_at = now()",
@@ -362,7 +362,7 @@ class PgDispatchBackend:
                 "INSERT INTO dispatch_completions"
                 " (id, event_id, subscription_action_id,"
                 "  result_status, completed_at)"
-                " VALUES (uuid_generate_v7(), $1, $2, $3, now())"
+                " VALUES (uuidv7(), $1, $2, $3, now())"
                 " ON CONFLICT (event_id, subscription_action_id)"
                 " DO NOTHING",
                 event_id,

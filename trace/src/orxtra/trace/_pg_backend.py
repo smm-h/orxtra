@@ -492,7 +492,7 @@ class PgBackend:
         async with self._pool.acquire() as conn, conn.transaction():
             await conn.execute(
                 "INSERT INTO knowledge_hashes (id, run_id, path, file_hash)"
-                " VALUES (uuid_generate_v7(), $1, $2, $3)"
+                " VALUES (uuidv7(), $1, $2, $3)"
                 " ON CONFLICT (run_id, path) DO UPDATE"
                 " SET file_hash = $3",
                 run_id,

@@ -136,9 +136,13 @@ class PgPrincipalStorage:
         Raises ``PrincipalInUseError`` if the principal anchors durable
         history. The referencing RESTRICT foreign keys are ``events.principal_id``,
         ``runs.created_by``, ``sources.created_by``, ``inbox_items.resolved_by``,
-        and ``consumers.principal_id``; any of them raises a PostgreSQL
-        ``ForeignKeyViolationError`` on delete, translated into the domain error
-        here.
+        and ``consumers.principal_id``.
+
+        Which PostgreSQL error a RESTRICT violation raises is version-dependent:
+        through PG 17 it is ``foreign_key_violation`` (23503,
+        ``ForeignKeyViolationError``); PG 18 raises ``restrict_violation``
+        (23001, ``RestrictViolationError``), which is a sibling class and NOT a
+        subclass. Both are caught and translated into the domain error here.
 
         The one CASCADE referent, ``subscriptions.principal_id``, does not block:
         deleting an owning principal takes its subscriptions (operational state)
@@ -151,7 +155,10 @@ class PgPrincipalStorage:
                     "DELETE FROM principals WHERE id = $1",
                     principal_id,
                 )
-        except asyncpg.ForeignKeyViolationError as exc:
+        except (
+            asyncpg.ForeignKeyViolationError,
+            asyncpg.RestrictViolationError,
+        ) as exc:
             raise PrincipalInUseError(principal_id) from exc
 
     async def sweep_orphaned_run_principals(

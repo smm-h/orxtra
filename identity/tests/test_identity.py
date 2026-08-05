@@ -367,17 +367,19 @@ class _FakeTxn:
 
 
 class _FakeConn:
-    """Connection stub whose execute() raises an FK violation."""
+    """Connection stub whose execute() raises a chosen constraint violation."""
+
+    def __init__(self, exc_class: type[Exception] = asyncpg.ForeignKeyViolationError):
+        self._exc_class = exc_class
 
     def transaction(self) -> _FakeTxn:
         return _FakeTxn()
 
     async def execute(self, *_args: object) -> str:
         msg = (
-            'update or delete on table "principals" violates foreign key '
-            "constraint"
+            'update or delete on table "principals" violates a constraint'
         )
-        raise asyncpg.ForeignKeyViolationError(msg)
+        raise self._exc_class(msg)
 
 
 class _FakeAcquire:
@@ -402,6 +404,24 @@ class _FakePool:
 async def test_delete_principal_fk_violation_translated() -> None:
     """A ForeignKeyViolationError on DELETE becomes PrincipalInUseError."""
     pool = _FakePool(_FakeConn())
+    storage = PgPrincipalStorage(pool)  # type: ignore[arg-type]
+
+    principal_id = uuid4()
+    with pytest.raises(PrincipalInUseError) as exc_info:
+        await storage.delete_principal(principal_id)
+    assert exc_info.value.principal_id == principal_id
+
+
+async def test_delete_principal_restrict_violation_translated() -> None:
+    """A RestrictViolationError on DELETE also becomes PrincipalInUseError.
+
+    PostgreSQL 18 changed the SQLSTATE for an ON DELETE RESTRICT violation from
+    23503 (foreign_key_violation) to 23001 (restrict_violation). asyncpg maps
+    those to ForeignKeyViolationError and RestrictViolationError respectively,
+    which are siblings, not subclasses -- so catching only the former silently
+    stopped translating the domain error the moment the server moved to 18.
+    """
+    pool = _FakePool(_FakeConn(asyncpg.RestrictViolationError))
     storage = PgPrincipalStorage(pool)  # type: ignore[arg-type]
 
     principal_id = uuid4()

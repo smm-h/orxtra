@@ -455,7 +455,7 @@ class TestSweepOrphanedRunPrincipals:
     async def test_orphan_with_event_history_raises_fk_error(
         self, pg_pool: asyncpg.Pool,
     ) -> None:
-        """A kind=run orphan with events raises ForeignKeyViolationError.
+        """A kind=run orphan with events raises an integrity-constraint error.
 
         This scenario is structurally impossible in normal operation: a
         principal whose run was never created cannot have events. The
@@ -463,6 +463,11 @@ class TestSweepOrphanedRunPrincipals:
         (kind=run, no matching run, old enough), PG tries to remove it,
         the RESTRICT FK on events.principal_id fires, and the
         transaction rolls back -- the principal survives.
+
+        The concrete exception class is PostgreSQL-version-dependent:
+        ForeignKeyViolationError (23503) through PG 17, RestrictViolationError
+        (23001) from PG 18. The sweep deliberately does not translate it (only
+        delete_principal does), so the assertion is on their shared base.
         """
         import asyncpg as _asyncpg
 
@@ -481,7 +486,7 @@ class TestSweepOrphanedRunPrincipals:
             " WHERE id = $1",
             minted.id,
         )
-        with pytest.raises(_asyncpg.ForeignKeyViolationError):
+        with pytest.raises(_asyncpg.IntegrityConstraintViolationError):
             await storage.sweep_orphaned_run_principals(
                 timedelta(minutes=5),
             )
