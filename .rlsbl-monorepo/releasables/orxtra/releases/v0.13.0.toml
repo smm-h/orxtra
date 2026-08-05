@@ -1,0 +1,11 @@
+# Archived by rlsbl at release time. This release had no unreleased.toml
+# (a batch member takes its metadata from the batch release file); the
+# archive is written so later changelog regenerations keep the
+# description and context.
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "minor"
+include = ["pypi"]
+exclude = []
+description = "PostgreSQL 18 is now the minimum and every command declares its effect under strictcli 0.36.0."
+context = "Two breaking changes land together in this release.\n\nstrictcli 0.36.0 makes effect classification mandatory, so every orxtra command\nnow declares whether it is read-only or mutating. The visible consequence is\n`orxtra db migrate apply`, which is classified consequential and prompts for\nconfirmation before it runs; pass `--approve-consequential` to skip the prompt.\n`--dry-run`, `--quiet` and `--verbose` became framework flags and are accepted\nanywhere in the command line, and `orxtra db init --use-extension-stub` is gone\nalong with the stub it enabled.\n\nPostgreSQL 18 becomes the minimum server version. Primary keys now use the\nserver's built-in `uuidv7()`, which retires the `pg_uuidv7` extension and its\ndevelopment stub entirely. `orxtra db init` against a pre-18 server fails loudly\nrather than silently degrading. Two regressions surfaced by that bump are fixed\nhere: PG 18 changed the SQLSTATE for an `ON DELETE RESTRICT` violation, which\nhad been leaking a raw driver exception instead of `PrincipalInUseError` when\ndeleting a principal that anchors history, and dispatch and trace writes that\nstill named the old extension function now work again. Separately, `orxtra\nvalidate` and `orxtra event fire` no longer crash while reading the quiet\nsetting.\n\nThe published wheel now declares `strictcli>=0.36.0` so the effect-classification\nrequirement is enforced at install time rather than discovered at runtime."
