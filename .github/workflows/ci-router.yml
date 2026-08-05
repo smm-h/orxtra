@@ -756,7 +756,8 @@ jobs:
     - uses: actions/setup-go@v6
       with:
         go-version: stable
-    - run: go install github.com/smm-h/pgdesign/cmd/pgdesign@latest
+      # @v0: a phantom v1.0.0 is permanently cached on the Go module proxy; @latest resolves it
+    - run: go install github.com/smm-h/pgdesign/cmd/pgdesign@v0
     - run: pgdesign validate .
     defaults:
       run:
