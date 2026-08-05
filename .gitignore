@@ -17,6 +17,8 @@ coverage/
 .rlsbl-notes-*.tmp
 .rlsbl/lock
 .rlsbl-monorepo/lock
+# Transient release resume state; rlsbl deletes it on a successful release.
+.rlsbl-monorepo/releasables/*/releases/in-progress.json
 .credentials.json
 .*-cache.json
 .env.local
