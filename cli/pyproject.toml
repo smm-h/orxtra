@@ -6,7 +6,7 @@ description = "strictcli CLI frontend. Agents are the primary users."
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg",
-    "strictcli",
+    "strictcli>=0.36.0",
     "orxtra-api",
     "orxtra-identity",
     "orxtra-notification",

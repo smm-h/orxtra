@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastware>=0.5.0",
     "pydantic>=2",
-    "strictcli",
+    "strictcli>=0.36.0",
     "websockets",
     "orxtra-auth",
     "orxtra-protocols",
