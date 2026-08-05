@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from orxtra.services import PG_UUIDV7_STUB, AsyncpgAdapter
+from orxtra.services import AsyncpgAdapter
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
@@ -37,10 +37,14 @@ skip_no_docker = pytest.mark.skipif(
 
 @pytest.fixture(scope="session")
 def pg_container() -> Iterator[Any]:
-    """Start a PostgreSQL 16 container for integration tests."""
+    """Start a PostgreSQL 18 container for integration tests.
+
+    18 is the documented minimum: the schema's ``id`` type defaults to the
+    server-native ``uuidv7()``, which first ships in PostgreSQL 18.
+    """
     if not _HAS_TESTCONTAINERS:
         pytest.skip("testcontainers not available")
-    with PostgresContainer("postgres:16") as pg:
+    with PostgresContainer("postgres:18") as pg:
         yield pg
 
 
@@ -66,14 +70,10 @@ async def pg_pool(
         await conn.execute("DROP SCHEMA public CASCADE")
 
         # Apply the full schema (trace -> dispatch -> auth) via the
-        # generated executor, substituting the pg_uuidv7 extension
-        # with a gen_random_uuid() stub for testcontainers PG.
+        # generated executor. No extension stubs: uuidv7() is native to
+        # PostgreSQL 18, which is the schema's documented minimum.
         adapter = AsyncpgAdapter(conn)
-        result = await schema_execute(
-            adapter,
-            idempotent=False,
-            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
-        )
+        result = await schema_execute(adapter, idempotent=False)
         if result.errors:
             err_msg = "; ".join(
                 f"{kind}.{name}: {err}"

@@ -10,7 +10,7 @@ orxtra has three long-running processes: the API server, the dispatch worker, an
 ## Prerequisites
 
 - Python 3.12+
-- PostgreSQL 15+ with the [pg_uuidv7](https://github.com/fboulnois/pg_uuidv7) extension (or use the built-in stub for development)
+- PostgreSQL 18+ (the schema's primary keys default to the server-native `uuidv7()`, which first ships in 18)
 - [pgdesign](https://github.com/smm-h/pgdesign) binary on PATH (for migrations only)
 
 Install orxtra:
@@ -31,7 +31,7 @@ postgresql://user:password@host:5432/orxtra
 
 ### Initialize the schema
 
-The `db init` command creates all tables, types, extensions, and indexes. It is idempotent -- safe to run repeatedly.
+The `db init` command creates all tables, types, and indexes. It is idempotent -- safe to run repeatedly.
 
 ```
 orxtra --db postgresql://user:password@host:5432/orxtra db init
@@ -39,13 +39,7 @@ orxtra --db postgresql://user:password@host:5432/orxtra db init
 
 This runs the pgdesign-generated schema executor, which creates objects across five schema files (identity, trace, dispatch, auth, notification) in dependency order. It also seeds the singleton system principal used for internal attribution.
 
-**pg_uuidv7 extension**: The schema requires UUIDv7 generation. In production, install the `pg_uuidv7` PostgreSQL extension. For development or environments where installing extensions is not possible, use the `--use-extension-stub` flag, which substitutes `gen_random_uuid()`:
-
-```
-orxtra --db postgresql://... db init --use-extension-stub
-```
-
-The stub produces v4 UUIDs instead of time-ordered v7 UUIDs. This is acceptable for development but loses the time-ordering property in production.
+**UUIDv7 generation**: Every primary key defaults to `uuidv7()`, PostgreSQL 18's built-in time-ordered UUID function. No extension is required and none is declared. Running against a server older than 18 fails at `db init` with an undefined-function error -- 18 is a hard minimum, not a recommendation.
 
 ### Verify the schema
 
@@ -222,7 +216,7 @@ A production deployment runs three process types:
 ### Database
 
 - Use a dedicated PostgreSQL database. The schema creates tables across identity, trace, dispatch, auth, and notification domains.
-- Install the `pg_uuidv7` extension for time-ordered UUIDs (do not use the stub in production).
+- Run PostgreSQL 18 or newer. Time-ordered UUIDs come from the server's native `uuidv7()`; there is no extension to install and no fallback.
 - The append-only event store (trace) grows indefinitely. Plan for storage accordingly.
 - LISTEN/NOTIFY channels are used for real-time event delivery (`orxtra_events`, `orxtra_notifications`). Ensure the PG connection supports these.
 

@@ -6,7 +6,6 @@ format_version = 1
 [meta]
 version = 2
 schema = "public"
-extensions = ["pg_uuidv7"]
 
 # ---------------------------------------------------------------------------
 # Enum types

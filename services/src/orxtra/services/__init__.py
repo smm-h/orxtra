@@ -60,7 +60,6 @@ from orxtra.services._run import (
 )
 from orxtra.services._run_manager import RunManager
 from orxtra.services._schema import (
-    PG_UUIDV7_STUB,
     AsyncpgAdapter,
     AsyncpgTx,
     SchemaError,
@@ -81,7 +80,6 @@ from orxtra.services._validate import (
 )
 
 __all__ = [
-    "PG_UUIDV7_STUB",
     "AsyncioFlushScheduler",
     "AsyncpgAdapter",
     "AsyncpgTx",

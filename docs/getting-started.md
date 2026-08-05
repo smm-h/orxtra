@@ -82,11 +82,7 @@ orxtra --db "postgresql://localhost/orxtra" db init
 
 The `db init` command is idempotent -- running it again skips already-created objects. It also seeds the system principal used for internal attribution.
 
-If you do not have the `pg_uuidv7` extension installed, use the stub:
-
-```bash
-orxtra --db "postgresql://localhost/orxtra" db init --use-extension-stub
-```
+orxtra requires PostgreSQL 18 or newer: primary keys default to the server's built-in `uuidv7()`, which first ships in 18.
 
 Verify the schema is complete:
 

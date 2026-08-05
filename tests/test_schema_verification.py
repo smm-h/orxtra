@@ -10,7 +10,6 @@ from typing import Any
 
 import pytest
 from orxtra.services import (
-    PG_UUIDV7_STUB,
     AsyncpgAdapter,
     SchemaError,
     verify_schema,
@@ -72,7 +71,6 @@ async def test_verify_schema_passes_after_init(
             result = await execute(
                 adapter,
                 idempotent=True,
-                extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
             )
             assert not result.errors
 

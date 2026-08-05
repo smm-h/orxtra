@@ -116,8 +116,14 @@ class TestVerifySchema:
             # False positive should not appear in the error
             assert "deny_mutation" not in msg
 
-    async def test_excludes_extensions_and_comments_sections(self) -> None:
-        """verify_schema passes exclude_sections to the executor."""
+    async def test_excludes_comments_section_only(self) -> None:
+        """verify_schema excludes only the comments section.
+
+        The ``extensions`` exclusion is gone with the extension itself: the
+        schema declares no extensions since primary keys moved to PostgreSQL
+        18's native ``uuidv7()``, and the generated executor no longer has an
+        ``extensions`` section to exclude.
+        """
         mock_verify_result = MagicMock()
         mock_verify_result.missing = []
 
@@ -132,5 +138,4 @@ class TestVerifySchema:
             mock_verify.assert_awaited_once()
             call_kwargs = mock_verify.call_args[1]
             assert "exclude_sections" in call_kwargs
-            assert "extensions" in call_kwargs["exclude_sections"]
-            assert "comments" in call_kwargs["exclude_sections"]
+            assert call_kwargs["exclude_sections"] == ["comments"]

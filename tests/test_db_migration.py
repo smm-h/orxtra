@@ -83,7 +83,11 @@ _V0101_SUBMODULES = (
     "post_tables",
 )
 
-# PG_UUIDV7_STUB: gen_random_uuid() stand-in for test containers.
+# The committed v0.8.0 baseline predates the move to PostgreSQL 18's native
+# uuidv7(): it declares the pg_uuidv7 extension and defaults its ids to
+# uuid_generate_v7(). The baseline is a historical artifact and is never
+# regenerated, so this local gen_random_uuid() stand-in stays -- it exists only
+# to stand the baseline up, never for the current schema, which needs no stub.
 _PG_UUIDV7_STUB = """\
 CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid AS $$
     SELECT gen_random_uuid();

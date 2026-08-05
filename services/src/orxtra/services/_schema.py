@@ -5,8 +5,6 @@ Provides:
   and the generated schema executor's ``AsyncConnection`` / ``AsyncTransaction``
   protocols. Previously duplicated in cli/_db.py, tests/pg_fixtures.py, and
   tests/test_db_commands.py.
-- ``PG_UUIDV7_STUB``: gen_random_uuid() stand-in for environments lacking the
-  real pg_uuidv7 extension.
 - ``SchemaError``: raised when the database schema is incomplete.
 - ``verify_schema(pool)``: single importable function that runs the generated
   executor's verify() and raises ``SchemaError`` with an actionable message if
@@ -16,8 +14,6 @@ Provides:
 
 The helper filters known false positives from verify():
 - ``comments`` section: pg_catalog has no query for COMMENT ON statements.
-- ``extensions`` section: test/dev environments use a stub; real deployments
-  may use the actual extension. Excluded to avoid false negatives in both.
 - Functions and triggers that the executor places in the ``indexes`` section
   (the existence checker queries pg_indexes, which only has actual indexes).
 """
@@ -96,24 +92,14 @@ class AsyncpgAdapter:
 
 
 # ---------------------------------------------------------------------------
-# pg_uuidv7 extension stub
-# ---------------------------------------------------------------------------
-
-PG_UUIDV7_STUB = """\
-CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid AS $$
-    SELECT gen_random_uuid();
-$$ LANGUAGE sql;
-"""
-
-
-# ---------------------------------------------------------------------------
 # Schema verification
 # ---------------------------------------------------------------------------
 
 # Sections excluded from verify() because they produce false positives:
 # - comments: no pg_catalog query exists for COMMENT ON statements.
-# - extensions: test environments use a stub, not the real extension.
-_VERIFY_EXCLUDE_SECTIONS: list[str] = ["extensions", "comments"]
+# The schema declares no extensions at all since the move to PostgreSQL 18's
+# native uuidv7(), so nothing else needs excluding.
+_VERIFY_EXCLUDE_SECTIONS: list[str] = ["comments"]
 
 
 def _is_false_positive(kind: str, name: str) -> bool:

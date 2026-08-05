@@ -2,14 +2,14 @@ format_version = 1
 # trace module PostgreSQL schema
 # Single owner: the trace module. No other module writes to these tables directly.
 # All primary keys use the built-in `id` type (uuid, NOT NULL).
-# Default uses pg-uuidv7 extension function for time-ordered UUIDs. No v4 fallback.
+# Default uses PostgreSQL 18's built-in uuidv7() for time-ordered UUIDs.
+# No extension, no v4 fallback. Minimum supported server is PostgreSQL 18.
 # Immutable tables (events, transcripts, notepad_entries) enforce append-only
 # via deny-mutation triggers (pgdesign append_only = true).
 
 [meta]
 version = 22
 schema = "public"
-extensions = ["pg_uuidv7"]
 
 # ---------------------------------------------------------------------------
 # Scalar types
@@ -19,8 +19,8 @@ extensions = ["pg_uuidv7"]
 kind = "scalar"
 base_type = "uuid"
 not_null = true
-default_expr = "uuid_generate_v7()"
-comment = "Shadow builtin id: time-ordered UUIDs via pg_uuidv7 extension"
+default_expr = "uuidv7()"
+comment = "Shadow builtin id: time-ordered UUIDs via native uuidv7() (PostgreSQL 18+)"
 
 [types.str]
 kind = "scalar"

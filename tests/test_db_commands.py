@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from orxtra.services import PG_UUIDV7_STUB, AsyncpgAdapter
+from orxtra.services import AsyncpgAdapter
 
 from tests.pg_fixtures import skip_no_docker
 
@@ -37,7 +37,6 @@ async def test_db_init_creates_schema_on_empty_db(
         result = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not result.errors, (
             f"Schema init errors: {result.errors}"
@@ -49,7 +48,7 @@ async def test_db_init_creates_schema_on_empty_db(
         # COMMENT ON statements -- no pg_catalog query for them).
         vresult = await verify(
             adapter,
-            exclude_sections=["extensions", "comments"],
+            exclude_sections=["comments"],
         )
         # The executor places functions and triggers in the "indexes"
         # section, but verify checks pg_indexes (which only has actual
@@ -88,14 +87,12 @@ async def test_db_init_is_idempotent(
         r1 = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not r1.errors
 
         r2 = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not r2.errors
     finally:
@@ -156,7 +153,6 @@ async def test_db_init_seeds_system_principal(
         result = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not result.errors
     finally:
@@ -213,13 +209,12 @@ async def test_db_verify_zero_missing_after_init(
         result = await execute(
             adapter,
             idempotent=True,
-            extension_stubs={"pg_uuidv7": PG_UUIDV7_STUB},
         )
         assert not result.errors
 
         vresult = await verify(
             adapter,
-            exclude_sections=["extensions", "comments"],
+            exclude_sections=["comments"],
         )
         real_missing = [
             (kind, name) for kind, name in vresult.missing
