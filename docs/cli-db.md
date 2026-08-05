@@ -15,12 +15,6 @@ Database provisioning, schema verification, and migration commands.
 
 Create the database schema and seed the system principal (idempotent).
 
-### Flags
-
-| Name | Short | Type | Default | Env | Description |
-| --- | --- | --- | --- | --- | --- |
-| `--use-extension-stub` |  | bool |  |  | Use a gen_random_uuid() stub instead of pg_uuidv7 extension. |
-
 ## db verify
 
 Verify that all expected database schema objects are present.
