@@ -22,4 +22,5 @@ jobs:
           go-version: stable
       # @v0: a phantom v1.0.0 is permanently cached on the Go module proxy; @latest resolves it
       - run: go install github.com/smm-h/pgdesign/cmd/pgdesign@v0
-      - run: pgdesign validate .
+      # `validate` was removed in pgdesign v0.12.0; `check --tag validation` replaces it
+      - run: pgdesign check --tag validation
