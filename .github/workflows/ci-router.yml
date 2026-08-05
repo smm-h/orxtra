@@ -39,6 +39,7 @@ jobs:
       worker: ${{ steps.changes.outputs.worker }}
       incoming: ${{ steps.changes.outputs.incoming }}
       api: ${{ steps.changes.outputs.api }}
+      schema: ${{ steps.changes.outputs.schema }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -123,6 +124,7 @@ jobs:
           api:
             - 'api/**'
             - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
+          schema: 'schema/**'
   protocols-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -747,3 +749,19 @@ jobs:
     needs:
     - detect
     if: needs.detect.outputs.api == 'true'
+  schema-ci-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-go@v6
+      with:
+        go-version: stable
+    - run: go install github.com/smm-h/pgdesign/cmd/pgdesign@latest
+    - run: pgdesign validate .
+    defaults:
+      run:
+        working-directory: schema
+    name: schema-ci / test
+    needs:
+    - detect
+    if: needs.detect.outputs.schema == 'true'

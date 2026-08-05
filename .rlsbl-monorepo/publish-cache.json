@@ -1,6 +1,6 @@
 {
   "__rlsbl_version__": "0.110.2",
-  ".": "62bc5a8c7ffea809e14683261db1aee9e3e213fa68ddd41750cf7cccc5dcf8cc",
+  ".": "677ce4f8519a4736a2372fd7216b6a352d57a6f13f6c9d3892551749d1c221df",
   "protocols": null,
   "secrets": null,
   "write-safety": null,
@@ -27,6 +27,6 @@
   "worker": null,
   "incoming": null,
   "api": null,
-  "schema": null,
+  "schema": "7323380d94b523961aeaff046c004ccbdfd91cd918817a6e91685455b5a987bd",
   "npm": null
 }

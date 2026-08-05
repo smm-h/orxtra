@@ -1,6 +1,8 @@
 {
   "version": 1,
   "files": {
-    ".gitignore": "100e6627e77d2cc9c3f94c9cb92207d486300006d298fa6bdd505da96c73ff25"
+    ".github/workflows/ci.yml": "77bdfb720cba7aa6468f75eddd2def14cbc672e6977bb25130ddf38945362121",
+    ".github/workflows/publish.yml": "7323380d94b523961aeaff046c004ccbdfd91cd918817a6e91685455b5a987bd",
+    ".gitignore": "ed90cf3f737d11571a90014d423b088f68584543e8f29981ebc07e49def71c08"
   }
 }

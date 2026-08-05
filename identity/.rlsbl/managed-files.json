@@ -2,7 +2,6 @@
   "version": 1,
   "files": {
     ".github/workflows/ci.yml": "5fbb0aa80d6edeabcbc36692b1fd641af99bcfd98644d5b51da1f0c02eae300c",
-    ".github/workflows/publish.yml": "4f0a304e7e9ca7055a193b243bb26d928302de550cd295eb6ede46f5958417dd",
     ".gitignore": "c32366f560dbf628eb04a94d25e8d8acf719605b2ea27d31047df16e13580c04",
     ".rlsbl/lint/python.toml": "9cfbcef2e010d5fad243437bf2fd8df54a1fae70ee0762f9d11da70fe207501c"
   }

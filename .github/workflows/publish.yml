@@ -52,8 +52,11 @@ jobs:
           "orxtra@v"*)
             regex='^(test \(3\.\d+\)|lint|mypy|import-check|dep-declarations|layer-docs|schema-codegen)$'
             ;;
+          "schema@v"*)
+            regex='^(schema\-ci) / '
+            ;;
           *)
-            echo "::error::Publish gate: ref '$tag_ref' matches no project tag prefix (known prefixes: orxtra@v)."
+            echo "::error::Publish gate: ref '$tag_ref' matches no project tag prefix (known prefixes: orxtra@v, schema@v)."
             echo "To retry a release publish, dispatch this workflow at the tag ref: gh workflow run publish.yml --ref <tag>"
             exit 1
             ;;
