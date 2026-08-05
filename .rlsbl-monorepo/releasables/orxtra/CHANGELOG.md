@@ -2,26 +2,50 @@
 
 # Changelog
 
-## 0.12.0
+## 0.13.0
 
-Unified delivery and notifications, live worker WebSocket endpoint, AG-UI live streaming, strictspec validation gate, and a published documentation site.
+PostgreSQL 18 is now the minimum and every command declares its effect under strictcli 0.36.0.
 
 <details>
 <summary>Context</summary>
 
-This release carries the content originally cut as v0.11.0 together with the
-strictspec validation gate and the documentation build-out.
+Two breaking changes land together in this release.
 
-v0.11.0 was cut under the pre-CI-gate release flow and could never pass the
-modern publish gate: CI cannot run retroactively on a stale release commit, so
-that version had no path to publication. Rather than attempt to resurrect it,
-its content ships here as 0.12.0 under the modern flow, which pushes the branch,
-verifies CI, and only then finalizes and tags.
+strictcli 0.36.0 makes effect classification mandatory, so every orxtra command
+now declares whether it is read-only or mutating. The visible consequence is
+`orxtra db migrate apply`, which is classified consequential and prompts for
+confirmation before it runs; pass `--approve-consequential` to skip the prompt.
+`--dry-run`, `--quiet` and `--verbose` became framework flags and are accepted
+anywhere in the command line, and `orxtra db init --use-extension-stub` is gone
+along with the stub it enabled.
 
-v0.11.0 remains a sealed, never-published version: its tag and its finalized
-changelog stay as historical record and are not reused.
+PostgreSQL 18 becomes the minimum server version. Primary keys now use the
+server's built-in `uuidv7()`, which retires the `pg_uuidv7` extension and its
+development stub entirely. `orxtra db init` against a pre-18 server fails loudly
+rather than silently degrading. Two regressions surfaced by that bump are fixed
+here: PG 18 changed the SQLSTATE for an `ON DELETE RESTRICT` violation, which
+had been leaking a raw driver exception instead of `PrincipalInUseError` when
+deleting a principal that anchors history, and dispatch and trace writes that
+still named the old extension function now work again. Separately, `orxtra
+validate` and `orxtra event fire` no longer crash while reading the quiet
+setting.
+
+The published wheel now declares `strictcli>=0.36.0` so the effect-classification
+requirement is enforced at install time rather than discovered at runtime.
 
 </details>
+
+### Breaking
+
+- [api, cli, worker] **strictcli 0.36.0.** Every `orxtra` command now declares its effect (read-only or mutating). `orxtra db migrate apply` asks for confirmation before it runs; pass `--approve-consequential` to skip the prompt. `--dry-run`, `--quiet` and `--verbose` are framework flags now and work anywhere in the command line, and `orxtra db init --use-extension-stub` is gone.
+- [., services] **PostgreSQL 18 is now the minimum.** Primary keys use the server's built-in `uuidv7()`; the `pg_uuidv7` extension and its development stub are gone. Running `orxtra db init` against a pre-18 server fails loudly instead of degrading.
+
+### Fixes
+
+- [., dispatch, identity, trace] **Deleting a principal that anchors history reports the right error again on PostgreSQL 18.** PG 18 changed the SQLSTATE for an `ON DELETE RESTRICT` violation, which leaked a raw driver exception instead of `PrincipalInUseError`. Dispatch and trace writes that named the old extension function also work again.
+- [., cli, identity] **`orxtra validate` and `orxtra event fire` no longer crash reading the quiet setting.**
+
+## 0.12.0
 
 ### Breaking
 

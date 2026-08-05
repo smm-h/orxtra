@@ -869,7 +869,7 @@ wheels = [
 
 [[package]]
 name = "orxtra"
-version = "0.12.0"
+version = "0.13.0"
 source = { editable = "." }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
@@ -1367,7 +1367,7 @@ dev = [{ name = "pytest-asyncio", specifier = ">=1.4.0" }]
 
 [[package]]
 name = "orxtra-notification"
-version = "0.12.0"
+version = "0.13.0"
 source = { editable = "notification" }
 dependencies = [
     { name = "asyncpg" },

@@ -1,6 +1,6 @@
 [project]
 name = "orxtra-notification"
-version = "0.12.0"
+version = "0.13.0"
 license = "BUSL-1.1"
 description = "Notification delivery: persisted notifications for principals via the dispatch subscription system."
 requires-python = ">=3.12"

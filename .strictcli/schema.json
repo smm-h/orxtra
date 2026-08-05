@@ -48,7 +48,7 @@
   },
   "project_id": "orxtra",
   "name": "orxtra",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "help": "Autonomous multi-agent AI workflows.",
   "global_flags": [
     {
