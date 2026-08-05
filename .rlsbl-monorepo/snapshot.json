@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T08:15:49Z",
+  "generated_at": "2026-08-05T18:33:00Z",
   "package_count": 29,
   "packages": {
     ".": {
@@ -7,7 +7,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.12.0",
+      "version": "0.13.0",
       "description": "Root package \u2014 single publishable wheel aggregating all sub-projects",
       "deps": [
         "mcp"
@@ -194,7 +194,8 @@
         "dispatch",
         "overseer",
         "services",
-        "incoming"
+        "incoming",
+        "api"
       ],
       "library": true,
       "dev_only": false,
@@ -322,7 +323,7 @@
       "targets": [
         "pypi"
       ],
-      "version": "0.12.0",
+      "version": "0.13.0",
       "description": "Notification delivery: persisted notifications for principals via the dispatch subscription system.",
       "deps": [
         "protocols",
@@ -330,6 +331,7 @@
       ],
       "rdeps": [
         "services",
+        "cli",
         "api"
       ],
       "library": true,
@@ -356,7 +358,8 @@
         "verify",
         "notepad",
         "secrets",
-        "transport"
+        "transport",
+        "worker"
       ],
       "rdeps": [
         "services"
@@ -455,6 +458,7 @@
       "deps": [
         "api",
         "identity",
+        "notification",
         "protocols",
         "services",
         "worker"
@@ -540,6 +544,7 @@
         "write-safety"
       ],
       "rdeps": [
+        "scheduler",
         "cli",
         "api"
       ],
@@ -590,6 +595,7 @@
         "protocols",
         "secrets",
         "services",
+        "trace",
         "worker"
       ],
       "rdeps": [
@@ -644,7 +650,7 @@
       "npm",
       "schema"
     ],
-    "max_depth": 7,
+    "max_depth": 8,
     "topological_order": [
       "compose",
       "agent",
@@ -665,6 +671,7 @@
       "write-safety",
       "tool",
       "overseer",
+      "worker",
       "scheduler",
       "services",
       "a2a",
@@ -672,7 +679,6 @@
       "incoming",
       "mcp",
       ".",
-      "worker",
       "api",
       "cli"
     ]
