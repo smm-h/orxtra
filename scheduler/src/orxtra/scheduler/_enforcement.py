@@ -62,7 +62,9 @@ class EnforcementMixin(SchedulerBase):
         model_key = self._resolve_model_key(task)
         if model_key is None:
             return
-        cost = compute_cost_usd(model_key, usage)
+        cost = compute_cost_usd(
+            model_key, usage, extra_rates=self._pricing,
+        )
         self._task_costs[task_id] += cost
         # Budget enforcement: task budget overrides
         # agent default

@@ -76,6 +76,80 @@ class TestComputeCostUsd:
         assert cost == expected
 
 
+class TestExtraRates:
+    def test_extra_rates_used_for_custom_model(self) -> None:
+        # A model absent from PRICING_TABLE priced via config-provided rates.
+        assert "openai/m" not in PRICING_TABLE
+        extra = {
+            "openai/m": TokenRates(
+                input_per_million=Decimal("0"),
+                output_per_million=Decimal("0"),
+                cache_read_per_million=Decimal("0"),
+                cache_write_per_million=Decimal("0"),
+                reasoning_per_million=Decimal("0"),
+            ),
+        }
+        usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)
+        cost = compute_cost_usd("openai/m", usage, extra_rates=extra)
+        assert cost == Decimal(0)
+
+    def test_extra_rates_nonzero_custom_model(self) -> None:
+        extra = {
+            "openai/gpt-oss-120b": TokenRates(
+                input_per_million=Decimal("1.00"),
+                output_per_million=Decimal("2.00"),
+                cache_read_per_million=Decimal("0"),
+                cache_write_per_million=Decimal("0"),
+                reasoning_per_million=Decimal("0"),
+            ),
+        }
+        usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)
+        cost = compute_cost_usd(
+            "openai/gpt-oss-120b", usage, extra_rates=extra,
+        )
+        assert cost == Decimal("1.00") + Decimal("2.00")
+
+    def test_unknown_model_still_raises_with_extra_rates(self) -> None:
+        # A model in neither config nor the built-in table is a hard error,
+        # even when other extra rates are supplied. No silent zero default.
+        extra = {
+            "openai/m": TokenRates(
+                input_per_million=Decimal("0"),
+                output_per_million=Decimal("0"),
+                cache_read_per_million=Decimal("0"),
+                cache_write_per_million=Decimal("0"),
+                reasoning_per_million=Decimal("0"),
+            ),
+        }
+        with pytest.raises(ValueError, match="Unknown model"):
+            compute_cost_usd(
+                "openai/totally-unknown",
+                Usage(input_tokens=100),
+                extra_rates=extra,
+            )
+
+    def test_extra_rates_override_builtin(self) -> None:
+        # Config rates take precedence over the built-in table when both
+        # define the same model.
+        model = "anthropic/claude-sonnet-4-6"
+        assert model in PRICING_TABLE
+        extra = {
+            model: TokenRates(
+                input_per_million=Decimal("0.01"),
+                output_per_million=Decimal("0.02"),
+                cache_read_per_million=Decimal("0"),
+                cache_write_per_million=Decimal("0"),
+                reasoning_per_million=Decimal("0"),
+            ),
+        }
+        usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)
+        cost = compute_cost_usd(model, usage, extra_rates=extra)
+        assert cost == Decimal("0.01") + Decimal("0.02")
+        # And without extra_rates the built-in rate applies (unchanged).
+        builtin = compute_cost_usd(model, usage)
+        assert builtin == Decimal("3.00") + Decimal("15.00")
+
+
 class TestPricingTable:
     def test_all_models_have_rates(self) -> None:
         for model, rates in PRICING_TABLE.items():

@@ -13,6 +13,7 @@ from orxtra.overseer import load_knowledge_files
 from orxtra.protocols import KIND_RUN, BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, ToolEntry, load_workflow
 from orxtra.secrets import create_secret_registry
+from orxtra.session import TokenRates
 from orxtra.services._gen_run_config import (
     validate_bytes as _validate_run_config_document,
 )
@@ -56,6 +57,11 @@ class RunConfig(BaseModel):
     budget_exhaustion_policy: BudgetExhaustionPolicy = BudgetExhaustionPolicy.UNLIMITED
     secrets_env: dict[str, str] | None = None
     tools_dir: Path | None = None
+    # Per-run token pricing keyed by "provider/model". Supplements and overrides
+    # the built-in PRICING_TABLE (config wins when both define a model). The only
+    # way to price a custom/self-hosted model; a model in neither this map nor
+    # the built-in table is a hard error at cost time (no silent zero default).
+    pricing: dict[str, TokenRates] | None = None
 
 
 _REDACTED = "[REDACTED]"
@@ -126,6 +132,19 @@ def _serialize_config(config: RunConfig) -> dict[str, Any]:
     data["db_url"] = _redact_db_url(config.db_url)
     if config.tools_dir is not None:
         data["tools_dir"] = str(config.tools_dir)
+    if config.pricing is not None:
+        # Decimal rates -> strings, matching the money-precision convention used
+        # for budget above (the snapshot is stored verbatim as JSON).
+        data["pricing"] = {
+            model: {
+                "input_per_million": str(rates.input_per_million),
+                "output_per_million": str(rates.output_per_million),
+                "cache_read_per_million": str(rates.cache_read_per_million),
+                "cache_write_per_million": str(rates.cache_write_per_million),
+                "reasoning_per_million": str(rates.reasoning_per_million),
+            }
+            for model, rates in config.pricing.items()
+        }
     data["provider_configs"] = {
         name: {
             key: _REDACTED if key == "api_key" else value
@@ -327,6 +346,7 @@ async def start_run(
             budget_exhaustion_policy=config.budget_exhaustion_policy,
             budget_limit=config.budget,
             autonomy_level=config.autonomy_level,
+            pricing=config.pricing,
             secret_registry=secret_registry,
             custom_tools=custom_tools,
             refresh_constraints=refresh_constraints_cb,
@@ -395,6 +415,25 @@ async def start_run_from_file(
             raw[key] = Path(raw[key])
     if "budget" in raw and not isinstance(raw["budget"], Decimal):
         raw["budget"] = Decimal(str(raw["budget"]))
+    if "pricing" in raw and isinstance(raw["pricing"], dict):
+        # Coerce the document's string rates into TokenRates(Decimal) instances,
+        # mirroring the budget coercion above (money-precision convention).
+        raw["pricing"] = {
+            model: TokenRates(
+                input_per_million=Decimal(str(rates["input_per_million"])),
+                output_per_million=Decimal(str(rates["output_per_million"])),
+                cache_read_per_million=Decimal(
+                    str(rates["cache_read_per_million"]),
+                ),
+                cache_write_per_million=Decimal(
+                    str(rates["cache_write_per_million"]),
+                ),
+                reasoning_per_million=Decimal(
+                    str(rates["reasoning_per_million"]),
+                ),
+            )
+            for model, rates in raw["pricing"].items()
+        }
     config = RunConfig(**raw)
     return await start_run(
         pool, principal_storage, caller_principal, intent, config,

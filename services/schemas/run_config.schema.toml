@@ -70,3 +70,40 @@ type = "string"
 type = "string"
 required = false
 non_empty = true
+# Optional per-run token pricing keyed by "provider/model". Supplements and
+# overrides the built-in PRICING_TABLE in orxtra.session (config wins when both
+# define a model). Each value is a TokenRates record; all five rates are
+# required (no silent zero-defaulting of missing rates). Rates are money strings
+# coerced to Decimal by the loader, matching the budget convention. The only way
+# to price a custom/self-hosted model is to declare it here; a model absent from
+# both this map and the built-in table is a hard error at cost time.
+[types.RunConfig.fields.pricing]
+type = "map"
+required = false
+key_pattern = "^[A-Za-z0-9_./-]+$"
+order = "incidental"
+[types.RunConfig.fields.pricing.value]
+type = "TokenRates"
+
+[types.TokenRates]
+type = "record"
+[types.TokenRates.fields.input_per_million]
+type = "string"
+required = true
+non_empty = true
+[types.TokenRates.fields.output_per_million]
+type = "string"
+required = true
+non_empty = true
+[types.TokenRates.fields.cache_read_per_million]
+type = "string"
+required = true
+non_empty = true
+[types.TokenRates.fields.cache_write_per_million]
+type = "string"
+required = true
+non_empty = true
+[types.TokenRates.fields.reasoning_per_million]
+type = "string"
+required = true
+non_empty = true

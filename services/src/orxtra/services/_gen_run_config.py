@@ -22,7 +22,7 @@ SCHEMA_FORMAT_VERSION = 1
 # _EMBEDDED_SCHEMA carries the compiled schema (and its imported type-definition
 # files and scalar manifest) so the validator is self-contained and does no IO.
 _EMBEDDED_SCHEMA = {
-    "run_config.schema.toml": "name = \"run_config\"\nmeta_version = 1\nformat_version = 1\ndocument_syntax = \"toml\"\nrole = \"schema\"\nroot = \"RunConfig\"\ntargets = [\"python\"]\ndescription = \"An orxtra run configuration file for start_run_from_file: paths, db_url, provider configs, budget, and autonomy policy.\"\n# Source of truth: orxtra/services/_run.py (RunConfig, start_run_from_file). In the DOCUMENT, the\n# *_path/*_dir fields are strings (the loader coerces them to Path afterward) and budget is a string\n# (the loader coerces it to Decimal via Decimal(str(...)), the money-precision convention).\n\n[types.RunConfig]\ntype = \"record\"\n[types.RunConfig.fields.workflow_path]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.agents_dir]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.knowledge_dir]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.categories_path]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.read_root]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.db_url]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.provider_configs]\ntype = \"map\"\nrequired = true\nkey_pattern = \"^[A-Za-z0-9_.-]+$\"\norder = \"incidental\"\n[types.RunConfig.fields.provider_configs.value]\ntype = \"map\"\nkey_pattern = \"^[A-Za-z0-9_.-]+$\"\norder = \"incidental\"\n[types.RunConfig.fields.provider_configs.value.value]\ntype = \"string\"\n[types.RunConfig.fields.budget]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.autonomy_level]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.budget_exhaustion_policy]\ntype = \"enum\"\nrequired = false\nvalues = [\"block_new\", \"cancel_all\", \"timeout_grace\", \"unlimited\"]\n[types.RunConfig.fields.secrets_env]\ntype = \"map\"\nrequired = false\nkey_pattern = \"^.+$\"\norder = \"incidental\"\n[types.RunConfig.fields.secrets_env.value]\ntype = \"string\"\n[types.RunConfig.fields.tools_dir]\ntype = \"string\"\nrequired = false\nnon_empty = true\n",
+    "run_config.schema.toml": "name = \"run_config\"\nmeta_version = 1\nformat_version = 1\ndocument_syntax = \"toml\"\nrole = \"schema\"\nroot = \"RunConfig\"\ntargets = [\"python\"]\ndescription = \"An orxtra run configuration file for start_run_from_file: paths, db_url, provider configs, budget, and autonomy policy.\"\n# Source of truth: orxtra/services/_run.py (RunConfig, start_run_from_file). In the DOCUMENT, the\n# *_path/*_dir fields are strings (the loader coerces them to Path afterward) and budget is a string\n# (the loader coerces it to Decimal via Decimal(str(...)), the money-precision convention).\n\n[types.RunConfig]\ntype = \"record\"\n[types.RunConfig.fields.workflow_path]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.agents_dir]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.knowledge_dir]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.categories_path]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.read_root]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.db_url]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.provider_configs]\ntype = \"map\"\nrequired = true\nkey_pattern = \"^[A-Za-z0-9_.-]+$\"\norder = \"incidental\"\n[types.RunConfig.fields.provider_configs.value]\ntype = \"map\"\nkey_pattern = \"^[A-Za-z0-9_.-]+$\"\norder = \"incidental\"\n[types.RunConfig.fields.provider_configs.value.value]\ntype = \"string\"\n[types.RunConfig.fields.budget]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.autonomy_level]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.RunConfig.fields.budget_exhaustion_policy]\ntype = \"enum\"\nrequired = false\nvalues = [\"block_new\", \"cancel_all\", \"timeout_grace\", \"unlimited\"]\n[types.RunConfig.fields.secrets_env]\ntype = \"map\"\nrequired = false\nkey_pattern = \"^.+$\"\norder = \"incidental\"\n[types.RunConfig.fields.secrets_env.value]\ntype = \"string\"\n[types.RunConfig.fields.tools_dir]\ntype = \"string\"\nrequired = false\nnon_empty = true\n# Optional per-run token pricing keyed by \"provider/model\". Supplements and\n# overrides the built-in PRICING_TABLE in orxtra.session (config wins when both\n# define a model). Each value is a TokenRates record; all five rates are\n# required (no silent zero-defaulting of missing rates). Rates are money strings\n# coerced to Decimal by the loader, matching the budget convention. The only way\n# to price a custom/self-hosted model is to declare it here; a model absent from\n# both this map and the built-in table is a hard error at cost time.\n[types.RunConfig.fields.pricing]\ntype = \"map\"\nrequired = false\nkey_pattern = \"^[A-Za-z0-9_./-]+$\"\norder = \"incidental\"\n[types.RunConfig.fields.pricing.value]\ntype = \"TokenRates\"\n\n[types.TokenRates]\ntype = \"record\"\n[types.TokenRates.fields.input_per_million]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.TokenRates.fields.output_per_million]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.TokenRates.fields.cache_read_per_million]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.TokenRates.fields.cache_write_per_million]\ntype = \"string\"\nrequired = true\nnon_empty = true\n[types.TokenRates.fields.reasoning_per_million]\ntype = \"string\"\nrequired = true\nnon_empty = true\n",
 }
 _EMBEDDED_MAIN_FILE = "run_config.schema.toml"
 
@@ -80,6 +80,7 @@ class RunConfig:
     budget_exhaustion_policy: str
     secrets_env: Value
     tools_dir: str
+    pricing: Value
 
     def with_workflow_path(self, v: str) -> RunConfig:
         return replace(self, workflow_path=v)
@@ -117,6 +118,9 @@ class RunConfig:
     def with_tools_dir(self, v: str) -> RunConfig:
         return replace(self, tools_dir=v)
 
+    def with_pricing(self, v: Value) -> RunConfig:
+        return replace(self, pricing=v)
+
 
 def _bind_RunConfig(v: Value) -> RunConfig | None:
     if v.kind() != strictspec.Kind.RECORD:
@@ -133,6 +137,7 @@ def _bind_RunConfig(v: Value) -> RunConfig | None:
     f_budget_exhaustion_policy = v.field("budget_exhaustion_policy")
     f_secrets_env = v.field("secrets_env")
     f_tools_dir = v.field("tools_dir")
+    f_pricing = v.field("pricing")
     return RunConfig(
         workflow_path=(f_workflow_path[0].string()[0] if f_workflow_path[1] else ""),
         agents_dir=(f_agents_dir[0].string()[0] if f_agents_dir[1] else ""),
@@ -146,6 +151,52 @@ def _bind_RunConfig(v: Value) -> RunConfig | None:
         budget_exhaustion_policy=(f_budget_exhaustion_policy[0].string()[0] if f_budget_exhaustion_policy[1] else ""),
         secrets_env=(f_secrets_env[0] if f_secrets_env[1] else Value(None, "json")),
         tools_dir=(f_tools_dir[0].string()[0] if f_tools_dir[1] else ""),
+        pricing=(f_pricing[0] if f_pricing[1] else Value(None, "json")),
+    )
+
+
+@dataclass(frozen=True, kw_only=True)
+class TokenRates:
+    """Frozen typed binding of the "TokenRates" record. Immutable; use with_* for
+    copy-on-write.
+    """
+
+    input_per_million: str
+    output_per_million: str
+    cache_read_per_million: str
+    cache_write_per_million: str
+    reasoning_per_million: str
+
+    def with_input_per_million(self, v: str) -> TokenRates:
+        return replace(self, input_per_million=v)
+
+    def with_output_per_million(self, v: str) -> TokenRates:
+        return replace(self, output_per_million=v)
+
+    def with_cache_read_per_million(self, v: str) -> TokenRates:
+        return replace(self, cache_read_per_million=v)
+
+    def with_cache_write_per_million(self, v: str) -> TokenRates:
+        return replace(self, cache_write_per_million=v)
+
+    def with_reasoning_per_million(self, v: str) -> TokenRates:
+        return replace(self, reasoning_per_million=v)
+
+
+def _bind_TokenRates(v: Value) -> TokenRates | None:
+    if v.kind() != strictspec.Kind.RECORD:
+        return None
+    f_input_per_million = v.field("input_per_million")
+    f_output_per_million = v.field("output_per_million")
+    f_cache_read_per_million = v.field("cache_read_per_million")
+    f_cache_write_per_million = v.field("cache_write_per_million")
+    f_reasoning_per_million = v.field("reasoning_per_million")
+    return TokenRates(
+        input_per_million=(f_input_per_million[0].string()[0] if f_input_per_million[1] else ""),
+        output_per_million=(f_output_per_million[0].string()[0] if f_output_per_million[1] else ""),
+        cache_read_per_million=(f_cache_read_per_million[0].string()[0] if f_cache_read_per_million[1] else ""),
+        cache_write_per_million=(f_cache_write_per_million[0].string()[0] if f_cache_write_per_million[1] else ""),
+        reasoning_per_million=(f_reasoning_per_million[0].string()[0] if f_reasoning_per_million[1] else ""),
     )
 
 

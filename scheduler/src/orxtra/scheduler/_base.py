@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from orxtra.scheduler._services import ServiceInstance
     from orxtra.scheduler._tool_registry import ToolEntry, ToolRegistry
     from orxtra.secrets import SecretRegistry
-    from orxtra.session import Session
+    from orxtra.session import Session, TokenRates
     from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport, TransportEvent, Usage
     from orxtra.write_safety import StaleWriteTracker, WriteQueue
@@ -67,6 +67,7 @@ class SchedulerBase(ABC):
     _handoff_performer: Callable[[Any, Any, UUID, UUID], Awaitable[Any]] | None
     _budget_exhaustion_policy: BudgetExhaustionPolicy
     _budget_limit: Decimal | None
+    _pricing: dict[str, TokenRates] | None
     _proportionality_threshold: float | None
     _autonomy_level: str
     _secret_registry: SecretRegistry | None

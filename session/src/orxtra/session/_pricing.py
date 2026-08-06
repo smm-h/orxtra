@@ -65,11 +65,28 @@ PRICING_TABLE: dict[str, TokenRates] = {
 _MILLION = Decimal(1000000)
 
 
-def compute_cost_usd(model: str, usage: Usage) -> Decimal:
-    if model not in PRICING_TABLE:
+def compute_cost_usd(
+    model: str,
+    usage: Usage,
+    *,
+    extra_rates: dict[str, TokenRates] | None = None,
+) -> Decimal:
+    """Compute the USD cost of a turn's token usage.
+
+    Resolution order: ``extra_rates`` (per-run rates declared in the run
+    config) first, then the built-in ``PRICING_TABLE``. A model present in
+    neither is a hard error -- unknown models are never silently priced at
+    zero. ``extra_rates`` overrides the built-in table when both define the
+    same model.
+    """
+    rates: TokenRates | None = None
+    if extra_rates is not None:
+        rates = extra_rates.get(model)
+    if rates is None:
+        rates = PRICING_TABLE.get(model)
+    if rates is None:
         msg = f"Unknown model: {model!r}"
         raise ValueError(msg)
-    rates = PRICING_TABLE[model]
     return (
         rates.input_per_million * usage.input_tokens
         + rates.output_per_million * usage.output_tokens

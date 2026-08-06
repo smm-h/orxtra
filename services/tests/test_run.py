@@ -150,6 +150,78 @@ async def test_start_run_from_file(
 
 
 @pytest.mark.asyncio
+async def test_start_run_from_file_parses_pricing(
+    mock_pool: AsyncMock, tmp_path: Path,
+) -> None:
+    from orxtra.session import TokenRates
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        'format_version = 1\n'
+        'workflow_path = "/workflow.toml"\n'
+        'agents_dir = "/agents"\n'
+        'knowledge_dir = "/knowledge"\n'
+        'categories_path = "/cats.toml"\n'
+        'read_root = "/project"\n'
+        'db_url = "postgres://localhost/test"\n'
+        'budget = "10.00"\n'
+        'autonomy_level = "supervised"\n'
+        "\n"
+        "[provider_configs.openai]\n"
+        'type = "openai"\n'
+        'api_key = "test"\n'
+        "\n"
+        '[pricing."openai/m"]\n'
+        'input_per_million = "0"\n'
+        'output_per_million = "0"\n'
+        'cache_read_per_million = "0"\n'
+        'cache_write_per_million = "0"\n'
+        'reasoning_per_million = "0"\n'
+    )
+    with patch(
+        "orxtra.services._run.start_run", new_callable=AsyncMock,
+    ) as mock_start:
+        mock_start.return_value = uuid4()
+        await start_run_from_file(
+            mock_pool, _storage(), None, None, _caller(), "test", config_file,
+        )
+        config = mock_start.call_args.args[4]
+        assert config.pricing is not None
+        rates = config.pricing["openai/m"]
+        assert isinstance(rates, TokenRates)
+        assert rates.input_per_million == Decimal("0")
+        assert rates.output_per_million == Decimal("0")
+
+
+def test_serialize_config_pricing_rates_are_strings() -> None:
+    from orxtra.session import TokenRates
+
+    config = RunConfig(
+        workflow_path=Path("/workflow.toml"),
+        agents_dir=Path("/agents"),
+        knowledge_dir=Path("/knowledge"),
+        categories_path=Path("/cats.toml"),
+        read_root=Path("/project"),
+        db_url="postgres://localhost/test",
+        provider_configs={"openai": {"type": "openai", "api_key": "key"}},
+        budget=Decimal("5.00"),
+        autonomy_level="autonomous",
+        pricing={
+            "openai/m": TokenRates(
+                input_per_million=Decimal("1.5"),
+                output_per_million=Decimal("0"),
+                cache_read_per_million=Decimal("0"),
+                cache_write_per_million=Decimal("0"),
+                reasoning_per_million=Decimal("0"),
+            ),
+        },
+    )
+    data = _serialize_config(config)
+    assert data["pricing"]["openai/m"]["input_per_million"] == "1.5"
+    assert data["pricing"]["openai/m"]["output_per_million"] == "0"
+
+
+@pytest.mark.asyncio
 async def test_start_run_from_file_missing(mock_pool: AsyncMock) -> None:
     with pytest.raises(FileNotFoundError, match="Config file not found"):
         await start_run_from_file(mock_pool, _storage(), None, None, _caller(), "test", Path("/nonexistent.toml"))

@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from orxtra.scheduler._tool_registry import ToolEntry
     from orxtra.scheduler._types import WorkflowConfig
     from orxtra.secrets import SecretRegistry
-    from orxtra.session import Session
+    from orxtra.session import Session, TokenRates
     from orxtra.trace import StorageBackend, TraceWriter
     from orxtra.transport import Transport, TransportEvent
 
@@ -143,6 +143,7 @@ class Scheduler(
         budget_limit: Decimal | None = None,
         proportionality_threshold: float | None = None,
         autonomy_level: str,
+        pricing: dict[str, TokenRates] | None = None,
         secret_registry: SecretRegistry | None = None,
         constraint_checkers: (
             dict[str, Callable[..., Awaitable[CheckResult]]] | None
@@ -189,6 +190,7 @@ class Scheduler(
         self._handoff_performer = handoff_performer
         self._budget_exhaustion_policy = budget_exhaustion_policy
         self._budget_limit = budget_limit
+        self._pricing = pricing
         self._proportionality_threshold = proportionality_threshold
         self._autonomy_level = autonomy_level
         self._secret_registry = secret_registry
