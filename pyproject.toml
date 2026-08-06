@@ -19,7 +19,9 @@ dependencies = [
     "mcp>=1.27,<2",
     "pathspec",
     "pydantic>=2",
+    "pydantic-monty",
     "strictcli>=0.36.0",
+    "strictspec",
     "uuid6",
     "websockets",
 ]

@@ -39,6 +39,21 @@ def _dev_group_member_packages() -> set[str]:
     return {d for d in dev_deps if d.startswith("orxtra-")}
 
 
+def _runtime_dependency_names() -> set[str]:
+    """Return the bare (unversioned) names in [project.dependencies]."""
+    data = _load_pyproject()
+    deps: list[str] = data["project"]["dependencies"]
+    names: set[str] = set()
+    for dep in deps:
+        # Strip extras and version/marker specifiers: "mcp>=1.27,<2" -> "mcp",
+        # "a2a-sdk[http-server]" -> "a2a-sdk".
+        name = dep.split(";")[0].strip()
+        for sep in ("[", ">", "<", "=", "!", "~", " "):
+            name = name.split(sep)[0]
+        names.add(name.strip())
+    return names
+
+
 def _member_to_package_name(member: str) -> str:
     """Convert workspace member dir name to package name."""
     return f"orxtra-{member}"
@@ -100,6 +115,30 @@ class TestDevGroupMembership:
         dev_packages = _dev_group_member_packages()
         expected = {_member_to_package_name(m) for m in members}
         assert dev_packages == expected
+
+
+class TestRuntimeDependencies:
+    """Verify third-party runtime imports are declared in [project.dependencies].
+
+    These packages are imported at runtime by shipped modules but were absent
+    from Requires-Dist, so the published wheel crashed with ModuleNotFoundError.
+    Locally they resolve as transitive/dev deps, masking the omission -- hence
+    the declaration is checked directly against pyproject.
+    """
+
+    def test_strictspec_is_declared(self) -> None:
+        # imported by orxtra.agent._gen_categories
+        assert "strictspec" in _runtime_dependency_names()
+
+    def test_pydantic_monty_is_declared(self) -> None:
+        # imported by orxtra.tool._data_tool_monty
+        assert "pydantic-monty" in _runtime_dependency_names()
+
+    def test_gen_categories_imports_cleanly(self) -> None:
+        import orxtra.agent._gen_categories  # noqa: F401
+
+    def test_data_tool_monty_imports_cleanly(self) -> None:
+        import orxtra.tool._data_tool_monty  # noqa: F401
 
 
 @pytest.fixture(scope="module")

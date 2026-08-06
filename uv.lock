@@ -882,7 +882,9 @@ dependencies = [
     { name = "mcp" },
     { name = "pathspec" },
     { name = "pydantic" },
+    { name = "pydantic-monty" },
     { name = "strictcli" },
+    { name = "strictspec" },
     { name = "uuid6" },
     { name = "websockets" },
 ]
@@ -936,7 +938,9 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.27,<2" },
     { name = "pathspec" },
     { name = "pydantic", specifier = ">=2" },
+    { name = "pydantic-monty" },
     { name = "strictcli", specifier = ">=0.36.0" },
+    { name = "strictspec" },
     { name = "uuid6" },
     { name = "websockets" },
 ]
