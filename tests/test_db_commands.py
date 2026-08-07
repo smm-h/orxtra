@@ -19,7 +19,7 @@ async def test_db_init_creates_schema_on_empty_db(
 ) -> None:
     """db init on an empty database creates all schema objects."""
     import asyncpg as _asyncpg
-    from _generated.schema_executor import (
+    from orxtra.services._generated.schema_executor import (
         execute,
         verify,
     )
@@ -70,7 +70,7 @@ async def test_db_init_is_idempotent(
 ) -> None:
     """Running db init twice produces no errors."""
     import asyncpg as _asyncpg
-    from _generated.schema_executor import (
+    from orxtra.services._generated.schema_executor import (
         execute,
     )
 
@@ -104,7 +104,7 @@ async def test_db_verify_detects_missing_on_empty_db(
 ) -> None:
     """db verify on an empty database reports missing objects."""
     import asyncpg as _asyncpg
-    from _generated.schema_executor import (
+    from orxtra.services._generated.schema_executor import (
         verify,
     )
 
@@ -135,11 +135,11 @@ async def test_db_init_seeds_system_principal(
     system principal. Asserts the row exists and is idempotent.
     """
     import asyncpg as _asyncpg
-    from _generated.schema_executor import (
-        execute,
-    )
     from orxtra.identity import PgPrincipalStorage
     from orxtra.protocols import KIND_SYSTEM, SYSTEM_PRINCIPAL_EXTERNAL_REF
+    from orxtra.services._generated.schema_executor import (
+        execute,
+    )
 
     url = pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql://",
@@ -191,7 +191,7 @@ async def test_db_verify_zero_missing_after_init(
 ) -> None:
     """db verify reports zero missing after db init."""
     import asyncpg as _asyncpg
-    from _generated.schema_executor import (
+    from orxtra.services._generated.schema_executor import (
         execute,
         verify,
     )
@@ -221,5 +221,41 @@ async def test_db_verify_zero_missing_after_init(
             if not (kind == "indexes" and "deny_mutation" in name)
         ]
         assert len(real_missing) == 0
+    finally:
+        await conn.close()
+
+
+async def test_verify_schema_objects_filters_false_positives(
+    pg_container: Any,
+) -> None:
+    """The shared helper used by ``orxtra db verify`` reports zero missing
+    after init.
+
+    Regression: ``cmd_db_verify`` used to call the raw generated ``verify()``
+    without filtering the sections/entries that have no reliable existence
+    check (COMMENT statements and ``deny_mutation`` triggers/functions), so
+    ``orxtra db verify`` exited 1 on a fully-initialized schema. It now routes
+    through ``verify_schema_objects``, which applies the same filtering as
+    ``verify_schema``.
+    """
+    import asyncpg as _asyncpg
+    from orxtra.services import verify_schema_objects
+    from orxtra.services._generated.schema_executor import execute
+
+    url = pg_container.get_connection_url().replace(
+        "postgresql+psycopg2://", "postgresql://",
+    )
+    conn = await _asyncpg.connect(url)
+    try:
+        await conn.execute("DROP SCHEMA public CASCADE")
+        await conn.execute("CREATE SCHEMA public")
+
+        adapter = AsyncpgAdapter(conn)
+        exec_result = await execute(adapter, idempotent=True)
+        assert not exec_result.errors
+
+        present, missing = await verify_schema_objects(adapter)
+        assert missing == [], f"Unexpected missing objects: {missing}"
+        assert len(present) > 0
     finally:
         await conn.close()

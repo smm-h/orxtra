@@ -141,6 +141,71 @@ class TestRuntimeDependencies:
         import orxtra.tool._data_tool_monty  # noqa: F401
 
 
+class TestGeneratedSchemaShipped:
+    """The pgdesign-generated schema executor must ship inside the orxtra
+    namespace so ``orxtra db init`` / ``db verify`` work from an installed wheel.
+
+    Regression: the generated ``_generated`` package used to live in the
+    dev_node ``schema/`` project and was never shipped, so the installed tool
+    crashed with ``ModuleNotFoundError: No module named '_generated'`` on
+    ``db init`` / ``db verify``. It now lives at
+    ``orxtra.services._generated`` so it ships with the ``services`` package
+    and resolves in both editable and installed layouts without any
+    ``sys.path`` manipulation.
+    """
+
+    _GEN_PREFIX = "orxtra/services/_generated/"
+    _REQUIRED_FACETS = frozenset(
+        {
+            "__init__.py",
+            "schema_executor.py",
+            "types.py",
+            "extensions.py",
+            "post_tables.py",
+            "tables_trace.py",
+            "tables_dispatch.py",
+            "tables_auth.py",
+            "tables_identity.py",
+            "tables_notification.py",
+        },
+    )
+
+    def test_wheel_contains_generated_schema_executor(
+        self, wheel_path: Path,
+    ) -> None:
+        with zipfile.ZipFile(wheel_path) as zf:
+            names = set(zf.namelist())
+        expected = f"{self._GEN_PREFIX}schema_executor.py"
+        assert expected in names, (
+            f"Wheel missing generated schema executor: {expected}. "
+            f"db init/verify crash with ModuleNotFoundError when installed."
+        )
+
+    def test_wheel_contains_all_generated_facets(
+        self, wheel_path: Path,
+    ) -> None:
+        with zipfile.ZipFile(wheel_path) as zf:
+            present = {
+                n[len(self._GEN_PREFIX) :]
+                for n in zf.namelist()
+                if n.startswith(self._GEN_PREFIX) and n.endswith(".py")
+            }
+        missing = self._REQUIRED_FACETS - present
+        assert not missing, (
+            f"Wheel missing generated facet modules: {missing}"
+        )
+
+    def test_generated_executor_importable(self) -> None:
+        """The shipped import path used by db init/verify resolves."""
+        from orxtra.services._generated.schema_executor import (
+            ensure_schema,
+            verify,
+        )
+
+        assert callable(ensure_schema)
+        assert callable(verify)
+
+
 @pytest.fixture(scope="module")
 def wheel_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Build a wheel once per test module for inspection."""

@@ -1,8 +1,9 @@
 """Unit tests for verify_schema() using mocked asyncpg pools.
 
 Relocated from services/tests/test_schema.py: these tests patch
-_generated.schema_executor.verify, which requires schema/ on sys.path
-(provided by the root conftest). They cannot run under --rootdir services.
+orxtra.services._generated.schema_executor.verify, which now resolves via
+the orxtra namespace package (no sys.path manipulation needed). They cannot
+run under --rootdir services.
 """
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ class TestVerifySchema:
         pool = _make_mock_pool()
 
         with patch(
-            "_generated.schema_executor.verify",
+            "orxtra.services._generated.schema_executor.verify",
             new_callable=AsyncMock,
             return_value=mock_verify_result,
         ):
@@ -56,7 +57,7 @@ class TestVerifySchema:
         pool = _make_mock_pool()
 
         with patch(
-            "_generated.schema_executor.verify",
+            "orxtra.services._generated.schema_executor.verify",
             new_callable=AsyncMock,
             return_value=mock_verify_result,
         ):
@@ -84,7 +85,7 @@ class TestVerifySchema:
         pool = _make_mock_pool()
 
         with patch(
-            "_generated.schema_executor.verify",
+            "orxtra.services._generated.schema_executor.verify",
             new_callable=AsyncMock,
             return_value=mock_verify_result,
         ):
@@ -104,7 +105,7 @@ class TestVerifySchema:
         pool = _make_mock_pool()
 
         with patch(
-            "_generated.schema_executor.verify",
+            "orxtra.services._generated.schema_executor.verify",
             new_callable=AsyncMock,
             return_value=mock_verify_result,
         ):
@@ -130,7 +131,7 @@ class TestVerifySchema:
         pool = _make_mock_pool()
 
         with patch(
-            "_generated.schema_executor.verify",
+            "orxtra.services._generated.schema_executor.verify",
             new_callable=AsyncMock,
             return_value=mock_verify_result,
         ) as mock_verify:

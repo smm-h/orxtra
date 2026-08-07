@@ -227,7 +227,7 @@ ignore = [
 # unsorted imports, and patterns that don't match hand-written style rules.
 # Suppressed globally for the generated path; pgdesign codegen --check is the
 # freshness gate, not ruff.
-"schema/_generated/**" = [
+"**/services/_generated/**" = [
     "E501",     # long lines: DDL strings and inline SQL are inherently wide
     "I001",     # import order: generated code has its own ordering
     "N811",     # constant aliasing: STATEMENTS imported as _*_stmts
@@ -242,7 +242,6 @@ ignore = [
     "PLR0912",  # too many branches: execute() handles many section kinds
     "C901",     # complexity: Section.exists() dispatches across many kinds
     "BLE001",   # blind except: generated error handling
-    "INP001",   # implicit namespace package: _generated is a standalone package
 ]
 # strictspec-generated validators (_gen_*.py): machine-generated, marked
 # DO NOT EDIT, and carry a blanket `# ruff: noqa` (which suppresses every other
@@ -303,7 +302,7 @@ disallow_untyped_decorators = false
 # (untyped __aexit__ params, bare dict instead of dict[str, Any],
 # async context manager protocol mismatch). Filed as pgdesign todo.
 [[tool.mypy.overrides]]
-module = "_generated.*"
+module = "orxtra.services._generated.*"
 strict = false
 disallow_untyped_defs = false
 

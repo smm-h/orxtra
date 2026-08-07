@@ -64,6 +64,7 @@ from orxtra.services._schema import (
     AsyncpgTx,
     SchemaError,
     verify_schema,
+    verify_schema_objects,
 )
 from orxtra.services._trace import (
     get_notepad,
@@ -141,4 +142,5 @@ __all__ = [
     "validate_categories",
     "validate_workflow",
     "verify_schema",
+    "verify_schema_objects",
 ]

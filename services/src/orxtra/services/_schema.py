@@ -20,20 +20,12 @@ The helper filters known false positives from verify():
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 if TYPE_CHECKING:
     import types
 
     import asyncpg
-
-
-# Add schema/ to sys.path so _generated.schema_executor is importable.
-_SCHEMA_DIR = str(Path(__file__).resolve().parents[5] / "schema")
-if _SCHEMA_DIR not in sys.path:
-    sys.path.append(_SCHEMA_DIR)
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +109,42 @@ class SchemaError(Exception):
     """Raised when the database schema is incomplete or outdated."""
 
 
+async def verify_schema_objects(
+    adapter: AsyncpgAdapter,
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """Run the generated verify() with known false positives filtered.
+
+    Runs the generated executor's ``verify()`` excluding the sections and
+    entries that have no reliable existence check (see ``_VERIFY_EXCLUDE_SECTIONS``
+    and ``_is_false_positive``), so callers get a truthful present/missing split.
+
+    Args:
+        adapter: An ``AsyncpgAdapter`` wrapping a live connection.
+
+    Returns:
+        A ``(present, real_missing)`` tuple of ``(kind, name)`` lists.
+    """
+    from orxtra.services._generated.schema_executor import (
+        verify,
+    )
+
+    # AsyncpgAdapter satisfies the generated AsyncConnection protocol at
+    # runtime; the generated protocol mistypes transaction() as an async def
+    # (coroutine) though it is used as a plain async context manager. Known
+    # pgdesign generated-protocol gap (filed upstream).
+    result = await verify(
+        adapter,  # type: ignore[arg-type]
+        exclude_sections=_VERIFY_EXCLUDE_SECTIONS,
+    )
+    present = [(kind, name) for kind, name in result.present]
+    real_missing = [
+        (kind, name)
+        for kind, name in result.missing
+        if not _is_false_positive(kind, name)
+    ]
+    return present, real_missing
+
+
 async def verify_schema(pool: asyncpg.Pool[Any]) -> None:
     """Verify the database schema is complete, raise on missing objects.
 
@@ -132,22 +160,9 @@ async def verify_schema(pool: asyncpg.Pool[Any]) -> None:
     Raises:
         SchemaError: If required schema objects are missing.
     """
-    from _generated.schema_executor import (  # type: ignore[import-not-found]
-        verify,
-    )
-
     async with pool.acquire() as conn:
         adapter = AsyncpgAdapter(conn)
-        result = await verify(
-            adapter,
-            exclude_sections=_VERIFY_EXCLUDE_SECTIONS,
-        )
-
-    real_missing = [
-        (kind, name)
-        for kind, name in result.missing
-        if not _is_false_positive(kind, name)
-    ]
+        _present, real_missing = await verify_schema_objects(adapter)
 
     if real_missing:
         names = ", ".join(f"{kind}.{name}" for kind, name in real_missing)

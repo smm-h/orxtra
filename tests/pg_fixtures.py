@@ -54,7 +54,7 @@ async def pg_pool(
 ) -> AsyncIterator[asyncpg.Pool]:
     """Create an asyncpg pool with the full orxtra schema."""
     import asyncpg as _asyncpg
-    from _generated.schema_executor import (
+    from orxtra.services._generated.schema_executor import (
         execute as schema_execute,
     )
 

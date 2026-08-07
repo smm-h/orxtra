@@ -54,7 +54,7 @@ async def test_verify_schema_passes_after_init(
 ) -> None:
     """verify_schema returns silently after db init."""
     import asyncpg
-    from _generated.schema_executor import (
+    from orxtra.services._generated.schema_executor import (
         execute,
     )
 

@@ -94,13 +94,13 @@ class TestSchemaCreation:
 
     async def test_all_tables_created(self, pg_pool: asyncpg.Pool) -> None:
         """All expected tables exist after schema creation."""
-        from _generated.tables_auth import (
+        from orxtra.services._generated.tables_auth import (
             TABLE_NAMES as AUTH_TABLES,
         )
-        from _generated.tables_dispatch import (
+        from orxtra.services._generated.tables_dispatch import (
             TABLE_NAMES as DISPATCH_TABLES,
         )
-        from _generated.tables_trace import (
+        from orxtra.services._generated.tables_trace import (
             TABLE_NAMES as TRACE_TABLES,
         )
 

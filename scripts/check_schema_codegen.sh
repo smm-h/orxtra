@@ -1,18 +1,17 @@
 #!/bin/bash
 # Verify pgdesign-generated DDL files are fresh.
 #
-# Wraps `pgdesign codegen --check` with awareness of the __init__.py file
-# that we maintain alongside the generated output. pgdesign flags it as an
-# orphan because it didn't generate it, but it's required for Python package
-# imports (the generated schema_executor.py uses relative imports).
-#
-# Once pgdesign generates __init__.py itself (filed as pgdesign todo),
-# this wrapper can be replaced with a bare `pgdesign codegen --check`.
+# The generated package ships inside the orxtra namespace at
+# services/src/orxtra/services/_generated so it is importable as
+# `orxtra.services._generated` from both the editable dev tree and an
+# installed wheel (the `services` package is force-included whole by
+# hatch_build.py). pgdesign 0.25+ generates the package __init__.py itself,
+# so there are no orphan files to special-case.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUTPUT_DIR="$REPO_ROOT/schema/_generated"
+OUTPUT_DIR="$REPO_ROOT/services/src/orxtra/services/_generated"
 CONFIG="$REPO_ROOT/schema/pgdesign.toml"
 
 output=$(pgdesign codegen --lang python --mode ddl --split-mode faceted \
@@ -33,24 +32,11 @@ missing=$(echo "$summary" | grep -oP '\d+ missing' | grep -oP '^\d+')
 stale=$(echo "$summary" | grep -oP '\d+ stale' | grep -oP '^\d+')
 orphans=$(echo "$summary" | grep -oP '\d+ orphan' | grep -oP '^\d+' || echo "0")
 
-# Missing or stale files are hard errors
-if [ "$missing" -gt 0 ] || [ "$stale" -gt 0 ]; then
-    echo "FAIL: $missing missing, $stale stale" >&2
+# Missing, stale, or orphan files are all hard errors: pgdesign owns every
+# file in the output directory, including __init__.py.
+if [ "$missing" -gt 0 ] || [ "$stale" -gt 0 ] || [ "$orphans" -gt 0 ]; then
+    echo "FAIL: $missing missing, $stale stale, $orphans orphan(s)" >&2
     exit 1
-fi
-
-# Orphans: only __init__.py is expected; any others are errors
-if [ "$orphans" -gt 1 ]; then
-    echo "FAIL: unexpected orphan files (only __init__.py is expected)" >&2
-    exit 1
-fi
-
-if [ "$orphans" -eq 1 ]; then
-    # Verify the orphan IS __init__.py
-    if ! echo "$output" | grep -q '\[orphan\].*__init__\.py'; then
-        echo "FAIL: orphan is not __init__.py" >&2
-        exit 1
-    fi
 fi
 
 echo "Schema codegen check passed"

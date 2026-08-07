@@ -4,10 +4,10 @@ Registers ``db init``, ``db verify``, and ``db migrate`` (plan/apply/status)
 commands on the orxtra CLI. Uses the pgdesign-generated schema executor for
 init/verify, and wraps ``pgdesign migrate`` subcommands for migrations.
 
-Layering note: the generated executor lives in ``schema/_generated/`` which
-is a dev_node (not a proper installed package). The shared asyncpg adapter
-lives in ``orxtra.services._schema``; importing that module adds schema/ to
-sys.path.
+Layering note: the generated executor ships inside the orxtra namespace at
+``orxtra.services._generated`` so it resolves in both the editable dev tree
+and an installed wheel. The shared asyncpg adapter lives in
+``orxtra.services._schema``.
 """
 
 from __future__ import annotations
@@ -144,14 +144,17 @@ def register_db_commands(app: strictcli.App) -> None:
         db_url = _require_db(db)
 
         async def _run() -> None:
-            from _generated.schema_executor import (  # type: ignore[import-not-found]
+            from orxtra.services._generated.schema_executor import (
                 ensure_schema,
             )
 
             conn = await asyncpg.connect(db_url)
             try:
                 adapter = AsyncpgAdapter(conn)
-                result = await ensure_schema(adapter)
+                # AsyncpgAdapter satisfies AsyncConnection at runtime; the
+                # generated protocol mistypes transaction() as async def.
+                # Known pgdesign generated-protocol gap (filed upstream).
+                result = await ensure_schema(adapter)  # type: ignore[arg-type]
                 if result.errors:
                     for kind, name, err in result.errors:
                         print(
@@ -202,25 +205,21 @@ def register_db_commands(app: strictcli.App) -> None:
         db_url = _require_db(db)
 
         async def _run() -> None:
-            from _generated.schema_executor import (
-                verify,
-            )
+            from orxtra.services import verify_schema_objects
 
             conn = await asyncpg.connect(db_url)
             try:
                 adapter = AsyncpgAdapter(conn)
-                result = await verify(adapter)
-                n_miss = len(result.missing)
-                n_present = len(result.present)
+                present, missing = await verify_schema_objects(adapter)
                 if not ctx.quiet:
                     print(
                         f"Schema verification: "
-                        f"{n_present} present, "
-                        f"{n_miss} missing.",
+                        f"{len(present)} present, "
+                        f"{len(missing)} missing.",
                     )
-                if result.missing:
+                if missing:
                     if not ctx.quiet:
-                        for kind, name in result.missing:
+                        for kind, name in missing:
                             print(f"  MISSING {kind}: {name}")
                         print(
                             "\nRun 'orxtra db init' to create "

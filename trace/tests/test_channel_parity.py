@@ -1,6 +1,7 @@
 """Parity test: NOTIFY channel constants match the trigger DDL.
 
-The generated trigger DDL in schema/_generated/post_tables.py uses
+The generated trigger DDL in
+services/src/orxtra/services/_generated/post_tables.py uses
 pg_notify('orxtra_events', ...) and pg_notify('orxtra_notifications', ...).
 The channel constants in orxtra.trace and orxtra.notification must match
 those channel names exactly.  If someone changes one without the other,
@@ -18,7 +19,10 @@ from orxtra.trace import EVENTS_CHANNEL
 # Path to the generated trigger DDL -- relative to the repo root.
 _POST_TABLES = (
     Path(__file__).resolve().parents[2]  # trace/tests -> trace -> repo root
-    / "schema"
+    / "services"
+    / "src"
+    / "orxtra"
+    / "services"
     / "_generated"
     / "post_tables.py"
 )
