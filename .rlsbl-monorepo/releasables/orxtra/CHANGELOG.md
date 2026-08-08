@@ -2,6 +2,18 @@
 
 # Changelog
 
+## Unreleased
+
+### Features
+
+- [scheduler, services, session] **Custom model pricing.** Declare per-model token rates in the run config (`[pricing."provider/model"]`) to price custom or self-hosted models; config rates override the built-in table, and unknown models still error.
+
+### Fixes
+
+- [., cli] **CLI no longer crashes on startup.** The `orxtra` command resolved its version from an unpublished distribution name, raising `PackageNotFoundError` at import and breaking every invocation of the installed package. It now resolves from the published `orxtra` distribution.
+- [.] **Missing runtime dependencies declared.** The published package omitted `strictspec` and `pydantic-monty` from its dependencies, so importing agent category generation or the Monty data tool failed with `ModuleNotFoundError`. Both are now declared and installed automatically.
+- [., cli, services, trace] `orxtra db init` and `orxtra db verify` now work from an installed package (previously crashed with ModuleNotFoundError); `db verify` no longer reports spurious missing objects on a fully-initialized schema
+
 ## 0.13.0
 
 PostgreSQL 18 is now the minimum and every command declares its effect under strictcli 0.36.0.
@@ -47,6 +59,25 @@ requirement is enforced at install time rather than discovered at runtime.
 
 ## 0.12.0
 
+Unified delivery and notifications, live worker WebSocket endpoint, AG-UI live streaming, strictspec validation gate, and a published documentation site.
+
+<details>
+<summary>Context</summary>
+
+This release carries the content originally cut as v0.11.0 together with the
+strictspec validation gate and the documentation build-out.
+
+v0.11.0 was cut under the pre-CI-gate release flow and could never pass the
+modern publish gate: CI cannot run retroactively on a stale release commit, so
+that version had no path to publication. Rather than attempt to resurrect it,
+its content ships here as 0.12.0 under the modern flow, which pushes the branch,
+verifies CI, and only then finalizes and tags.
+
+v0.11.0 remains a sealed, never-published version: its tag and its finalized
+changelog stay as historical record and are not reused.
+
+</details>
+
 ### Breaking
 
 - [api, cli, worker] **Breaking: strictcli v0.29.0 migration.** All CLI command handlers now receive ctx as first parameter. App constructor includes explicit version=.
@@ -84,9 +115,57 @@ requirement is enforced at install time rather than discovered at runtime.
 
 ## 0.10.1
 
-- No user-facing changes.
+Restore the Root Tests lint job to green by fixing ruff violations in scheduler and overseer.
+
+<details>
+<summary>Context</summary>
+
+Infrastructure-only release (no user-facing changes), hence the hotfix bump.
+
+The v0.10.0 Root Tests CI lint job was red on four ruff violations: three
+PLC0414 re-export aliases (scheduler/overseer importing protocol types via the
+`import X as X` idiom) and one N806 uppercase local. The re-exports were
+rewired to import shared types from their canonical home (`orxtra.protocols`),
+eliminating the alias idiom without any per-file lint suppression and keeping
+mypy --strict clean; the local was renamed. Root Tests now passes repo-wide.
+
+Two further CI issues investigated during this release are upstream rlsbl
+template defects, not orxtra-fixable, and are reported separately for the tool
+maintainers: (1) the CI Router per-package jobs fail because members are not
+independently testable under pytest rootdir confinement, and (2) the monorepo
+publish workflow has no CI gate because rlsbl's inline publish-router generator
+self-excludes the single root publisher, so no gated router is emitted.
+
+</details>
+
+### Infrastructure
+
+- Restore the Root Tests lint job to green by fixing ruff violations in scheduler and overseer.
 
 ## 0.10.0
+
+Unified identity model: every actor gets a durable principal, every action names its actor, and dispatch enforces authentication structurally.
+
+<details>
+<summary>Context</summary>
+
+Identity used to be computed at the edge and thrown away: an authenticated
+request produced an ephemeral auth context that never became a persisted,
+referenceable actor. Mutations could happen anonymously, ownership was tied to
+orchestration runs alone, and events recorded a free-text `source` that no
+foreign key could vouch for -- actions were fundamentally unattributable.
+
+This release makes identity first-class. A new `principals` table gives every
+actor -- runs, consumers, sources, the system, and app-registered kinds -- a
+durable identity minted at birth. Every event names its acting principal via a
+NOT NULL foreign key, subscriptions are owned by principals (cascading on
+deletion), and the ephemeral `Principal` auth type is renamed `AuthContext` to
+end the overload. Enforcement is structural, not advisory: every capability
+declares a required scope, and the single dispatch choke point rejects any call
+whose authenticated context lacks it -- MCP and A2A now sit behind the auth
+wall, and an API served without an authenticator exposes public surfaces only.
+
+</details>
 
 ### Breaking
 
@@ -114,6 +193,15 @@ requirement is enforced at install time rather than discovered at runtime.
 
 ## 0.9.0
 
+Data-defined tools, compose engine, event-bus dispatcher, and database provisioning CLI.
+
+<details>
+<summary>Context</summary>
+
+Six new sub-projects (auth, compose, dispatch, incoming, a2ui, agui) and major rework of existing ones. Exec/shell tool configs replaced by declarative [[tools.define]] with three execution engines (http, monty, command). Prompt composition unified under the compose engine with template-based fragment providers. Event-bus connected end-to-end with a dispatcher worker, webhook receiver, and capability-keyed HMAC auth. The db command group provides init, verify, and migrate subcommands. Schema generation adopted from pgdesign with faceted codegen output.
+
+</details>
+
 ### Breaking
 
 - [agent] **Breaking.** Replace ExecToolConfig/ShellConfig with InlineToolDefinition and `[[tools.define]]` TOML parsing.
@@ -124,6 +212,22 @@ requirement is enforced at install time rather than discovered at runtime.
 - [cli] **New command group.** `orxtra db` with `init`, `verify`, and `migrate` (plan/apply/status) subcommands for database provisioning and migration.
 
 ## 0.8.0
+
+Five new sub-projects (worker, api, auth, a2a, a2ui), AG-UI protocol support, MCP SDK adoption, a capability registry unifying the MCP/CLI surfaces, and an EventSink backbone across session, scheduler, and trace.
+
+<details>
+<summary>Context</summary>
+
+This release ships the interface and remote-execution layers built since 0.7.0. The
+protocol surfaces (MCP, A2A, AG-UI) are composed by the new api sub-project into a
+single ASGI app served via `orxtra serve`, backed by the new auth sub-project. The
+worker sub-project adds sandboxed remote tool execution (native and Docker). Internally,
+ad-hoc event callbacks were replaced by a typed EventSink backbone, which required
+renaming transport's Event union to TransportEvent and removing event_callback. It is
+also the first release resolving fastware from PyPI (0.2.0) instead of a machine-local
+path, unblocking installs and CI outside the author's machine.
+
+</details>
 
 ### Breaking
 
@@ -153,6 +257,8 @@ requirement is enforced at install time rather than discovered at runtime.
 
 ## 0.7.0
 
+PgDispatchBackend, source CRUD, sync wrapper hardening, protocol consolidation
+
 ### Breaking
 
 - [mcp] **MCP no longer depends on orxtra-trace.** MCPServer now requires EventBus injection instead of importing trace directly.
@@ -166,6 +272,15 @@ requirement is enforced at install time rather than discovered at runtime.
 - [dispatch, protocols] **EventDelivery.fire()** gains source parameter for tracking event origin.
 
 ## 0.6.0
+
+Dispatch module, event bus enhancements, protocols reorganization
+
+<details>
+<summary>Context</summary>
+
+Major architectural changes: new dispatch module for event delivery with subscriptions, action dispatch, and accumulator flush. Event bus enhanced with nullable run_id, source column, replay(), fire_blocking(), and event_stream(). Protocols reorganized into internal _types/ package. Scheduler migrated from EventRegistry to dispatch's TransientEventDelivery. Services promoted to composition layer owning dispatch integration.
+
+</details>
 
 ### Breaking
 
@@ -181,6 +296,20 @@ requirement is enforced at install time rather than discovered at runtime.
 
 ## 0.5.0
 
+Tool namespaces, capability tags, registry-based construction, deferred loading, and prepare_event protocol.
+
+<details>
+<summary>Context</summary>
+
+Tools gain hierarchical namespaces (fs.read, fs.write, git, task.lifecycle, etc.) and capability tags
+(readonly, mutation, lifecycle, suspending). Allow lists support wildcards (fs.*) and tag filters (#readonly).
+ToolRegistry replaces the 207-line if/elif chain with data-driven construction. load_tools meta-tool enables
+on-demand schema loading with provider-aware deferred specs (Anthropic defer_loading, OpenAI empty params,
+Gemini parameterless). All 26 tools now use the @tool decorator. OverseerProtocol gains prepare_event replacing
+handle_event for clean message formatting. Session.update_tools() enables dynamic tool sets.
+
+</details>
+
 ### Features
 
 - [overseer, protocols, scheduler] **New feature.** `prepare_event(event) -> str` replaces `handle_event` on OverseerProtocol. Separates message formatting from session interaction.
@@ -194,6 +323,19 @@ requirement is enforced at install time rather than discovered at runtime.
 - [scheduler, tool] **Bug fix.** `multi_edit` tool now reachable via allow lists and correctly tracked as file mutation.
 
 ## 0.4.0
+
+@tool decorator, layer violation fix, knowledge hash persistence, CI fixes, and type cleanup.
+
+<details>
+<summary>Context</summary>
+
+Introduced @tool decorator with ToolTemplate[T].bind() for typed tool definitions. All 22 decorator-eligible
+tools migrated, 4 factory tools updated with Pydantic input schemas. OverseerProtocol and HealthMonitorProtocol
+added to protocols, removing the scheduler->overseer layer violation. Knowledge file hashes persisted via
+StorageBackend. StatResult and GlobResult replace union types and DirListing misuse. Pipeline suspending
+flag bug fixed. Dead escalation handler removed. CI fixes for transport, overseer prompts, schema, and pytest.
+
+</details>
 
 ### Features
 
@@ -210,6 +352,19 @@ requirement is enforced at install time rather than discovered at runtime.
 - [overseer, services, verify] **Bug fix.** Fixed conftest imports for pytest importlib mode compatibility across overseer, services, and verify tests.
 
 ## 0.3.0
+
+Typed tool returns, storage abstraction, headless mode, streaming always-on, and 15 new features.
+
+<details>
+<summary>Context</summary>
+
+Major architectural overhaul spanning 15 phases. Tool.execute returns ToolOutput[T] with semantic result types.
+StorageBackend abstraction enables workflows without PostgreSQL. Streaming is always-on with stuck detection.
+Headless mode has deterministic fallbacks instead of silent degradation. Autonomy gating enforced at runtime.
+One-shot ask() API for simple LLM calls. GoogleProvider for Gemini. 3 breaking changes (knowledge-module
+removed, stream_deltas removed, autonomy_level required).
+
+</details>
 
 ### Breaking
 
@@ -243,6 +398,15 @@ requirement is enforced at install time rather than discovered at runtime.
 - **Bug fix.** Autonomy gating now enforced on Overseer tools. RunStarted event emitted.
 
 ## 0.2.0
+
+Renamed from orxt to orxtra.
+
+<details>
+<summary>Context</summary>
+
+Full rename: PyPI package, Python imports, npm package, GitHub repo. All orxt.* imports are now orxtra.*.
+
+</details>
 
 ### Breaking
 
