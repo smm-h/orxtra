@@ -1,0 +1,14 @@
+# Archived by rlsbl at release time. This release had no unreleased.toml
+# (a batch member takes its metadata from the batch release file); the
+# archive is written so later changelog regenerations keep the
+# description and context.
+# Backfilled 2026-08-08: this release predates archive synthesis, so the file
+# never existed. description/context/bump recovered from the GitHub Release
+# notes for orxtra@v0.10.1; include/exclude mirror v0.13.0.toml (not recoverable).
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "infra"
+include = ["pypi"]
+exclude = []
+description = "Restore the Root Tests lint job to green by fixing ruff violations in scheduler and overseer."
+context = "Infrastructure-only release (no user-facing changes), hence the hotfix bump.\n\nThe v0.10.0 Root Tests CI lint job was red on four ruff violations: three\nPLC0414 re-export aliases (scheduler/overseer importing protocol types via the\n`import X as X` idiom) and one N806 uppercase local. The re-exports were\nrewired to import shared types from their canonical home (`orxtra.protocols`),\neliminating the alias idiom without any per-file lint suppression and keeping\nmypy --strict clean; the local was renamed. Root Tests now passes repo-wide.\n\nTwo further CI issues investigated during this release are upstream rlsbl\ntemplate defects, not orxtra-fixable, and are reported separately for the tool\nmaintainers: (1) the CI Router per-package jobs fail because members are not\nindependently testable under pytest rootdir confinement, and (2) the monorepo\npublish workflow has no CI gate because rlsbl's inline publish-router generator\nself-excludes the single root publisher, so no gated router is emitted."

@@ -1,0 +1,14 @@
+# Archived by rlsbl at release time. This release had no unreleased.toml
+# (a batch member takes its metadata from the batch release file); the
+# archive is written so later changelog regenerations keep the
+# description and context.
+# Backfilled 2026-08-08: this release predates archive synthesis, so the file
+# never existed. description/context/bump recovered from the GitHub Release
+# notes for orxtra@v0.9.0; include/exclude mirror v0.13.0.toml (not recoverable).
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "minor"
+include = ["pypi"]
+exclude = []
+description = "Data-defined tools, compose engine, event-bus dispatcher, and database provisioning CLI."
+context = "Six new sub-projects (auth, compose, dispatch, incoming, a2ui, agui) and major rework of existing ones. Exec/shell tool configs replaced by declarative [[tools.define]] with three execution engines (http, monty, command). Prompt composition unified under the compose engine with template-based fragment providers. Event-bus connected end-to-end with a dispatcher worker, webhook receiver, and capability-keyed HMAC auth. The db command group provides init, verify, and migrate subcommands. Schema generation adopted from pgdesign with faceted codegen output."

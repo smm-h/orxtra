@@ -1,0 +1,14 @@
+# Archived by rlsbl at release time. This release had no unreleased.toml
+# (a batch member takes its metadata from the batch release file); the
+# archive is written so later changelog regenerations keep the
+# description and context.
+# Backfilled 2026-08-08: this release predates archive synthesis, so the file
+# never existed. description/context/bump recovered from the GitHub Release
+# notes for orxtra@v0.8.0; include/exclude mirror v0.13.0.toml (not recoverable).
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "minor"
+include = ["pypi"]
+exclude = []
+description = "Five new sub-projects (worker, api, auth, a2a, a2ui), AG-UI protocol support, MCP SDK adoption, a capability registry unifying the MCP/CLI surfaces, and an EventSink backbone across session, scheduler, and trace."
+context = "This release ships the interface and remote-execution layers built since 0.7.0. The\nprotocol surfaces (MCP, A2A, AG-UI) are composed by the new api sub-project into a\nsingle ASGI app served via `orxtra serve`, backed by the new auth sub-project. The\nworker sub-project adds sandboxed remote tool execution (native and Docker). Internally,\nad-hoc event callbacks were replaced by a typed EventSink backbone, which required\nrenaming transport's Event union to TransportEvent and removing event_callback. It is\nalso the first release resolving fastware from PyPI (0.2.0) instead of a machine-local\npath, unblocking installs and CI outside the author's machine."

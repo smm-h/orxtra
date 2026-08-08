@@ -1,0 +1,14 @@
+# Archived by rlsbl at release time. This release had no unreleased.toml
+# (a batch member takes its metadata from the batch release file); the
+# archive is written so later changelog regenerations keep the
+# description and context.
+# Backfilled 2026-08-08: this release predates archive synthesis, so the file
+# never existed. description/context/bump recovered from the GitHub Release
+# notes for orxtra@v0.4.0; include/exclude mirror v0.13.0.toml (not recoverable).
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "minor"
+include = ["pypi"]
+exclude = []
+description = "@tool decorator, layer violation fix, knowledge hash persistence, CI fixes, and type cleanup."
+context = "Introduced @tool decorator with ToolTemplate[T].bind() for typed tool definitions. All 22 decorator-eligible\ntools migrated, 4 factory tools updated with Pydantic input schemas. OverseerProtocol and HealthMonitorProtocol\nadded to protocols, removing the scheduler->overseer layer violation. Knowledge file hashes persisted via\nStorageBackend. StatResult and GlobResult replace union types and DirListing misuse. Pipeline suspending\nflag bug fixed. Dead escalation handler removed. CI fixes for transport, overseer prompts, schema, and pytest."
