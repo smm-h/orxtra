@@ -1,8 +1,19 @@
 name: Root Tests
+
+# This is the workspace ROOT member's CI source (workspace.toml: path = ".",
+# name = "root"). `rlsbl monorepo sync` inlines these jobs into ci-router.yml
+# as `root-ci-*`, where they get the router's push/PR triggers plus the
+# paths-filter gate. CI-source discovery only ever matches `ci.yml` and
+# `ci-*.yml`, which is why this file cannot go back to being named test.yml:
+# under the old name the router had no jobs for the root member at all.
+#
+# Every other member's ci.yml lives in a subdirectory, which GitHub ignores --
+# only the jobs the router inlines ever run. The root member's ci.yml sits in
+# the one directory GitHub DOES read, so a push/pull_request trigger here would
+# run these jobs a second time, ungated, on every push. workflow_dispatch is
+# therefore the only trigger: the router owns the automatic runs, and this file
+# stays manually runnable on its own.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 jobs:

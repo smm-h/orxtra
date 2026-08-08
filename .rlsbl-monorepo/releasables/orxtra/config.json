@@ -14,5 +14,5 @@
       "target": "pypi"
     }
   },
-  "publish_gate_check_regex": "^(test \\(3\\.\\d+\\)|lint|mypy|import-check|dep-declarations|layer-docs|schema-codegen)$"
+  "publish_gate_check_regex": "^(root\\-ci) / "
 }
