@@ -1,6 +1,6 @@
 {
-  "__rlsbl_version__": "0.111.0",
-  ".": "677ce4f8519a4736a2372fd7216b6a352d57a6f13f6c9d3892551749d1c221df",
+  "__rlsbl_version__": "0.112.0",
+  "root": "677ce4f8519a4736a2372fd7216b6a352d57a6f13f6c9d3892551749d1c221df",
   "protocols": null,
   "secrets": null,
   "write-safety": null,

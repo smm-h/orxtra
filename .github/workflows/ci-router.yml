@@ -6,13 +6,22 @@ on:
     - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      run_all:
+        description: Run every project's CI jobs, ignoring the paths filter. Use
+          this to make a release candidate's members run their own CI on a 
+          commit whose push window does not touch their paths.
+        type: boolean
+        required: false
+        default: false
 concurrency:
-  group: ${{ github.workflow_ref }}-${{ github.sha }}
+  group: ${{ github.workflow_ref }}-${{ github.sha }}-${{ inputs.run_all }}
   cancel-in-progress: true
 jobs:
   detect:
     runs-on: ubuntu-latest
     outputs:
+      root: ${{ steps.changes.outputs.root }}
       protocols: ${{ steps.changes.outputs.protocols }}
       secrets: ${{ steps.changes.outputs.secrets }}
       write-safety: ${{ steps.changes.outputs.write-safety }}
@@ -46,6 +55,22 @@ jobs:
       id: changes
       with:
         filters: |
+          root:
+            - './**'
+            - 'pyproject.toml'
+            - 'selfdoc.json'
+            - 'docs/**'
+            - 'scripts/**'
+            - 'examples/**'
+            - 'knowledge/**'
+            - 'tests/**'
+            - '.github/**'
+            - 'todo/**'
+            - 'CLAUDE.md'
+            - 'LICENSE'
+            - '.env'
+            - '.gitignore'
+            - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
           protocols:
             - 'protocols/**'
             - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
@@ -125,6 +150,121 @@ jobs:
             - 'api/**'
             - '.rlsbl-monorepo/releasables/orxtra/CHANGELOG.md'
           schema: 'schema/**'
+  root-ci-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install ${{ matrix.python-version }}
+    - run: uv sync
+    - run: uv run pytest tests/ -x -q
+
+    defaults:
+      run:
+        working-directory: .
+    name: root-ci / test
+    needs:
+    - detect
+    if: (needs.detect.outputs.root == 'true' || inputs.run_all)
+  root-ci-lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install 3.13
+    - run: uv sync
+    - run: uv run ruff check .
+
+    defaults:
+      run:
+        working-directory: .
+    name: root-ci / lint
+    needs:
+    - detect
+    if: (needs.detect.outputs.root == 'true' || inputs.run_all)
+  root-ci-mypy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install 3.13
+    - run: uv sync
+    - run: bash scripts/run_mypy.sh
+
+    defaults:
+      run:
+        working-directory: .
+    name: root-ci / mypy
+    needs:
+    - detect
+    if: (needs.detect.outputs.root == 'true' || inputs.run_all)
+  root-ci-import-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install 3.13
+    - run: uv sync
+    - run: uv run python scripts/check_imports.py
+
+    defaults:
+      run:
+        working-directory: .
+    name: root-ci / import-check
+    needs:
+    - detect
+    if: (needs.detect.outputs.root == 'true' || inputs.run_all)
+  root-ci-dep-declarations:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install 3.13
+    - run: uv sync
+    - run: uv run python scripts/check_dep_declarations.py
+
+    defaults:
+      run:
+        working-directory: .
+    name: root-ci / dep-declarations
+    needs:
+    - detect
+    if: (needs.detect.outputs.root == 'true' || inputs.run_all)
+  root-ci-layer-docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install 3.13
+    - run: uv sync
+    - run: uv run python scripts/check_layer_docs.py
+
+    defaults:
+      run:
+        working-directory: .
+    name: root-ci / layer-docs
+    needs:
+    - detect
+    if: (needs.detect.outputs.root == 'true' || inputs.run_all)
+  root-ci-schema-codegen:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv python install 3.13
+    - run: uv sync
+    - run: uv tool install pgdesign
+    - run: bash scripts/check_schema_codegen.sh
+    defaults:
+      run:
+        working-directory: .
+    name: root-ci / schema-codegen
+    needs:
+    - detect
+    if: (needs.detect.outputs.root == 'true' || inputs.run_all)
   protocols-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -148,7 +288,7 @@ jobs:
     name: protocols-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.protocols == 'true'
+    if: (needs.detect.outputs.protocols == 'true' || inputs.run_all)
   secrets-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -172,7 +312,7 @@ jobs:
     name: secrets-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.secrets == 'true'
+    if: (needs.detect.outputs.secrets == 'true' || inputs.run_all)
   write-safety-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -196,7 +336,7 @@ jobs:
     name: write-safety-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.write-safety == 'true'
+    if: (needs.detect.outputs.write-safety == 'true' || inputs.run_all)
   transport-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -220,7 +360,7 @@ jobs:
     name: transport-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.transport == 'true'
+    if: (needs.detect.outputs.transport == 'true' || inputs.run_all)
   agent-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -244,7 +384,7 @@ jobs:
     name: agent-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.agent == 'true'
+    if: (needs.detect.outputs.agent == 'true' || inputs.run_all)
   tool-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -268,7 +408,7 @@ jobs:
     name: tool-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.tool == 'true'
+    if: (needs.detect.outputs.tool == 'true' || inputs.run_all)
   verify-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -292,7 +432,7 @@ jobs:
     name: verify-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.verify == 'true'
+    if: (needs.detect.outputs.verify == 'true' || inputs.run_all)
   trace-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -316,7 +456,7 @@ jobs:
     name: trace-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.trace == 'true'
+    if: (needs.detect.outputs.trace == 'true' || inputs.run_all)
   notepad-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -340,7 +480,7 @@ jobs:
     name: notepad-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.notepad == 'true'
+    if: (needs.detect.outputs.notepad == 'true' || inputs.run_all)
   session-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -364,7 +504,7 @@ jobs:
     name: session-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.session == 'true'
+    if: (needs.detect.outputs.session == 'true' || inputs.run_all)
   compose-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -388,7 +528,7 @@ jobs:
     name: compose-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.compose == 'true'
+    if: (needs.detect.outputs.compose == 'true' || inputs.run_all)
   auth-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -412,7 +552,7 @@ jobs:
     name: auth-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.auth == 'true'
+    if: (needs.detect.outputs.auth == 'true' || inputs.run_all)
   identity-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -436,7 +576,7 @@ jobs:
     name: identity-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.identity == 'true'
+    if: (needs.detect.outputs.identity == 'true' || inputs.run_all)
   a2ui-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -460,7 +600,7 @@ jobs:
     name: a2ui-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.a2ui == 'true'
+    if: (needs.detect.outputs.a2ui == 'true' || inputs.run_all)
   notification-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -484,7 +624,7 @@ jobs:
     name: notification-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.notification == 'true'
+    if: (needs.detect.outputs.notification == 'true' || inputs.run_all)
   scheduler-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -508,7 +648,7 @@ jobs:
     name: scheduler-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.scheduler == 'true'
+    if: (needs.detect.outputs.scheduler == 'true' || inputs.run_all)
   dispatch-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -532,7 +672,7 @@ jobs:
     name: dispatch-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.dispatch == 'true'
+    if: (needs.detect.outputs.dispatch == 'true' || inputs.run_all)
   overseer-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -556,7 +696,7 @@ jobs:
     name: overseer-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.overseer == 'true'
+    if: (needs.detect.outputs.overseer == 'true' || inputs.run_all)
   services-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -580,7 +720,7 @@ jobs:
     name: services-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.services == 'true'
+    if: (needs.detect.outputs.services == 'true' || inputs.run_all)
   cli-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -604,7 +744,7 @@ jobs:
     name: cli-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.cli == 'true'
+    if: (needs.detect.outputs.cli == 'true' || inputs.run_all)
   mcp-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -628,7 +768,7 @@ jobs:
     name: mcp-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.mcp == 'true'
+    if: (needs.detect.outputs.mcp == 'true' || inputs.run_all)
   a2a-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -652,7 +792,7 @@ jobs:
     name: a2a-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.a2a == 'true'
+    if: (needs.detect.outputs.a2a == 'true' || inputs.run_all)
   agui-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -676,7 +816,7 @@ jobs:
     name: agui-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.agui == 'true'
+    if: (needs.detect.outputs.agui == 'true' || inputs.run_all)
   worker-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -700,7 +840,7 @@ jobs:
     name: worker-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.worker == 'true'
+    if: (needs.detect.outputs.worker == 'true' || inputs.run_all)
   incoming-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -724,7 +864,7 @@ jobs:
     name: incoming-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.incoming == 'true'
+    if: (needs.detect.outputs.incoming == 'true' || inputs.run_all)
   api-ci-test:
     runs-on: ubuntu-latest
     strategy:
@@ -748,7 +888,7 @@ jobs:
     name: api-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.api == 'true'
+    if: (needs.detect.outputs.api == 'true' || inputs.run_all)
   schema-ci-test:
     runs-on: ubuntu-latest
     steps:
@@ -766,4 +906,4 @@ jobs:
     name: schema-ci / test
     needs:
     - detect
-    if: needs.detect.outputs.schema == 'true'
+    if: (needs.detect.outputs.schema == 'true' || inputs.run_all)
