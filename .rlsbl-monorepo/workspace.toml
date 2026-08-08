@@ -12,6 +12,12 @@ name = "orxtra"
 
 [[projects]]
 path = "."
+# Explicit name: rlsbl otherwise derives it from the path basename, and
+# os.path.basename(".") is ".". The router uses the project name verbatim as a
+# paths-filter key, a detect output key and a job-key prefix, so the default
+# would emit `needs.detect.outputs..` and job ids starting with a dot -- an
+# invalid workflow. Every other member is happy with the derived basename.
+name = "root"
 description = "Root package — single publishable wheel aggregating all sub-projects"
 releasable = "orxtra"
 watch = [
