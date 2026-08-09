@@ -1,6 +1,6 @@
 {
   "name": "orxtra",
-  "version": "0.1.0",
+  "version": "0.13.0",
   "license": "BUSL-1.1",
   "description": "Autonomous multi-agent AI workflows. npm wrapper for the orxtra Python CLI.",
   "bin": {
@@ -22,6 +22,7 @@
     "agents",
     "workflows",
     "orchestration",
-    "cli"
+    "cli",
+    "rlsbl"
   ]
 }
