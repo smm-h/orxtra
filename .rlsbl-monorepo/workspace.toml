@@ -28,6 +28,10 @@ watch = [
     "examples/**",
     "knowledge/**",
     "tests/**",
+    # The npm shim is a release target of the orxtra releasable (targets
+    # carry {"name": "npm", "path": "npm"}), so its files must be in the
+    # root member's scope for changelog coverage and CI path filtering.
+    "npm/**",
     ".github/**",
     "todo/**",
     "CLAUDE.md",
