@@ -1,0 +1,13 @@
+{
+  "targets": [
+    "pypi"
+  ],
+  "publish_mode": "none",
+  "pipelines": {
+    "pypi": {
+      "type": "pypi",
+      "local": false,
+      "target": "pypi"
+    }
+  }
+}

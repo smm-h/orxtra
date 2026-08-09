@@ -5,13 +5,23 @@
   },
   "publish_mode": "ci",
   "targets": [
-    "pypi"
+    "pypi",
+    {
+      "name": "npm",
+      "path": "npm"
+    }
   ],
   "pipelines": {
     "pypi": {
       "type": "pypi",
       "local": false,
       "target": "pypi"
+    },
+    "npm": {
+      "type": "npm",
+      "local": false,
+      "provenance": true,
+      "target": "npm"
     }
   },
   "publish_gate_check_regex": "^(root\\-ci) / "
