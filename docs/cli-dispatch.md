@@ -13,7 +13,9 @@ Manage the persistent event dispatch worker process.
 
 ## dispatch run
 
-Start the persistent dispatch worker that processes event subscriptions.
+Start the long-running dispatch worker that delivers stored events to their subscriptions and executes the action chains those subscriptions declare. Wakes on PostgreSQL LISTEN/NOTIFY and falls back to polling every --poll-interval seconds, up to --batch-size events a batch. Use --cursor to run several workers over independent positions.
+
+**Effect:** mutating
 
 ### Flags
 

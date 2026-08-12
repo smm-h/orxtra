@@ -13,7 +13,9 @@ Manage autonomous workflow run lifecycle (start, list, show, abort, pause, resum
 
 ## run start
 
-Start a new autonomous workflow run from a configuration file.
+Start a new autonomous workflow run from a TOML configuration file and a natural-language intent. Opens a pool against the trace database, verifies the schema, dispatches start_run under an operator identity, and prints the new run's UUID on stdout so later run, trace and inbox commands can address it.
+
+**Effect:** mutating
 
 ### Flags
 
@@ -24,11 +26,15 @@ Start a new autonomous workflow run from a configuration file.
 
 ## run list
 
-List all runs in the database, ordered newest first.
+List every run recorded in the trace database, newest first, with the identifying and status fields the storage layer keeps for each one. Output honours the global --format flag, so the same listing renders as a human-readable table or as JSON for a script or agent to consume directly.
+
+**Effect:** read_only
 
 ## run show
 
-Display the full status report for a specific run.
+Display the full status report the trace store holds for one run: its current state, the intent it was started with, and the accounting the storage layer keeps alongside it. Exits non-zero with a clear message when no run carries the given identifier. Honours the global --format flag for table or JSON output.
+
+**Effect:** read_only
 
 ### Arguments
 
@@ -38,7 +44,9 @@ Display the full status report for a specific run.
 
 ## run abort
 
-Send an abort signal to stop a currently running workflow.
+Send an abort signal to a currently executing workflow run, telling the scheduler to stop dispatching further tasks for it. The signal travels through the trace store's run-control channel rather than through dispatch, so a scheduler running in another process picks it up. Confirms on stdout unless --quiet.
+
+**Effect:** mutating
 
 ### Arguments
 
@@ -48,7 +56,9 @@ Send an abort signal to stop a currently running workflow.
 
 ## run pause
 
-Pause a running workflow run, suspending task execution.
+Suspend a running workflow, telling the scheduler to stop starting new tasks for it while leaving the run and its task tree intact so it can be resumed later. The signal travels through the trace store's run-control channel, so a scheduler in another process observes it. Confirms on stdout unless --quiet.
+
+**Effect:** mutating
 
 ### Arguments
 
@@ -58,7 +68,9 @@ Pause a running workflow run, suspending task execution.
 
 ## run resume
 
-Resume a previously paused workflow run, restarting task execution.
+Restart task execution for a workflow that was previously paused, telling the scheduler to begin dispatching its ready tasks again from the state the pause left behind. The signal travels through the trace store's run-control channel, so a scheduler in another process observes it. Confirms on stdout unless --quiet.
+
+**Effect:** mutating
 
 ### Arguments
 

@@ -11,6 +11,8 @@ nav_order: 7
 
 Start the HTTP API server (MCP, A2A, AG-UI, native routes).
 
+**Effect:** mutating
+
 ## Flags
 
 | Name | Short | Type | Default | Env | Description |

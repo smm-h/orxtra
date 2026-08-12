@@ -13,7 +13,9 @@ Fire named events to wake wait-for tasks in running workflows.
 
 ## event fire
 
-Fire a named event to wake wait-for tasks in a running workflow.
+Fire a named event into a running workflow to wake any task waiting on it. Takes the run's UUID and an event name that must match a wait-for task's declared name; attach structured data with --payload, which must parse as a JSON object. Prints the stored event's identifier unless --quiet is passed.
+
+**Effect:** mutating
 
 ### Flags
 

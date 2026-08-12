@@ -13,7 +13,9 @@ Query trace data: events, transcripts, tasks, and notepad entries for runs.
 
 ## trace events
 
-Query the stored event log for a specific workflow run.
+Query the append-only event log the trace store keeps for one workflow run. Narrow the result with --type to a single event type such as task_started or tool_call, and cap its size with --limit, which defaults to a hundred. Honours the global --format flag, so events render as a table or as JSON.
+
+**Effect:** read_only
 
 ### Flags
 
@@ -30,7 +32,9 @@ Query the stored event log for a specific workflow run.
 
 ## trace transcript
 
-Display the full message transcript for an agent session.
+Display the complete stored message transcript for one agent session: every message exchanged with the model, in order, as the session module persisted it. Takes the session's identifier rather than a run's. Honours the global --format flag, so the transcript renders as readable text or as JSON.
+
+**Effect:** read_only
 
 ### Arguments
 
@@ -40,7 +44,9 @@ Display the full message transcript for an agent session.
 
 ## trace search
 
-Search a session transcript for matching text (case-insensitive).
+Search one agent session's stored transcript for a substring, case-insensitively, and return the matching messages rather than the whole conversation. Takes the session identifier and the text to look for. Honours the global --format flag, so matches render as a table or as JSON for a script.
+
+**Effect:** read_only
 
 ### Arguments
 
@@ -51,7 +57,9 @@ Search a session transcript for matching text (case-insensitive).
 
 ## trace tasks
 
-Show task statuses, attempt counts, and hierarchy for a run.
+List every task recorded for one workflow run with its current status, its attempt count and its place in the recursive task hierarchy, so you can see which branch of the tree stalled or retried. Takes the run's UUID. Honours the global --format flag, so tasks render as a table or as JSON.
+
+**Effect:** read_only
 
 ### Arguments
 
@@ -61,7 +69,9 @@ Show task statuses, attempt counts, and hierarchy for a run.
 
 ## trace notepad
 
-Show cross-agent notepad entries for a workflow run.
+Show the append-only cross-agent notepad entries written during one workflow run -- the messages agents left for each other as the run progressed, in the order they were appended. Takes the run's UUID. Honours the global --format flag, so entries render as a readable table or as JSON.
+
+**Effect:** read_only
 
 ### Arguments
 

@@ -13,8 +13,12 @@ Database provisioning, schema verification, and migration commands.
 
 ## db init
 
-Create the database schema and seed the system principal (idempotent).
+Create every database object orxtra's modules declare -- the trace, dispatch, identity and auth schemas -- and seed the singleton system principal. Idempotent: objects that already exist are skipped and counted rather than recreated, so it is safe to re-run. Reports what it executed unless --quiet.
+
+**Effect:** mutating
 
 ## db verify
 
-Verify that all expected database schema objects are present.
+Check the connected database for every schema object orxtra expects and report how many are present and how many are missing. Names each missing object and exits non-zero when any is absent, pointing at 'db init' or 'db migrate apply' as the repair; exits zero when the schema is complete.
+
+**Effect:** read_only

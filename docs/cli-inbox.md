@@ -13,7 +13,9 @@ Manage human-in-the-loop inbox items (list, show, respond, skip, reject).
 
 ## inbox list
 
-List pending human-in-the-loop inbox items, optionally filtered.
+List the human-in-the-loop inbox items agents have raised. Narrow the listing with --run to a single workflow run and with --status to one lifecycle state such as pending, answered or skipped; omit both to see everything. Honours the global --format flag, so the listing renders as a table or as JSON.
+
+**Effect:** read_only
 
 ### Flags
 
@@ -24,7 +26,9 @@ List pending human-in-the-loop inbox items, optionally filtered.
 
 ## inbox show
 
-Display the full details of a single inbox item by ID.
+Display everything the store holds for one inbox item: the question an agent asked, the options it offered, the run and task it came from, and its current resolution state. Takes the item's UUID. Honours the global --format flag, so the item renders as a readable table or as JSON.
+
+**Effect:** read_only
 
 ### Arguments
 
@@ -34,7 +38,9 @@ Display the full details of a single inbox item by ID.
 
 ## inbox respond
 
-Submit an answer to a pending inbox item from a workflow run.
+Submit an answer to a pending inbox item, unblocking the agent that raised the question and recording your identity as the principal that resolved it. Takes the item's UUID and the answer text. Prints the updated item, honouring the global --format flag, so you can confirm the response landed.
+
+**Effect:** mutating
 
 ### Arguments
 
@@ -45,7 +51,9 @@ Submit an answer to a pending inbox item from a workflow run.
 
 ## inbox skip
 
-Skip a pending inbox item without providing an answer.
+Resolve a pending inbox item without answering it, telling the agent that raised the question to proceed without your input. Records your identity as the principal that resolved the item. Takes the item's UUID and prints the updated item, honouring the global --format flag, so you can confirm the outcome.
+
+**Effect:** mutating
 
 ### Arguments
 
@@ -55,7 +63,9 @@ Skip a pending inbox item without providing an answer.
 
 ## inbox reject
 
-Reject a pending inbox item, indicating the provided options are insufficient.
+Reject a pending inbox item when none of the options an agent offered is usable, sending back a reason instead of an answer so the agent can reformulate. Takes the item's UUID and an explanation. Prints the updated item, honouring the global --format flag, and records you as the principal that resolved it.
+
+**Effect:** mutating
 
 ### Arguments
 

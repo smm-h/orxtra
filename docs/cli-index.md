@@ -16,16 +16,34 @@ Version: :-: var key="project.version"
 
 ## Commands
 
-- [serve](cli-serve.html) -- Start the HTTP API server (MCP, A2A, AG-UI, native routes).
+- [serve](../cli-serve/) -- Start the HTTP API server (MCP, A2A, AG-UI, native routes).
 
 ## Command Groups
 
-- [run](cli-run.html) -- Manage autonomous workflow run lifecycle (start, list, show, abort, pause, resume).
-- [inbox](cli-inbox.html) -- Manage human-in-the-loop inbox items (list, show, respond, skip, reject).
-- [trace](cli-trace.html) -- Query trace data: events, transcripts, tasks, and notepad entries for runs.
-- [event](cli-event.html) -- Fire named events to wake wait-for tasks in running workflows.
-- [validate](cli-validate.html) -- Validate agent, workflow, and category configuration TOML files.
-- [config](cli-config.html) -- Inspect run configuration snapshots and internal pricing tables.
-- [db](cli-db.html) -- Database provisioning, schema verification, and migration commands.
-- [dispatch](cli-dispatch.html) -- Manage the persistent event dispatch worker process.
-- [worker](cli-worker.html) -- Manage remote worker processes that execute tool calls for the brain.
+- [run](../cli-run/) -- Manage autonomous workflow run lifecycle (start, list, show, abort, pause, resume).
+- [inbox](../cli-inbox/) -- Manage human-in-the-loop inbox items (list, show, respond, skip, reject).
+- [trace](../cli-trace/) -- Query trace data: events, transcripts, tasks, and notepad entries for runs.
+- [event](../cli-event/) -- Fire named events to wake wait-for tasks in running workflows.
+- [validate](../cli-validate/) -- Validate agent, workflow, and category configuration TOML files.
+- [config](../cli-config/) -- Inspect run configuration snapshots and internal pricing tables.
+- [db](../cli-db/) -- Database provisioning, schema verification, and migration commands.
+- [dispatch](../cli-dispatch/) -- Manage the persistent event dispatch worker process.
+- [worker](../cli-worker/) -- Manage remote worker processes that execute tool calls for the brain.
+
+## Global flags
+
+| Name | Short | Type | Default | Env | Description |
+| --- | --- | --- | --- | --- | --- |
+| `--db` |  | str |  |  | PostgreSQL connection URL. |
+| `--format` |  | str | table |  | Output format. |
+
+## Framework flags
+
+These flags are owned by the strictcli framework, not by the app. No command may declare a flag with one of these names, and each is recognized anywhere on the command line.
+
+| Flag | Effect |
+| --- | --- |
+| `--dry-run` | Preview mode: no mutation runs. The framework prints a log of every effect the command would have performed. |
+| `--approve-consequential` | Skips the confirmation prompt a consequential command shows before it runs. |
+| `--quiet` | Hides informational output. Warnings, errors, structured data and the dry-run log are never suppressed. |
+| `--verbose` | Shows debug output. `--quiet` wins when both are passed. |

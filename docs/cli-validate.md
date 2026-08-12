@@ -13,7 +13,9 @@ Validate agent, workflow, and category configuration TOML files.
 
 ## validate agent
 
-Validate an agent definition TOML file for schema errors.
+Validate an agent definition TOML file against the agent module's strict schema, without touching the database. Prints every error it finds to stderr and exits non-zero, or prints 'valid' and exits zero when the file is clean. Suitable as a pre-commit or CI check over a directory of agent definitions.
+
+**Effect:** read_only
 
 ### Arguments
 
@@ -23,7 +25,9 @@ Validate an agent definition TOML file for schema errors.
 
 ## validate workflow
 
-Validate a workflow definition TOML file for schema errors.
+Validate a workflow definition TOML file against the strict workflow schema without touching the database, checking the task declarations it makes and the dependency structure between them. Prints every error it finds to stderr and exits non-zero, or prints 'valid' and exits zero when the file is clean.
+
+**Effect:** read_only
 
 ### Arguments
 
@@ -33,7 +37,9 @@ Validate a workflow definition TOML file for schema errors.
 
 ## validate categories
 
-Validate a model categories TOML file for schema errors.
+Validate a model-categories TOML file against the strict categories schema without touching the database, checking the multi-provider model routing it declares. Prints every error it finds to stderr and exits non-zero, or prints 'valid' and exits zero when the file is clean.
+
+**Effect:** read_only
 
 ### Arguments
 
