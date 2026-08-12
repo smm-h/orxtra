@@ -463,7 +463,7 @@ my-project/
 
 ## Next steps
 
-- Read the [Architecture](architecture.md) doc for the full system design
-- See the [CLI Reference](cli-index.md) for all available commands
+- Read the [Architecture](../architecture/) doc for the full system design
+- See the [CLI Reference](../cli-index/) for all available commands
 - Explore the [examples/](https://github.com/smm-h/orxtra/tree/main/examples) directory for more agent and workflow definitions
 - Use `orxtra config pricing` to view the internal pricing table for budget planning

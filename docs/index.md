@@ -10,7 +10,7 @@ Autonomous multi-agent AI workflows with structured control flow. Every piece of
 
 ## CLI Reference
 
-See the [CLI command reference](cli-index.md) for all available commands.
+See the [CLI command reference](cli-index/) for all available commands.
 
 ## Modules
 
