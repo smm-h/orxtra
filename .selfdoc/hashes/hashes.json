@@ -41,39 +41,39 @@
   "en/cli-config.md": {
     "content": "5ba6854ed20f6f1fa0f594c5cbdcf09b450797bc69ef5b2971dde6dda51d1c4e",
     "description": "40d2f3e9b8b6e60199a59755b190c55398a8a73d83c5bdfe57cf086ca0406fbc",
-    "schema_hash": "b2f88b813b3cfbe02f61aabbdaefd761e80ef3a0b16cd1382208646909df2329"
+    "schema_hash": "47b10e3e8d988aa31be71481e2036a9d927a42ef8a4aa6aa2b1be9a7d7a96cca"
   },
   "en/cli-db.md": {
     "content": "5ac51821a40d7e8c6442ba388fa7fdb85c5a032207d545dfc8edae0162560577",
     "description": "2506c79cdf23092fdebb668ffc568f8a78ee593be46e3c3b2949d539786424dd",
-    "schema_hash": "f2b20ed6f559b1d944a160261342dfa1840f212ca3f5a1c53e968cc970949d1a"
+    "schema_hash": "1d5c5e72632f0b77493de0c94506745cf38e0ec16923077964177e93514aa577"
   },
   "en/cli-dispatch.md": {
     "content": "ad5e2a548cab9bec9c4d02d0688891ecb9b15458e6acc6e9b4037cedb87c0b9f",
     "description": "42396700885fb7f643973de2444de7c0eb9fbca23a185323ae0888f57937c48d",
-    "schema_hash": "1d42499fa5eeff0b2fdb62c5b219ad22181d278a61ec9fb7d0e401477513e76b"
+    "schema_hash": "fa7eefedbb009818910ca74a9c3dd8c27f43027552d6a9c6b4aaa168fd89c0ea"
   },
   "en/cli-event.md": {
     "content": "776596c7e1891e85f92be720b67f7c3ed7326e2be25f44eb8ccf8e8e992bac35",
     "description": "3a5d0a8fb35057e3e77b0c2003f19028c25623aeae4487f3995a4c1bb8a8c355",
-    "schema_hash": "7c851ce4fb4ac561d74a4fafb89a6f05180631ba87dc719c8cfbc0e99b7d4c61"
+    "schema_hash": "5cecd8e5f682aefe5c7e8721daad2efc876ce8c0e5860bb4f57536c7c3b17950"
   },
   "en/cli-inbox.md": {
     "content": "cee2506ed595a628d092e8dfef3fe654e01c548ded33695471551c3503f2c3f8",
     "description": "ba2f7e36471e6aabb191bb700c7807d7d6cfc204e2116668e6e89de3b914117b",
-    "schema_hash": "59465d0a3701307b29c19fac46445939db0b5e24b64a1e92d1d75cb1bd50d3d7"
+    "schema_hash": "e0c94c2e8f747cdaa0fbef77348049ec17a8575db761bbab9ec09f02e2176881"
   },
   "en/cli-index.md": {
-    "content": "0d63608d2739b4b7529950c3450f51a67d8e7ef369676de00149a9a41cc44bf2",
+    "content": "df7a025c7117ae9208486f846dbe2744b6cc0d26d1bc6ca55ea70d35c4199cac",
     "description": "505b5051892f62f43fe86397aa1bed42e0ccbab379b48a2bb5e2a0c04cd726d1"
   },
   "en/cli-run.md": {
     "content": "f858d6ed008709109fbbdbbb0e7bc88479b8b78eef7735ff838d0f87f4c7458d",
     "description": "810c05e2459b7fa852053ac4c5d67818ec55c900bcf5189a544aeca7a892b039",
-    "schema_hash": "13777bdf29aafb4373ff02243b5f2de6a1eb051c68a6d23a73e1308fe37a4ff2"
+    "schema_hash": "d87de4bae4db549dbf80409c9c535b8a8b383594fa3f6ff578627a92e61a2fc1"
   },
   "en/cli-serve.md": {
-    "content": "a96f977cd7eb315b3230e31204770d1b3cc354e8ccf919e233192d8702f4715c",
+    "content": "10eb189a43e986887c59b12dd41ac31d08eb01d2e18197b0865e14102bc38083",
     "description": "0d4daebb0918bbfd1058270552f7349e59e804604481326cb483d614e2fd5ecd",
     "schema_hash": "49675c858d919f082945543fc66f216a69156c993605236a17e68e1d5873711d"
   },
@@ -84,7 +84,7 @@
   "en/cli-src-orxtra-cli-_db.md": {
     "content": "7d29597f7262e4e5b344b36e8a6d327fdd31d77c89f7496bf1f6b277ff8b030a",
     "description": "cbe9977a3f86a0808cd2635c3005f568ab7adbf44cef791e3b523b4c0996212b",
-    "source_docstring": "770bca086f6bc70c99b2b1f4772bda8ffd82a2a544c2810d3826e2c35721585b"
+    "source_docstring": "c53391966b1e0a0c4ed5d65477d20d5a4f8b0b199c89d3c159262ed4b47d7464"
   },
   "en/cli-src-orxtra-cli-_dispatch.md": {
     "content": "180eb295e9a8ed2851d80113642e92716a52e7cfd1a722efc8ceeb3c0d366872",
@@ -102,17 +102,17 @@
   "en/cli-trace.md": {
     "content": "45342dbe1b53d95dcfd6b807cfd5d61eca81f037c942f165564ba50e66ea6e03",
     "description": "494e7abdaba713e7fde8dbb043c4f80ccc39ea11613719d2fd1540a7a4ba89ff",
-    "schema_hash": "06336638f7229501afad7747b3418c9f4410fef9d97c8c36ecd4d82a4f13e150"
+    "schema_hash": "e5fc83c15a563b2f21c9c70d09ceebe5ba0da96238659f4025391519c133b950"
   },
   "en/cli-validate.md": {
     "content": "26163991631e9f2ee13be97972d79d60cd8a2cfb0529a7c34f9708b38f5de523",
     "description": "04cddc040fdc8861ecd1b2afdb810eaccb57ab74a3616d839bd2c2379c875d99",
-    "schema_hash": "62b65bb9126af9d2d0631d40cde5346b173bf898cfd7d32feb52eedde24de9ab"
+    "schema_hash": "22a9791cafad2b7b29fc6519e505fbdc0cad28d7e1a620eae3b86229078005ca"
   },
   "en/cli-worker.md": {
     "content": "00de780fe454e24e909a1621e1c061acaf9e89af3e0809f9d369be3ddba0f89c",
     "description": "88b558ce07e33ee8ab52b988343c791a97ca4c396a240999dc8d831d8fefd185",
-    "schema_hash": "8a691232c8c631e8b70c2aa4a5141e674b529f0c678930b4560e677c560d55b9"
+    "schema_hash": "5c367e845174041a18e226318b2a1de883e6b4bb29a6f22edcb0d48884b568e9"
   },
   "en/concepts.md": {
     "content": "903029aa72d4dea00419301e56504bc533ea9a70c2c7bb49b37a368ae65704df",
@@ -162,15 +162,15 @@
     "description": "16087f7268e599147f29a53ba53edde5de763224b1203b80e12a59a95139c457"
   },
   "en/gen-index.md": {
-    "content": "f7bb5830ab70f65e4a3614bf58001b23177994329f1f0cc6b9f9a2bdce5fd9eb",
+    "content": "86f1aed9dd0b1ae66c7d56d81741d3d757ffb17519fadd6566f7bbedddc76b6b",
     "description": "b5cd8162e8ebdadc3b4263290957ec6ac5a5d54cc7b5f3824450545145908def"
   },
   "en/getting-started.md": {
-    "content": "0c5ce793c0cc7cdc5f20d117c6e49390db425c8d9c78e4b03bff3563a5155ed5",
+    "content": "bcf08bb9d1e517b68666b925f64e82187e838d0e3be5eea512496fd570a323c5",
     "description": "0c868d7262c03314c6d6487dd696c91553972b98ba941ba028aabd643fd9880b"
   },
   "en/index.md": {
-    "content": "9e9f8818e938607995d24e75d2b1debb8d1a8771d72244f9438053ac5f2caaf3",
+    "content": "f5c788997e70aa1aff8124f3f52218c7bb16f9b6b51caae040be8a3cde0610fa",
     "description": "62c3f02fd5d7efc043b184615bb04029df42567752b51fa517d2e15750bb38e0"
   },
   "en/overseer-src-orxtra-overseer-_autonomy.md": {
