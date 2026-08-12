@@ -28,7 +28,10 @@ def register_worker_commands(app: strictcli.App) -> None:
 
     @worker_group.command(
         name="connect",
-        help="Connect a native worker process to a brain via WebSocket.",
+        help="Run a native worker process that connects to a brain over WebSocket, "
+        "authenticates with --key, registers the tool capabilities it can serve, and "
+        "then executes the tool calls the brain routes to it against the project root "
+        "given by --root. Runs until the connection closes or the process is stopped.",
         effect="mutating",
         forwarding=_ABSORBS_GLOBALS,
     )
@@ -59,7 +62,10 @@ def register_worker_commands(app: strictcli.App) -> None:
 
     @worker_group.command(
         name="docker",
-        help="Run a worker inside a Docker container connected to a brain.",
+        help="Run a worker inside a Docker container built from --image, connected to the "
+        "brain at --brain and executing tool calls against the project root given by "
+        "--root. Authenticates with --key exactly as the native worker does; the "
+        "container is what isolates tool execution from the host filesystem.",
         effect="mutating",
         forwarding=_ABSORBS_GLOBALS,
     )

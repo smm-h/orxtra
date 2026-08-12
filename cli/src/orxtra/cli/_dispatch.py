@@ -30,7 +30,11 @@ def register_dispatch_commands(app: strictcli.App) -> None:
 
     @dispatch_group.command(
         name="run",
-        help="Start the persistent dispatch worker that processes event subscriptions.",
+        help="Start the long-running dispatch worker that delivers stored events to their "
+        "subscriptions and executes the action chains those subscriptions declare. Wakes "
+        "on PostgreSQL LISTEN/NOTIFY and falls back to polling every --poll-interval "
+        "seconds, up to --batch-size events a batch. Use --cursor to run several "
+        "workers over independent positions.",
         effect="mutating",
         forwarding=_ABSORBS_GLOBALS,
     )

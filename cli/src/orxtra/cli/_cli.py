@@ -159,7 +159,10 @@ run_group = app.group(
 
 @run_group.command(
     name="start",
-    help="Start a new autonomous workflow run from a configuration file.",
+    help="Start a new autonomous workflow run from a TOML configuration file and a "
+    "natural-language intent. Opens a pool against the trace database, verifies the "
+    "schema, dispatches start_run under an operator identity, and prints the new "
+    "run's UUID on stdout so later run, trace and inbox commands can address it.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -206,7 +209,10 @@ def cmd_run_start(
 
 @run_group.command(
     name="list",
-    help="List all runs in the database, ordered newest first.",
+    help="List every run recorded in the trace database, newest first, with the "
+    "identifying and status fields the storage layer keeps for each one. Output "
+    "honours the global --format flag, so the same listing renders as a "
+    "human-readable table or as JSON for a script or agent to consume directly.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -222,7 +228,10 @@ def cmd_run_list(
 
 @run_group.command(
     name="show",
-    help="Display the full status report for a specific run.",
+    help="Display the full status report the trace store holds for one run: its current "
+    "state, the intent it was started with, and the accounting the storage layer keeps "
+    "alongside it. Exits non-zero with a clear message when no run carries the given "
+    "identifier. Honours the global --format flag for table or JSON output.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -262,7 +271,10 @@ def cmd_run_show(
 
 @run_group.command(
     name="abort",
-    help="Send an abort signal to stop a currently running workflow.",
+    help="Send an abort signal to a currently executing workflow run, telling the "
+    "scheduler to stop dispatching further tasks for it. The signal travels through the "
+    "trace store's run-control channel rather than through dispatch, so a scheduler "
+    "running in another process picks it up. Confirms on stdout unless --quiet.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -285,7 +297,10 @@ def cmd_run_abort(
 
 @run_group.command(
     name="pause",
-    help="Pause a running workflow run, suspending task execution.",
+    help="Suspend a running workflow, telling the scheduler to stop starting new tasks "
+    "for it while leaving the run and its task tree intact so it can be resumed later. "
+    "The signal travels through the trace store's run-control channel, so a scheduler "
+    "in another process observes it. Confirms on stdout unless --quiet.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -308,7 +323,10 @@ def cmd_run_pause(
 
 @run_group.command(
     name="resume",
-    help="Resume a previously paused workflow run, restarting task execution.",
+    help="Restart task execution for a workflow that was previously paused, telling the "
+    "scheduler to begin dispatching its ready tasks again from the state the pause left "
+    "behind. The signal travels through the trace store's run-control channel, so a "
+    "scheduler in another process observes it. Confirms on stdout unless --quiet.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -339,7 +357,10 @@ inbox_group = app.group(
 
 @inbox_group.command(
     name="list",
-    help="List pending human-in-the-loop inbox items, optionally filtered.",
+    help="List the human-in-the-loop inbox items agents have raised. Narrow the listing "
+    "with --run to a single workflow run and with --status to one lifecycle state such "
+    "as pending, answered or skipped; omit both to see everything. Honours the global "
+    "--format flag, so the listing renders as a table or as JSON.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -371,7 +392,10 @@ def cmd_inbox_list(
 
 @inbox_group.command(
     name="show",
-    help="Display the full details of a single inbox item by ID.",
+    help="Display everything the store holds for one inbox item: the question an agent "
+    "asked, the options it offered, the run and task it came from, and its current "
+    "resolution state. Takes the item's UUID. Honours the global --format flag, so the "
+    "item renders as a readable table or as JSON.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -392,7 +416,10 @@ def cmd_inbox_show(
 
 @inbox_group.command(
     name="respond",
-    help="Submit an answer to a pending inbox item from a workflow run.",
+    help="Submit an answer to a pending inbox item, unblocking the agent that raised the "
+    "question and recording your identity as the principal that resolved it. Takes the "
+    "item's UUID and the answer text. Prints the updated item, honouring the global "
+    "--format flag, so you can confirm the response landed.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -421,7 +448,10 @@ def cmd_inbox_respond(
 
 @inbox_group.command(
     name="skip",
-    help="Skip a pending inbox item without providing an answer.",
+    help="Resolve a pending inbox item without answering it, telling the agent that "
+    "raised the question to proceed without your input. Records your identity as the "
+    "principal that resolved the item. Takes the item's UUID and prints the updated "
+    "item, honouring the global --format flag, so you can confirm the outcome.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -444,8 +474,10 @@ def cmd_inbox_skip(
 
 @inbox_group.command(
     name="reject",
-    help="Reject a pending inbox item, indicating the provided options "
-    "are insufficient.",
+    help="Reject a pending inbox item when none of the options an agent offered is "
+    "usable, sending back a reason instead of an answer so the agent can reformulate. "
+    "Takes the item's UUID and an explanation. Prints the updated item, honouring the "
+    "global --format flag, and records you as the principal that resolved it.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -482,7 +514,10 @@ trace_group = app.group(
 
 @trace_group.command(
     name="events",
-    help="Query the stored event log for a specific workflow run.",
+    help="Query the append-only event log the trace store keeps for one workflow run. "
+    "Narrow the result with --type to a single event type such as task_started or "
+    "tool_call, and cap its size with --limit, which defaults to a hundred. Honours the "
+    "global --format flag, so events render as a table or as JSON.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -520,7 +555,10 @@ def cmd_trace_events(
 
 @trace_group.command(
     name="transcript",
-    help="Display the full message transcript for an agent session.",
+    help="Display the complete stored message transcript for one agent session: every "
+    "message exchanged with the model, in order, as the session module persisted it. "
+    "Takes the session's identifier rather than a run's. Honours the global --format "
+    "flag, so the transcript renders as readable text or as JSON.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -543,7 +581,10 @@ def cmd_trace_transcript(
 
 @trace_group.command(
     name="search",
-    help="Search a session transcript for matching text (case-insensitive).",
+    help="Search one agent session's stored transcript for a substring, case-"
+    "insensitively, and return the matching messages rather than the whole "
+    "conversation. Takes the session identifier and the text to look for. Honours the "
+    "global --format flag, so matches render as a table or as JSON for a script.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -572,7 +613,10 @@ def cmd_trace_search(
 
 @trace_group.command(
     name="tasks",
-    help="Show task statuses, attempt counts, and hierarchy for a run.",
+    help="List every task recorded for one workflow run with its current status, its "
+    "attempt count and its place in the recursive task hierarchy, so you can see which "
+    "branch of the tree stalled or retried. Takes the run's UUID. Honours the global "
+    "--format flag, so tasks render as a table or as JSON.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -593,7 +637,10 @@ def cmd_trace_tasks(
 
 @trace_group.command(
     name="notepad",
-    help="Show cross-agent notepad entries for a workflow run.",
+    help="Show the append-only cross-agent notepad entries written during one workflow "
+    "run -- the messages agents left for each other as the run progressed, in the order "
+    "they were appended. Takes the run's UUID. Honours the global --format flag, so "
+    "entries render as a readable table or as JSON.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -622,7 +669,10 @@ event_group = app.group(
 
 @event_group.command(
     name="fire",
-    help="Fire a named event to wake wait-for tasks in a running workflow.",
+    help="Fire a named event into a running workflow to wake any task waiting on it. "
+    "Takes the run's UUID and an event name that must match a wait-for task's declared "
+    "name; attach structured data with --payload, which must parse as a JSON object. "
+    "Prints the stored event's identifier unless --quiet is passed.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -691,7 +741,10 @@ validate_group = app.group(
 
 @validate_group.command(
     name="agent",
-    help="Validate an agent definition TOML file for schema errors.",
+    help="Validate an agent definition TOML file against the agent module's strict "
+    "schema, without touching the database. Prints every error it finds to stderr and "
+    "exits non-zero, or prints 'valid' and exits zero when the file is clean. Suitable "
+    "as a pre-commit or CI check over a directory of agent definitions.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -721,7 +774,10 @@ def cmd_validate_agent(
 
 @validate_group.command(
     name="workflow",
-    help="Validate a workflow definition TOML file for schema errors.",
+    help="Validate a workflow definition TOML file against the strict workflow schema "
+    "without touching the database, checking the task declarations it makes and the "
+    "dependency structure between them. Prints every error it finds to stderr and exits "
+    "non-zero, or prints 'valid' and exits zero when the file is clean.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -754,7 +810,10 @@ def cmd_validate_workflow(
 
 @validate_group.command(
     name="categories",
-    help="Validate a model categories TOML file for schema errors.",
+    help="Validate a model-categories TOML file against the strict categories schema "
+    "without touching the database, checking the multi-provider model routing it "
+    "declares. Prints every error it finds to stderr and exits non-zero, or prints "
+    "'valid' and exits zero when the file is clean.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -795,7 +854,10 @@ config_group = app.group(
 
 @config_group.command(
     name="show",
-    help="Display the frozen configuration snapshot stored for a run.",
+    help="Display the frozen configuration snapshot the trace store captured when a run "
+    "was started -- the settings that run actually executed under, rather than whatever "
+    "the configuration file happens to say today. Takes the run's UUID and exits "
+    "non-zero when no such run exists. Honours the global --format flag.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -835,7 +897,10 @@ def cmd_config_show(
 
 @config_group.command(
     name="pricing",
-    help="Display the current internal pricing table for all supported models.",
+    help="Display orxtra's internal pricing table for every model it knows about -- the "
+    "per-token costs used to denominate run budgets in USD. Needs no database "
+    "connection, since the table ships inside the installed package. Honours the global "
+    "--format flag, so the table renders for a human or as JSON.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )

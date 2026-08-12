@@ -134,7 +134,10 @@ def register_db_commands(app: strictcli.App) -> None:
 
     @db_group.command(
         name="init",
-        help="Create the database schema and seed the system principal (idempotent).",
+        help="Create every database object orxtra's modules declare -- the trace, dispatch, "
+        "identity and auth schemas -- and seed the singleton system principal. "
+        "Idempotent: objects that already exist are skipped and counted rather than "
+        "recreated, so it is safe to re-run. Reports what it executed unless --quiet.",
         effect="mutating",
         forwarding=_ABSORBS_GLOBALS,
     )
@@ -195,7 +198,10 @@ def register_db_commands(app: strictcli.App) -> None:
 
     @db_group.command(
         name="verify",
-        help="Verify that all expected database schema objects are present.",
+        help="Check the connected database for every schema object orxtra expects and report "
+        "how many are present and how many are missing. Names each missing object and "
+        "exits non-zero when any is absent, pointing at 'db init' or 'db migrate apply' "
+        "as the repair; exits zero when the schema is complete.",
         effect="read_only",
         forwarding=_ABSORBS_GLOBALS,
     )
