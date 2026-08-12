@@ -1,6 +1,6 @@
 ---
 title: orxtra trace
-description: "Reference for the orxtra trace command group — subcommands, flags, arguments, and usage details for the trace group in the orxtra CLI."
+description: "Query what a run recorded: its event log, an agent session's transcript, a search across that transcript, its task tree, and its cross-agent notepad."
 generated: true
 nav_group: "CLI Reference"
 nav_order: 8

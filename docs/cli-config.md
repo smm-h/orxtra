@@ -1,6 +1,6 @@
 ---
 title: orxtra config
-description: "Reference for the orxtra config command group — subcommands, flags, arguments, and usage details for the config group in the orxtra CLI."
+description: "Inspect the frozen configuration snapshot a run actually executed under, and orxtra's internal per-token pricing table for every model it knows about."
 generated: true
 nav_group: "CLI Reference"
 nav_order: 1

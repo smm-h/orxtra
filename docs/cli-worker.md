@@ -1,6 +1,6 @@
 ---
 title: orxtra worker
-description: "Reference for the orxtra worker command group — subcommands, flags, arguments, and usage details for the worker group in the orxtra CLI."
+description: "Run a remote worker that connects to a brain over WebSocket and executes the tool calls routed to it, either as a native process or inside a Docker container."
 generated: true
 nav_group: "CLI Reference"
 nav_order: 10

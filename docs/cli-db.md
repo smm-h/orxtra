@@ -1,6 +1,6 @@
 ---
 title: orxtra db
-description: "Reference for the orxtra db command group — subcommands, flags, arguments, and usage details for the db group in the orxtra CLI."
+description: "Provision and check the orxtra database: create every schema object, seed the system principal, verify expected objects are present, and plan or apply migrations."
 generated: true
 nav_group: "CLI Reference"
 nav_order: 2

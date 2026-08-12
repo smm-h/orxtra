@@ -1,6 +1,6 @@
 ---
 title: orxtra event
-description: "Reference for the orxtra event command group — subcommands, flags, arguments, and usage details for the event group in the orxtra CLI."
+description: "Fire named events into a running workflow to wake the tasks waiting on them, optionally carrying a JSON object payload alongside the event name."
 generated: true
 nav_group: "CLI Reference"
 nav_order: 4

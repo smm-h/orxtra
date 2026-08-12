@@ -1,6 +1,6 @@
 ---
 title: orxtra inbox
-description: "Reference for the orxtra inbox command group — subcommands, flags, arguments, and usage details for the inbox group in the orxtra CLI."
+description: "Work the human-in-the-loop queue: list the questions agents have raised, inspect one in full, and resolve it by answering, skipping or rejecting it."
 generated: true
 nav_group: "CLI Reference"
 nav_order: 5

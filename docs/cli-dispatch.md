@@ -1,6 +1,6 @@
 ---
 title: orxtra dispatch
-description: "Reference for the orxtra dispatch command group — subcommands, flags, arguments, and usage details for the dispatch group in the orxtra CLI."
+description: "Run the persistent dispatch worker that delivers stored events to their subscriptions and executes the action chains those subscriptions declare."
 generated: true
 nav_group: "CLI Reference"
 nav_order: 3
