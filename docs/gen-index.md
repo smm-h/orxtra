@@ -23,6 +23,7 @@ order: 90
 - [cli.src.orxtra.cli._db](../cli-src-orxtra-cli-_db/)
 - [cli.src.orxtra.cli._dispatch](../cli-src-orxtra-cli-_dispatch/)
 - [cli.src.orxtra.cli._formatters](../cli-src-orxtra-cli-_formatters/)
+- [cli.src.orxtra.cli._payload_schemas](../cli-src-orxtra-cli-_payload_schemas/)
 - [dispatch.src.orxtra.dispatch](../dispatch-src-orxtra-dispatch/)
 - [dispatch.src.orxtra.dispatch._action_executor](../dispatch-src-orxtra-dispatch-_action_executor/)
 - [dispatch.src.orxtra.dispatch._delivery](../dispatch-src-orxtra-dispatch-_delivery/)

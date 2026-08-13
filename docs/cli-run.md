@@ -26,13 +26,13 @@ Start a new autonomous workflow run from a TOML configuration file and a natural
 
 ## run list
 
-List every run recorded in the trace database, newest first, with the identifying and status fields the storage layer keeps for each one. Output honours the global --format flag, so the same listing renders as a human-readable table or as JSON for a script or agent to consume directly.
+List every run recorded in the trace database, newest first, with the identifying and status fields the storage layer keeps for each one. Output renders as a human-readable table, or, under --json, as the machine document a script or agent consumes directly.
 
 **Effect:** read_only
 
 ## run show
 
-Display the full status report the trace store holds for one run: its current state, the intent it was started with, and the accounting the storage layer keeps alongside it. Exits non-zero with a clear message when no run carries the given identifier. Honours the global --format flag for table or JSON output.
+Display the full status report the trace store holds for one run: its current state, the intent it was started with, and the accounting the storage layer keeps alongside it. Exits non-zero with a clear message when no run carries the given identifier. Renders as a table, or as the machine document under --json.
 
 **Effect:** read_only
 

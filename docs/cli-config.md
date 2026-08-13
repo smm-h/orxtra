@@ -13,7 +13,7 @@ Inspect run configuration snapshots and internal pricing tables.
 
 ## config show
 
-Display the frozen configuration snapshot the trace store captured when a run was started -- the settings that run actually executed under, rather than whatever the configuration file happens to say today. Takes the run's UUID and exits non-zero when no such run exists. Honours the global --format flag.
+Display the frozen configuration snapshot the trace store captured when a run was started -- the settings that run actually executed under, rather than whatever the configuration file happens to say today. Takes the run's UUID and exits non-zero when no such run exists. Renders as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
@@ -25,6 +25,6 @@ Display the frozen configuration snapshot the trace store captured when a run wa
 
 ## config pricing
 
-Display orxtra's internal pricing table for every model it knows about -- the per-token costs used to denominate run budgets in USD. Needs no database connection, since the table ships inside the installed package. Honours the global --format flag, so the table renders for a human or as JSON.
+Display orxtra's internal pricing table for every model it knows about -- the per-token costs used to denominate run budgets in USD. Needs no database connection, since the table ships inside the installed package. Renders for a human, or as the machine document under --json.
 
 **Effect:** read_only

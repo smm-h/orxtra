@@ -95,6 +95,11 @@
     "content": "8f0428d0937aa75acdcaa15161772aee64e430fc4abb8af2729710231f88e4a8",
     "description": "c59ec29892410655927e4b7f8ccd50e1c78f3cc67e61c9383d134356d587434d"
   },
+  "en/cli-src-orxtra-cli-_payload_schemas.md": {
+    "content": "8de0e8b8b6bced2eeb1629703998f3c6d9bebc994dfa6155fd9d40c45519ec01",
+    "description": "6b42362b8110ccee07945e7279684c08671a03e4d8b9746ac98019abefe03dd1",
+    "seed_hash": "6b42362b8110ccee07945e7279684c08671a03e4d8b9746ac98019abefe03dd1"
+  },
   "en/cli-src-orxtra-cli.md": {
     "content": "57cfa92deef7249d4c55ef42084900f7cbbe5d6ae263744cca87d7e1bc78f29e",
     "description": "a20a4477d0eccbd1b1cc5928023a28ed8b35b34fda524aea213e7341b1ef9ebb"

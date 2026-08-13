@@ -35,7 +35,6 @@ Version: :-: var key="project.version"
 | Name | Short | Type | Default | Env | Description |
 | --- | --- | --- | --- | --- | --- |
 | `--db` |  | str |  |  | PostgreSQL connection URL. |
-| `--format` |  | str | table |  | Output format. |
 
 ## Framework flags
 

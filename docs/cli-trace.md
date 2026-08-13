@@ -13,7 +13,7 @@ Query trace data: events, transcripts, tasks, and notepad entries for runs.
 
 ## trace events
 
-Query the append-only event log the trace store keeps for one workflow run. Narrow the result with --type to a single event type such as task_started or tool_call, and cap its size with --limit, which defaults to a hundred. Honours the global --format flag, so events render as a table or as JSON.
+Query the append-only event log the trace store keeps for one workflow run. Narrow the result with --type to a single event type such as task_started or tool_call, and cap its size with --limit, which defaults to a hundred. Honours the a hundred. Events render as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
@@ -32,7 +32,7 @@ Query the append-only event log the trace store keeps for one workflow run. Narr
 
 ## trace transcript
 
-Display the complete stored message transcript for one agent session: every message exchanged with the model, in order, as the session module persisted it. Takes the session's identifier rather than a run's. Honours the global --format flag, so the transcript renders as readable text or as JSON.
+Display the complete stored message transcript for one agent session: every message exchanged with the model, in order, as the session module persisted it. Takes the session's identifier rather than a run's. The transcript renders as readable text, or as the machine document under --json.
 
 **Effect:** read_only
 
@@ -44,7 +44,7 @@ Display the complete stored message transcript for one agent session: every mess
 
 ## trace search
 
-Search one agent session's stored transcript for a substring, case-insensitively, and return the matching messages rather than the whole conversation. Takes the session identifier and the text to look for. Honours the global --format flag, so matches render as a table or as JSON for a script.
+Search one agent session's stored transcript for a substring, case-insensitively, and return the matching messages rather than the whole conversation. Takes the session identifier and the text to look for. Honours the Matches render as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
@@ -57,7 +57,7 @@ Search one agent session's stored transcript for a substring, case-insensitively
 
 ## trace tasks
 
-List every task recorded for one workflow run with its current status, its attempt count and its place in the recursive task hierarchy, so you can see which branch of the tree stalled or retried. Takes the run's UUID. Honours the global --format flag, so tasks render as a table or as JSON.
+List every task recorded for one workflow run with its current status, its attempt count and its place in the recursive task hierarchy, so you can see which branch of the tree stalled or retried. Takes the run's UUID. Honours the global Tasks render as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
@@ -69,7 +69,7 @@ List every task recorded for one workflow run with its current status, its attem
 
 ## trace notepad
 
-Show the append-only cross-agent notepad entries written during one workflow run -- the messages agents left for each other as the run progressed, in the order they were appended. Takes the run's UUID. Honours the global --format flag, so entries render as a readable table or as JSON.
+Show the append-only cross-agent notepad entries written during one workflow run -- the messages agents left for each other as the run progressed, in the order they were appended. Takes the run's UUID. Honours the global --format flag, so entries render as a readable table, or as the machine document under --json.
 
 **Effect:** read_only
 
