@@ -13,7 +13,7 @@ Query trace data: events, transcripts, tasks, and notepad entries for runs.
 
 ## trace events
 
-Query the append-only event log the trace store keeps for one workflow run. Narrow the result with --type to a single event type such as task_started or tool_call, and cap its size with --limit, which defaults to a hundred. Honours the a hundred. Events render as a table, or as the machine document under --json.
+Query the append-only event log the trace store keeps for one workflow run. Narrow the result with --type to a single event type such as task_started or tool_call, and cap its size with --limit, which defaults to a hundred. Events render as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
@@ -69,7 +69,7 @@ List every task recorded for one workflow run with its current status, its attem
 
 ## trace notepad
 
-Show the append-only cross-agent notepad entries written during one workflow run -- the messages agents left for each other as the run progressed, in the order they were appended. Takes the run's UUID. Honours the global --format flag, so entries render as a readable table, or as the machine document under --json.
+Show the append-only cross-agent notepad entries written during one workflow run -- the messages agents left for each other as the run progressed, in the order they were appended. Takes the run's UUID. Entries render as a readable table, or as the machine document under --json.
 
 **Effect:** read_only
 
