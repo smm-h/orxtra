@@ -94,15 +94,14 @@ def format_table(data: Any) -> str:
     return str(data)
 
 
-def format_json(data: Any) -> str:
+def to_payload(data: Any) -> Any:
+    """Convert a dispatch result into the plain JSON types a payload carries.
+
+    The framework serializes the machine payload itself, so the domain types
+    a capability returns -- UUIDs, datetimes, Decimals, models -- have to be
+    converted before it sees them. The conversion is the same one the JSON
+    rendering always did, run eagerly: encode through :class:`_DomainEncoder`
+    and read the result back.
+    """
     serializable = _to_serializable(data)
-    return json.dumps(serializable, indent=2, cls=_DomainEncoder)
-
-
-def format_output(data: Any, fmt: str) -> str:
-    if fmt == "table":
-        return format_table(data)
-    if fmt == "json":
-        return format_json(data)
-    msg = f"unknown output format: {fmt!r}"
-    raise ValueError(msg)
+    return json.loads(json.dumps(serializable, cls=_DomainEncoder))

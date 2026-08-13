@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-import pytest
-from orxtra.cli._formatters import format_json, format_output, format_table
+from orxtra.cli._formatters import format_table, to_payload
 
 
 class _FakeModel:
@@ -17,58 +15,53 @@ class _FakeModel:
         return dict(self._data)
 
 
-# -- format_json --
+# -- to_payload --
 
 
-def test_format_json_produces_valid_json() -> None:
+def test_to_payload_keeps_plain_data() -> None:
     data = {"name": "alice", "count": 3}
-    result = format_json(data)
-    parsed = json.loads(result)
-    assert parsed == data
+    assert to_payload(data) == data
 
 
-def test_format_json_nested_dicts() -> None:
+def test_to_payload_nested_dicts() -> None:
     data = {"outer": {"inner": [1, 2, 3]}}
-    result = format_json(data)
-    parsed = json.loads(result)
-    assert parsed["outer"]["inner"] == [1, 2, 3]
+    assert to_payload(data)["outer"]["inner"] == [1, 2, 3]
 
 
-def test_format_json_uuid_serialization() -> None:
+def test_to_payload_uuid_becomes_a_string() -> None:
     uid = UUID("12345678-1234-5678-1234-567812345678")
-    data = {"id": uid}
-    result = format_json(data)
-    parsed = json.loads(result)
-    assert parsed["id"] == str(uid)
+    assert to_payload({"id": uid})["id"] == str(uid)
 
 
-def test_format_json_decimal_serialization() -> None:
-    data = {"cost": Decimal("19.99")}
-    result = format_json(data)
-    parsed = json.loads(result)
-    assert parsed["cost"] == "19.99"
+def test_to_payload_decimal_becomes_a_string() -> None:
+    # A price is a decimal and the envelope's numbers are IEEE-754 doubles,
+    # so the exact value travels as a string.
+    assert to_payload({"cost": Decimal("19.99")})["cost"] == "19.99"
 
 
-def test_format_json_datetime_serialization() -> None:
+def test_to_payload_datetime_becomes_an_iso_string() -> None:
     dt = datetime(2026, 1, 15, 10, 30, 0, tzinfo=UTC)
-    data = {"created": dt}
-    result = format_json(data)
-    parsed = json.loads(result)
-    assert parsed["created"] == dt.isoformat()
+    assert to_payload({"created": dt})["created"] == dt.isoformat()
 
 
-def test_format_json_with_model_like_object() -> None:
+def test_to_payload_with_model_like_object() -> None:
     model = _FakeModel(name="run-1", status="ok")
-    result = format_json(model)
-    parsed = json.loads(result)
-    assert parsed == {"name": "run-1", "status": "ok"}
+    assert to_payload(model) == {"name": "run-1", "status": "ok"}
 
 
-def test_format_json_with_list_of_models() -> None:
+def test_to_payload_with_list_of_models() -> None:
     models = [_FakeModel(x=1), _FakeModel(x=2)]
-    result = format_json(models)
-    parsed = json.loads(result)
-    assert parsed == [{"x": 1}, {"x": 2}]
+    assert to_payload(models) == [{"x": 1}, {"x": 2}]
+
+
+def test_to_payload_returns_plain_json_types() -> None:
+    # The framework serializes the payload itself, so nothing domain-typed
+    # may survive the conversion.
+    uid = UUID("12345678-1234-5678-1234-567812345678")
+    dt = datetime(2026, 1, 15, 10, 30, 0, tzinfo=UTC)
+    payload = to_payload([{"id": uid, "at": dt, "cost": Decimal("1.50")}])
+    row = payload[0]
+    assert all(isinstance(v, str) for v in row.values())
 
 
 # -- format_table --
@@ -127,25 +120,3 @@ def test_format_table_single_model() -> None:
     result = format_table(model)
     assert "key: val" in result
     assert "num: 42" in result
-
-
-# -- format_output --
-
-
-def test_format_output_dispatches_to_json() -> None:
-    data = {"x": 1}
-    result = format_output(data, "json")
-    parsed = json.loads(result)
-    assert parsed == {"x": 1}
-
-
-def test_format_output_dispatches_to_table() -> None:
-    data = [{"col": "val"}]
-    result = format_output(data, "table")
-    assert "col" in result
-    assert "val" in result
-
-
-def test_format_output_raises_on_unknown_format() -> None:
-    with pytest.raises(ValueError, match="unknown output format"):
-        format_output({}, "yaml")

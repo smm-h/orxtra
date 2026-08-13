@@ -10,7 +10,8 @@ from uuid import uuid4
 
 import asyncpg
 import strictcli
-from orxtra.cli._formatters import format_output
+from orxtra.cli import _payload_schemas as schemas
+from orxtra.cli._formatters import format_table, to_payload
 from orxtra.identity import KindRegistry, PgPrincipalStorage
 from orxtra.protocols import ALL_SCOPES, AuthContext, TrustTier
 from orxtra.services import DispatchContext, dispatch, verify_schema
@@ -49,17 +50,25 @@ def _require_db(db: str) -> str:
     return db
 
 
-def _print(data: Any, fmt: str) -> None:
-    print(format_output(data, fmt))
+def _emit(cli_ctx: strictcli.Context, data: Any) -> None:
+    """Supply the machine payload, and render the table outside machine mode.
+
+    The payload call is mode-independent: the framework decides what to do
+    with the value. The table is the human rendering, and it is the one thing
+    machine mode must not print -- stdout carries the envelope alone.
+    """
+    cli_ctx.payload(to_payload(data))
+    if not cli_ctx.json:
+        print(format_table(data))
 
 
-def _dispatch_and_print(
+def _dispatch_and_emit(
+    cli_ctx: strictcli.Context,
     db_url: str,
     capability: str,
     args: dict[str, Any],
-    fmt: str,
 ) -> None:
-    """Run a capability through the dispatcher and print the result."""
+    """Run a capability through the dispatcher and emit the result."""
     async def _run() -> None:
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
@@ -71,7 +80,7 @@ def _dispatch_and_print(
                 auth_context=_operator_auth_context(),
             )
             result = await dispatch(ctx, capability, args)
-            _print(result, fmt)
+            _emit(cli_ctx, result)
         finally:
             await pool.close()
 
@@ -106,15 +115,15 @@ def _dispatch_quiet(
 
 
 def _dispatch_no_pool(
+    cli_ctx: strictcli.Context,
     capability: str,
     args: dict[str, Any],
-    fmt: str,
 ) -> None:
     """Run a capability that does not require a database pool."""
     async def _run() -> None:
         ctx = DispatchContext(auth_context=_operator_auth_context())
         result = await dispatch(ctx, capability, args)
-        _print(result, fmt)
+        _emit(cli_ctx, result)
 
     asyncio.run(_run())
 
@@ -132,18 +141,11 @@ app = strictcli.App(
             help="PostgreSQL connection URL.",
             default="",
         ),
-        strictcli.Flag(
-            name="format",
-            type=str,
-            help="Output format.",
-            default="table",
-            choices=["table", "json"],
-        ),
     ],
 )
 
-# Every command handler absorbs the app-level global flag values it does not
-# itself name (--db, --format), so each registration declares forwarding.
+# Every command handler absorbs the app-level global flag value it does not
+# itself name (--db), so each registration declares forwarding.
 _ABSORBS_GLOBALS = strictcli.Forwarding(
     reason="absorbs app-level global flag values the handler does not name",
 )
@@ -211,19 +213,19 @@ def cmd_run_start(
     name="list",
     help="List every run recorded in the trace database, newest first, with the "
     "identifying and status fields the storage layer keeps for each one. Output "
-    "honours the global --format flag, so the same listing renders as a "
-    "human-readable table or as JSON for a script or agent to consume directly.",
+    "renders as a human-readable table, or, under --json, as the machine "
+    "document a script or agent consumes directly.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROWS,
 )
 def cmd_run_list(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(_require_db(db), "list_runs", {}, format)
+    _dispatch_and_emit(ctx, _require_db(db), "list_runs", {})
 
 
 @run_group.command(
@@ -231,19 +233,19 @@ def cmd_run_list(
     help="Display the full status report the trace store holds for one run: its current "
     "state, the intent it was started with, and the accounting the storage layer keeps "
     "alongside it. Exits non-zero with a clear message when no run carries the given "
-    "identifier. Honours the global --format flag for table or JSON output.",
+    "identifier. Renders as a table, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROW,
 )
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to display (UUID format).",
 )
 def cmd_run_show(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -253,16 +255,16 @@ def cmd_run_show(
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(
+            dispatch_ctx = DispatchContext(
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
                 auth_context=_operator_auth_context(),
             )
-            result = await dispatch(ctx, "get_run", {"run_id": run_id})
+            result = await dispatch(dispatch_ctx, "get_run", {"run_id": run_id})
             if result is None:
                 _die(f"run {run_id} not found")
-            _print(result, format)
+            _emit(ctx, result)
         finally:
             await pool.close()
 
@@ -359,10 +361,11 @@ inbox_group = app.group(
     name="list",
     help="List the human-in-the-loop inbox items agents have raised. Narrow the listing "
     "with --run to a single workflow run and with --status to one lifecycle state such "
-    "as pending, answered or skipped; omit both to see everything. Honours the global "
-    "--format flag, so the listing renders as a table or as JSON.",
+    "as pending, answered or skipped; omit both to see everything. Renders as a table, "
+    "or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROWS,
 )
 @strictcli.flag(
     name="run",
@@ -376,10 +379,9 @@ inbox_group = app.group(
     default="",
 )
 def cmd_inbox_list(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     run: str,
     status: str,
     **_kwargs: object,
@@ -387,31 +389,33 @@ def cmd_inbox_list(
     args: dict[str, Any] = {"run_id": run}
     if status:
         args["status"] = status
-    _dispatch_and_print(_require_db(db), "list_inbox", args, format)
+    _dispatch_and_emit(ctx, _require_db(db), "list_inbox", args)
 
 
 @inbox_group.command(
     name="show",
     help="Display everything the store holds for one inbox item: the question an agent "
     "asked, the options it offered, the run and task it came from, and its current "
-    "resolution state. Takes the item's UUID. Honours the global --format flag, so the "
-    "item renders as a readable table or as JSON.",
+    "resolution state. Takes the item's UUID. Renders as a readable table, or as the "
+    "machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROW,
 )
 @strictcli.arg(
     name="item_id",
     help="Unique identifier of the inbox item to display (UUID format).",
 )
 def cmd_inbox_show(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     item_id: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(_require_db(db), "get_inbox_item", {"item_id": item_id}, format)
+    _dispatch_and_emit(
+        ctx, _require_db(db), "get_inbox_item", {"item_id": item_id},
+    )
 
 
 @inbox_group.command(
@@ -419,9 +423,10 @@ def cmd_inbox_show(
     help="Submit an answer to a pending inbox item, unblocking the agent that raised the "
     "question and recording your identity as the principal that resolved it. Takes the "
     "item's UUID and the answer text. Prints the updated item, honouring the global "
-    "--format flag, so you can confirm the response landed.",
+    "machine document under --json, so you can confirm the response was recorded.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROW,
 )
 @strictcli.arg(
     name="item_id",
@@ -432,17 +437,16 @@ def cmd_inbox_show(
     help="The answer text to submit as a response to this item.",
 )
 def cmd_inbox_respond(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     item_id: str,
     answer: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(
-        _require_db(db), "respond_to_inbox",
-        {"item_id": item_id, "answer": answer}, format,
+    _dispatch_and_emit(
+        ctx, _require_db(db), "respond_to_inbox",
+        {"item_id": item_id, "answer": answer},
     )
 
 
@@ -451,24 +455,25 @@ def cmd_inbox_respond(
     help="Resolve a pending inbox item without answering it, telling the agent that "
     "raised the question to proceed without your input. Records your identity as the "
     "principal that resolved the item. Takes the item's UUID and prints the updated "
-    "item, honouring the global --format flag, so you can confirm the outcome.",
+    "item as a table, or as the machine document under --json, so you can confirm the "
+    "outcome.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROW,
 )
 @strictcli.arg(
     name="item_id",
     help="Unique identifier of the inbox item to skip (UUID format).",
 )
 def cmd_inbox_skip(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     item_id: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(
-        _require_db(db), "skip_inbox_item", {"item_id": item_id}, format,
+    _dispatch_and_emit(
+        ctx, _require_db(db), "skip_inbox_item", {"item_id": item_id},
     )
 
 
@@ -477,9 +482,11 @@ def cmd_inbox_skip(
     help="Reject a pending inbox item when none of the options an agent offered is "
     "usable, sending back a reason instead of an answer so the agent can reformulate. "
     "Takes the item's UUID and an explanation. Prints the updated item, honouring the "
-    "global --format flag, and records you as the principal that resolved it.",
+    "item as a table, or as the machine document under --json, and records you as the "
+    "principal that resolved it.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROW,
 )
 @strictcli.arg(
     name="item_id",
@@ -490,17 +497,16 @@ def cmd_inbox_skip(
     help="Explanation of why the inbox item is being rejected.",
 )
 def cmd_inbox_reject(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     item_id: str,
     reason: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(
-        _require_db(db), "reject_inbox_item",
-        {"item_id": item_id, "reason": reason}, format,
+    _dispatch_and_emit(
+        ctx, _require_db(db), "reject_inbox_item",
+        {"item_id": item_id, "reason": reason},
     )
 
 
@@ -516,10 +522,11 @@ trace_group = app.group(
     name="events",
     help="Query the append-only event log the trace store keeps for one workflow run. "
     "Narrow the result with --type to a single event type such as task_started or "
-    "tool_call, and cap its size with --limit, which defaults to a hundred. Honours the "
-    "global --format flag, so events render as a table or as JSON.",
+    "tool_call, and cap its size with --limit, which defaults to a hundred. Events "
+    "render as a table, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROWS,
 )
 @strictcli.arg(
     name="run_id",
@@ -538,10 +545,9 @@ trace_group = app.group(
     default=100,
 )
 def cmd_trace_events(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     run_id: str,
     type: str,  # noqa: A002
     limit: int,
@@ -550,32 +556,32 @@ def cmd_trace_events(
     args: dict[str, Any] = {"run_id": run_id, "limit": limit}
     if type:
         args["event_type"] = type
-    _dispatch_and_print(_require_db(db), "query_events", args, format)
+    _dispatch_and_emit(ctx, _require_db(db), "query_events", args)
 
 
 @trace_group.command(
     name="transcript",
     help="Display the complete stored message transcript for one agent session: every "
     "message exchanged with the model, in order, as the session module persisted it. "
-    "Takes the session's identifier rather than a run's. Honours the global --format "
-    "flag, so the transcript renders as readable text or as JSON.",
+    "Takes the session's identifier rather than a run's. The transcript renders as "
+    "readable text, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROWS,
 )
 @strictcli.arg(
     name="session_id",
     help="Unique identifier of the session to show the transcript for.",
 )
 def cmd_trace_transcript(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     session_id: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(
-        _require_db(db), "get_transcript", {"session_id": session_id}, format,
+    _dispatch_and_emit(
+        ctx, _require_db(db), "get_transcript", {"session_id": session_id},
     )
 
 
@@ -583,10 +589,11 @@ def cmd_trace_transcript(
     name="search",
     help="Search one agent session's stored transcript for a substring, case-"
     "insensitively, and return the matching messages rather than the whole "
-    "conversation. Takes the session identifier and the text to look for. Honours the "
-    "global --format flag, so matches render as a table or as JSON for a script.",
+    "conversation. Takes the session identifier and the text to look for. Matches "
+    "render as a table, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROWS,
 )
 @strictcli.arg(
     name="session_id",
@@ -597,17 +604,16 @@ def cmd_trace_transcript(
     help="Case-insensitive substring to search for in the transcript.",
 )
 def cmd_trace_search(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     session_id: str,
     query: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(
-        _require_db(db), "search_transcript",
-        {"session_id": session_id, "query": query}, format,
+    _dispatch_and_emit(
+        ctx, _require_db(db), "search_transcript",
+        {"session_id": session_id, "query": query},
     )
 
 
@@ -615,48 +621,52 @@ def cmd_trace_search(
     name="tasks",
     help="List every task recorded for one workflow run with its current status, its "
     "attempt count and its place in the recursive task hierarchy, so you can see which "
-    "branch of the tree stalled or retried. Takes the run's UUID. Honours the global "
-    "--format flag, so tasks render as a table or as JSON.",
+    "branch of the tree stalled or retried. Takes the run's UUID. Tasks render as a "
+    "table, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROWS,
 )
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to list tasks for (UUID format).",
 )
 def cmd_trace_tasks(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     run_id: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(_require_db(db), "list_tasks", {"run_id": run_id}, format)
+    _dispatch_and_emit(
+        ctx, _require_db(db), "list_tasks", {"run_id": run_id},
+    )
 
 
 @trace_group.command(
     name="notepad",
     help="Show the append-only cross-agent notepad entries written during one workflow "
     "run -- the messages agents left for each other as the run progressed, in the order "
-    "they were appended. Takes the run's UUID. Honours the global --format flag, so "
-    "entries render as a readable table or as JSON.",
+    "they were appended. Takes the run's UUID. Entries render as a readable table, or "
+    "as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROWS,
 )
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to show notepad entries for (UUID format).",
 )
 def cmd_trace_notepad(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     run_id: str,
     **_kwargs: object,
 ) -> None:
-    _dispatch_and_print(_require_db(db), "get_notepad", {"run_id": run_id}, format)
+    _dispatch_and_emit(
+        ctx, _require_db(db), "get_notepad", {"run_id": run_id},
+    )
 
 
 # -- Event group --
@@ -857,19 +867,20 @@ config_group = app.group(
     help="Display the frozen configuration snapshot the trace store captured when a run "
     "was started -- the settings that run actually executed under, rather than whatever "
     "the configuration file happens to say today. Takes the run's UUID and exits "
-    "non-zero when no such run exists. Honours the global --format flag.",
+    "non-zero when no such run exists. Renders as a table, or as the machine document "
+    "under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.ROW,
 )
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run whose config to display (UUID format).",
 )
 def cmd_config_show(
-    _ctx: strictcli.Context,
+    ctx: strictcli.Context,
     *,
     db: str,
-    format: str,  # noqa: A002
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -879,16 +890,16 @@ def cmd_config_show(
         pool: asyncpg.Pool = await asyncpg.create_pool(db_url)
         try:
             await verify_schema(pool)
-            ctx = DispatchContext(
+            dispatch_ctx = DispatchContext(
                 pool=pool,
                 principal_storage=PgPrincipalStorage(pool),
                 kind_registry=KindRegistry(()),
                 auth_context=_operator_auth_context(),
             )
-            result = await dispatch(ctx, "show_config", {"run_id": run_id})
+            result = await dispatch(dispatch_ctx, "show_config", {"run_id": run_id})
             if result is None:
                 _die(f"run {run_id} not found")
-            _print(result, format)
+            _emit(ctx, result)
         finally:
             await pool.close()
 
@@ -899,18 +910,17 @@ def cmd_config_show(
     name="pricing",
     help="Display orxtra's internal pricing table for every model it knows about -- the "
     "per-token costs used to denominate run budgets in USD. Needs no database "
-    "connection, since the table ships inside the installed package. Honours the global "
-    "--format flag, so the table renders for a human or as JSON.",
+    "connection, since the table ships inside the installed package. Renders for a "
+    "human, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
+    payload_schema=schemas.PRICING,
 )
 def cmd_config_pricing(
-    _ctx: strictcli.Context,
-    *,
-    format: str,  # noqa: A002
+    ctx: strictcli.Context,
     **_kwargs: object,
 ) -> None:
-    _dispatch_no_pool("show_pricing", {}, format)
+    _dispatch_no_pool(ctx, "show_pricing", {})
 
 
 # Registration imports below run after app construction on purpose

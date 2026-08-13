@@ -80,20 +80,24 @@ def test_db_default_is_empty() -> None:
     assert db_flag.default == ""
 
 
-def test_format_default_is_table() -> None:
-    fmt_flag = next(f for f in app.flags if f.name == "format")
-    assert fmt_flag.default == "table"
+def test_format_is_not_a_declared_app_flag() -> None:
+    """Machine output is the framework's --json, not a format enum.
+
+    The enum's other value was the table, which is what a command renders
+    when it is not asked for a document, so the flag itself is gone.
+    """
+    assert all(f.name != "format" for f in app.flags)
 
 
-def test_format_choices() -> None:
-    fmt_flag = next(f for f in app.flags if f.name == "format")
-    assert fmt_flag.choices == ["table", "json"]
-
-
-def test_format_invalid_choice_fails() -> None:
-    _, stderr, code = _test("--format", "xml", "config", "pricing")
+def test_format_flag_is_refused() -> None:
+    _, stderr, code = _test("--format", "json", "config", "pricing")
     assert code == 1
-    assert "xml" in stderr
+    assert "--format" in stderr
+
+
+def test_json_is_not_a_declared_app_flag() -> None:
+    """`json` is framework-owned: declaring it anywhere is a hard error."""
+    assert all(f.name != "json" for f in app.flags)
 
 
 def test_quiet_is_not_a_declared_app_flag() -> None:

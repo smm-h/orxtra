@@ -56,16 +56,6 @@
       "type": "str",
       "help": "PostgreSQL connection URL.",
       "default": ""
-    },
-    {
-      "name": "format",
-      "type": "str",
-      "help": "Output format.",
-      "default": "table",
-      "choices": [
-        "table",
-        "json"
-      ]
     }
   ],
   "commands": {
@@ -124,16 +114,25 @@
         },
         "list": {
           "name": "list",
-          "help": "List every run recorded in the trace database, newest first, with the identifying and status fields the storage layer keeps for each one. Output honours the global --format flag, so the same listing renders as a human-readable table or as JSON for a script or agent to consume directly.",
+          "help": "List every run recorded in the trace database, newest first, with the identifying and status fields the storage layer keeps for each one. Output renders as a human-readable table, or, under --json, as the machine document a script or agent consumes directly.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "forwarding": {
             "reason": "absorbs app-level global flag values the handler does not name"
           }
         },
         "show": {
           "name": "show",
-          "help": "Display the full status report the trace store holds for one run: its current state, the intent it was started with, and the accounting the storage layer keeps alongside it. Exits non-zero with a clear message when no run carries the given identifier. Honours the global --format flag for table or JSON output.",
+          "help": "Display the full status report the trace store holds for one run: its current state, the intent it was started with, and the accounting the storage layer keeps alongside it. Exits non-zero with a clear message when no run carries the given identifier. Renders as a table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "object"
+          },
           "args": [
             {
               "name": "run_id",
@@ -194,8 +193,14 @@
       "commands": {
         "list": {
           "name": "list",
-          "help": "List the human-in-the-loop inbox items agents have raised. Narrow the listing with --run to a single workflow run and with --status to one lifecycle state such as pending, answered or skipped; omit both to see everything. Honours the global --format flag, so the listing renders as a table or as JSON.",
+          "help": "List the human-in-the-loop inbox items agents have raised. Narrow the listing with --run to a single workflow run and with --status to one lifecycle state such as pending, answered or skipped; omit both to see everything. Renders as a table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "flags": [
             {
               "name": "run",
@@ -215,8 +220,11 @@
         },
         "show": {
           "name": "show",
-          "help": "Display everything the store holds for one inbox item: the question an agent asked, the options it offered, the run and task it came from, and its current resolution state. Takes the item's UUID. Honours the global --format flag, so the item renders as a readable table or as JSON.",
+          "help": "Display everything the store holds for one inbox item: the question an agent asked, the options it offered, the run and task it came from, and its current resolution state. Takes the item's UUID. Renders as a readable table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "object"
+          },
           "args": [
             {
               "name": "item_id",
@@ -229,8 +237,11 @@
         },
         "respond": {
           "name": "respond",
-          "help": "Submit an answer to a pending inbox item, unblocking the agent that raised the question and recording your identity as the principal that resolved it. Takes the item's UUID and the answer text. Prints the updated item, honouring the global --format flag, so you can confirm the response landed.",
+          "help": "Submit an answer to a pending inbox item, unblocking the agent that raised the question and recording your identity as the principal that resolved it. Takes the item's UUID and the answer text. Prints the updated item, honouring the global machine document under --json, so you can confirm the response was recorded.",
           "effect": "mutating",
+          "payload_schema": {
+            "type": "object"
+          },
           "args": [
             {
               "name": "answer",
@@ -247,8 +258,11 @@
         },
         "skip": {
           "name": "skip",
-          "help": "Resolve a pending inbox item without answering it, telling the agent that raised the question to proceed without your input. Records your identity as the principal that resolved the item. Takes the item's UUID and prints the updated item, honouring the global --format flag, so you can confirm the outcome.",
+          "help": "Resolve a pending inbox item without answering it, telling the agent that raised the question to proceed without your input. Records your identity as the principal that resolved the item. Takes the item's UUID and prints the updated item as a table, or as the machine document under --json, so you can confirm the outcome.",
           "effect": "mutating",
+          "payload_schema": {
+            "type": "object"
+          },
           "args": [
             {
               "name": "item_id",
@@ -261,8 +275,11 @@
         },
         "reject": {
           "name": "reject",
-          "help": "Reject a pending inbox item when none of the options an agent offered is usable, sending back a reason instead of an answer so the agent can reformulate. Takes the item's UUID and an explanation. Prints the updated item, honouring the global --format flag, and records you as the principal that resolved it.",
+          "help": "Reject a pending inbox item when none of the options an agent offered is usable, sending back a reason instead of an answer so the agent can reformulate. Takes the item's UUID and an explanation. Prints the updated item, honouring the item as a table, or as the machine document under --json, and records you as the principal that resolved it.",
           "effect": "mutating",
+          "payload_schema": {
+            "type": "object"
+          },
           "args": [
             {
               "name": "reason",
@@ -285,8 +302,14 @@
       "commands": {
         "events": {
           "name": "events",
-          "help": "Query the append-only event log the trace store keeps for one workflow run. Narrow the result with --type to a single event type such as task_started or tool_call, and cap its size with --limit, which defaults to a hundred. Honours the global --format flag, so events render as a table or as JSON.",
+          "help": "Query the append-only event log the trace store keeps for one workflow run. Narrow the result with --type to a single event type such as task_started or tool_call, and cap its size with --limit, which defaults to a hundred. Events render as a table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "flags": [
             {
               "name": "type",
@@ -313,8 +336,14 @@
         },
         "transcript": {
           "name": "transcript",
-          "help": "Display the complete stored message transcript for one agent session: every message exchanged with the model, in order, as the session module persisted it. Takes the session's identifier rather than a run's. Honours the global --format flag, so the transcript renders as readable text or as JSON.",
+          "help": "Display the complete stored message transcript for one agent session: every message exchanged with the model, in order, as the session module persisted it. Takes the session's identifier rather than a run's. The transcript renders as readable text, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "args": [
             {
               "name": "session_id",
@@ -327,8 +356,14 @@
         },
         "search": {
           "name": "search",
-          "help": "Search one agent session's stored transcript for a substring, case-insensitively, and return the matching messages rather than the whole conversation. Takes the session identifier and the text to look for. Honours the global --format flag, so matches render as a table or as JSON for a script.",
+          "help": "Search one agent session's stored transcript for a substring, case-insensitively, and return the matching messages rather than the whole conversation. Takes the session identifier and the text to look for. Matches render as a table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "args": [
             {
               "name": "query",
@@ -345,8 +380,14 @@
         },
         "tasks": {
           "name": "tasks",
-          "help": "List every task recorded for one workflow run with its current status, its attempt count and its place in the recursive task hierarchy, so you can see which branch of the tree stalled or retried. Takes the run's UUID. Honours the global --format flag, so tasks render as a table or as JSON.",
+          "help": "List every task recorded for one workflow run with its current status, its attempt count and its place in the recursive task hierarchy, so you can see which branch of the tree stalled or retried. Takes the run's UUID. Tasks render as a table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "args": [
             {
               "name": "run_id",
@@ -359,8 +400,14 @@
         },
         "notepad": {
           "name": "notepad",
-          "help": "Show the append-only cross-agent notepad entries written during one workflow run -- the messages agents left for each other as the run progressed, in the order they were appended. Takes the run's UUID. Honours the global --format flag, so entries render as a readable table or as JSON.",
+          "help": "Show the append-only cross-agent notepad entries written during one workflow run -- the messages agents left for each other as the run progressed, in the order they were appended. Takes the run's UUID. Entries render as a readable table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "args": [
             {
               "name": "run_id",
@@ -459,8 +506,11 @@
       "commands": {
         "show": {
           "name": "show",
-          "help": "Display the frozen configuration snapshot the trace store captured when a run was started -- the settings that run actually executed under, rather than whatever the configuration file happens to say today. Takes the run's UUID and exits non-zero when no such run exists. Honours the global --format flag.",
+          "help": "Display the frozen configuration snapshot the trace store captured when a run was started -- the settings that run actually executed under, rather than whatever the configuration file happens to say today. Takes the run's UUID and exits non-zero when no such run exists. Renders as a table, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "object"
+          },
           "args": [
             {
               "name": "run_id",
@@ -473,8 +523,17 @@
         },
         "pricing": {
           "name": "pricing",
-          "help": "Display orxtra's internal pricing table for every model it knows about -- the per-token costs used to denominate run budgets in USD. Needs no database connection, since the table ships inside the installed package. Honours the global --format flag, so the table renders for a human or as JSON.",
+          "help": "Display orxtra's internal pricing table for every model it knows about -- the per-token costs used to denominate run budgets in USD. Needs no database connection, since the table ships inside the installed package. Renders for a human, or as the machine document under --json.",
           "effect": "read_only",
+          "payload_schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
           "forwarding": {
             "reason": "absorbs app-level global flag values the handler does not name"
           }
