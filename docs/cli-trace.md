@@ -44,7 +44,7 @@ Display the complete stored message transcript for one agent session: every mess
 
 ## trace search
 
-Search one agent session's stored transcript for a substring, case-insensitively, and return the matching messages rather than the whole conversation. Takes the session identifier and the text to look for. Honours the Matches render as a table, or as the machine document under --json.
+Search one agent session's stored transcript for a substring, case-insensitively, and return the matching messages rather than the whole conversation. Takes the session identifier and the text to look for. Matches render as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
@@ -57,7 +57,7 @@ Search one agent session's stored transcript for a substring, case-insensitively
 
 ## trace tasks
 
-List every task recorded for one workflow run with its current status, its attempt count and its place in the recursive task hierarchy, so you can see which branch of the tree stalled or retried. Takes the run's UUID. Honours the global Tasks render as a table, or as the machine document under --json.
+List every task recorded for one workflow run with its current status, its attempt count and its place in the recursive task hierarchy, so you can see which branch of the tree stalled or retried. Takes the run's UUID. Tasks render as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
