@@ -20,7 +20,11 @@ dependencies = [
     "pathspec",
     "pydantic>=2",
     "pydantic-monty",
-    "strictcli>=0.36.0",
+    # Floor, not a pin. 0.40.0 publishes machine mode -- the framework-reserved
+    # --json, the envelope, `payload_schema=` and `ctx.payload`/`ctx.json` --
+    # which orxtra.cli._cli is written against. An older strictcli rejects the
+    # registrations at import.
+    "strictcli>=0.40.0",
     "strictspec",
     "uuid6",
     "websockets",

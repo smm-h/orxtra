@@ -6,7 +6,9 @@ description = "strictcli CLI frontend. Agents are the primary users."
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg",
-    "strictcli>=0.36.0",
+    # Machine mode (--json, the envelope, payload_schema=, ctx.payload/ctx.json)
+    # ships in 0.40.0; _cli.py declares a schema on every command.
+    "strictcli>=0.40.0",
     "orxtra-api",
     "orxtra-identity",
     "orxtra-notification",
