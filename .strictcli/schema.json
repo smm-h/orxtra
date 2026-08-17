@@ -269,7 +269,7 @@
           "flags": [
             {
               "name": "run",
-              "help": "Run ID whose inbox items to list.",
+              "help": "Unique identifier of the run whose inbox items to list (UUID format).",
               "value_schema": {
                 "type": "string"
               },
@@ -554,7 +554,7 @@
           "flags": [
             {
               "name": "payload",
-              "help": "JSON object payload to attach to the event.",
+              "help": "JSON object payload to attach to the event, given as a literal string.",
               "value_schema": {
                 "type": "string"
               },
