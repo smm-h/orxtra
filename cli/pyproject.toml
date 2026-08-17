@@ -20,7 +20,12 @@ dependencies = [
 keywords = ["rlsbl"]
 
 [dependency-groups]
-dev = ["pytest>=9.1.0"]
+# `orxtra.cli.__version__` reads the metadata of the `orxtra` distribution --
+# the single wheel this monorepo publishes, which is what a consumer installs.
+# A sync of this member alone (which is what its CI job does) would otherwise
+# have the code without the distribution it reads, and every test collecting
+# `orxtra.cli` would fail at import.
+dev = ["pytest>=9.1.0", "orxtra"]
 
 [project.scripts]
 orxtra = "orxtra.cli._cli:main"
@@ -36,6 +41,7 @@ build-backend = "hatchling.build"
 packages = ["src/orxtra"]
 
 [tool.uv.sources]
+orxtra = { workspace = true }
 orxtra-api = { workspace = true }
 orxtra-identity = { workspace = true }
 orxtra-notification = { workspace = true }

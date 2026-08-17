@@ -1191,6 +1191,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "orxtra" },
     { name = "pytest" },
 ]
 
@@ -1207,7 +1208,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.1.0" }]
+dev = [
+    { name = "orxtra", editable = "." },
+    { name = "pytest", specifier = ">=9.1.0" },
+]
 
 [[package]]
 name = "orxtra-compose"
