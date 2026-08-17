@@ -75,7 +75,8 @@
   },
   "gen": {
     "exclude": [
-      "tests.migration_baselines.*"
+      "tests.migration_baselines.*",
+      "services.src.orxtra.services._generated.schema_executor"
     ]
   },
   "topology": {
