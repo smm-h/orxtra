@@ -376,7 +376,7 @@ inbox_group = app.group(
 @strictcli.flag(
     name="run",
     type=str,
-    help="Run ID whose inbox items to list.",
+    help="Unique identifier of the run whose inbox items to list (UUID format).",
     presence="required",
 )
 @strictcli.flag(
@@ -718,7 +718,7 @@ event_group = app.group(
 @strictcli.flag(
     name="payload",
     type=str,
-    help="JSON object payload to attach to the event.",
+    help="JSON object payload to attach to the event, given as a literal string.",
     presence="optional",
 )
 def cmd_event_fire(
