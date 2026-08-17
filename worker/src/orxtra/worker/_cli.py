@@ -39,16 +39,19 @@ def register_worker_commands(app: strictcli.App) -> None:
         name="brain",
         type=str,
         help="WebSocket URL of the brain to connect to (e.g. ws://host:port).",
+        presence="required",
     )
     @strictcli.flag(
         name="root",
         type=str,
         help="Filesystem path to the project root directory for tool execution.",
+        presence="required",
     )
     @strictcli.flag(
         name="key",
         type=str,
         help="API key used for authenticating with the brain server.",
+        presence="required",
     )
     def cmd_worker_connect(
         _ctx: strictcli.Context, *, brain: str, root: str, key: str, **_kwargs: object,
@@ -73,21 +76,25 @@ def register_worker_commands(app: strictcli.App) -> None:
         name="brain",
         type=str,
         help="WebSocket URL of the brain to connect to (e.g. ws://host:port).",
+        presence="required",
     )
     @strictcli.flag(
         name="image",
         type=str,
         help="Docker image name to use for the worker container.",
+        presence="required",
     )
     @strictcli.flag(
         name="root",
         type=str,
         help="Filesystem path to the project root directory for tool execution.",
+        presence="required",
     )
     @strictcli.flag(
         name="key",
         type=str,
         help="API key used for authenticating with the brain server.",
+        presence="required",
     )
     def cmd_worker_docker(
         _ctx: strictcli.Context,

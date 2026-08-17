@@ -75,9 +75,16 @@ def _test(*args: str) -> tuple[str, str, int]:
 # -- Global flags ----------------------------------------------------------------
 
 
-def test_db_default_is_empty() -> None:
+def test_db_declares_optional() -> None:
+    """--db delivers absence as absence, not as an empty string.
+
+    It carried ``default=""`` and every handler asked ``if not db``, which is
+    the sentinel idiom strictcli's presence declaration retires: an empty
+    connection URL is now indistinguishable from no connection URL only
+    because there is no empty one to confuse it with.
+    """
     db_flag = next(f for f in app.flags if f.name == "db")
-    assert db_flag.default == ""
+    assert db_flag.presence == "optional"
 
 
 def test_format_is_not_a_declared_app_flag() -> None:
@@ -168,13 +175,13 @@ def test_run_start_flags() -> None:
 def test_run_start_config_required() -> None:
     cmd = app._groups["run"].commands["start"]
     config_flag = next(f for f in cmd.flags if f.name == "config")
-    assert config_flag.default is None
+    assert config_flag.presence == "required"
 
 
 def test_run_start_intent_required() -> None:
     cmd = app._groups["run"].commands["start"]
     intent_flag = next(f for f in cmd.flags if f.name == "intent")
-    assert intent_flag.default is None
+    assert intent_flag.presence == "required"
 
 
 def test_run_start_missing_config_fails() -> None:
@@ -193,7 +200,7 @@ def test_run_show_has_run_id_arg() -> None:
     cmd = app._groups["run"].commands["show"]
     assert len(cmd.args) == 1
     assert cmd.args[0].name == "run_id"
-    assert cmd.args[0].required is True
+    assert cmd.args[0].presence == "required"
 
 
 def test_run_abort_has_run_id_arg() -> None:
@@ -235,15 +242,21 @@ def test_inbox_list_has_run_flag() -> None:
 
 
 def test_inbox_list_run_required() -> None:
+    """--run is required, and now says so.
+
+    ``list_inbox`` takes a non-optional ``run_id``, so the flag was always
+    required in fact; it just never declared it, and the command's own help
+    text claimed the listing could be run-wide.
+    """
     cmd = app._groups["inbox"].commands["list"]
     run_flag = next(f for f in cmd.flags if f.name == "run")
-    assert run_flag.default is None
+    assert run_flag.presence == "required"
 
 
 def test_inbox_list_has_optional_status() -> None:
     cmd = app._groups["inbox"].commands["list"]
     status_flag = next(f for f in cmd.flags if f.name == "status")
-    assert status_flag.default == ""
+    assert status_flag.presence == "optional"
 
 
 def test_inbox_list_missing_run_fails() -> None:
@@ -257,12 +270,16 @@ def test_inbox_show_has_item_id_arg() -> None:
     assert cmd.args[0].name == "item_id"
 
 
-def test_inbox_respond_has_two_args() -> None:
+def test_inbox_respond_args_are_in_declaration_order() -> None:
+    """``orxtra inbox respond <item_id> <answer>``, in that order.
+
+    Stacked ``@strictcli.arg`` decorators bound bottom-up, so a two-argument
+    command took its positionals reversed -- ``respond`` read the answer first
+    and the item id second, against its own help and its own docs page. The
+    order is pinned here so the two can never disagree again.
+    """
     cmd = app._groups["inbox"].commands["respond"]
-    assert len(cmd.args) == 2
-    arg_names = {a.name for a in cmd.args}
-    assert "item_id" in arg_names
-    assert "answer" in arg_names
+    assert [a.name for a in cmd.args] == ["item_id", "answer"]
 
 
 def test_inbox_skip_has_item_id_arg() -> None:
@@ -270,12 +287,10 @@ def test_inbox_skip_has_item_id_arg() -> None:
     assert cmd.args[0].name == "item_id"
 
 
-def test_inbox_reject_has_two_args() -> None:
+def test_inbox_reject_args_are_in_declaration_order() -> None:
+    """``orxtra inbox reject <item_id> <reason>``, in that order."""
     cmd = app._groups["inbox"].commands["reject"]
-    assert len(cmd.args) == 2
-    arg_names = {a.name for a in cmd.args}
-    assert "item_id" in arg_names
-    assert "reason" in arg_names
+    assert [a.name for a in cmd.args] == ["item_id", "reason"]
 
 
 def test_inbox_missing_subcommand_shows_help() -> None:
@@ -300,7 +315,7 @@ def test_trace_events_has_run_id_arg() -> None:
 def test_trace_events_has_type_flag() -> None:
     cmd = app._groups["trace"].commands["events"]
     type_flag = next(f for f in cmd.flags if f.name == "type")
-    assert type_flag.default == ""
+    assert type_flag.presence == "optional"
 
 
 def test_trace_events_has_limit_flag() -> None:
@@ -315,12 +330,10 @@ def test_trace_transcript_has_session_id_arg() -> None:
     assert cmd.args[0].name == "session_id"
 
 
-def test_trace_search_has_two_args() -> None:
+def test_trace_search_args_are_in_declaration_order() -> None:
+    """``orxtra trace search <session_id> <query>``, in that order."""
     cmd = app._groups["trace"].commands["search"]
-    assert len(cmd.args) == 2
-    arg_names = {a.name for a in cmd.args}
-    assert "session_id" in arg_names
-    assert "query" in arg_names
+    assert [a.name for a in cmd.args] == ["session_id", "query"]
 
 
 def test_trace_tasks_has_run_id_arg() -> None:
@@ -347,18 +360,16 @@ def test_event_commands() -> None:
     assert cmds == {"fire"}
 
 
-def test_event_fire_has_two_args() -> None:
+def test_event_fire_args_are_in_declaration_order() -> None:
+    """``orxtra event fire <run_id> <event_name>``, in that order."""
     cmd = app._groups["event"].commands["fire"]
-    assert len(cmd.args) == 2
-    arg_names = {a.name for a in cmd.args}
-    assert "run_id" in arg_names
-    assert "event_name" in arg_names
+    assert [a.name for a in cmd.args] == ["run_id", "event_name"]
 
 
 def test_event_fire_has_optional_payload() -> None:
     cmd = app._groups["event"].commands["fire"]
     payload_flag = next(f for f in cmd.flags if f.name == "payload")
-    assert payload_flag.default == ""
+    assert payload_flag.presence == "optional"
 
 
 def test_event_missing_subcommand_shows_help() -> None:

@@ -44,8 +44,8 @@ def _operator_auth_context() -> AuthContext:
     )
 
 
-def _require_db(db: str) -> str:
-    if not db:
+def _require_db(db: str | None) -> str:
+    if db is None:
         _die("--db is required for this command")
     return db
 
@@ -139,7 +139,7 @@ app = strictcli.App(
             name="db",
             type=str,
             help="PostgreSQL connection URL.",
-            default="",
+            presence="optional",
         ),
     ],
 )
@@ -172,16 +172,18 @@ run_group = app.group(
     name="config",
     type=str,
     help="Filesystem path to the run configuration TOML file.",
+    presence="required",
 )
 @strictcli.flag(
     name="intent",
     type=str,
     help="Natural-language description of what the run should accomplish.",
+    presence="required",
 )
 def cmd_run_start(
     _ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     config: str,
     intent: str,
     **_kwargs: object,
@@ -222,7 +224,7 @@ def cmd_run_start(
 def cmd_run_list(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     **_kwargs: object,
 ) -> None:
     _dispatch_and_emit(ctx, _require_db(db), "list_runs", {})
@@ -241,11 +243,12 @@ def cmd_run_list(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to display (UUID format).",
+    presence="required",
 )
 def cmd_run_show(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -283,11 +286,12 @@ def cmd_run_show(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to abort (UUID format).",
+    presence="required",
 )
 def cmd_run_abort(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -309,11 +313,12 @@ def cmd_run_abort(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to pause (UUID format).",
+    presence="required",
 )
 def cmd_run_pause(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -335,11 +340,12 @@ def cmd_run_pause(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to resume (UUID format).",
+    presence="required",
 )
 def cmd_run_resume(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -359,10 +365,10 @@ inbox_group = app.group(
 
 @inbox_group.command(
     name="list",
-    help="List the human-in-the-loop inbox items agents have raised. Narrow the listing "
-    "with --run to a single workflow run and with --status to one lifecycle state such "
-    "as pending, answered or skipped; omit both to see everything. Renders as a table, "
-    "or as the machine document under --json.",
+    help="List the human-in-the-loop inbox items agents have raised for one workflow "
+    "run, named by --run. Narrow the listing further with --status to one lifecycle "
+    "state such as pending, answered or skipped; omit it to see every item of the run. "
+    "Renders as a table, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
     payload_schema=schemas.ROWS,
@@ -370,24 +376,25 @@ inbox_group = app.group(
 @strictcli.flag(
     name="run",
     type=str,
-    help="Filter inbox items by run ID (only show items for this run).",
+    help="Run ID whose inbox items to list.",
+    presence="required",
 )
 @strictcli.flag(
     name="status",
     type=str,
     help="Filter inbox items by status (e.g. pending, answered, skipped).",
-    default="",
+    presence="optional",
 )
 def cmd_inbox_list(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run: str,
-    status: str,
+    status: str | None,
     **_kwargs: object,
 ) -> None:
     args: dict[str, Any] = {"run_id": run}
-    if status:
+    if status is not None:
         args["status"] = status
     _dispatch_and_emit(ctx, _require_db(db), "list_inbox", args)
 
@@ -405,11 +412,12 @@ def cmd_inbox_list(
 @strictcli.arg(
     name="item_id",
     help="Unique identifier of the inbox item to display (UUID format).",
+    presence="required",
 )
 def cmd_inbox_show(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     item_id: str,
     **_kwargs: object,
 ) -> None:
@@ -431,15 +439,17 @@ def cmd_inbox_show(
 @strictcli.arg(
     name="item_id",
     help="Unique identifier of the inbox item to respond to (UUID format).",
+    presence="required",
 )
 @strictcli.arg(
     name="answer",
     help="The answer text to submit as a response to this item.",
+    presence="required",
 )
 def cmd_inbox_respond(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     item_id: str,
     answer: str,
     **_kwargs: object,
@@ -464,11 +474,12 @@ def cmd_inbox_respond(
 @strictcli.arg(
     name="item_id",
     help="Unique identifier of the inbox item to skip (UUID format).",
+    presence="required",
 )
 def cmd_inbox_skip(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     item_id: str,
     **_kwargs: object,
 ) -> None:
@@ -491,15 +502,17 @@ def cmd_inbox_skip(
 @strictcli.arg(
     name="item_id",
     help="Unique identifier of the inbox item to reject (UUID format).",
+    presence="required",
 )
 @strictcli.arg(
     name="reason",
     help="Explanation of why the inbox item is being rejected.",
+    presence="required",
 )
 def cmd_inbox_reject(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     item_id: str,
     reason: str,
     **_kwargs: object,
@@ -531,12 +544,13 @@ trace_group = app.group(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to query events for (UUID format).",
+    presence="required",
 )
 @strictcli.flag(
     name="type",
     type=str,
     help="Filter events by type (e.g. task_started, tool_call).",
-    default="",
+    presence="optional",
 )
 @strictcli.flag(
     name="limit",
@@ -547,14 +561,14 @@ trace_group = app.group(
 def cmd_trace_events(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
-    type: str,  # noqa: A002
+    type: str | None,  # noqa: A002
     limit: int,
     **_kwargs: object,
 ) -> None:
     args: dict[str, Any] = {"run_id": run_id, "limit": limit}
-    if type:
+    if type is not None:
         args["event_type"] = type
     _dispatch_and_emit(ctx, _require_db(db), "query_events", args)
 
@@ -572,11 +586,12 @@ def cmd_trace_events(
 @strictcli.arg(
     name="session_id",
     help="Unique identifier of the session to show the transcript for.",
+    presence="required",
 )
 def cmd_trace_transcript(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     session_id: str,
     **_kwargs: object,
 ) -> None:
@@ -598,15 +613,17 @@ def cmd_trace_transcript(
 @strictcli.arg(
     name="session_id",
     help="Unique identifier of the session whose transcript to search.",
+    presence="required",
 )
 @strictcli.arg(
     name="query",
     help="Case-insensitive substring to search for in the transcript.",
+    presence="required",
 )
 def cmd_trace_search(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     session_id: str,
     query: str,
     **_kwargs: object,
@@ -630,11 +647,12 @@ def cmd_trace_search(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to list tasks for (UUID format).",
+    presence="required",
 )
 def cmd_trace_tasks(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -656,11 +674,12 @@ def cmd_trace_tasks(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to show notepad entries for (UUID format).",
+    presence="required",
 )
 def cmd_trace_notepad(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
     **_kwargs: object,
 ) -> None:
@@ -689,27 +708,29 @@ event_group = app.group(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run to fire the event into (UUID format).",
+    presence="required",
 )
 @strictcli.arg(
     name="event_name",
     help="Name of the event to fire (must match a wait-for task's event name).",
+    presence="required",
 )
 @strictcli.flag(
     name="payload",
     type=str,
-    help="Optional JSON object payload to attach to the event.",
-    default="",
+    help="JSON object payload to attach to the event.",
+    presence="optional",
 )
 def cmd_event_fire(
-    ctx: strictcli.Context, *, db: str, run_id: str,
-    event_name: str, payload: str, **_kwargs: object,
+    ctx: strictcli.Context, *, db: str | None, run_id: str,
+    event_name: str, payload: str | None, **_kwargs: object,
 ) -> None:
     db_url = _require_db(db)
     # Read the framework value before the closure: `ctx` is rebound inside
     # _run() to a DispatchContext, which has no quiet.
     quiet = ctx.quiet
     parsed_payload: dict[str, Any] | None = None
-    if payload:
+    if payload is not None:
         try:
             parsed = json.loads(payload)
         except json.JSONDecodeError as exc:
@@ -758,7 +779,11 @@ validate_group = app.group(
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
-@strictcli.arg(name="path", help="Filesystem path to the agent TOML file to validate.")
+@strictcli.arg(
+    name="path",
+    help="Filesystem path to the agent TOML file to validate.",
+    presence="required",
+)
 def cmd_validate_agent(
     ctx: strictcli.Context,
     *,
@@ -794,6 +819,7 @@ def cmd_validate_agent(
 @strictcli.arg(
     name="path",
     help="Filesystem path to the workflow TOML file to validate.",
+    presence="required",
 )
 def cmd_validate_workflow(
     ctx: strictcli.Context,
@@ -830,6 +856,7 @@ def cmd_validate_workflow(
 @strictcli.arg(
     name="path",
     help="Filesystem path to the categories TOML file to validate.",
+    presence="required",
 )
 def cmd_validate_categories(
     ctx: strictcli.Context,
@@ -876,11 +903,12 @@ config_group = app.group(
 @strictcli.arg(
     name="run_id",
     help="Unique identifier of the run whose config to display (UUID format).",
+    presence="required",
 )
 def cmd_config_show(
     ctx: strictcli.Context,
     *,
-    db: str,
+    db: str | None,
     run_id: str,
     **_kwargs: object,
 ) -> None:

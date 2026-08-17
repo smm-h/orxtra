@@ -33,8 +33,8 @@ def _die(message: str) -> NoReturn:
     sys.exit(1)
 
 
-def _require_db(db: str) -> str:
-    if not db:
+def _require_db(db: str | None) -> str:
+    if db is None:
         _die("--db is required for this command")
     return db
 
@@ -94,7 +94,7 @@ def _register_migrate_commands(
         forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_migrate_plan(
-        _ctx: strictcli.Context, *, db: str, **_kwargs: object,
+        _ctx: strictcli.Context, *, db: str | None, **_kwargs: object,
     ) -> None:
         _run_pgdesign("plan", _require_db(db))
 
@@ -106,7 +106,7 @@ def _register_migrate_commands(
         forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_migrate_apply(
-        ctx: strictcli.Context, *, db: str, **_kwargs: object,
+        ctx: strictcli.Context, *, db: str | None, **_kwargs: object,
     ) -> None:
         # --dry-run is the framework-owned reserved flag; its value arrives on
         # the context and is forwarded to pgdesign, which has its own.
@@ -120,7 +120,7 @@ def _register_migrate_commands(
         forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_migrate_status(
-        _ctx: strictcli.Context, *, db: str, **_kwargs: object,
+        _ctx: strictcli.Context, *, db: str | None, **_kwargs: object,
     ) -> None:
         _run_pgdesign("status", _require_db(db))
 
@@ -142,7 +142,7 @@ def register_db_commands(app: strictcli.App) -> None:
         forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_init(
-        ctx: strictcli.Context, *, db: str, **_kwargs: object,
+        ctx: strictcli.Context, *, db: str | None, **_kwargs: object,
     ) -> None:
         db_url = _require_db(db)
 
@@ -206,7 +206,7 @@ def register_db_commands(app: strictcli.App) -> None:
         forwarding=_ABSORBS_GLOBALS,
     )
     def cmd_db_verify(
-        ctx: strictcli.Context, *, db: str, **_kwargs: object,
+        ctx: strictcli.Context, *, db: str | None, **_kwargs: object,
     ) -> None:
         db_url = _require_db(db)
 

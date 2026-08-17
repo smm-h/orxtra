@@ -20,6 +20,12 @@ _ABSORBS_GLOBALS = strictcli.Forwarding(
     reason="absorbs app-level global flag values the handler does not name",
 )
 
+# Handler-side fallbacks for the optional operational flags of `dispatch run`.
+# They cannot be flag defaults: the command is mutating, and strictcli forbids
+# a value default there.
+_DEFAULT_POLL_INTERVAL = 5.0
+_DEFAULT_BATCH_SIZE = 100
+
 
 def register_dispatch_commands(app: strictcli.App) -> None:
     """Register the ``dispatch`` command group on the orxtra CLI."""
@@ -41,33 +47,43 @@ def register_dispatch_commands(app: strictcli.App) -> None:
     @strictcli.flag(
         name="cursor",
         type=str,
-        help="Named cursor for this worker instance (enables multiple workers).",
-        default="main",
+        help="Named cursor for this worker instance (enables multiple workers). "
+        "Omitted, the worker runs on the cursor named 'main'.",
+        presence="optional",
     )
     @strictcli.flag(
         name="poll-interval",
         type=float,
-        help="Fallback polling interval in seconds when LISTEN/NOTIFY is idle.",
-        default=5.0,
+        help="Fallback polling interval in seconds when LISTEN/NOTIFY is idle. "
+        "Omitted, the worker polls every 5 seconds.",
+        presence="optional",
     )
     @strictcli.flag(
         name="batch-size",
         type=int,
-        help="Maximum number of events to process in a single polling batch.",
-        default=100,
+        help="Maximum number of events to process in a single polling batch. "
+        "Omitted, the worker processes up to 100 events a batch.",
+        presence="optional",
     )
     def cmd_dispatch_run(
         _ctx: strictcli.Context, *,
-        db: str,
-        cursor: str,
-        **kwargs: object,
+        db: str | None,
+        cursor: str | None,
+        poll_interval: float | None,
+        batch_size: int | None,
+        **_kwargs: object,
     ) -> None:
-        if not db:
+        if db is None:
             print("--db is required for dispatch run", file=sys.stderr)
             sys.exit(1)
 
-        poll_interval: float = kwargs.get("poll_interval", 5.0)  # type: ignore[assignment]
-        batch_size: int = kwargs.get("batch_size", 100)  # type: ignore[assignment]
+        # The three operational knobs are declared optional rather than
+        # defaulted: `dispatch run` is a mutating command, and strictcli
+        # refuses a value default there. The fallbacks live here and are
+        # stated in each flag's help.
+        cursor_name = "main" if cursor is None else cursor
+        interval = _DEFAULT_POLL_INTERVAL if poll_interval is None else poll_interval
+        batch = _DEFAULT_BATCH_SIZE if batch_size is None else batch_size
 
         async def _run() -> None:
             import asyncpg as _asyncpg
@@ -91,9 +107,9 @@ def register_dispatch_commands(app: strictcli.App) -> None:
                 worker = await create_dispatch_worker(
                     pool,
                     notification_port=notification_port,
-                    cursor_name=cursor,
-                    poll_interval=poll_interval,
-                    batch_size=batch_size,
+                    cursor_name=cursor_name,
+                    poll_interval=interval,
+                    batch_size=batch,
                 )
 
                 # Graceful stop on SIGINT/SIGTERM.

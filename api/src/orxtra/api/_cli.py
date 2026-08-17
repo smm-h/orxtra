@@ -17,6 +17,10 @@ _ABSORBS_GLOBALS = strictcli.Forwarding(
     reason="absorbs app-level global flag values the handler does not name",
 )
 
+# Handler-side fallback for the optional --host flag. It cannot be a flag
+# default: `serve` is mutating, and strictcli forbids a value default there.
+_DEFAULT_HOST = "0.0.0.0"  # noqa: S104
+
 
 def register_serve_command(app: strictcli.App) -> None:
     """Register the `serve` command on the given strictcli App."""
@@ -31,36 +35,39 @@ def register_serve_command(app: strictcli.App) -> None:
         name="port",
         type=int,
         help="TCP port number for the HTTP API server to listen on.",
+        presence="required",
     )
     @strictcli.flag(
         name="host",
         type=str,
-        help="Network interface address to bind the HTTP server to.",
-        default="0.0.0.0",  # noqa: S104
+        help="Network interface address to bind the HTTP server to. "
+        "Omitted, the server binds every interface (0.0.0.0).",
+        presence="optional",
     )
     @strictcli.flag(
         name="secrets-env",
         type=str,
         help="JSON object mapping secret names to env var names for auth.",
-        default="",
+        presence="optional",
     )
     def cmd_serve(
         _ctx: strictcli.Context, *,
-        db: str,
+        db: str | None,
         port: int,
-        host: str,
-        secrets_env: str,
+        host: str | None,
+        secrets_env: str | None,
         **_kwargs: object,
     ) -> None:
-        if not db:
+        if db is None:
             print("--db is required for serve", file=sys.stderr)
             sys.exit(1)
-        if not port:
-            print("--port is required for serve", file=sys.stderr)
-            sys.exit(1)
+
+        # `serve` is a mutating command, so strictcli forbids a value default
+        # on --host. The fallback lives here and is stated in the flag's help.
+        bind_host = _DEFAULT_HOST if host is None else host
 
         parsed_secrets_env: dict[str, str] | None = None
-        if secrets_env:
+        if secrets_env is not None:
             try:
                 parsed = json.loads(secrets_env)
             except json.JSONDecodeError as exc:
@@ -83,7 +90,7 @@ def register_serve_command(app: strictcli.App) -> None:
         server_config = ServerConfig(
             db_url=db,
             port=port,
-            host=host,
+            host=bind_host,
             secrets_env=parsed_secrets_env,
         )
 
@@ -94,7 +101,7 @@ def register_serve_command(app: strictcli.App) -> None:
         serve(
             asgi_app,
             foreground=True,
-            host=host,
+            host=bind_host,
             port=port,
             name="ORXTRA",
         )
