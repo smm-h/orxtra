@@ -53,7 +53,6 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── cli/
 ├── compose/
 ├── conftest.py
-├── dev-sources.toml.local-only
 ├── dispatch/
 ├── dist/
 ├── docs/
