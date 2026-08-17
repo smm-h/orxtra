@@ -19,9 +19,9 @@ Validate an agent definition TOML file against the agent module's strict schema,
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `path` | yes | Filesystem path to the agent TOML file to validate. |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `path` | str | required | Filesystem path to the agent TOML file to validate. |
 
 ## validate workflow
 
@@ -31,9 +31,9 @@ Validate a workflow definition TOML file against the strict workflow schema with
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `path` | yes | Filesystem path to the workflow TOML file to validate. |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `path` | str | required | Filesystem path to the workflow TOML file to validate. |
 
 ## validate categories
 
@@ -43,6 +43,6 @@ Validate a model-categories TOML file against the strict categories schema witho
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `path` | yes | Filesystem path to the categories TOML file to validate. |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `path` | str | required | Filesystem path to the categories TOML file to validate. |

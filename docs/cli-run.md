@@ -19,10 +19,10 @@ Start a new autonomous workflow run from a TOML configuration file and a natural
 
 ### Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--config` |  | str |  |  | Filesystem path to the run configuration TOML file. |
-| `--intent` |  | str |  |  | Natural-language description of what the run should accomplish. |
+| `--config` |  | str | required |  | Filesystem path to the run configuration TOML file. |
+| `--intent` |  | str | required |  | Natural-language description of what the run should accomplish. |
 
 ## run list
 
@@ -38,9 +38,9 @@ Display the full status report the trace store holds for one run: its current st
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run to display (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to display (UUID format). |
 
 ## run abort
 
@@ -50,9 +50,9 @@ Send an abort signal to a currently executing workflow run, telling the schedule
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run to abort (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to abort (UUID format). |
 
 ## run pause
 
@@ -62,9 +62,9 @@ Suspend a running workflow, telling the scheduler to stop starting new tasks for
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run to pause (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to pause (UUID format). |
 
 ## run resume
 
@@ -74,6 +74,6 @@ Restart task execution for a workflow that was previously paused, telling the sc
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run to resume (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to resume (UUID format). |

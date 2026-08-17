@@ -19,11 +19,11 @@ Run a native worker process that connects to a brain over WebSocket, authenticat
 
 ### Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--brain` |  | str |  |  | WebSocket URL of the brain to connect to (e.g. ws://host:port). |
-| `--root` |  | str |  |  | Filesystem path to the project root directory for tool execution. |
-| `--key` |  | str |  |  | API key used for authenticating with the brain server. |
+| `--brain` |  | str | required |  | WebSocket URL of the brain to connect to (e.g. ws://host:port). |
+| `--root` |  | str | required |  | Filesystem path to the project root directory for tool execution. |
+| `--key` |  | str | required |  | API key used for authenticating with the brain server. |
 
 ## worker docker
 
@@ -33,9 +33,9 @@ Run a worker inside a Docker container built from --image, connected to the brai
 
 ### Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--brain` |  | str |  |  | WebSocket URL of the brain to connect to (e.g. ws://host:port). |
-| `--image` |  | str |  |  | Docker image name to use for the worker container. |
-| `--root` |  | str |  |  | Filesystem path to the project root directory for tool execution. |
-| `--key` |  | str |  |  | API key used for authenticating with the brain server. |
+| `--brain` |  | str | required |  | WebSocket URL of the brain to connect to (e.g. ws://host:port). |
+| `--image` |  | str | required |  | Docker image name to use for the worker container. |
+| `--root` |  | str | required |  | Filesystem path to the project root directory for tool execution. |
+| `--key` |  | str | required |  | API key used for authenticating with the brain server. |

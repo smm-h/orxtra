@@ -19,8 +19,8 @@ Start the long-running dispatch worker that delivers stored events to their subs
 
 ### Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--cursor` |  | str | main |  | Named cursor for this worker instance (enables multiple workers). |
-| `--poll-interval` |  | float | 5.0 |  | Fallback polling interval in seconds when LISTEN/NOTIFY is idle. |
-| `--batch-size` |  | int | 100 |  | Maximum number of events to process in a single polling batch. |
+| `--cursor` |  | str | optional |  | Named cursor for this worker instance (enables multiple workers). Omitted, the worker runs on the cursor named 'main'. |
+| `--poll-interval` |  | float | optional |  | Fallback polling interval in seconds when LISTEN/NOTIFY is idle. Omitted, the worker polls every 5 seconds. |
+| `--batch-size` |  | int | optional |  | Maximum number of events to process in a single polling batch. Omitted, the worker processes up to 100 events a batch. |

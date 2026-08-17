@@ -19,16 +19,16 @@ Query the append-only event log the trace store keeps for one workflow run. Narr
 
 ### Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--type` |  | str |  |  | Filter events by type (e.g. task_started, tool_call). |
-| `--limit` |  | int | 100 |  | Maximum number of events to return from the query. |
+| `--type` |  | str | optional |  | Filter events by type (e.g. task_started, tool_call). |
+| `--limit` |  | int | default: `100` |  | Maximum number of events to return from the query. |
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run to query events for (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to query events for (UUID format). |
 
 ## trace transcript
 
@@ -38,9 +38,9 @@ Display the complete stored message transcript for one agent session: every mess
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `session_id` | yes | Unique identifier of the session to show the transcript for. |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `session_id` | str | required | Unique identifier of the session to show the transcript for. |
 
 ## trace search
 
@@ -50,10 +50,10 @@ Search one agent session's stored transcript for a substring, case-insensitively
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `query` | yes | Case-insensitive substring to search for in the transcript. |
-| `session_id` | yes | Unique identifier of the session whose transcript to search. |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `session_id` | str | required | Unique identifier of the session whose transcript to search. |
+| `query` | str | required | Case-insensitive substring to search for in the transcript. |
 
 ## trace tasks
 
@@ -63,9 +63,9 @@ List every task recorded for one workflow run with its current status, its attem
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run to list tasks for (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to list tasks for (UUID format). |
 
 ## trace notepad
 
@@ -75,6 +75,6 @@ Show the append-only cross-agent notepad entries written during one workflow run
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run to show notepad entries for (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to show notepad entries for (UUID format). |

@@ -32,9 +32,9 @@ Version: :-: var key="project.version"
 
 ## Global flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--db` |  | str |  |  | PostgreSQL connection URL. |
+| `--db` |  | str | optional |  | PostgreSQL connection URL. |
 
 ## Framework flags
 

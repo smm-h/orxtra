@@ -19,13 +19,13 @@ Fire a named event into a running workflow to wake any task waiting on it. Takes
 
 ### Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--payload` |  | str |  |  | Optional JSON object payload to attach to the event. |
+| `--payload` |  | str | optional |  | JSON object payload to attach to the event. |
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `event_name` | yes | Name of the event to fire (must match a wait-for task's event name). |
-| `run_id` | yes | Unique identifier of the run to fire the event into (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run to fire the event into (UUID format). |
+| `event_name` | str | required | Name of the event to fire (must match a wait-for task's event name). |

@@ -19,9 +19,9 @@ Display the frozen configuration snapshot the trace store captured when a run wa
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `run_id` | yes | Unique identifier of the run whose config to display (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `run_id` | str | required | Unique identifier of the run whose config to display (UUID format). |
 
 ## config pricing
 

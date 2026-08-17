@@ -15,8 +15,8 @@ Start the HTTP API server (MCP, A2A, AG-UI, native routes).
 
 ## Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--port` |  | int |  |  | TCP port number for the HTTP API server to listen on. |
-| `--host` |  | str | 0.0.0.0 |  | Network interface address to bind the HTTP server to. |
-| `--secrets-env` |  | str |  |  | JSON object mapping secret names to env var names for auth. |
+| `--port` |  | int | required |  | TCP port number for the HTTP API server to listen on. |
+| `--host` |  | str | optional |  | Network interface address to bind the HTTP server to. Omitted, the server binds every interface (0.0.0.0). |
+| `--secrets-env` |  | str | optional |  | JSON object mapping secret names to env var names for auth. |

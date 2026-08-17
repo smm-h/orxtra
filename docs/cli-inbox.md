@@ -13,16 +13,16 @@ Manage human-in-the-loop inbox items (list, show, respond, skip, reject).
 
 ## inbox list
 
-List the human-in-the-loop inbox items agents have raised. Narrow the listing with --run to a single workflow run and with --status to one lifecycle state such as pending, answered or skipped; omit both to see everything. Renders as a table, or as the machine document under --json.
+List the human-in-the-loop inbox items agents have raised for one workflow run, named by --run. Narrow the listing further with --status to one lifecycle state such as pending, answered or skipped; omit it to see every item of the run. Renders as a table, or as the machine document under --json.
 
 **Effect:** read_only
 
 ### Flags
 
-| Name | Short | Type | Default | Env | Description |
+| Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--run` |  | str |  |  | Filter inbox items by run ID (only show items for this run). |
-| `--status` |  | str |  |  | Filter inbox items by status (e.g. pending, answered, skipped). |
+| `--run` |  | str | required |  | Run ID whose inbox items to list. |
+| `--status` |  | str | optional |  | Filter inbox items by status (e.g. pending, answered, skipped). |
 
 ## inbox show
 
@@ -32,9 +32,9 @@ Display everything the store holds for one inbox item: the question an agent ask
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `item_id` | yes | Unique identifier of the inbox item to display (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `item_id` | str | required | Unique identifier of the inbox item to display (UUID format). |
 
 ## inbox respond
 
@@ -44,10 +44,10 @@ Submit an answer to a pending inbox item, unblocking the agent that raised the q
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `answer` | yes | The answer text to submit as a response to this item. |
-| `item_id` | yes | Unique identifier of the inbox item to respond to (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `item_id` | str | required | Unique identifier of the inbox item to respond to (UUID format). |
+| `answer` | str | required | The answer text to submit as a response to this item. |
 
 ## inbox skip
 
@@ -57,9 +57,9 @@ Resolve a pending inbox item without answering it, telling the agent that raised
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `item_id` | yes | Unique identifier of the inbox item to skip (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `item_id` | str | required | Unique identifier of the inbox item to skip (UUID format). |
 
 ## inbox reject
 
@@ -69,7 +69,7 @@ Reject a pending inbox item when none of the options an agent offered is usable,
 
 ### Arguments
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `reason` | yes | Explanation of why the inbox item is being rejected. |
-| `item_id` | yes | Unique identifier of the inbox item to reject (UUID format). |
+| Name | Type | Presence | Description |
+| --- | --- | --- | --- |
+| `item_id` | str | required | Unique identifier of the inbox item to reject (UUID format). |
+| `reason` | str | required | Explanation of why the inbox item is being rejected. |
