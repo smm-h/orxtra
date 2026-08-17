@@ -2,7 +2,7 @@
   "schema_version": 1,
   "name": "orxtra",
   "slug": "orxtra",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "",
   "language": "python",
   "base_url": "https://orxtra.smmh.dev",
@@ -8465,6 +8465,11 @@
         },
         {
           "level": 3,
+          "text": "`ensure_schema_objects`",
+          "anchor": "ensure_schema_objects"
+        },
+        {
+          "level": 3,
           "text": "`verify_schema_objects`",
           "anchor": "verify_schema_objects"
         },
@@ -8823,6 +8828,11 @@
           "level": 3,
           "text": "`SchemaError`",
           "anchor": "schemaerror"
+        },
+        {
+          "level": 3,
+          "text": "`ensure_schema_objects`",
+          "anchor": "ensure_schema_objects"
         },
         {
           "level": 3,
@@ -14131,6 +14141,6 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-08-17T15:26:37.739319+00:00",
+  "last_gen": "2026-08-17T16:04:30.383770+00:00",
   "theme": "minimal"
 }
