@@ -1,42 +1,64 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "defaults": {
-    "schema_version": 1,
+    "schema_version": 2,
     "app": {
       "env_prefix": null,
       "config": false,
+      "config_format": "json",
+      "config_path": null,
+      "config_conflict_mode": "cli-wins",
+      "proc_observe_allowlist": [],
       "global_flags": [],
       "commands": {},
       "groups": {},
       "deprecated": {},
-      "tag_contracts": {}
+      "tag_contracts": {},
+      "checks": {},
+      "config_fields": {},
+      "infra": {}
     },
     "flag": {
       "short": null,
-      "default": null,
       "env": null,
-      "choices": null,
-      "repeatable": false,
-      "unique": false,
       "env_separator": null,
+      "prefixed": true,
+      "choices": null,
+      "elect_by": null,
+      "unique": false,
+      "conflict_mode": null,
       "negatable": null,
-      "hidden": false
+      "nullable": false
     },
     "arg": {
-      "type": "str",
-      "required": true,
-      "default": null,
       "variadic": false,
       "choices": null
     },
+    "choice": {
+      "flags": []
+    },
+    "choice_record": {
+      "help": null
+    },
     "command": {
+      "consequential": false,
+      "dry_run_supported": true,
+      "dry_run_unsupported_reason": null,
+      "update_of": null,
+      "write_mode": null,
+      "payload_schema": null,
+      "owns_stdout": false,
       "passthrough": false,
       "flags": [],
+      "flag_sets": [],
       "args": [],
       "tags": [],
       "constraints": [],
       "hidden": false,
-      "interactive": false
+      "interactive": false,
+      "config_fields": [],
+      "grants": [],
+      "forwarding": null
     },
     "group": {
       "commands": {},
@@ -44,6 +66,18 @@
       "deprecated": {},
       "tags": [],
       "hidden": false
+    },
+    "config_field": {
+      "default": null,
+      "bound_commands": []
+    },
+    "check": {
+      "scope": null
+    },
+    "infra": {
+      "roots": [],
+      "handshakes": [],
+      "connections": []
     }
   },
   "project_id": "orxtra",
@@ -53,9 +87,11 @@
   "global_flags": [
     {
       "name": "db",
-      "type": "str",
       "help": "PostgreSQL connection URL.",
-      "default": ""
+      "value_schema": {
+        "type": "string"
+      },
+      "presence": "optional"
     }
   ],
   "commands": {
@@ -66,20 +102,27 @@
       "flags": [
         {
           "name": "port",
-          "type": "int",
-          "help": "TCP port number for the HTTP API server to listen on."
+          "help": "TCP port number for the HTTP API server to listen on.",
+          "value_schema": {
+            "type": "integer"
+          },
+          "presence": "required"
         },
         {
           "name": "host",
-          "type": "str",
-          "help": "Network interface address to bind the HTTP server to.",
-          "default": "0.0.0.0"
+          "help": "Network interface address to bind the HTTP server to. Omitted, the server binds every interface (0.0.0.0).",
+          "value_schema": {
+            "type": "string"
+          },
+          "presence": "optional"
         },
         {
           "name": "secrets-env",
-          "type": "str",
           "help": "JSON object mapping secret names to env var names for auth.",
-          "default": ""
+          "value_schema": {
+            "type": "string"
+          },
+          "presence": "optional"
         }
       ],
       "forwarding": {
@@ -99,13 +142,19 @@
           "flags": [
             {
               "name": "config",
-              "type": "str",
-              "help": "Filesystem path to the run configuration TOML file."
+              "help": "Filesystem path to the run configuration TOML file.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
               "name": "intent",
-              "type": "str",
-              "help": "Natural-language description of what the run should accomplish."
+              "help": "Natural-language description of what the run should accomplish.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -136,7 +185,11 @@
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run to display (UUID format)."
+              "help": "Unique identifier of the run to display (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -150,7 +203,11 @@
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run to abort (UUID format)."
+              "help": "Unique identifier of the run to abort (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -164,7 +221,11 @@
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run to pause (UUID format)."
+              "help": "Unique identifier of the run to pause (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -178,7 +239,11 @@
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run to resume (UUID format)."
+              "help": "Unique identifier of the run to resume (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -193,7 +258,7 @@
       "commands": {
         "list": {
           "name": "list",
-          "help": "List the human-in-the-loop inbox items agents have raised. Narrow the listing with --run to a single workflow run and with --status to one lifecycle state such as pending, answered or skipped; omit both to see everything. Renders as a table, or as the machine document under --json.",
+          "help": "List the human-in-the-loop inbox items agents have raised for one workflow run, named by --run. Narrow the listing further with --status to one lifecycle state such as pending, answered or skipped; omit it to see every item of the run. Renders as a table, or as the machine document under --json.",
           "effect": "read_only",
           "payload_schema": {
             "type": "array",
@@ -204,14 +269,19 @@
           "flags": [
             {
               "name": "run",
-              "type": "str",
-              "help": "Filter inbox items by run ID (only show items for this run)."
+              "help": "Run ID whose inbox items to list.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
               "name": "status",
-              "type": "str",
               "help": "Filter inbox items by status (e.g. pending, answered, skipped).",
-              "default": ""
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "optional"
             }
           ],
           "forwarding": {
@@ -228,7 +298,11 @@
           "args": [
             {
               "name": "item_id",
-              "help": "Unique identifier of the inbox item to display (UUID format)."
+              "help": "Unique identifier of the inbox item to display (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -244,12 +318,20 @@
           },
           "args": [
             {
-              "name": "answer",
-              "help": "The answer text to submit as a response to this item."
+              "name": "item_id",
+              "help": "Unique identifier of the inbox item to respond to (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
-              "name": "item_id",
-              "help": "Unique identifier of the inbox item to respond to (UUID format)."
+              "name": "answer",
+              "help": "The answer text to submit as a response to this item.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -266,7 +348,11 @@
           "args": [
             {
               "name": "item_id",
-              "help": "Unique identifier of the inbox item to skip (UUID format)."
+              "help": "Unique identifier of the inbox item to skip (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -282,12 +368,20 @@
           },
           "args": [
             {
-              "name": "reason",
-              "help": "Explanation of why the inbox item is being rejected."
+              "name": "item_id",
+              "help": "Unique identifier of the inbox item to reject (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
-              "name": "item_id",
-              "help": "Unique identifier of the inbox item to reject (UUID format)."
+              "name": "reason",
+              "help": "Explanation of why the inbox item is being rejected.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -313,21 +407,30 @@
           "flags": [
             {
               "name": "type",
-              "type": "str",
               "help": "Filter events by type (e.g. task_started, tool_call).",
-              "default": ""
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "optional"
             },
             {
               "name": "limit",
-              "type": "int",
               "help": "Maximum number of events to return from the query.",
+              "value_schema": {
+                "type": "integer"
+              },
+              "presence": "default",
               "default": 100
             }
           ],
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run to query events for (UUID format)."
+              "help": "Unique identifier of the run to query events for (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -347,7 +450,11 @@
           "args": [
             {
               "name": "session_id",
-              "help": "Unique identifier of the session to show the transcript for."
+              "help": "Unique identifier of the session to show the transcript for.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -366,12 +473,20 @@
           },
           "args": [
             {
-              "name": "query",
-              "help": "Case-insensitive substring to search for in the transcript."
+              "name": "session_id",
+              "help": "Unique identifier of the session whose transcript to search.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
-              "name": "session_id",
-              "help": "Unique identifier of the session whose transcript to search."
+              "name": "query",
+              "help": "Case-insensitive substring to search for in the transcript.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -391,7 +506,11 @@
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run to list tasks for (UUID format)."
+              "help": "Unique identifier of the run to list tasks for (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -411,7 +530,11 @@
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run to show notepad entries for (UUID format)."
+              "help": "Unique identifier of the run to show notepad entries for (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -431,19 +554,29 @@
           "flags": [
             {
               "name": "payload",
-              "type": "str",
-              "help": "Optional JSON object payload to attach to the event.",
-              "default": ""
+              "help": "JSON object payload to attach to the event.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "optional"
             }
           ],
           "args": [
             {
-              "name": "event_name",
-              "help": "Name of the event to fire (must match a wait-for task's event name)."
+              "name": "run_id",
+              "help": "Unique identifier of the run to fire the event into (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
-              "name": "run_id",
-              "help": "Unique identifier of the run to fire the event into (UUID format)."
+              "name": "event_name",
+              "help": "Name of the event to fire (must match a wait-for task's event name).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -463,7 +596,11 @@
           "args": [
             {
               "name": "path",
-              "help": "Filesystem path to the agent TOML file to validate."
+              "help": "Filesystem path to the agent TOML file to validate.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -477,7 +614,11 @@
           "args": [
             {
               "name": "path",
-              "help": "Filesystem path to the workflow TOML file to validate."
+              "help": "Filesystem path to the workflow TOML file to validate.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -491,7 +632,11 @@
           "args": [
             {
               "name": "path",
-              "help": "Filesystem path to the categories TOML file to validate."
+              "help": "Filesystem path to the categories TOML file to validate.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -514,7 +659,11 @@
           "args": [
             {
               "name": "run_id",
-              "help": "Unique identifier of the run whose config to display (UUID format)."
+              "help": "Unique identifier of the run whose config to display (UUID format).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -606,21 +755,27 @@
           "flags": [
             {
               "name": "cursor",
-              "type": "str",
-              "help": "Named cursor for this worker instance (enables multiple workers).",
-              "default": "main"
+              "help": "Named cursor for this worker instance (enables multiple workers). Omitted, the worker runs on the cursor named 'main'.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "optional"
             },
             {
               "name": "poll-interval",
-              "type": "float",
-              "help": "Fallback polling interval in seconds when LISTEN/NOTIFY is idle.",
-              "default": 5.0
+              "help": "Fallback polling interval in seconds when LISTEN/NOTIFY is idle. Omitted, the worker polls every 5 seconds.",
+              "value_schema": {
+                "type": "number"
+              },
+              "presence": "optional"
             },
             {
               "name": "batch-size",
-              "type": "int",
-              "help": "Maximum number of events to process in a single polling batch.",
-              "default": 100
+              "help": "Maximum number of events to process in a single polling batch. Omitted, the worker processes up to 100 events a batch.",
+              "value_schema": {
+                "type": "integer"
+              },
+              "presence": "optional"
             }
           ],
           "forwarding": {
@@ -640,18 +795,27 @@
           "flags": [
             {
               "name": "brain",
-              "type": "str",
-              "help": "WebSocket URL of the brain to connect to (e.g. ws://host:port)."
+              "help": "WebSocket URL of the brain to connect to (e.g. ws://host:port).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
               "name": "root",
-              "type": "str",
-              "help": "Filesystem path to the project root directory for tool execution."
+              "help": "Filesystem path to the project root directory for tool execution.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
               "name": "key",
-              "type": "str",
-              "help": "API key used for authenticating with the brain server."
+              "help": "API key used for authenticating with the brain server.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
@@ -665,23 +829,35 @@
           "flags": [
             {
               "name": "brain",
-              "type": "str",
-              "help": "WebSocket URL of the brain to connect to (e.g. ws://host:port)."
+              "help": "WebSocket URL of the brain to connect to (e.g. ws://host:port).",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
               "name": "image",
-              "type": "str",
-              "help": "Docker image name to use for the worker container."
+              "help": "Docker image name to use for the worker container.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
               "name": "root",
-              "type": "str",
-              "help": "Filesystem path to the project root directory for tool execution."
+              "help": "Filesystem path to the project root directory for tool execution.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             },
             {
               "name": "key",
-              "type": "str",
-              "help": "API key used for authenticating with the brain server."
+              "help": "API key used for authenticating with the brain server.",
+              "value_schema": {
+                "type": "string"
+              },
+              "presence": "required"
             }
           ],
           "forwarding": {
