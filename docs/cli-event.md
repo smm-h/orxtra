@@ -21,7 +21,7 @@ Fire a named event into a running workflow to wake any task waiting on it. Takes
 
 | Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--payload` |  | str | optional |  | JSON object payload to attach to the event. |
+| `--payload` |  | str | optional |  | JSON object payload to attach to the event, given as a literal string. |
 
 ### Arguments
 

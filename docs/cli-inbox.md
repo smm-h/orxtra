@@ -21,7 +21,7 @@ List the human-in-the-loop inbox items agents have raised for one workflow run, 
 
 | Name | Short | Type | Presence | Env | Description |
 | --- | --- | --- | --- | --- | --- |
-| `--run` |  | str | required |  | Run ID whose inbox items to list. |
+| `--run` |  | str | required |  | Unique identifier of the run whose inbox items to list (UUID format). |
 | `--status` |  | str | optional |  | Filter inbox items by status (e.g. pending, answered, skipped). |
 
 ## inbox show
