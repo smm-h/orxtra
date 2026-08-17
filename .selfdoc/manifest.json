@@ -7747,93 +7747,6 @@
       ]
     },
     {
-      "path": "services-src-orxtra-services-_generated-schema_executor.md",
-      "title": "services.src.orxtra.services._generated.schema_executor",
-      "type": "doc",
-      "headings": [
-        {
-          "level": 1,
-          "text": "services.src.orxtra.services._generated.schema_executor",
-          "anchor": "servicessrcorxtraservices_generatedschema_executor"
-        },
-        {
-          "level": 2,
-          "text": "`services.src.orxtra.services._generated.schema_executor`",
-          "anchor": "servicessrcorxtraservices_generatedschema_executor"
-        },
-        {
-          "level": 3,
-          "text": "`AsyncConnection`",
-          "anchor": "asyncconnection"
-        },
-        {
-          "level": 4,
-          "text": "`execute`",
-          "anchor": "execute"
-        },
-        {
-          "level": 4,
-          "text": "`fetch`",
-          "anchor": "fetch"
-        },
-        {
-          "level": 4,
-          "text": "`transaction`",
-          "anchor": "transaction"
-        },
-        {
-          "level": 3,
-          "text": "`AsyncTransaction`",
-          "anchor": "asynctransaction"
-        },
-        {
-          "level": 4,
-          "text": "`execute`",
-          "anchor": "execute-1"
-        },
-        {
-          "level": 3,
-          "text": "`Section`",
-          "anchor": "section"
-        },
-        {
-          "level": 4,
-          "text": "`exists`",
-          "anchor": "exists"
-        },
-        {
-          "level": 3,
-          "text": "`ExecutionResult`",
-          "anchor": "executionresult"
-        },
-        {
-          "level": 3,
-          "text": "`VerifyResult`",
-          "anchor": "verifyresult"
-        },
-        {
-          "level": 3,
-          "text": "`execute`",
-          "anchor": "execute-2"
-        },
-        {
-          "level": 3,
-          "text": "`verify`",
-          "anchor": "verify"
-        },
-        {
-          "level": 3,
-          "text": "`create_schema`",
-          "anchor": "create_schema"
-        },
-        {
-          "level": 3,
-          "text": "`ensure_schema`",
-          "anchor": "ensure_schema"
-        }
-      ]
-    },
-    {
       "path": "services-src-orxtra-services-_generated-tables_auth.md",
       "title": "services.src.orxtra.services._generated.tables_auth",
       "type": "doc",
@@ -14218,6 +14131,6 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-08-13T19:05:13.568286+00:00",
+  "last_gen": "2026-08-17T15:26:37.739319+00:00",
   "theme": "minimal"
 }

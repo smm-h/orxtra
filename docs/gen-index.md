@@ -95,7 +95,6 @@ order: 90
 - [services.src.orxtra.services._generated](../services-src-orxtra-services-_generated/)
 - [services.src.orxtra.services._generated.extensions](../services-src-orxtra-services-_generated-extensions/)
 - [services.src.orxtra.services._generated.post_tables](../services-src-orxtra-services-_generated-post_tables/)
-- [services.src.orxtra.services._generated.schema_executor](../services-src-orxtra-services-_generated-schema_executor/)
 - [services.src.orxtra.services._generated.tables_auth](../services-src-orxtra-services-_generated-tables_auth/)
 - [services.src.orxtra.services._generated.tables_dispatch](../services-src-orxtra-services-_generated-tables_dispatch/)
 - [services.src.orxtra.services._generated.tables_identity](../services-src-orxtra-services-_generated-tables_identity/)
