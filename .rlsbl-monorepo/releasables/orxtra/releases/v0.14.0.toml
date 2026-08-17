@@ -1,0 +1,11 @@
+# Archived by rlsbl at release time. This release had no unreleased.toml
+# (a batch member takes its metadata from the batch release file); the
+# archive is written so later changelog regenerations keep the
+# description and context.
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "minor"
+include = ["pypi", "npm"]
+exclude = []
+description = "The CLI adopts strictcli 0.41: every flag and argument declares its presence, and two commands stop disagreeing with their own help."
+context = "strictcli 0.41 makes presence a declaration rather than something the framework\ninfers from the shape of a flag. Adopting it removed two classes of defect from\nthis CLI at once.\n\nThe first was the empty-string sentinel. `--db`, `--status`, `--type`,\n`--payload` and `--secrets-env` all declared `default=\"\"` and every handler\nasked `if not x`, so \"not given\" and \"given as empty\" were the same state and\nno command could tell them apart. Each now declares `presence=\"optional\"` and\nreceives absence as absence.\n\nThe second was the value default on a mutating command. `serve --host` and\n`dispatch run --cursor`, `--poll-interval` and `--batch-size` let the framework\npick a value that the command then acted on; strictcli refuses that outright\nnow, because on a mutating command a value the framework picked is a value the\nframework writes. The fallbacks are unchanged, but they are applied in the\nhandler and stated in each flag's help instead of happening silently.\n\nTwo commands were also lying about themselves. Stacked `@strictcli.arg`\ndecorators bound bottom-up, so `inbox respond`, `inbox reject`, `trace search`\nand `event fire` took their two positionals in the reverse of the order their\nhelp and docs pages stated. And `inbox list` advertised a run-wide listing with\n`--run` as an optional filter, while the underlying service has always required\na run id. Both are corrected here."
