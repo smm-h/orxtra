@@ -13,7 +13,6 @@ from orxtra.overseer import load_knowledge_files
 from orxtra.protocols import KIND_RUN, BudgetExhaustionPolicy
 from orxtra.scheduler import Scheduler, ToolEntry, load_workflow
 from orxtra.secrets import create_secret_registry
-from orxtra.session import TokenRates
 from orxtra.services._gen_run_config import (
     validate_bytes as _validate_run_config_document,
 )
@@ -23,6 +22,7 @@ from orxtra.services._injection import (
     build_notepad_refresher,
 )
 from orxtra.services._providers import build_transport_registry
+from orxtra.session import TokenRates
 from orxtra.tool import load_tool_definitions
 from orxtra.trace import (
     RunReport,

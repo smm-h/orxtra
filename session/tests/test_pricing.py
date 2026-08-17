@@ -82,11 +82,11 @@ class TestExtraRates:
         assert "openai/m" not in PRICING_TABLE
         extra = {
             "openai/m": TokenRates(
-                input_per_million=Decimal("0"),
-                output_per_million=Decimal("0"),
-                cache_read_per_million=Decimal("0"),
-                cache_write_per_million=Decimal("0"),
-                reasoning_per_million=Decimal("0"),
+                input_per_million=Decimal(0),
+                output_per_million=Decimal(0),
+                cache_read_per_million=Decimal(0),
+                cache_write_per_million=Decimal(0),
+                reasoning_per_million=Decimal(0),
             ),
         }
         usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)
@@ -98,9 +98,9 @@ class TestExtraRates:
             "openai/gpt-oss-120b": TokenRates(
                 input_per_million=Decimal("1.00"),
                 output_per_million=Decimal("2.00"),
-                cache_read_per_million=Decimal("0"),
-                cache_write_per_million=Decimal("0"),
-                reasoning_per_million=Decimal("0"),
+                cache_read_per_million=Decimal(0),
+                cache_write_per_million=Decimal(0),
+                reasoning_per_million=Decimal(0),
             ),
         }
         usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)
@@ -114,11 +114,11 @@ class TestExtraRates:
         # even when other extra rates are supplied. No silent zero default.
         extra = {
             "openai/m": TokenRates(
-                input_per_million=Decimal("0"),
-                output_per_million=Decimal("0"),
-                cache_read_per_million=Decimal("0"),
-                cache_write_per_million=Decimal("0"),
-                reasoning_per_million=Decimal("0"),
+                input_per_million=Decimal(0),
+                output_per_million=Decimal(0),
+                cache_read_per_million=Decimal(0),
+                cache_write_per_million=Decimal(0),
+                reasoning_per_million=Decimal(0),
             ),
         }
         with pytest.raises(ValueError, match="Unknown model"):
@@ -137,9 +137,9 @@ class TestExtraRates:
             model: TokenRates(
                 input_per_million=Decimal("0.01"),
                 output_per_million=Decimal("0.02"),
-                cache_read_per_million=Decimal("0"),
-                cache_write_per_million=Decimal("0"),
-                reasoning_per_million=Decimal("0"),
+                cache_read_per_million=Decimal(0),
+                cache_write_per_million=Decimal(0),
+                reasoning_per_million=Decimal(0),
             ),
         }
         usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)

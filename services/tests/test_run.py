@@ -189,8 +189,8 @@ async def test_start_run_from_file_parses_pricing(
         assert config.pricing is not None
         rates = config.pricing["openai/m"]
         assert isinstance(rates, TokenRates)
-        assert rates.input_per_million == Decimal("0")
-        assert rates.output_per_million == Decimal("0")
+        assert rates.input_per_million == Decimal(0)
+        assert rates.output_per_million == Decimal(0)
 
 
 def test_serialize_config_pricing_rates_are_strings() -> None:
@@ -209,10 +209,10 @@ def test_serialize_config_pricing_rates_are_strings() -> None:
         pricing={
             "openai/m": TokenRates(
                 input_per_million=Decimal("1.5"),
-                output_per_million=Decimal("0"),
-                cache_read_per_million=Decimal("0"),
-                cache_write_per_million=Decimal("0"),
-                reasoning_per_million=Decimal("0"),
+                output_per_million=Decimal(0),
+                cache_read_per_million=Decimal(0),
+                cache_write_per_million=Decimal(0),
+                reasoning_per_million=Decimal(0),
             ),
         },
     )

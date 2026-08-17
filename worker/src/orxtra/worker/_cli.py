@@ -65,9 +65,9 @@ def register_worker_commands(app: strictcli.App) -> None:
 
     @worker_group.command(
         name="docker",
-        help="Run a worker inside a Docker container built from --image, connected to the "
-        "brain at --brain and executing tool calls against the project root given by "
-        "--root. Authenticates with --key exactly as the native worker does; the "
+        help="Run a worker inside a Docker container built from --image, connected to "
+        "the brain at --brain and executing tool calls against the project root given "
+        "by --root. Authenticates with --key exactly as the native worker does; the "
         "container is what isolates tool execution from the host filesystem.",
         effect="mutating",
         forwarding=_ABSORBS_GLOBALS,

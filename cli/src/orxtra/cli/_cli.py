@@ -232,10 +232,11 @@ def cmd_run_list(
 
 @run_group.command(
     name="show",
-    help="Display the full status report the trace store holds for one run: its current "
-    "state, the intent it was started with, and the accounting the storage layer keeps "
-    "alongside it. Exits non-zero with a clear message when no run carries the given "
-    "identifier. Renders as a table, or as the machine document under --json.",
+    help="Display the full status report the trace store holds for one run: its "
+    "current state, the intent it was started with, and the accounting the storage "
+    "layer keeps alongside it. Exits non-zero with a clear message when no run carries "
+    "the given identifier. Renders as a table, or as the machine document under "
+    "--json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
     payload_schema=schemas.ROW,
@@ -277,9 +278,10 @@ def cmd_run_show(
 @run_group.command(
     name="abort",
     help="Send an abort signal to a currently executing workflow run, telling the "
-    "scheduler to stop dispatching further tasks for it. The signal travels through the "
-    "trace store's run-control channel rather than through dispatch, so a scheduler "
-    "running in another process picks it up. Confirms on stdout unless --quiet.",
+    "scheduler to stop dispatching further tasks for it. The signal travels through "
+    "the trace store's run-control channel rather than through dispatch, so a "
+    "scheduler running in another process picks it up. Confirms on stdout unless "
+    "--quiet.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -330,10 +332,10 @@ def cmd_run_pause(
 
 @run_group.command(
     name="resume",
-    help="Restart task execution for a workflow that was previously paused, telling the "
-    "scheduler to begin dispatching its ready tasks again from the state the pause left "
-    "behind. The signal travels through the trace store's run-control channel, so a "
-    "scheduler in another process observes it. Confirms on stdout unless --quiet.",
+    help="Restart task execution for a workflow that was previously paused, telling "
+    "the scheduler to begin dispatching its ready tasks again from the state the pause "
+    "left behind. The signal travels through the trace store's run-control channel, so "
+    "a scheduler in another process observes it. Confirms on stdout unless --quiet.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -428,10 +430,11 @@ def cmd_inbox_show(
 
 @inbox_group.command(
     name="respond",
-    help="Submit an answer to a pending inbox item, unblocking the agent that raised the "
-    "question and recording your identity as the principal that resolved it. Takes the "
-    "item's UUID and the answer text. Prints the updated item, honouring the global "
-    "machine document under --json, so you can confirm the response was recorded.",
+    help="Submit an answer to a pending inbox item, unblocking the agent that raised "
+    "the question and recording your identity as the principal that resolved it. Takes "
+    "the item's UUID and the answer text. Prints the updated item, honouring the "
+    "global machine document under --json, so you can confirm the response was "
+    "recorded.",
     effect="mutating",
     forwarding=_ABSORBS_GLOBALS,
     payload_schema=schemas.ROW,
@@ -664,9 +667,9 @@ def cmd_trace_tasks(
 @trace_group.command(
     name="notepad",
     help="Show the append-only cross-agent notepad entries written during one workflow "
-    "run -- the messages agents left for each other as the run progressed, in the order "
-    "they were appended. Takes the run's UUID. Entries render as a readable table, or "
-    "as the machine document under --json.",
+    "run -- the messages agents left for each other as the run progressed, in the "
+    "order they were appended. Takes the run's UUID. Entries render as a readable "
+    "table, or as the machine document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
     payload_schema=schemas.ROWS,
@@ -811,8 +814,8 @@ def cmd_validate_agent(
     name="workflow",
     help="Validate a workflow definition TOML file against the strict workflow schema "
     "without touching the database, checking the task declarations it makes and the "
-    "dependency structure between them. Prints every error it finds to stderr and exits "
-    "non-zero, or prints 'valid' and exits zero when the file is clean.",
+    "dependency structure between them. Prints every error it finds to stderr and "
+    "exits non-zero, or prints 'valid' and exits zero when the file is clean.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
 )
@@ -891,11 +894,11 @@ config_group = app.group(
 
 @config_group.command(
     name="show",
-    help="Display the frozen configuration snapshot the trace store captured when a run "
-    "was started -- the settings that run actually executed under, rather than whatever "
-    "the configuration file happens to say today. Takes the run's UUID and exits "
-    "non-zero when no such run exists. Renders as a table, or as the machine document "
-    "under --json.",
+    help="Display the frozen configuration snapshot the trace store captured when a "
+    "run was started -- the settings that run actually executed under, rather than "
+    "whatever the configuration file happens to say today. Takes the run's UUID and "
+    "exits non-zero when no such run exists. Renders as a table, or as the machine "
+    "document under --json.",
     effect="read_only",
     forwarding=_ABSORBS_GLOBALS,
     payload_schema=schemas.ROW,
@@ -936,8 +939,8 @@ def cmd_config_show(
 
 @config_group.command(
     name="pricing",
-    help="Display orxtra's internal pricing table for every model it knows about -- the "
-    "per-token costs used to denominate run budgets in USD. Needs no database "
+    help="Display orxtra's internal pricing table for every model it knows about -- "
+    "the per-token costs used to denominate run budgets in USD. Needs no database "
     "connection, since the table ships inside the installed package. Renders for a "
     "human, or as the machine document under --json.",
     effect="read_only",
