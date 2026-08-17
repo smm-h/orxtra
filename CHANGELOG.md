@@ -2,17 +2,56 @@
 
 # orxtra
 
-## Unreleased
+## 0.14.0
+
+The CLI adopts strictcli 0.41: every flag and argument declares its presence, and two commands stop disagreeing with their own help.
+
+<details>
+<summary>Context</summary>
+
+strictcli 0.41 makes presence a declaration rather than something the framework
+infers from the shape of a flag. Adopting it removed two classes of defect from
+this CLI at once.
+
+The first was the empty-string sentinel. `--db`, `--status`, `--type`,
+`--payload` and `--secrets-env` all declared `default=""` and every handler
+asked `if not x`, so "not given" and "given as empty" were the same state and
+no command could tell them apart. Each now declares `presence="optional"` and
+receives absence as absence.
+
+The second was the value default on a mutating command. `serve --host` and
+`dispatch run --cursor`, `--poll-interval` and `--batch-size` let the framework
+pick a value that the command then acted on; strictcli refuses that outright
+now, because on a mutating command a value the framework picked is a value the
+framework writes. The fallbacks are unchanged, but they are applied in the
+handler and stated in each flag's help instead of happening silently.
+
+Two commands were also lying about themselves. Stacked `@strictcli.arg`
+decorators bound bottom-up, so `inbox respond`, `inbox reject`, `trace search`
+and `event fire` took their two positionals in the reverse of the order their
+help and docs pages stated. And `inbox list` advertised a run-wide listing with
+`--run` as an optional filter, while the underlying service has always required
+a run id. Both are corrected here.
+
+</details>
+
+### Breaking
+
+- [cli, root] **Breaking: machine output is now the strictcli envelope, entered with `--json`.** The app-global `--format table|json` is gone; under `--json` stdout carries exactly one document — the framework envelope, whose `payload` member is the command's result. Every command that prints a result declares its payload's JSON Schema, which the framework validates before writing.
 
 ### Features
 
 - [scheduler, services, session] **Custom model pricing.** Declare per-model token rates in the run config (`[pricing."provider/model"]`) to price custom or self-hosted models; config rates override the built-in table, and unknown models still error.
+- [api, cli, root, worker] **Every flag and argument publishes whether it is required, optional or defaulted.** `--help` and the CLI reference pages now carry one presence marker per flag and per positional argument, and an omitted optional value reaches the command as absence instead of an empty string — so `--status`, `--type`, `--payload` and `--secrets-env` no longer confuse "not given" with "given as empty". `serve --host` and `dispatch run --cursor`, `--poll-interval` and `--batch-size` keep the same fallbacks, now stated in their help rather than applied silently.
+- [cli, worker] **Every CLI command's help is a full description.** `run`, `inbox`, `trace`, `event`, `validate`, `config`, `db`, `dispatch` and `worker` carried one-line summaries; each command now explains what it does, what it takes and what it prints.
 
 ### Fixes
 
 - [., cli] **CLI no longer crashes on startup.** The `orxtra` command resolved its version from an unpublished distribution name, raising `PackageNotFoundError` at import and breaking every invocation of the installed package. It now resolves from the published `orxtra` distribution.
 - [.] **Missing runtime dependencies declared.** The published package omitted `strictspec` and `pydantic-monty` from its dependencies, so importing agent category generation or the Monty data tool failed with `ModuleNotFoundError`. Both are now declared and installed automatically.
 - [., cli, services, trace] `orxtra db init` and `orxtra db verify` now work from an installed package (previously crashed with ModuleNotFoundError); `db verify` no longer reports spurious missing objects on a fully-initialized schema
+- [notification, root] **The `orxtra` npm wrapper ships with releases again.** The npm package had drifted to 0.2.0 on the registry while the project moved on, because releases never touched it; it is now a release target of the project and is published, at the project's version, on every release.
+- [api, cli, root, worker] **Two commands no longer disagree with their own help.** `inbox respond`, `inbox reject`, `trace search` and `event fire` bound their positionals in reverse, so `orxtra inbox respond <item-id> <answer>` recorded the item id as the answer and the answer as the item id; each now takes its arguments in the order its help and its docs page state. And `inbox list` advertised a run-wide listing with `--run` as an optional filter, while the listing has always been per-run and the flag has always been mandatory — the help now says so.
 
 ## 0.13.0
 
