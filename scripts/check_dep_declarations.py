@@ -82,6 +82,19 @@ def _collect_runtime_imports(tree: ast.Module) -> set[str]:
     return imports
 
 
+def _is_internal_dep(dep: str) -> bool:
+    """Return True for a workspace dependency, root distribution included.
+
+    A member may depend on the root ``orxtra`` distribution itself -- the
+    single wheel this repo publishes -- and not only on an ``orxtra-*``
+    sibling. ``orxtra.cli`` does: it reads the root distribution's metadata
+    for its own ``__version__``, so a sync of that member alone needs the
+    root installed. It is a workspace source like any other and belongs on
+    both sides of the reconciliation below.
+    """
+    return dep == "orxtra" or dep.startswith("orxtra-")
+
+
 def _dep_name_to_pkg(dep: str) -> str:
     """Convert dependency name to Python package name (orxtra-foo -> foo)."""
     return dep.removeprefix("orxtra-").replace("-", "_")
@@ -131,7 +144,7 @@ def _check_member(
         _dep_name_to_pkg(d)
         for group in data.get("dependency-groups", {}).values()
         for d in group
-        if isinstance(d, str) and d.startswith("orxtra-")
+        if isinstance(d, str) and _is_internal_dep(d)
     )
     all_declared = sorted(set(declared_deps) | set(dev_deps))
 
