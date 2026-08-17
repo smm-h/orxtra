@@ -109,6 +109,31 @@ class SchemaError(Exception):
     """Raised when the database schema is incomplete or outdated."""
 
 
+async def ensure_schema_objects(adapter: AsyncpgAdapter) -> Any:
+    """Run the generated ``ensure_schema()`` against a live connection.
+
+    The pgdesign-generated executor is private to this package, so callers
+    reach it through here rather than importing ``_generated`` across a
+    package boundary. The returned value is the generated ``ExecutionResult``,
+    carrying ``executed``, ``skipped`` and ``errors``.
+
+    Args:
+        adapter: An ``AsyncpgAdapter`` wrapping a live connection.
+
+    Returns:
+        The generated executor's ``ExecutionResult``.
+    """
+    from orxtra.services._generated.schema_executor import (
+        ensure_schema,
+    )
+
+    # AsyncpgAdapter satisfies the generated AsyncConnection protocol at
+    # runtime; the generated protocol mistypes transaction() as an async def
+    # (coroutine) though it is used as a plain async context manager. Known
+    # pgdesign generated-protocol gap (filed upstream).
+    return await ensure_schema(adapter)  # type: ignore[arg-type]
+
+
 async def verify_schema_objects(
     adapter: AsyncpgAdapter,
 ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:

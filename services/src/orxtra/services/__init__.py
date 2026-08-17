@@ -63,6 +63,7 @@ from orxtra.services._schema import (
     AsyncpgAdapter,
     AsyncpgTx,
     SchemaError,
+    ensure_schema_objects,
     verify_schema,
     verify_schema_objects,
 )
@@ -101,6 +102,7 @@ __all__ = [
     "delete_principal",
     "delete_source",
     "dispatch",
+    "ensure_schema_objects",
     "event_stream",
     "execute_service_action",
     "fire_blocking",

@@ -4,10 +4,11 @@ Registers ``db init``, ``db verify``, and ``db migrate`` (plan/apply/status)
 commands on the orxtra CLI. Uses the pgdesign-generated schema executor for
 init/verify, and wraps ``pgdesign migrate`` subcommands for migrations.
 
-Layering note: the generated executor ships inside the orxtra namespace at
-``orxtra.services._generated`` so it resolves in both the editable dev tree
-and an installed wheel. The shared asyncpg adapter lives in
-``orxtra.services._schema``.
+Layering note: the pgdesign-generated executor is private to the services
+package. This module reaches it through ``orxtra.services``' own
+``ensure_schema_objects`` and ``verify_schema_objects`` wrappers rather than
+importing ``orxtra.services._generated`` across the package boundary. The
+shared asyncpg adapter lives in ``orxtra.services._schema``.
 """
 
 from __future__ import annotations
@@ -134,10 +135,11 @@ def register_db_commands(app: strictcli.App) -> None:
 
     @db_group.command(
         name="init",
-        help="Create every database object orxtra's modules declare -- the trace, dispatch, "
-        "identity and auth schemas -- and seed the singleton system principal. "
-        "Idempotent: objects that already exist are skipped and counted rather than "
-        "recreated, so it is safe to re-run. Reports what it executed unless --quiet.",
+        help="Create every database object orxtra's modules declare -- the trace, "
+        "dispatch, identity and auth schemas -- and seed the singleton system "
+        "principal. Idempotent: objects that already exist are skipped and counted "
+        "rather than recreated, so it is safe to re-run. Reports what it executed "
+        "unless --quiet.",
         effect="mutating",
         forwarding=_ABSORBS_GLOBALS,
     )
@@ -147,17 +149,12 @@ def register_db_commands(app: strictcli.App) -> None:
         db_url = _require_db(db)
 
         async def _run() -> None:
-            from orxtra.services._generated.schema_executor import (
-                ensure_schema,
-            )
+            from orxtra.services import ensure_schema_objects
 
             conn = await asyncpg.connect(db_url)
             try:
                 adapter = AsyncpgAdapter(conn)
-                # AsyncpgAdapter satisfies AsyncConnection at runtime; the
-                # generated protocol mistypes transaction() as async def.
-                # Known pgdesign generated-protocol gap (filed upstream).
-                result = await ensure_schema(adapter)  # type: ignore[arg-type]
+                result = await ensure_schema_objects(adapter)
                 if result.errors:
                     for kind, name, err in result.errors:
                         print(
@@ -198,10 +195,10 @@ def register_db_commands(app: strictcli.App) -> None:
 
     @db_group.command(
         name="verify",
-        help="Check the connected database for every schema object orxtra expects and report "
-        "how many are present and how many are missing. Names each missing object and "
-        "exits non-zero when any is absent, pointing at 'db init' or 'db migrate apply' "
-        "as the repair; exits zero when the schema is complete.",
+        help="Check the connected database for every schema object orxtra expects and "
+        "report how many are present and how many are missing. Names each missing "
+        "object and exits non-zero when any is absent, pointing at 'db init' or 'db "
+        "migrate apply' as the repair; exits zero when the schema is complete.",
         effect="read_only",
         forwarding=_ABSORBS_GLOBALS,
     )
