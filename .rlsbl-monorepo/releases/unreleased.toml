@@ -1,0 +1,35 @@
+[releasables.orxtra]
+# Version bump type: patch, minor, major, infra, or prerelease
+bump = "minor"
+# Short description of this release (required)
+description = "The CLI adopts strictcli 0.41: every flag and argument declares its presence, and two commands stop disagreeing with their own help."
+# Optional context explaining why these changes were made
+context = """
+strictcli 0.41 makes presence a declaration rather than something the framework
+infers from the shape of a flag. Adopting it removed two classes of defect from
+this CLI at once.
+
+The first was the empty-string sentinel. `--db`, `--status`, `--type`,
+`--payload` and `--secrets-env` all declared `default=""` and every handler
+asked `if not x`, so "not given" and "given as empty" were the same state and
+no command could tell them apart. Each now declares `presence="optional"` and
+receives absence as absence.
+
+The second was the value default on a mutating command. `serve --host` and
+`dispatch run --cursor`, `--poll-interval` and `--batch-size` let the framework
+pick a value that the command then acted on; strictcli refuses that outright
+now, because on a mutating command a value the framework picked is a value the
+framework writes. The fallbacks are unchanged, but they are applied in the
+handler and stated in each flag's help instead of happening silently.
+
+Two commands were also lying about themselves. Stacked `@strictcli.arg`
+decorators bound bottom-up, so `inbox respond`, `inbox reject`, `trace search`
+and `event fire` took their two positionals in the reverse of the order their
+help and docs pages stated. And `inbox list` advertised a run-wide listing with
+`--run` as an optional filter, while the underlying service has always required
+a run id. Both are corrected here.
+"""
+# Pre-release identifier: alpha, beta, rc, or stable
+# preid = ""
+include = ["pypi", "npm"]
+exclude = []
