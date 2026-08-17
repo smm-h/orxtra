@@ -20,11 +20,11 @@ dependencies = [
     "pathspec",
     "pydantic>=2",
     "pydantic-monty",
-    # Floor, not a pin. 0.41.0 makes presence a mandatory declaration on every
-    # flag and arg and forbids a value default on a mutating command; every
-    # orxtra CLI registration is written against those rules, and an older
-    # strictcli has no `presence=` keyword at all.
-    "strictcli>=0.41.0",
+    # Floor, not a pin. The 0.41 line makes presence a mandatory declaration on
+    # every flag and arg and forbids a value default on a mutating command;
+    # every orxtra CLI registration is written against those rules, and an
+    # older strictcli has no `presence=` keyword at all.
+    "strictcli>=0.41.1",
     "strictspec",
     "uuid6",
     "websockets",

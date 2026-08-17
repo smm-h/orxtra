@@ -6,10 +6,10 @@ description = "strictcli CLI frontend. Agents are the primary users."
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg",
-    # 0.41.0 makes presence a mandatory declaration and bans a value default on
-    # a mutating command; _cli.py, _dispatch.py and _db.py are written to those
-    # rules and an older strictcli has no `presence=` keyword.
-    "strictcli>=0.41.0",
+    # The 0.41 line makes presence a mandatory declaration and bans a value
+    # default on a mutating command; _cli.py, _dispatch.py and _db.py are
+    # written to those rules and an older strictcli has no `presence=` keyword.
+    "strictcli>=0.41.1",
     "orxtra-api",
     "orxtra-identity",
     "orxtra-notification",

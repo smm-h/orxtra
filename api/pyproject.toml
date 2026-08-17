@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "asyncpg",
     "fastware>=0.5.0",
-    "strictcli>=0.41.0",
+    "strictcli>=0.41.1",
     "orxtra-a2a",
     "orxtra-agui",
     "orxtra-auth",
