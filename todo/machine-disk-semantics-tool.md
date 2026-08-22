@@ -184,39 +184,65 @@ inotify is not viable machine-wide (one watch per directory, ~1 KB kernel
 memory each, arming walk of every directory, race on new directories) but is
 fine for bounded subtrees — see watch backends below.
 
-### Watch/notify surface (founding component)
+### Watch/notify surface (founding component; revised after the event-bus direction)
 
-One event core: backend adapters normalize into a single internal event
-stream consumed by both the index maintainer and the subscription evaluator.
+Revised: this monorepo's event system (trace + dispatch + incoming +
+notification + minimal identity) is planned for extraction into a standalone
+event-bus tool — see the companion todo `event-bus-extraction.md`. The disk
+tool therefore does NOT grow its own subscription system. Its watch role
+splits into two explicit modes; per the no-silent-degradation rule the
+presence of bus configuration selects the mode, and a configured but
+unreachable bus is a hard error, never a fallback to the other mode:
 
-Condition vocabulary — three closed kinds, hard error on anything else:
+- **Standalone mode** (no bus, no PostgreSQL — the tool stays complete on
+  any machine, preserving the install-anywhere thesis): a blocking `watch`
+  command evaluates conditions locally over a bounded subtree (unprivileged
+  recursive inotify) and exits with a structured report when the condition
+  fires. Blocking-command delivery is agent-shaped: agents are resumed by
+  process exit, so a blocking command in a background shell IS the
+  notification mechanism.
+- **Bus-connected mode**: the disk tool is an event PRODUCER and domain
+  evaluator, not a subscription system. It registers with the bus as a
+  source principal and publishes coalesced filesystem events plus derived
+  domain events ("download quiesced", "subtree crossed a size bound")
+  through the bus's official Go client library. That library wraps the bus
+  ingestion protocol (HTTP, with a unix-socket transport for same-host
+  producers); event types and validation are strictspec-generated from the
+  same schema that generates the bus's Python service side, so producer and
+  service can never disagree about event shape. Direct database writing is
+  NOT part of the contract (reserved as a possible future explicit mode only
+  if a measured need arises). Subscriptions, filter predicates, action
+  chains, accumulator buffering, and notification delivery are all bus-side.
 
-- **Change**: any/create/delete/modify/move under a path, optionally
-  glob-filtered.
+Condition vocabulary — three closed kinds, hard error on anything else —
+and its split across the modes:
+
+- **Change** (any/create/delete/modify/move under a path, optionally
+  glob-filtered): plain event filtering — evaluated locally in standalone
+  mode, expressed as bus filter predicates when connected.
 - **Quiescence** ("this file/dir finished being written", e.g. a download
   completing): close-after-write events plus a stability window (size
   unchanged for N seconds), plus rename-awareness — downloaders write
   `*.part`/`*.crdownload` and rename into place, so completion is
   "close-write or rename-into-existence of the final name, then stable".
-  That heuristic belongs in the tool, not in every agent's head.
+  That heuristic belongs in the disk tool, not in every agent's head.
 - **Threshold**: subtree size or entry count crossing a bound in either
-  direction. Threshold evaluation requires incremental subtree accounting —
-  i.e. the event-fed index. Threshold-watching is index-powered, not a
-  sibling feature.
+  direction; requires the incremental, event-fed index. Threshold-watching
+  is index-powered, not a sibling feature.
 
-Delivery: primary form is a **blocking command** — `watch <path> --for
-<condition>`, blocks until the condition fires, prints a structured report,
-exits. This is agent-shaped: agents are resumed by process exit, so a
-blocking command in a background shell IS the notification mechanism. Later,
-as explicit additions: run-a-command-per-trigger, a continuous journal mode,
-MCP notifications.
+Quiescence and threshold are disk-domain logic in both modes: the disk tool
+evaluates them and, when connected, emits the outcome as derived events. The
+raw fanotify/inotify firehose never leaves the disk tool — coalescing to
+subtree-dirty summaries and derived events happens before anything is
+published, so bus-facing event rates are modest.
 
-Backends, chosen explicitly, backend in use always declared in output:
+Event-acquisition backends, chosen explicitly, backend in use always
+declared in output:
 
 - Scoped watch, unprivileged: recursive inotify over one bounded subtree.
   Shippable early, no daemon, no root.
 - Machine-wide: the fanotify root daemon, which then serves both index
-  freshness and scoped subscriptions.
+  freshness and event production.
 
 ### Other founding stances
 
@@ -239,18 +265,28 @@ Backends, chosen explicitly, backend in use always declared in output:
 
 ## Open items
 
-1. **Name.** Not chosen. A naming round (candidate slate presented as plain
-   text, user approves before ANY registry contact) is required before repo
-   creation. Note: during the design discussion, registry availability
-   checks were run with candidate names the user had never approved — a
-   rules violation, surfaced and stopped. Do not repeat it.
-2. **License** for the new tool — user decision, never defaulted.
-3. **Manifest filename** — likely derived from the tool's name; blocked on
+1. **Home — deliberately left open by the owner.** Two real options:
+   (a) a standalone repo; (b) a member of THIS monorepo. Trade-offs noted in
+   discussion: standalone preserves full independence (the tool interfaces
+   with the ecosystem only through the event bus), keeps the license
+   decision free of this monorepo's BUSL-1.1 association, and avoids a lone
+   Go module inside a uniform Python workspace — and a Go module import path
+   is permanent identity, so a monorepo path bakes this monorepo's name into
+   the tool's address forever. Monorepo membership reduces repo sprawl,
+   inherits conventions, and skips inventing a standalone brand (though the
+   sub-project, module path, and the command name agents type still need
+   names).
+2. **Name — deliberately left open**, interacts with the home decision. A
+   four-candidate slate was reviewed in discussion without resolution.
+   Hard rule: NO registry contact (availability checks included) with any
+   candidate the owner has not explicitly approved for checking; a violation
+   of exactly this occurred once during the design discussion and was
+   stopped. Present candidates as plain text first.
+3. **License — deliberately left open**, also interacts with the home
+   decision (this monorepo is BUSL-1.1; the standalone fleet tools are
+   mostly MIT). Never defaulted.
+4. **Manifest filename** — likely derived from the tool's name; blocked on
    the name.
-4. **Repo creation and final home.** A "run the naming round now, create the
-   repo now" decision was made mid-discussion but superseded by the user's
-   instruction to stop and file this todo instead. Whether the tool lives as
-   a standalone repo or a monorepo member was not decided.
 5. **dirstat engine extraction specifics**: what API surface the exported
    library exposes (walker, classification, gitignore — some or all), and
    how dirstat's own spec/docs account for the extraction.
@@ -271,7 +307,22 @@ Backends, chosen explicitly, backend in use always declared in output:
 - dirstat: the engine-extraction refactor happens there (its `internal/scan`
   and related packages promoted to an importable library).
 - strictcli: CLI framework, effects regime, MCP exposure.
-- strictspec: the single authority for the manifest document schema.
+- strictspec: the single authority for the manifest document schema, and for
+  the bus event types shared between the disk tool (Go) and the bus service
+  (Python).
+- The event bus extracted from this monorepo (companion todo
+  `event-bus-extraction.md`): the disk tool's bus-connected mode is its
+  first external producer.
+
+## Amendment record
+
+This file was amended once after filing, on the owner's explicit
+instruction (overriding the usual filed-todo immutability): the watch/notify
+section was rewritten for the event-bus direction (producer role, two
+explicit modes, Go client library over the bus ingestion protocol), and the
+open items for home, name, and license were rewritten to record that the
+owner deliberately left them open — including monorepo membership as a real
+option. Everything else is as originally filed.
 
 ## Effort estimate
 
