@@ -9,6 +9,7 @@
 name = "orxtra"
 
 # --- Root package ---
+tag_format = "{name}@v{version}"
 
 [[projects]]
 path = "."
@@ -20,25 +21,6 @@ path = "."
 name = "root"
 description = "Root package — single publishable wheel aggregating all sub-projects"
 releasable = "orxtra"
-watch = [
-    "pyproject.toml",
-    "selfdoc.json",
-    "docs/**",
-    "scripts/**",
-    "examples/**",
-    "knowledge/**",
-    "tests/**",
-    # The npm shim is a release target of the orxtra releasable (targets
-    # carry {"name": "npm", "path": "npm"}), so its files must be in the
-    # root member's scope for changelog coverage and CI path filtering.
-    "npm/**",
-    ".github/**",
-    "todo/**",
-    "CLAUDE.md",
-    "LICENSE",
-    ".env",
-    ".gitignore",
-]
 
 # --- Foundation layer ---
 
