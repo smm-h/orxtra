@@ -11,3 +11,23 @@ bump = "minor"
 include = ["pypi"]
 exclude = []
 description = "PgDispatchBackend, source CRUD, sync wrapper hardening, protocol consolidation"
+candidate_sha = "ccdff592a6482db6bc15ac4f104152b2a9f46eda"
+
+[tree_hashes]
+"." = "a514038e7c7d12ecc0abe057481c42662b58125e"
+agent = "55b905671883294ab5658ee202faf01337927eae"
+cli = "992811463621aefd1370165e23236bb6ff821ae2"
+dispatch = "d36fa0f107c4c3a2c6e5dcfe42d4325b42336c5b"
+mcp = "da292c1f0f133c906e304ad78e74b39c566f2963"
+notepad = "9465ec7ab78eafc923330cd924844866b5e65e1b"
+overseer = "9d1d9f95695fc6da835765bed13aed37c832ef15"
+protocols = "98eede95452ceeb600ef915d60e6cf6cf32103d4"
+scheduler = "0363a6df4c10135706d0ae02b09ece3658b97486"
+secrets = "3b2bacb705c477f5d8643176c4193ad8148bfeb8"
+services = "f2089468ed3f9447bc8c46855077e67d111fbbdd"
+session = "27d3a94fe910ca82882c24011f8b039f3731e1b3"
+tool = "2c2a0cafce919630e135c87ab59b83c1a11a78de"
+trace = "bb69dcd3b412707f90680b008627bcd04a70e3f0"
+transport = "f2fdf19f56a52f2a5465756eafcb04b7fae1c585"
+verify = "5bb34d2ca3194e145e453233291b47bb8e4baa73"
+write-safety = "1e37ad8525ac3b2c9605ff7aebb3c7e30facb978"

@@ -12,3 +12,23 @@ include = ["pypi"]
 exclude = []
 description = "Dispatch module, event bus enhancements, protocols reorganization"
 context = "Major architectural changes: new dispatch module for event delivery with subscriptions, action dispatch, and accumulator flush. Event bus enhanced with nullable run_id, source column, replay(), fire_blocking(), and event_stream(). Protocols reorganized into internal _types/ package. Scheduler migrated from EventRegistry to dispatch's TransientEventDelivery. Services promoted to composition layer owning dispatch integration."
+candidate_sha = "577240c1ee0fa367f04e70c926fe29b449274d07"
+
+[tree_hashes]
+"." = "91e2da33a193e58c0d7ee093f4edbf8256dad1bc"
+agent = "27496b09f41b294bc8bde831bc8d1316a92787f4"
+cli = "27cfe8c2c19e1351851499b9b6a3fb9f83405e51"
+dispatch = "3d81cd4f3146f42a458fe29d2ae1f3ba12e33b86"
+mcp = "f782f902861f0f70df4b4f93298ce84727acd1fc"
+notepad = "7005be15e4e6b22977546d47894a1e588d757303"
+overseer = "7e1a7e32dbb123d2937df96fb93d6557d1213239"
+protocols = "dbee1b2ee7e2765a98092e93ff7fcb2ff34aed46"
+scheduler = "c9d5fdfa8e1778cf208882317a03fa9f1dfb6e93"
+secrets = "cdb9667fd1876f7d375cd65461c981eb12da302f"
+services = "f92fe9779f93f40e9c53d82132f6f11482383d26"
+session = "2230a5c2e5102d2fae31cbdb7dd1e1c09f0966cb"
+tool = "173d8e3b8a6b3d51abc6741022dee93f28c4f5ae"
+trace = "7fecff0f2727e185d76b68285356dce7103895c7"
+transport = "cfa3a45f3d52f02d84fe914cb53b25f03bdba4a0"
+verify = "46c328b743be0bc0525426dbecd2590bbde5ec67"
+write-safety = "1a141f9568f8471692a4a2f4825aaaf3e9f1c360"

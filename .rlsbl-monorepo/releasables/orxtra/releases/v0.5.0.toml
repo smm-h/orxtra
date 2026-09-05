@@ -12,3 +12,22 @@ include = ["pypi"]
 exclude = []
 description = "Tool namespaces, capability tags, registry-based construction, deferred loading, and prepare_event protocol."
 context = "Tools gain hierarchical namespaces (fs.read, fs.write, git, task.lifecycle, etc.) and capability tags\n(readonly, mutation, lifecycle, suspending). Allow lists support wildcards (fs.*) and tag filters (#readonly).\nToolRegistry replaces the 207-line if/elif chain with data-driven construction. load_tools meta-tool enables\non-demand schema loading with provider-aware deferred specs (Anthropic defer_loading, OpenAI empty params,\nGemini parameterless). All 26 tools now use the @tool decorator. OverseerProtocol gains prepare_event replacing\nhandle_event for clean message formatting. Session.update_tools() enables dynamic tool sets."
+candidate_sha = "8f6e4463d382ee4a0315c448cc678917b2bcf7b9"
+
+[tree_hashes]
+"." = "e806308cd65601f31fed4b9305d5da3337d262dd"
+agent = "fd58454fc973495c8580cd8a89c56b3533786f90"
+cli = "3d44dad321efe8d1c38a594b1f0df51ef7f96df0"
+mcp = "253635eff4d2683900959074a1697e6fe75a7552"
+notepad = "20b1c9c9815d0093473e34b59ec3574b931a2d6e"
+overseer = "d34bb6782d68471d09bb2d996a5f9e3a01308823"
+protocols = "49f7edce02dcd2a56607a445499597916cd23536"
+scheduler = "0c5d62ed9187b6a3e8c40ca825e96fa791d971ed"
+secrets = "6c51b66337a1b78f940faee2f53835c41720c6cd"
+services = "f6047aedff776ade751f327c7e9d2838abfac542"
+session = "bde65ef61a543918d33915d8b14740b0ce12376f"
+tool = "728ac9468f9503a07b9e316ea0b6b620510a189e"
+trace = "0d9763213f9aeb9f2d3b5acc2db5953cd2d451e0"
+transport = "c648f73cf5a31e59287db94ece9857c2eb72c79f"
+verify = "6548ec6fb9d0e12d38b37290b6576b7e950007d0"
+write-safety = "5a9b5e57c01afca36279e95213e6f8e04c2694b6"

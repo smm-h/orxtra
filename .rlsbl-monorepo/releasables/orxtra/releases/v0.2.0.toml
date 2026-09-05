@@ -12,3 +12,22 @@ include = ["pypi"]
 exclude = []
 description = "Renamed from orxt to orxtra."
 context = "Full rename: PyPI package, Python imports, npm package, GitHub repo. All orxt.* imports are now orxtra.*."
+candidate_sha = "92744e970047638e89a8a709adb3fee7aed91a1e"
+
+[tree_hashes]
+"." = "58a861fb1acc11c50d7268fe3c7e7dc239417c49"
+agent = "4cfffc323b2b3f0a2740b35823026f1ec59d2b1c"
+cli = "5013fb59f4ee0a467f38b35f06ef3243238df0f6"
+mcp = "102a8f64ca01e5ad38a81fab1f034dab418bca2d"
+notepad = "9fe2415bb2c018db8b198d32bd106edbfa0d69eb"
+overseer = "c6778ad8ac7df608ddfc98b6427b5508e94ad86c"
+protocols = "8ddfd6807cd05abfc719e730865a8f7ee838f378"
+scheduler = "76c212647401ad0be5463555487c7af1e464eef3"
+secrets = "b85544268ea162dc63103c21da93dad2e9c7b64d"
+services = "c356238a466c158f9098b1a46b0c3d4db645f563"
+session = "1d327bd1e787c55ce6584808f2271b2fc236f580"
+tool = "280be9e7121408457d788d2c43254e7f877eae5d"
+trace = "6bac34fe47e54e8036490281c8a47aadd941877d"
+transport = "3694eb20c04215c3b3e793336ff8e7f6e362f0b8"
+verify = "83efed16bb33f645bcdbe3ad7d314ac8ed6cefa6"
+write-safety = "a81d2ab0895ef80cc4d3e037291708c3bc3232e0"

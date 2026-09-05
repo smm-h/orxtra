@@ -1,0 +1,47 @@
+# Materialized by `rlsbl release backfill`: this version shipped before
+# rlsbl archived a release file per version, so no archive existed.
+# Every reconstructed value names its source on the field below it. A
+# description is recovered from the first source that yields one: an
+# operator-reviewed --overrides file, then the version's GitHub Release
+# body, then its CHANGELOG.md section, then the commit subjects in its tag
+# range, and otherwise a placeholder naming the recovery obligation. bump
+# is derived by version arithmetic against the predecessor, and include
+# reflects the targets detected at backfill time (the historical target set
+# is not recoverable).
+# This archive's description came from: commit-subjects:34a13a0c..6808cef9.
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "minor"
+include = ["pypi"]
+exclude = []
+description = "Reconstructed from this version's commit subjects: chore: clean 2 stale batch exclusion(s) from config.json; chore: finalize changelog for 0.11.0; orxtra: release v0.11.0; selfdoc: regenerate; selfdoc: regenerate (workspace root). (and later commits)"
+candidate_sha = "6808cef94f9dad5b541445938959945600e26a2a"
+
+[tree_hashes]
+"." = "ce3a7fd421ee3f749785fa93a2c47c5cd643a15a"
+a2a = "994905cfdf075a752c3ca33b23bc32b174a58a82"
+a2ui = "217ffa7aa3bc4305059c2bbbf3b236d1622aa40f"
+agent = "b5dd9dbf37884ca4c8ee1eea0d7fdc498282f78d"
+agui = "db9e6c56f2efb2614f4cb83efe809139455c0cbe"
+api = "b11abdbf8bb3ea3e21037ea1cba3e0e5674fbd00"
+auth = "e67752d503c1dd5a41c5f894ab2ef753d25bc36e"
+cli = "3124bddc26b41d446d6cb340cd829aa553e3c9c7"
+compose = "252852f3e6d192be0c2f50162e3618bf15b85788"
+dispatch = "9e4f1219abb150a8ad27118accc50fd7d1e34c26"
+identity = "a7409e9734896e1dab64afa77212ff81235353c4"
+incoming = "5d785cd7a37c13ed86f2ee46a95e9a8c161f663b"
+mcp = "7910cd6ad1230ff9932459e08f1e06154760bbe8"
+notepad = "3c5e4dce01a8c6ece37abdce2803f5d0875b4e27"
+notification = "4fb40f30413d5b9457c185ac59bc62bd3d848db2"
+overseer = "b4f208b9f9040d6f657dc506241bec446bdf3ebd"
+protocols = "c94a535316e6ba4fca36a99bd0cf09623d2e6bba"
+scheduler = "10e839c355d6e5f969ac17d47559bafdddb30de2"
+secrets = "2d44f6dc63e50f49fbcee5781a07a8359172bf15"
+services = "8ef9dcad539e3d5939b270650bbbaaea02ab5799"
+session = "07cc39b249910bc8121e5a33ce6aa921758fad0a"
+tool = "00a6631aca2aa1f33415f6246a3aac2e4ac148c7"
+trace = "da12287b0b5d748f51cab5ce5e37cb8557bb2229"
+transport = "8573a0c75433011d9441ea73356566a84b2ae7df"
+verify = "dc692ef7af9bc3f5dbe6dbc75ae9007ccc41cf0c"
+worker = "f1ef6cba4901d508cdc7d94c94731347ce3f8e75"
+write-safety = "15db2401eaf68203f31819bebb5eeacc21accdb3"

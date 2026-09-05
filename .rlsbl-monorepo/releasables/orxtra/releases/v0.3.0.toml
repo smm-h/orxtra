@@ -12,3 +12,22 @@ include = ["pypi"]
 exclude = []
 description = "Typed tool returns, storage abstraction, headless mode, streaming always-on, and 15 new features."
 context = "Major architectural overhaul spanning 15 phases. Tool.execute returns ToolOutput[T] with semantic result types.\nStorageBackend abstraction enables workflows without PostgreSQL. Streaming is always-on with stuck detection.\nHeadless mode has deterministic fallbacks instead of silent degradation. Autonomy gating enforced at runtime.\nOne-shot ask() API for simple LLM calls. GoogleProvider for Gemini. 3 breaking changes (knowledge-module\nremoved, stream_deltas removed, autonomy_level required)."
+candidate_sha = "bd11052a6500573c4d2960d3ad21780432f7db5d"
+
+[tree_hashes]
+"." = "c582bf8aadf2b8209f7534cf58f475e1ce70ca0d"
+agent = "fd58454fc973495c8580cd8a89c56b3533786f90"
+cli = "3d44dad321efe8d1c38a594b1f0df51ef7f96df0"
+mcp = "253635eff4d2683900959074a1697e6fe75a7552"
+notepad = "20b1c9c9815d0093473e34b59ec3574b931a2d6e"
+overseer = "231bf6bf6f5dec180b5230ee88743dce0090ba7c"
+protocols = "13b6fe99954e6549c618e312f3458db275c5b48b"
+scheduler = "9975b97dcce25b8698dbc9ee8a15e3e5053ef3cd"
+secrets = "6c51b66337a1b78f940faee2f53835c41720c6cd"
+services = "c3e0aab4b990fbf0541e46d0e2a3b0fc0d890d58"
+session = "eebdad211f8b0ad0b23f59152c83baed5bd3b029"
+tool = "6d72d1682a2ba5698960f54b0f30db97b6efb37b"
+trace = "b552750e261b817cd4df565afc0e7ed22d05e21d"
+transport = "89a670d78513b6a90fe0da0dde594326005dbef3"
+verify = "d8d97e525bd98b72b28daa5a042aaebec0f09710"
+write-safety = "5a9b5e57c01afca36279e95213e6f8e04c2694b6"

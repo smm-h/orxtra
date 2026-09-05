@@ -12,3 +12,22 @@ include = ["pypi"]
 exclude = []
 description = "@tool decorator, layer violation fix, knowledge hash persistence, CI fixes, and type cleanup."
 context = "Introduced @tool decorator with ToolTemplate[T].bind() for typed tool definitions. All 22 decorator-eligible\ntools migrated, 4 factory tools updated with Pydantic input schemas. OverseerProtocol and HealthMonitorProtocol\nadded to protocols, removing the scheduler->overseer layer violation. Knowledge file hashes persisted via\nStorageBackend. StatResult and GlobResult replace union types and DirListing misuse. Pipeline suspending\nflag bug fixed. Dead escalation handler removed. CI fixes for transport, overseer prompts, schema, and pytest."
+candidate_sha = "7755d7ec3203d78ff5ba9a1e666bbc011f8ac2fd"
+
+[tree_hashes]
+"." = "fd201658d32ed0da45060aa163d70cf980aa77b9"
+agent = "fd58454fc973495c8580cd8a89c56b3533786f90"
+cli = "3d44dad321efe8d1c38a594b1f0df51ef7f96df0"
+mcp = "253635eff4d2683900959074a1697e6fe75a7552"
+notepad = "20b1c9c9815d0093473e34b59ec3574b931a2d6e"
+overseer = "67379cb418cd1ed6cf176725fdba7b1aeb5416a4"
+protocols = "647549e0ac314412425b75d265e31ed491119038"
+scheduler = "4e631a08f89f13922a96cb8dcf3b0d66ce4fba67"
+secrets = "6c51b66337a1b78f940faee2f53835c41720c6cd"
+services = "f6047aedff776ade751f327c7e9d2838abfac542"
+session = "eebdad211f8b0ad0b23f59152c83baed5bd3b029"
+tool = "1299cd4a8d03494515b3e9c081c34777732f0d8e"
+trace = "0d9763213f9aeb9f2d3b5acc2db5953cd2d451e0"
+transport = "582ceea88ae00de1ba5deaf4ae3c3087f449ebc8"
+verify = "6548ec6fb9d0e12d38b37290b6576b7e950007d0"
+write-safety = "5a9b5e57c01afca36279e95213e6f8e04c2694b6"

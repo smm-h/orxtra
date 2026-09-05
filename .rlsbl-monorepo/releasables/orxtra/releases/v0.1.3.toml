@@ -1,0 +1,36 @@
+# Materialized by `rlsbl release backfill`: this version shipped before
+# rlsbl archived a release file per version, so no archive existed.
+# Every reconstructed value names its source on the field below it. A
+# description is recovered from the first source that yields one: an
+# operator-reviewed --overrides file, then the version's GitHub Release
+# body, then its CHANGELOG.md section, then the commit subjects in its tag
+# range, and otherwise a placeholder naming the recovery obligation. bump
+# is derived by version arithmetic against the predecessor, and include
+# reflects the targets detected at backfill time (the historical target set
+# is not recoverable).
+# This archive's description came from: commit-subjects:df0d7bab.
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "patch"
+include = ["pypi"]
+exclude = []
+description = "Reconstructed from this version's commit subjects: chore: finalize changelog for 0.1.3; orxt: release v0.1.3; update validation cache; fix: correct hash in changelog entry; fix: changelog entry references only post-v0.1.2 commit. (and later commits)"
+candidate_sha = "df0d7bab2e30e0101cb57a7f562f04a56ce007c8"
+
+[tree_hashes]
+"." = "405fd20d111d2069c2e52a071e1e523ac085eed4"
+agent = "0bf52496d281083c83fa80141c0b224fcf92452d"
+cli = "d4f4490077dfc03b6240531869996d3835624df0"
+mcp = "e9393301131a9f70fe6383dd7abf957d9e2b6ba4"
+notepad = "13e796bf3ab16a2b589653b8e40206e473e41d8b"
+overseer = "e8ac09ead892d776527eb7e3f2da0c024a63e612"
+protocols = "2f6d0fb1c55eceef3cc2e2019b77106dc3f524a5"
+scheduler = "84f9b05c8078a481a30c20f90e35254fca8e938e"
+secrets = "a49c85ab71e8ca242204397b4a56e4cd4a51fbe1"
+services = "57f51b17d45566bf017b7ba8bf4f92c445b7fd4d"
+session = "4ea9a3319b53fd33c5773b809895a896bdc7b033"
+tool = "761e11deda28535b5f9dad1d92b9c305a456f0da"
+trace = "71205d904d2609b484d6edb5681d9d60ea46dbf2"
+transport = "613bc125bd28ae457e4166a67cbbaa8122034eec"
+verify = "a6cecaba18c2d32bb06a0e6367090e0f3be8cde1"
+write-safety = "182af9575e3ae50072f983fe93baffdd71b7bd8c"
