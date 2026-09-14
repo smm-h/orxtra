@@ -8,7 +8,7 @@ dependencies = [
     "pydantic>=2",
     "asyncpg",
     "uuid6",
-    "strictspec>=0.1.0",
+    "strictspec>=0.2.1",
     "orxtra-agent",
     "orxtra-auth",
     "orxtra-dispatch",
