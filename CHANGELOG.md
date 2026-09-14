@@ -2,6 +2,15 @@
 
 # orxtra
 
+## 0.14.1
+
+The project describes itself consistently on PyPI, npm and in its README, and its documentation base is the unified site.
+
+### Fixes
+
+- [root] **The project describes itself consistently on PyPI, npm and in its README.** The PyPI and npm descriptions disagreed, the package had no project URLs, keywords or classifiers, no long description, and the README never said what orxtra is.
+- [root] **Documentation links point at the unified site.** The declared docs base was the retired per-project host; it is `https://smmh.dev/orxtra/` now, so generated sitemaps, feeds and llms.txt name the address that serves the pages.
+
 ## 0.14.0
 
 The CLI adopts strictcli 0.41: every flag and argument declares its presence, and two commands stop disagreeing with their own help.
@@ -128,6 +137,8 @@ changelog stay as historical record and are not reused.
 - [api, cli, worker] **Clearer CLI help text.** Command groups, commands, flags, and positional arguments across the `orxtra`, `orxtra-api`, and `orxtra-worker` CLIs now carry descriptive help text explaining what each does, replacing terse one-liners.
 
 ## 0.11.0
+
+Reconstructed from this version's commit subjects: chore: clean 2 stale batch exclusion(s) from config.json; chore: finalize changelog for 0.11.0; orxtra: release v0.11.0; selfdoc: regenerate; selfdoc: regenerate (workspace root). (and later commits)
 
 ### Breaking
 
@@ -453,11 +464,15 @@ Full rename: PyPI package, Python imports, npm package, GitHub repo. All orxt.* 
 
 ## 0.1.3
 
+Reconstructed from this version's commit subjects: chore: finalize changelog for 0.1.3; orxt: release v0.1.3; update validation cache; fix: correct hash in changelog entry; fix: changelog entry references only post-v0.1.2 commit. (and later commits)
+
 ### Fixes
 
 - **Fix.** Package build includes overseer prompt files.
 
 ## 0.1.2
+
+RECOVERY OBLIGATION: no description was recoverable for this version (neither the GitHub Release notes, nor the CHANGELOG.md section, nor the commit subjects in its tag range carried one). Author a real description from this version's changelog entries and regenerate.
 
 ### Breaking
 
@@ -465,11 +480,15 @@ Full rename: PyPI package, Python imports, npm package, GitHub repo. All orxt.* 
 
 ## 0.1.1
 
+RECOVERY OBLIGATION: no description was recoverable for this version (neither the GitHub Release notes, nor the CHANGELOG.md section, nor the commit subjects in its tag range carried one). Author a real description from this version's changelog entries and regenerate.
+
 ### Fixes
 
 - [agent, cli, knowledge-module, mcp, notepad, overseer, protocols, scheduler, secrets, services, session, tool, trace, transport, verify, write-safety] **Fix.** CI publish workflow uses `--out-dir dist` for correct dist placement in workspace builds.
 
 ## 0.1.0
+
+RECOVERY OBLIGATION: no description was recoverable for this version (neither the GitHub Release notes, nor the CHANGELOG.md section, nor the commit subjects in its tag range carried one). Author a real description from this version's changelog entries and regenerate.
 
 ### Breaking
 

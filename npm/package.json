@@ -1,6 +1,6 @@
 {
   "name": "orxtra",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "license": "BUSL-1.1",
   "description": "a Python framework for AI agent orchestration that runs every unit of work as a nested task with entry and exit checks, a USD budget ceiling, and a PostgreSQL event trace (npm wrapper for the Python package)",
   "homepage": "https://smmh.dev/orxtra/",
