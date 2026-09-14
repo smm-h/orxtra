@@ -5,7 +5,7 @@
   "version": "0.14.0",
   "description": "a Python framework for AI agent orchestration that runs every unit of work as a nested task with entry and exit checks, a USD budget ceiling, and a PostgreSQL event trace",
   "language": "python",
-  "base_url": "https://orxtra.smmh.dev",
+  "base_url": "https://smmh.dev/orxtra",
   "pages": [
     {
       "path": "architecture.md",
@@ -14141,6 +14141,6 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-09-14T15:00:14.352511+00:00",
+  "last_gen": "2026-09-14T15:12:48.486380+00:00",
   "theme": "minimal"
 }
