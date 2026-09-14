@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
     "jsonschema",
-    "strictspec>=0.1.0",
+    "strictspec>=0.2.1",
     "orxtra-protocols",
     "orxtra-write-safety",
     "orxtra-agent",
