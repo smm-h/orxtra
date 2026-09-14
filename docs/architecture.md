@@ -1,7 +1,7 @@
----
-title: Architecture
-description: Five-layer architecture, module dependency DAG, core concepts, data flow from task submission to completion, and the structured programming model.
----
++++
+title = "Architecture"
+description = "Five-layer architecture, module dependency DAG, core concepts, data flow from task submission to completion, and the structured programming model."
++++
 
 # Architecture
 

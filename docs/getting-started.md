@@ -1,7 +1,7 @@
----
-title: Getting Started
-description: Install orxtra, configure an LLM provider, define agents and workflows, run a workflow from the CLI, and inspect results via the trace system.
----
++++
+title = "Getting Started"
+description = "Install orxtra, configure an LLM provider, define agents and workflows, run a workflow from the CLI, and inspect results via the trace system."
++++
 
 # Getting Started
 

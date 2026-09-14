@@ -1,8 +1,8 @@
----
-title: orxtra
-description: Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
-date: 2026-06-16
----
++++
+title = "orxtra"
+description = "Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't."
+date = 2026-06-16
++++
 
 # orxtra
 

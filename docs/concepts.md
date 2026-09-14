@@ -1,7 +1,7 @@
----
-title: Key Concepts
-description: Core concepts unique to orxtra -- structured task boundaries, pre/post-checks, write safety, budget enforcement, action tools, event subscriptions, principal-based attribution, and categories.
----
++++
+title = "Key Concepts"
+description = "Core concepts unique to orxtra -- structured task boundaries, pre/post-checks, write safety, budget enforcement, action tools, event subscriptions, principal-based attribution, and categories."
++++
 
 # Key Concepts
 

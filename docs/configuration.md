@@ -1,7 +1,7 @@
----
-title: Configuration Reference
-description: TOML format reference for agent definitions, workflow definitions, category mappings, run configuration, knowledge files, data tool definitions, and environment variables.
----
++++
+title = "Configuration Reference"
+description = "TOML format reference for agent definitions, workflow definitions, category mappings, run configuration, knowledge files, data tool definitions, and environment variables."
++++
 
 # Configuration Reference
 

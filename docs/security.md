@@ -1,7 +1,7 @@
----
-title: Security Model
-description: Authentication, authorization, principal-based attribution, trust tiers, credential verification, scope enforcement, and webhook HMAC verification.
----
++++
+title = "Security Model"
+description = "Authentication, authorization, principal-based attribution, trust tiers, credential verification, scope enforcement, and webhook HMAC verification."
++++
 
 # Security Model
 

@@ -1,7 +1,7 @@
----
-title: Deployment
-description: Database setup, API server, dispatch worker, tool worker, environment variables, and production considerations.
----
++++
+title = "Deployment"
+description = "Database setup, API server, dispatch worker, tool worker, environment variables, and production considerations."
++++
 
 # Deployment
 
