@@ -2,7 +2,8 @@
   "name": "orxtra",
   "version": "0.14.0",
   "license": "BUSL-1.1",
-  "description": "Autonomous multi-agent AI workflows. npm wrapper for the orxtra Python CLI.",
+  "description": "a Python framework for AI agent orchestration that runs every unit of work as a nested task with entry and exit checks, a USD budget ceiling, and a PostgreSQL event trace (npm wrapper for the Python package)",
+  "homepage": "https://smmh.dev/orxtra/",
   "bin": {
     "orxtra": "bin/orxtra.js"
   },
@@ -17,11 +18,16 @@
     "url": "https://github.com/smm-h/orxtra.git",
     "directory": "npm"
   },
+  "bugs": {
+    "url": "https://github.com/smm-h/orxtra/issues"
+  },
   "keywords": [
-    "ai",
-    "agents",
-    "workflows",
-    "orchestration",
+    "ai-agents",
+    "agent-orchestration",
+    "llm",
+    "workflow-engine",
+    "mcp",
+    "postgresql",
     "cli",
     "rlsbl"
   ]

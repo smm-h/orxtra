@@ -6,7 +6,8 @@
 name = "orxtra"
 version = "0.14.0"
 license = "BUSL-1.1"
-description = "Autonomous multi-agent AI workflows"
+description = "a Python framework for AI agent orchestration that runs every unit of work as a nested task with entry and exit checks, a USD budget ceiling, and a PostgreSQL event trace"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "a2a-sdk[http-server]",
@@ -29,7 +30,29 @@ dependencies = [
     "uuid6",
     "websockets",
 ]
-keywords = ["rlsbl"]
+keywords = [
+    "ai-agents",
+    "agent-orchestration",
+    "llm",
+    "workflow-engine",
+    "mcp",
+    "postgresql",
+    "cli",
+    "rlsbl",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Developers",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://smmh.dev/orxtra/"
+Documentation = "https://smmh.dev/orxtra/"
+Repository = "https://github.com/smm-h/orxtra"
+Issues = "https://github.com/smm-h/orxtra/issues"
+Changelog = "https://github.com/smm-h/orxtra/blob/main/CHANGELOG.md"
 
 [project.scripts]
 orxtra = "orxtra.cli._cli:main"
@@ -41,9 +64,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.sdist]
 # hatch_build.py is auto-included by hatchling (DEFAULT_BUILD_SCRIPT);
 # sub-project sources are included via the hook's force_include for
-# standard builds. Only pyproject.toml needs explicit inclusion here.
+# standard builds. Only pyproject.toml and the README named by
+# [project].readme need explicit inclusion here.
 include = [
     "pyproject.toml",
+    "README.md",
     "hatch_build.py",
     "protocols/src/",
     "secrets/src/",
