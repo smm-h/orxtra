@@ -6,3 +6,4 @@
 {"format_version":1,"id":"18d53d5b9a3eeabb6327cb364f024ad5bf85974f9cd294f2","commits":["edb7da89078f350f23eb07bb4f35d1a621079b43"],"user_facing":false,"packages":["a2a"]}
 {"format_version":1,"id":"18d53d5bc65fdf6f343c27396d674a4d8d8beff3039ff504","commits":["c3b76b43453d99a872b574e2a7228fa37bfab72b"],"user_facing":false,"packages":["agent"]}
 {"format_version":1,"id":"18d53d5bff024c070fad4b82fc094433a3b547d922509027","commits":["1bc47251a8677ad55d28d5ce4c5ff7f06f1e70ca"],"user_facing":false,"packages":["overseer"]}
+{"format_version":1,"id":"18d53d5c598fd9e336df79b896fd44128aa54c3e35f3e972","commits":["3a69a191cc09efee9b8ef554381be0efdf4bab93"],"user_facing":false,"packages":["scheduler"]}
