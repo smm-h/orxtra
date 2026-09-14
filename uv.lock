@@ -1003,7 +1003,7 @@ requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"] },
     { name = "orxtra-protocols", editable = "protocols" },
     { name = "orxtra-services", editable = "services" },
-    { name = "strictspec", specifier = ">=0.1.0" },
+    { name = "strictspec", specifier = ">=0.2.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -1051,7 +1051,7 @@ dev = [
 requires-dist = [
     { name = "orxtra-compose", editable = "compose" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "strictspec", specifier = ">=0.1.0" },
+    { name = "strictspec", specifier = ">=0.2.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -1431,7 +1431,7 @@ requires-dist = [
     { name = "orxtra-trace", editable = "trace" },
     { name = "orxtra-transport", editable = "transport" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "strictspec", specifier = ">=0.1.0" },
+    { name = "strictspec", specifier = ">=0.2.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -1506,7 +1506,7 @@ requires-dist = [
     { name = "orxtra-worker", editable = "worker" },
     { name = "orxtra-write-safety", editable = "write-safety" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "strictspec", specifier = ">=0.1.0" },
+    { name = "strictspec", specifier = ">=0.2.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -1581,7 +1581,7 @@ requires-dist = [
     { name = "orxtra-trace", editable = "trace" },
     { name = "orxtra-transport", editable = "transport" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "strictspec", specifier = ">=0.1.0" },
+    { name = "strictspec", specifier = ">=0.2.1" },
     { name = "uuid6" },
 ]
 
@@ -1652,7 +1652,7 @@ requires-dist = [
     { name = "pathspec" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pydantic-monty", specifier = "==0.0.18" },
-    { name = "strictspec", specifier = ">=0.1.0" },
+    { name = "strictspec", specifier = ">=0.2.1" },
 ]
 
 [package.metadata.requires-dev]
