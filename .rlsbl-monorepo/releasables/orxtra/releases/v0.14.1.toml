@@ -1,0 +1,40 @@
+# Archived by rlsbl at release time. This release had no unreleased.toml
+# (a batch member takes its metadata from the batch release file); the
+# archive is written so later changelog regenerations keep the
+# description and context.
+# strictspec document version gate (do not remove)
+format_version = 1
+bump = "patch"
+include = ["pypi", "npm"]
+exclude = []
+description = "The project describes itself consistently on PyPI, npm and in its README, and its documentation base is the unified site."
+candidate_sha = "c8ef64f6b72ad645b4fe3f69388c82f7bfac1603"
+
+[tree_hashes]
+"." = "b4d16643746b5a5db2bfe92d7ebd73fa1c45501a"
+a2a = "fa4cf6b8590670f209adb1160d58dcd52ce07609"
+a2ui = "ee49c4c5d3e9a12ca2dd98ee32d1ae93856a8b75"
+agent = "09406b6c3de2105d50d9226940223a877624af74"
+agui = "8f4bdcccfc5f7fce8ce8e7ac87da2f98f3f87800"
+api = "631c180fb3347cae3faf0ac66fda7b8079403ffe"
+auth = "1cf6fad05a4bd129e6621573b0d5491bbedc7e0b"
+cli = "5f1e483331f8d2fdaec4dff9cf0b7fc758ce27dc"
+compose = "b0b4a49c11609036295c9c72169fc59138b1a977"
+dispatch = "ebcd9d06cde0be397840d0f41b42cb78eb16e139"
+identity = "43a76757532d419120c23534f331a533c9092d54"
+incoming = "4032e5f9d3a32e448aecab15843b8363a8e15e7f"
+mcp = "e0f414fcddbd354c735f31a3fd2a2eaf0ac32e35"
+notepad = "6e335826235598bf95322a102de4330b08d74b16"
+notification = "504db8640142be4bb8783d5b7f68a07d8614d28d"
+overseer = "784440b941060a2dff67087277de22978df54015"
+protocols = "6a67c462b8e9ddbe1749aeb092768c2236e0a2e7"
+scheduler = "385c821b788d99caecc86de200ecd947239d44d9"
+secrets = "df10cf55f12f9e065045e01bea8527a351d9070d"
+services = "3d28b904be442490b1d20a6a16adb68cd052eb84"
+session = "86134292cbdb5b391279c267304a50c7379f67a8"
+tool = "93c51a4ba8a50a378345fffb3c13f1a17efbc54a"
+trace = "596dd058036578586afbf08ed8593cbb6d6e9c47"
+transport = "cdfa11422421c719b2b042184b06329e554f7950"
+verify = "8a982cda977ad05246178cde6b7a489092a511b4"
+worker = "66ca59ba577f4035414c831603e811119d138ff7"
+write-safety = "59cda6e188b752bcd8c43740c2df38de78efcc05"
