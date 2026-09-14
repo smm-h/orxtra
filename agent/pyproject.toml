@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "orxtra-compose",
     "pydantic>=2",
-    "strictspec>=0.1.0",
+    "strictspec>=0.2.1",
 ]
 keywords = ["rlsbl"]
 
