@@ -64,7 +64,7 @@
   ],
   "docs": "docs/",
   "output": "docs/_build/",
-  "base_url": "https://orxtra.smmh.dev",
+  "base_url": "https://smmh.dev/orxtra",
   "repo": "https://github.com/smm-h/orxtra",
   "description": "a Python framework for AI agent orchestration that runs every unit of work as a nested task with entry and exit checks, a USD budget ceiling, and a PostgreSQL event trace",
   "root_files": [
