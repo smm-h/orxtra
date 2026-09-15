@@ -62,14 +62,14 @@
       "default": true
     }
   ],
-  "docs": "docs/",
-  "output": "docs/_build/",
+  "docs": ".stricttools/docs/",
+  "output": ".stricttools/docs-cache/build/",
   "base_url": "https://smmh.dev/orxtra",
   "repo": "https://github.com/smm-h/orxtra",
   "description": "Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.",
   "root_files": [
-    "docs/_CLAUDE.md",
-    "docs/_README.md"
+    ".stricttools/docs/_CLAUDE.md",
+    ".stricttools/docs/_README.md"
   ],
   "directives": {
     "rlsbl-version": "scripts/selfdoc_version.py",
