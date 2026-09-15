@@ -36,8 +36,8 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── .gitignore
 ├── .rlsbl-monorepo/
 ├── .ruff_cache/
-├── .selfdoc/
 ├── .strictcli/
+├── .stricttools/
 ├── .venv/
 ├── CHANGELOG.md
 ├── CLAUDE.md
@@ -54,13 +54,13 @@ Foundation modules have zero intra-workspace dependencies and expose stable inte
 ├── conftest.py
 ├── dispatch/
 ├── dist/
-├── .stricttools/docs/
 ├── examples/
 ├── hatch_build.py
 ├── identity/
 ├── incoming/
 ├── knowledge/
 ├── mcp/
+├── move-to-stricttools.log.local-only
 ├── notepad/
 ├── notification/
 ├── npm/
