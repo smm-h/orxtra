@@ -4,7 +4,7 @@
 
 [project]
 name = "orxtra"
-version = "0.14.2"
+version = "0.14.3"
 license = "BUSL-1.1"
 description = "Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc."
 readme = "README.md"

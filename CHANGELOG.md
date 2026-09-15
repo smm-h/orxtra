@@ -2,6 +2,14 @@
 
 # orxtra
 
+## 0.14.3
+
+The tool describes itself with one sentence everywhere, and its documentation moved onto selfdoc's .stricttools/ layout.
+
+### Fixes
+
+- [cli, root] **The tool describes itself with one sentence everywhere, including `--help`.** The `--help` header, README, docs site and PyPI metadata now carry the same line.
+
 ## 0.14.2
 
 Documentation frontmatter converted to TOML for the current selfdoc; no user-facing change.

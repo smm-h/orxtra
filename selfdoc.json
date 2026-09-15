@@ -1,5 +1,5 @@
 {
-  "version": "0.14.2",
+  "version": "0.14.3",
   "source": [
     {
       "path": "trace/src/orxtra/trace/",
@@ -52,7 +52,7 @@
   ],
   "versions": [
     {
-      "version": "0.14.2"
+      "version": "0.14.3"
     }
   ],
   "locales": [
