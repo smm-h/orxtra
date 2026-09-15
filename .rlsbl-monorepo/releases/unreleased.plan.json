@@ -1,0 +1,12 @@
+{
+  "items": [
+    {
+      "base_version": "0.14.2",
+      "bump": "patch",
+      "name": "orxtra",
+      "registry": "pypi",
+      "tag": "orxtra@v0.14.3",
+      "target_version": "0.14.3"
+    }
+  ]
+}
