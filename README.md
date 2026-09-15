@@ -6,7 +6,7 @@
 ![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![BUSL-1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg)
 
-orxtra is a Python framework for AI agent orchestration that runs every unit of work as a nested task with entry and exit checks, a USD budget ceiling, and a PostgreSQL event trace. It is built for developers and for the agents themselves, who drive it through a CLI, an MCP server, or the Python API. Verification is structural rather than advisory: no tool call can happen outside a task, and a failed exit check sends the task back to the agent instead of sending its result on to the caller.
+Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.
 
 ## The problem
 

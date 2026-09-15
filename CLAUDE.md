@@ -2,12 +2,12 @@
 
 # orxtra
 
-Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
+Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.
 
 ## Status
 
 Active implementation. Monorepo with 28 sub-projects across five layers, implemented across 170+ source modules and 210+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
-Current version: 0.14.1.
+Current version: 0.14.2.
 
 ## Philosophy
 
