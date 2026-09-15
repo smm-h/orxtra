@@ -1,6 +1,6 @@
 # orxtra
 
-Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't.
+Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.
 
 ## Status
 

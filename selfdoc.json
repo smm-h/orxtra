@@ -66,7 +66,7 @@
   "output": "docs/_build/",
   "base_url": "https://smmh.dev/orxtra",
   "repo": "https://github.com/smm-h/orxtra",
-  "description": "a Python framework for AI agent orchestration that runs every unit of work as a nested task with entry and exit checks, a USD budget ceiling, and a PostgreSQL event trace",
+  "description": "Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.",
   "root_files": [
     "docs/_CLAUDE.md",
     "docs/_README.md"

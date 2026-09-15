@@ -1,12 +1,14 @@
 +++
 title = "orxtra"
-description = "Autonomous multi-agent AI workflows. Complexity if you need it, simplicity if you don't."
+description = "Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc."
 date = 2026-06-16
 +++
 
 # orxtra
 
-Autonomous multi-agent AI workflows with structured control flow. Every piece of work is a task with explicit boundaries, entry conditions (pre-checks), and exit conditions (post-checks). Tasks nest recursively. Failure propagates up the hierarchy.
+Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.
+
+Every piece of work is a task with explicit boundaries, entry conditions (pre-checks), and exit conditions (post-checks). Tasks nest recursively. Failure propagates up the hierarchy.
 
 ## CLI Reference
 
