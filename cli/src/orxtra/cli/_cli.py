@@ -132,7 +132,11 @@ def _dispatch_no_pool(
 
 app = strictcli.App(
     name="orxtra",
-    help="Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.",
+    help=(
+        "Structured Orchestration of AI agents as a tree of tasks, against "
+        "spaghetti vibe-coding -- Task preconditions and postconditions, "
+        "spend tracking and limits, event logging, etc."
+    ),
     version=importlib.metadata.version("orxtra"),
     flags=[
         strictcli.Flag(
