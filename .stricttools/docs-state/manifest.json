@@ -2,7 +2,7 @@
   "schema_version": 1,
   "name": "orxtra",
   "slug": "orxtra",
-  "version": "0.14.2",
+  "version": "0.14.3",
   "description": "Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe-coding -- Task preconditions and postconditions, spend tracking and limits, event logging, etc.",
   "language": "python",
   "base_url": "https://smmh.dev/orxtra",
@@ -14141,6 +14141,6 @@
     }
   ],
   "posts": [],
-  "last_gen": "2026-09-15T20:49:17.194143+00:00",
+  "last_gen": "2026-09-15T23:23:38.064402+00:00",
   "theme": "minimal"
 }

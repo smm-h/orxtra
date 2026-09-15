@@ -7,7 +7,7 @@ Structured Orchestration of AI agents as a tree of tasks, against spaghetti vibe
 ## Status
 
 Active implementation. Monorepo with 28 sub-projects across five layers, implemented across 170+ source modules and 210+ test files. Foundation, orchestration, intelligence, and composition layers are functional; production PG integration and end-to-end hardening in progress.
-Current version: 0.14.2.
+Current version: 0.14.3.
 
 ## Philosophy
 
