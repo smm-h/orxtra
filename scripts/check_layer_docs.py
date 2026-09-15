@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check that the architecture layer table in docs/_CLAUDE.md matches workspace.toml.
+"""Check that the architecture layer table in .stricttools/docs/_CLAUDE.md matches workspace.toml.
 
 Parses the Markdown table from the template and compares it against the
 authoritative [layers.assignments] in .rlsbl-monorepo/workspace.toml.
@@ -25,7 +25,7 @@ def _parse_workspace_layers(workspace_path: Path) -> dict[str, set[str]]:
 
 
 def _parse_template_layers(template_path: Path) -> dict[str, set[str]]:
-    """Parse the architecture layer table from docs/_CLAUDE.md.
+    """Parse the architecture layer table from .stricttools/docs/_CLAUDE.md.
 
     Expects a Markdown table with columns: Layer | Sub-projects | Dependencies
     Extracts project names from Markdown links like [name](path/).
@@ -83,7 +83,7 @@ def _parse_template_layers(template_path: Path) -> dict[str, set[str]]:
 def main() -> int:
     repo_root = Path()
     workspace_path = repo_root / ".rlsbl-monorepo" / "workspace.toml"
-    template_path = repo_root / "docs" / "_CLAUDE.md"
+    template_path = repo_root / ".stricttools" / "docs" / "_CLAUDE.md"
 
     if not workspace_path.is_file():
         print(f"ERROR: {workspace_path} not found", file=sys.stderr)
@@ -105,11 +105,11 @@ def main() -> int:
     extra_layers = tpl_layer_names - ws_layer_names
 
     errors.extend(
-        f"Layer '{layer}' exists in workspace.toml but is missing from docs/_CLAUDE.md"
+        f"Layer '{layer}' exists in workspace.toml but is missing from .stricttools/docs/_CLAUDE.md"
         for layer in sorted(missing_layers)
     )
     errors.extend(
-        f"Layer '{layer}' exists in docs/_CLAUDE.md but is missing from workspace.toml"
+        f"Layer '{layer}' exists in .stricttools/docs/_CLAUDE.md but is missing from workspace.toml"
         for layer in sorted(extra_layers)
     )
 
@@ -123,11 +123,11 @@ def main() -> int:
 
         errors.extend(
             f"Layer '{layer}': project '{proj}' is in workspace.toml "
-            f"but missing from docs/_CLAUDE.md"
+            f"but missing from .stricttools/docs/_CLAUDE.md"
             for proj in sorted(missing_projects)
         )
         errors.extend(
-            f"Layer '{layer}': project '{proj}' is in docs/_CLAUDE.md "
+            f"Layer '{layer}': project '{proj}' is in .stricttools/docs/_CLAUDE.md "
             f"but missing from workspace.toml"
             for proj in sorted(extra_projects)
         )
